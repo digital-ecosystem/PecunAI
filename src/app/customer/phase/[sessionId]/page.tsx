@@ -6,15 +6,69 @@ import { Question, UserUpdate } from '@/types';
 import { generatePDF } from '@/utils/pdfGenerator';
 import { useParams, useRouter } from 'next/navigation';
 import { SessionStatus } from '@/generated/prisma';
+import dynamic from 'next/dynamic';
+// import Chatbot from './chatbot';
+
+// Dynamic import to ensure client-side rendering
+const Chatbot = dynamic(() => import('./chatbot'), {
+    ssr: false,
+    loading: () => <div className="animate-pulse">Loading chatbot...</div>
+})
+
+
+const defaultProduct = [{
+    id: "standard-nda-pack",
+    name: "Standard NDA Document Package",
+    description: "A ready-to-use Non-Disclosure Agreement template suitable for common business needs.",
+    price: 49.99,
+    originalPrice: 79.99,
+    image: "https://www.dial4trade.com/uploaded_files/product_images/thumbs/legal-document-preparation-u-1280498227482200506.png",
+    features: [
+        "Lawyer-reviewed NDA template",
+        "Support for up to two signers",
+        "Editable clauses",
+        "Delivery within 2–3 days",
+    ],
+    badge: "Best Value"
+}, {
+    id: "rapid-nda-ai-assist",
+    name: "Express NDA with AI Clause Suggestions",
+    description: "Get your NDA delivered fast with smart AI clause suggestions and customization support.",
+    price: 99.99,
+    originalPrice: 149.99,
+    image: "https://www.dial4trade.com/uploaded_files/product_images/thumbs/legal-document-preparation-u-1280498227482200506.png",
+    features: [
+        "Fast delivery within 24 hours",
+        "AI clause suggestions engine",
+        "Editable NDA with custom fields",
+        "Supports up to three signers"
+    ],
+    badge: "Fastest Delivery"
+}, {
+    id: "premium-contract-builder",
+    name: "Premium Contract Builder",
+    description: "Fully customized legal contract prepared by our expert legal team, with top-tier support and fast turnaround.",
+    price: 299.99,
+    originalPrice: 499.99,
+    image: "https://www.dial4trade.com/uploaded_files/product_images/thumbs/legal-document-preparation-u-1280498227482200506.png",
+    features: [
+        "Highly customized contract drafting",
+        "Multi-party signature coordination (up to 5 parties)",
+        "Expert legal review included",
+        "Priority customer support",
+        "Delivery in 24–48 hours"
+    ],
+    badge: "Most Popular"
+}];
 
 const Phase = () => {
     const params = useParams();
     const sessionId = params?.sessionId as string;
-    console.log("🚀 ~ Phase ~ sessionId:", sessionId)
     const [questions, setQuestions] = useState<Question[]>([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [showPhase2, setShowPhase2] = useState(false);
+    const [showPhase, setShowPhase] = useState(false);
     const [loading, setLoading] = useState(true);
     const [userInfo, setUserInfo] = useState<UserUpdate>({
         first_name: '',
@@ -26,10 +80,10 @@ const Phase = () => {
     const [pdfPath, setPdfPath] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [qaSessionStatus, setQaSessionStatus] = useState<string | null>(SessionStatus.DRAFT);
-
-    useEffect(() => {
-        console.log(" qaSessionStatus : ", qaSessionStatus)
-    }, [qaSessionStatus]);
+    const [showConfirmationModal, setShowConfirmationModal] = useState<boolean>(false);
+    const [isAnimating, setIsAnimating] = useState<boolean>(false);
+    const displayProduct = defaultProduct[0];
+    const [threadId, setThreadId] = useState(null);
 
     // Mock data for demonstration - replace with your API call
     useEffect(() => {
@@ -84,6 +138,26 @@ const Phase = () => {
         fetchUserInfo();
     }, []);
 
+    useEffect(() => {
+        if (showConfirmationModal) {
+            setIsAnimating(true);
+            document.body.style.overflow = 'hidden';
+        } else {
+            setIsAnimating(false);
+            document.body.style.overflow = 'unset';
+        }
+
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [showConfirmationModal]);
+
+    useEffect(() => {
+        if (showPhase) {
+
+        }
+    }, [showPhase])
+
     const handleOptionSelect = async (questionId: string, optionValue: string) => {
         const newAnswers = { ...answers, [questionId]: optionValue };
         setAnswers(newAnswers);
@@ -110,7 +184,7 @@ const Phase = () => {
                 setCurrentQuestionIndex(prev => prev + 1);
             } else {
                 // All questions completed, move to Phase 2
-                setShowPhase2(true);
+                // setShowPhase2(true);
             }
         }, 300);
     };
@@ -125,7 +199,8 @@ const Phase = () => {
         if (currentQuestionIndex < questions.length - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
         } else {
-            setShowPhase2(true);
+            // setShowPhase2(true);
+            setShowConfirmationModal(true);
         }
     };
 
@@ -157,6 +232,7 @@ const Phase = () => {
             return;
         }
 
+        setLoading(true);
         // update user info
         try {
             await fetch('/api/user/update?id=' + sessionId, {
@@ -196,9 +272,46 @@ const Phase = () => {
 
         } catch (error) {
             console.error('Error updating user info:', error);
+        } finally {
+            setLoading(false);
         }
 
     }
+
+    const handleYes = () => {
+        // setShowPhase(true);
+        setLoading(true);
+        threadCreate();
+        handleNo();
+    };
+
+    const handleNo = () => {
+        setShowConfirmationModal(false);
+    };
+
+    const threadCreate = async () => {
+        setLoading(true)
+        try {
+            const res = await fetch('/api/phase/chat/thread', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ qaSessionId: sessionId })
+            })
+
+            const data = await res.json()
+            if (data?.success) {
+                setThreadId(data?.session.id)
+                setShowPhase(true);
+            } else {
+                // handle error
+            }
+        } catch (error) {
+            console.log("🚀 ~ threadCreate ~ error:", error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
 
     if (loading) {
         return (
@@ -328,7 +441,10 @@ const Phase = () => {
 
                         <div className="flex space-x-4 pt-4">
                             <button
-                                onClick={() => setShowPhase2(false)}
+                                onClick={() => {
+                                    handleYes()
+                                    setShowPhase2(false)
+                                }}
                                 className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                             >
                                 Back to Chat
@@ -341,6 +457,166 @@ const Phase = () => {
                 </div>
             </div>
         );
+    }
+
+    if (showConfirmationModal) {
+        return (
+            <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div
+                    className={`bg-white rounded-2xl shadow-2xl max-w-lg w-full transform transition-all duration-300 max-h-[90vh] overflow-y-auto ${isAnimating ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+                        }`}
+                >
+                    {/* Close Button */}
+                    <button
+                        onClick={handleNo}
+                        className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-full p-1 shadow-sm"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+
+
+                    {/* Product Image */}
+                    <div className="relative">
+                        <img
+                            src={displayProduct.image}
+                            alt={displayProduct.name}
+                            className="w-full h-48 object-cover rounded-t-2xl"
+                        />
+                        {displayProduct.badge && (
+                            <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                                {displayProduct.badge}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-6">
+                        {/* Header */}
+                        <div className="text-center mb-6">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">{'Upgrade Your Analytics'}</h2>
+                            {/* <p className="text-gray-600">{'Would you like to unlock advanced analytics features?'}</p> */}
+                        </div>
+
+                        {/* Product Info */}
+                        <div className="mb-6">
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex-1">
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                                        {displayProduct.name}
+                                    </h3>
+                                    <p className="text-gray-600 text-sm leading-relaxed">
+                                        {displayProduct.description}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Pricing */}
+                            <div className="flex items-center mb-6">
+                                <div className="flex items-baseline space-x-2">
+                                    <span className="text-3xl font-bold text-blue-600">
+                                        ${displayProduct.price}
+                                    </span>
+                                    {displayProduct.originalPrice && (
+                                        <span className="text-lg text-gray-500 line-through">
+                                            ${displayProduct.originalPrice}
+                                        </span>
+                                    )}
+                                </div>
+                                {displayProduct.originalPrice && (
+                                    <div className="ml-3 bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-medium">
+                                        Save ${(displayProduct.originalPrice - displayProduct.price).toFixed(2)}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Features */}
+                            <div className="bg-gray-50 rounded-xl p-4">
+                                <h4 className="font-semibold text-gray-900 mb-3">Whats Included:</h4>
+                                <div className="space-y-2">
+                                    {displayProduct.features.map((feature, index) => (
+                                        <div key={index} className="flex items-center space-x-3">
+                                            <div className="flex-shrink-0">
+                                                <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                            <span className="text-gray-700 text-sm">{feature}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="space-y-3">
+                            <button
+                                onClick={handleYes}
+                                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-2"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span>Yes</span>
+                            </button>
+
+                            <button
+                                onClick={handleNo}
+                                className="w-full border-2 border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center justify-center space-x-2"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                <span>Back</span>
+                            </button>
+                        </div>
+
+                        {/* Trust Indicators */}
+                        {/* <div className="mt-6 pt-4 border-t border-gray-200">
+                            <div className="flex items-center justify-center space-x-6 text-sm text-gray-500">
+                                <div className="flex items-center space-x-1">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    <span>Secure Payment</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>30-Day Guarantee</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    <span>Instant Access</span>
+                                </div>
+                            </div>
+                        </div> */}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (showPhase && threadId && sessionId) {
+        return <Chatbot
+            onBackToChat={() => { setShowPhase(false) }}
+            onNext={() => {
+                setShowPhase2(true)
+                setShowPhase(false)
+            }}
+            sessionId={sessionId}
+            threadId={threadId}
+            product={
+                {
+                    name: displayProduct.name,
+                    description: displayProduct.description
+                }
+            }
+        />
     }
 
     const currentQuestion = questions[currentQuestionIndex];
@@ -390,16 +666,16 @@ const Phase = () => {
                                     key={option.id}
                                     onClick={() => handleOptionSelect(currentQuestion.id, option.value)}
                                     className={`w-full p-4 text-left border-2 rounded-lg transition-all duration-200 hover:border-blue-500 hover:bg-blue-50 ${answers?.[currentQuestion.id] === option.value
-                                            ? 'border-blue-500 bg-blue-50 text-blue-900'
-                                            : 'border-gray-200 text-gray-700'
+                                        ? 'border-blue-500 bg-blue-50 text-blue-900'
+                                        : 'border-gray-200 text-gray-700'
                                         } ${qaSessionStatus !== SessionStatus.DRAFT ? 'cursor-not-allowed opacity-50' : ''}`}
                                     disabled={qaSessionStatus !== SessionStatus.DRAFT} // ✅ Disable if not in draft
                                 >
                                     <div className="flex items-center">
                                         <div
                                             className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${answers[currentQuestion.id] === option.value
-                                                    ? 'border-blue-500 bg-blue-500'
-                                                    : 'border-gray-300'
+                                                ? 'border-blue-500 bg-blue-500'
+                                                : 'border-gray-300'
                                                 }`}
                                         >
                                             {answers[currentQuestion.id] === option.value && (

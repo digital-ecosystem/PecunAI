@@ -58,3 +58,8 @@ export interface DashboardQuestions {
     label: string
     value: string
   }
+
+ export enum Role {
+  customer = 'customer',
+  assistant = 'assistant'
+}
