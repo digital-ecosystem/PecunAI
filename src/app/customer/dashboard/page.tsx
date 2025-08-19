@@ -330,7 +330,7 @@ const Dashboard = () => {
                                                         </div>
                                                         <div className="ml-4">
                                                             <div className="text-sm font-medium text-gray-900">
-                                                                {session.user.name}
+                                                                {session?.personalInfo?.firstName} {session?.personalInfo?.lastName}
                                                             </div>
                                                             <div className="text-sm text-gray-500 max-w-xs truncate">
                                                                 {session.user.email}

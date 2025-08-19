@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Question, UserUpdate } from '@/types';
+import { Product, Question, UserUpdate } from '@/types';
 import { generatePDF } from '@/utils/pdfGenerator';
 import { useParams, useRouter } from 'next/navigation';
 import { SessionStatus } from '@/generated/prisma';
@@ -16,50 +16,50 @@ const Chatbot = dynamic(() => import('./chatbot'), {
 })
 
 
-const defaultProduct = [{
-    id: "standard-nda-pack",
-    name: "Standard NDA Document Package",
-    description: "A ready-to-use Non-Disclosure Agreement template suitable for common business needs.",
-    price: 49.99,
-    originalPrice: 79.99,
-    image: "https://www.dial4trade.com/uploaded_files/product_images/thumbs/legal-document-preparation-u-1280498227482200506.png",
-    features: [
-        "Lawyer-reviewed NDA template",
-        "Support for up to two signers",
-        "Editable clauses",
-        "Delivery within 2–3 days",
-    ],
-    badge: "Best Value"
-}, {
-    id: "rapid-nda-ai-assist",
-    name: "Express NDA with AI Clause Suggestions",
-    description: "Get your NDA delivered fast with smart AI clause suggestions and customization support.",
-    price: 99.99,
-    originalPrice: 149.99,
-    image: "https://www.dial4trade.com/uploaded_files/product_images/thumbs/legal-document-preparation-u-1280498227482200506.png",
-    features: [
-        "Fast delivery within 24 hours",
-        "AI clause suggestions engine",
-        "Editable NDA with custom fields",
-        "Supports up to three signers"
-    ],
-    badge: "Fastest Delivery"
-}, {
-    id: "premium-contract-builder",
-    name: "Premium Contract Builder",
-    description: "Fully customized legal contract prepared by our expert legal team, with top-tier support and fast turnaround.",
-    price: 299.99,
-    originalPrice: 499.99,
-    image: "https://www.dial4trade.com/uploaded_files/product_images/thumbs/legal-document-preparation-u-1280498227482200506.png",
-    features: [
-        "Highly customized contract drafting",
-        "Multi-party signature coordination (up to 5 parties)",
-        "Expert legal review included",
-        "Priority customer support",
-        "Delivery in 24–48 hours"
-    ],
-    badge: "Most Popular"
-}];
+// const defaultProduct = [{
+//     id: "standard-nda-pack",
+//     name: "Standard NDA Document Package",
+//     description: "A ready-to-use Non-Disclosure Agreement template suitable for common business needs.",
+//     price: 49.99,
+//     originalPrice: 79.99,
+//     image: "https://www.dial4trade.com/uploaded_files/product_images/thumbs/legal-document-preparation-u-1280498227482200506.png",
+//     features: [
+//         "Lawyer-reviewed NDA template",
+//         "Support for up to two signers",
+//         "Editable clauses",
+//         "Delivery within 2–3 days",
+//     ],
+//     badge: "Best Value"
+// }, {
+//     id: "rapid-nda-ai-assist",
+//     name: "Express NDA with AI Clause Suggestions",
+//     description: "Get your NDA delivered fast with smart AI clause suggestions and customization support.",
+//     price: 99.99,
+//     originalPrice: 149.99,
+//     image: "https://www.dial4trade.com/uploaded_files/product_images/thumbs/legal-document-preparation-u-1280498227482200506.png",
+//     features: [
+//         "Fast delivery within 24 hours",
+//         "AI clause suggestions engine",
+//         "Editable NDA with custom fields",
+//         "Supports up to three signers"
+//     ],
+//     badge: "Fastest Delivery"
+// }, {
+//     id: "premium-contract-builder",
+//     name: "Premium Contract Builder",
+//     description: "Fully customized legal contract prepared by our expert legal team, with top-tier support and fast turnaround.",
+//     price: 299.99,
+//     originalPrice: 499.99,
+//     image: "https://www.dial4trade.com/uploaded_files/product_images/thumbs/legal-document-preparation-u-1280498227482200506.png",
+//     features: [
+//         "Highly customized contract drafting",
+//         "Multi-party signature coordination (up to 5 parties)",
+//         "Expert legal review included",
+//         "Priority customer support",
+//         "Delivery in 24–48 hours"
+//     ],
+//     badge: "Most Popular"
+// }];
 
 const Phase = () => {
     const params = useParams();
@@ -82,7 +82,8 @@ const Phase = () => {
     const [qaSessionStatus, setQaSessionStatus] = useState<string | null>(SessionStatus.DRAFT);
     const [showConfirmationModal, setShowConfirmationModal] = useState<boolean>(false);
     const [isAnimating, setIsAnimating] = useState<boolean>(false);
-    const displayProduct = defaultProduct[0];
+    // const displayProduct = defaultProduct[0];
+    const [displayProduct, setDisplayProduct] = useState<Product>();
     const [threadId, setThreadId] = useState(null);
 
     // Mock data for demonstration - replace with your API call
@@ -152,11 +153,29 @@ const Phase = () => {
         };
     }, [showConfirmationModal]);
 
-    useEffect(() => {
-        if (showPhase) {
-
+    const fetchProduct = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch('/api/phase/product/', {
+                method: 'GET',
+            });
+            const data = await response.json();
+            if (data?.success) {
+                setDisplayProduct(data?.product);
+                setTimeout(() => {
+                    setShowConfirmationModal(true);
+                }, 1000);
+            } else {
+                console.error('Error fetching user info:', data.message);
+            }
+        } catch (error) {
+            console.error('Error fetching user info:', error);
+        } finally {
+            setTimeout(() => {
+                setLoading(false);
+            }, 1500);
         }
-    }, [showPhase])
+    }
 
     const handleOptionSelect = async (questionId: string, optionValue: string) => {
         const newAnswers = { ...answers, [questionId]: optionValue };
@@ -199,8 +218,8 @@ const Phase = () => {
         if (currentQuestionIndex < questions.length - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
         } else {
-            // setShowPhase2(true);
-            setShowConfirmationModal(true);
+            fetchProduct();
+            // setShowConfirmationModal(true);
         }
     };
 
@@ -318,7 +337,7 @@ const Phase = () => {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading questions...</p>
+                    <p className="text-gray-600">Loading...</p>
                 </div>
             </div>
         );
@@ -479,41 +498,40 @@ const Phase = () => {
 
                     {/* Product Image */}
                     <div className="relative">
-                        <img
+                        {/* <img
                             src={displayProduct.image}
                             alt={displayProduct.name}
                             className="w-full h-48 object-cover rounded-t-2xl"
-                        />
-                        {displayProduct.badge && (
+                        /> */}
+                        {/* {displayProduct.badge && (
                             <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                                 {displayProduct.badge}
                             </div>
-                        )}
+                        )} */}
                     </div>
 
                     {/* Content */}
                     <div className="p-6">
                         {/* Header */}
-                        <div className="text-center mb-6">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">{'Upgrade Your Analytics'}</h2>
-                            {/* <p className="text-gray-600">{'Would you like to unlock advanced analytics features?'}</p> */}
-                        </div>
+                        {/* <div className="text-center mb-6">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">{displayProduct?.name} ({displayProduct?.shortName})</h2>
+                        </div> */}
 
                         {/* Product Info */}
                         <div className="mb-6">
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex-1">
                                     <h3 className="text-xl font-bold text-gray-900 mb-2">
-                                        {displayProduct.name}
+                                        {displayProduct?.name} ({displayProduct?.shortName})
                                     </h3>
                                     <p className="text-gray-600 text-sm leading-relaxed">
-                                        {displayProduct.description}
+                                        {displayProduct?.description}
                                     </p>
                                 </div>
                             </div>
 
                             {/* Pricing */}
-                            <div className="flex items-center mb-6">
+                            {/* <div className="flex items-center mb-6">
                                 <div className="flex items-baseline space-x-2">
                                     <span className="text-3xl font-bold text-blue-600">
                                         ${displayProduct.price}
@@ -529,13 +547,13 @@ const Phase = () => {
                                         Save ${(displayProduct.originalPrice - displayProduct.price).toFixed(2)}
                                     </div>
                                 )}
-                            </div>
+                            </div> */}
 
                             {/* Features */}
                             <div className="bg-gray-50 rounded-xl p-4">
                                 <h4 className="font-semibold text-gray-900 mb-3">Whats Included:</h4>
                                 <div className="space-y-2">
-                                    {displayProduct.features.map((feature, index) => (
+                                    {displayProduct?.keyFeatures.map((feature, index) => (
                                         <div key={index} className="flex items-center space-x-3">
                                             <div className="flex-shrink-0">
                                                 <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -612,8 +630,8 @@ const Phase = () => {
             threadId={threadId}
             product={
                 {
-                    name: displayProduct.name,
-                    description: displayProduct.description
+                    name: displayProduct?.name,
+                    description: displayProduct?.description
                 }
             }
         />

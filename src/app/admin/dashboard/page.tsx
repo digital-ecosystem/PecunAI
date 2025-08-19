@@ -300,7 +300,7 @@ const Dashboard = () => {
                                                     <FileText className="w-4 h-4 text-blue-600" />
                                                 </div>
                                                 <div>
-                                                    <div className="text-sm font-medium text-gray-900">{session.user.name}</div>
+                                                    <div className="text-sm font-medium text-gray-900">{session?.personalInfo?.firstName} {session?.personalInfo?.lastName}</div>
                                                     <div className="text-sm text-gray-500">{session.user.email}</div>
                                                 </div>
                                             </div>
@@ -347,7 +347,7 @@ const Dashboard = () => {
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <h2 className="text-xl font-bold text-gray-900">Session Details</h2>
-                                        <p className="text-sm text-gray-600">Session ID: #{selectedSession.id}</p>
+                                        <p className="text-sm text-gray-600">Session ID: #{selectedSession?.personalInfo?.qaSessionId}</p>
                                     </div>
                                     <button
                                         onClick={closeDrawer}
@@ -366,16 +366,16 @@ const Dashboard = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-600">Name</label>
-                                            <p className="text-sm text-gray-900">{selectedSession.user?.name || ''}</p>
+                                            <p className="text-sm text-gray-900">{selectedSession?.personalInfo?.firstName && selectedSession?.personalInfo?.lastName ? selectedSession?.personalInfo?.firstName + ' ' + selectedSession?.personalInfo?.lastName : ''}</p>
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-600">Email</label>
                                             <p className="text-sm text-gray-900">{selectedSession.user.email || ''}</p>
                                         </div>
-                                        <div>
+                                        {/* <div>
                                             <label className="block text-sm font-medium text-gray-600">Duration</label>
                                             <p className="text-sm text-gray-900">{formatDate(selectedSession.expiresAt)}</p>
-                                        </div>
+                                        </div> */}
                                     </div>
                                 </div>
 
@@ -397,18 +397,22 @@ const Dashboard = () => {
                                 </div>
 
                                 {/* Download the session PDF */}
-                                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Download Session PDF</h3>
-                                    <button
-                                        // onClick={() => router.push(`/customer/phase/${selectedSession.id}/pdf`)}
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                                    >
-                                        <a href={`/documents/session-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                                            <FileText className="w-4 h-4 mr-2" />
-                                            Download PDF
-                                        </a>
-                                    </button>
-                                </div>
+                                {
+                                    selectedSession.status != SessionStatus.DRAFT && (
+                                        <div className="bg-white border border-gray-200 rounded-lg p-4">
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-3">Download Session PDF</h3>
+                                            <button
+                                                // onClick={() => router.push(`/customer/phase/${selectedSession.id}/pdf`)}
+                                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                                            >
+                                                <a href={`/documents/session-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                                                    <FileText className="w-4 h-4 mr-2" />
+                                                    Download PDF
+                                                </a>
+                                            </button>
+                                        </div>
+                                    )
+                                }
 
                                 {/* Action Buttons */}
                                 {selectedSession.status === SessionStatus.PENDING &&

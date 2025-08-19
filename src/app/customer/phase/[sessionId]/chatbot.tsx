@@ -19,8 +19,8 @@ interface ChatbotProps {
   showBackButton?: boolean
   showNextButton?: boolean
   product?: {
-    name: string
-    description: string
+    name?: string
+    description?: string
   }
 }
 

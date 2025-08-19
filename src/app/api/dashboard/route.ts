@@ -19,8 +19,8 @@ export async function GET() {
 
     const sessions = await prisma.qASession.findMany({
       where: { userId: user.id },
-      include: { user: true },
-      orderBy: { id: "asc" }
+      include: { user: true, personalInfo: true },
+      orderBy: { createdAt: "desc" }
     });
 
     return NextResponse.json({ success: true, sessions });

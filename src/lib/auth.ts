@@ -56,6 +56,7 @@ export class AuthService {
     const now = new Date();
 
     const existingOTP = await prisma.oTP.findUnique({ where: { email } });
+    console.log("🚀 ~ AuthService ~ createOTP ~ existingOTP:", existingOTP)
 
     // ✅ If user is blocked, but block has expired → reset the fields
     if (existingOTP?.blockedUntil && existingOTP.blockedUntil <= now) {
@@ -69,6 +70,7 @@ export class AuthService {
     }
 
     const resendCount = existingOTP?.resendCount ?? 0;
+    console.log("🚀 ~ AuthService ~ createOTP ~ resendCount:", resendCount)
 
     // 🚫 If resend limit reached, block
     if (resendCount >= 3) {

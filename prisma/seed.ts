@@ -65,6 +65,49 @@ async function main() {
     });
   }
 
+   // Delete all existing products before seeding (optional)
+  await prisma.product.deleteMany();
+
+  // Insert products
+  await prisma.product.createMany({
+    data: [
+      {
+        name: "High-Yield Savings Account",
+        shortName: "HYSA",
+        description: "A savings account with higher-than-average interest rates to help grow your money faster.",
+        keyFeatures: [
+          "Interest rates significantly higher than standard savings accounts",
+          "No monthly maintenance fees",
+          "FDIC insured up to $250,000",
+          "Online and mobile banking access"
+        ],
+      },
+      {
+        name: "Fixed-Rate Bond",
+        shortName: "FRB",
+        description: "An investment product offering a fixed rate of return for a specified term.",
+        keyFeatures: [
+          "Guaranteed fixed interest rate",
+          "Flexible investment terms (1, 3, 5 years)",
+          "Low minimum investment",
+          "Predictable income stream"
+        ],
+      },
+      {
+        name: "Premium Checking Account",
+        shortName: "PCA",
+        description: "A checking account with premium benefits for frequent transactions.",
+        keyFeatures: [
+          "Unlimited transactions",
+          "Free ATM withdrawals nationwide",
+          "Priority customer support",
+          "Monthly cashback rewards"
+        ],
+      }
+    ],
+  });
+
+
   console.log('✅ Seed complete!');
 }
 

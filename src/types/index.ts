@@ -6,9 +6,16 @@ export interface Session {
     expiresAt: string
     createdAt: string
     updatedAt: string
-    user: User
+    user: User,
+    personalInfo: PersonalInfo
 }
 
+export interface PersonalInfo {
+    firstName: string
+    lastName: string
+    age: number
+    qaSessionId: string
+}
 export interface User {
     id: string
     email: string
@@ -62,4 +69,14 @@ export interface DashboardQuestions {
  export enum Role {
   customer = 'customer',
   assistant = 'assistant'
+}
+
+export interface Product {
+  id: string
+  name: string
+  shortName: string
+  description: string
+  keyFeatures: string[]
+  createdAt: string
+  updatedAt: string
 }

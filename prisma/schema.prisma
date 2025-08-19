@@ -268,6 +268,18 @@ model PersonalInfo {
   @@map("personal_info")
 }
 
+model Product {
+  id          String      @id @default(uuid())
+  name        String   // Product name (e.g., "High-Yield Savings Account", "Fixed-Rate Bond")
+  shortName   String?  // Abbreviation (e.g., HYSA)
+  description String   // Main description of the product
+  keyFeatures String[] // List of key features
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("products")
+}
+
 enum SessionStatus {
   DRAFT
   PENDING
