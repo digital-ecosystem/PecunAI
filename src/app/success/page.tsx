@@ -5,7 +5,7 @@ export default function SignatureSuccess() {
       <p className="text-gray-700 text-lg mb-8">
         Thank you! Your signature has been received and recorded.
       </p>
-        <button className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition">Go to Dashboard</button>
+        {/* <button className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition">Go to Dashboard</button> */}
     </div>
   );
 }

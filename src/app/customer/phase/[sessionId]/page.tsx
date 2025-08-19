@@ -15,52 +15,6 @@ const Chatbot = dynamic(() => import('./chatbot'), {
     loading: () => <div className="animate-pulse">Loading chatbot...</div>
 })
 
-
-// const defaultProduct = [{
-//     id: "standard-nda-pack",
-//     name: "Standard NDA Document Package",
-//     description: "A ready-to-use Non-Disclosure Agreement template suitable for common business needs.",
-//     price: 49.99,
-//     originalPrice: 79.99,
-//     image: "https://www.dial4trade.com/uploaded_files/product_images/thumbs/legal-document-preparation-u-1280498227482200506.png",
-//     features: [
-//         "Lawyer-reviewed NDA template",
-//         "Support for up to two signers",
-//         "Editable clauses",
-//         "Delivery within 2–3 days",
-//     ],
-//     badge: "Best Value"
-// }, {
-//     id: "rapid-nda-ai-assist",
-//     name: "Express NDA with AI Clause Suggestions",
-//     description: "Get your NDA delivered fast with smart AI clause suggestions and customization support.",
-//     price: 99.99,
-//     originalPrice: 149.99,
-//     image: "https://www.dial4trade.com/uploaded_files/product_images/thumbs/legal-document-preparation-u-1280498227482200506.png",
-//     features: [
-//         "Fast delivery within 24 hours",
-//         "AI clause suggestions engine",
-//         "Editable NDA with custom fields",
-//         "Supports up to three signers"
-//     ],
-//     badge: "Fastest Delivery"
-// }, {
-//     id: "premium-contract-builder",
-//     name: "Premium Contract Builder",
-//     description: "Fully customized legal contract prepared by our expert legal team, with top-tier support and fast turnaround.",
-//     price: 299.99,
-//     originalPrice: 499.99,
-//     image: "https://www.dial4trade.com/uploaded_files/product_images/thumbs/legal-document-preparation-u-1280498227482200506.png",
-//     features: [
-//         "Highly customized contract drafting",
-//         "Multi-party signature coordination (up to 5 parties)",
-//         "Expert legal review included",
-//         "Priority customer support",
-//         "Delivery in 24–48 hours"
-//     ],
-//     badge: "Most Popular"
-// }];
-
 const Phase = () => {
     const params = useParams();
     const sessionId = params?.sessionId as string;
