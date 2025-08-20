@@ -346,19 +346,19 @@ const Phase = () => {
                                 className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                                 onClick={async (e) => {
                                     e.preventDefault();
+                                    // 1. Call your API to update user status
+                                    try {
+                                        await fetch('/api/user/update-status', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ sessionId }),
+                                        });
+                                    } catch (err) {
+                                        console.error('Failed to update user status', err);
+                                    }
                                     setShowPhase2(false)
                                     setShowPhase(false)
                                     setShowSignature(true);
-                                    // // 1. Call your API to update user status
-                                    // try {
-                                    //     await fetch('/api/user/update-status', {
-                                    //         method: 'POST',
-                                    //         headers: { 'Content-Type': 'application/json' },
-                                    //         body: JSON.stringify({ sessionId }),
-                                    //     });
-                                    // } catch (err) {
-                                    //     console.error('Failed to update user status', err);
-                                    // }
                                     // // 2. Trigger the download
                                     // const link = document.createElement('a');
                                     // link.href = pdfPath;
