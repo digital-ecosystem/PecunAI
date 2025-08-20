@@ -262,6 +262,7 @@ model PersonalInfo {
   firstName   String
   lastName    String
   age         Int
+  dob         String?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 

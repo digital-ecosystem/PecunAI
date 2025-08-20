@@ -15,6 +15,11 @@ const Chatbot = dynamic(() => import('./chatbot'), {
     loading: () => <div className="animate-pulse">Loading chatbot...</div>
 })
 
+const SignD = dynamic(() => import('./signd/index'), {
+    ssr: false,
+    loading: () => <div className="animate-pulse">Loading ...</div>
+})
+
 const Phase = () => {
     const params = useParams();
     const sessionId = params?.sessionId as string;
@@ -27,7 +32,8 @@ const Phase = () => {
     const [userInfo, setUserInfo] = useState<UserUpdate>({
         first_name: '',
         last_name: '',
-        age: 0
+        age: 0,
+        dob: ''
     });
     // const [sessionId, setSessionId] = useState<string | null>(null);
     const router = useRouter();
@@ -39,6 +45,7 @@ const Phase = () => {
     // const displayProduct = defaultProduct[0];
     const [displayProduct, setDisplayProduct] = useState<Product>();
     const [threadId, setThreadId] = useState(null);
+    const [showSignature, setShowSignature] = useState(false);
 
     // Mock data for demonstration - replace with your API call
     useEffect(() => {
@@ -79,7 +86,8 @@ const Phase = () => {
                         ...prev,
                         first_name: data.user?.firstName || '',
                         last_name: data.user?.lastName || '',
-                        age: data.user?.age || 0
+                        age: data.user?.age || 0,
+                        dob: data.user?.dob || '',
                     } as UserUpdate));
                     setQaSessionStatus(data.user?.qaSession?.status || SessionStatus.DRAFT);
                 } else {
@@ -285,6 +293,19 @@ const Phase = () => {
         }
     }
 
+    const calculateAge = (dob: string) => {
+        const birthDate = new Date(dob);
+        const today = new Date();
+
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--; // hasn’t had birthday yet this year
+        }
+
+        return age;
+    };
 
     if (loading) {
         return (
@@ -297,7 +318,7 @@ const Phase = () => {
         );
     }
 
-    if (pdfPath) {
+    if (pdfPath && !showSignature) {
         return (
             // Display full screen
             <div className="flex flex-col items-center justify-center h-screen w-full">
@@ -325,26 +346,29 @@ const Phase = () => {
                                 className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                                 onClick={async (e) => {
                                     e.preventDefault();
-                                    // 1. Call your API to update user status
-                                    try {
-                                        await fetch('/api/user/update-status', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ sessionId }),
-                                        });
-                                    } catch (err) {
-                                        console.error('Failed to update user status', err);
-                                    }
-                                    // 2. Trigger the download
-                                    const link = document.createElement('a');
-                                    link.href = pdfPath;
-                                    link.download = 'session-' + sessionId + '.pdf';
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
+                                    setShowPhase2(false)
+                                    setShowPhase(false)
+                                    setShowSignature(true);
+                                    // // 1. Call your API to update user status
+                                    // try {
+                                    //     await fetch('/api/user/update-status', {
+                                    //         method: 'POST',
+                                    //         headers: { 'Content-Type': 'application/json' },
+                                    //         body: JSON.stringify({ sessionId }),
+                                    //     });
+                                    // } catch (err) {
+                                    //     console.error('Failed to update user status', err);
+                                    // }
+                                    // // 2. Trigger the download
+                                    // const link = document.createElement('a');
+                                    // link.href = pdfPath;
+                                    // link.download = 'session-' + sessionId + '.pdf';
+                                    // document.body.appendChild(link);
+                                    // link.click();
+                                    // document.body.removeChild(link);
                                 }}
                             >
-                                Download PDF
+                                Signature
                             </button>
                         </div>
                     </div>
@@ -393,6 +417,24 @@ const Phase = () => {
                         </div>
 
                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
+                            <input
+                                type="date"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                value={userInfo.dob || ''}
+                                onChange={(e) => {
+                                    const dob = e.target.value;
+                                    setUserInfo({
+                                        ...userInfo,
+                                        dob,
+                                        age: calculateAge(dob) // auto-calculate age
+                                    });
+                                }}
+                                disabled={qaSessionStatus !== SessionStatus.DRAFT}
+                            />
+                        </div>
+
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
                             <input
                                 type="number"
@@ -401,6 +443,7 @@ const Phase = () => {
                                 value={userInfo.age || ''}
                                 onChange={(e) => setUserInfo({ ...userInfo, age: parseInt(e.target.value) })}
                                 disabled={qaSessionStatus !== SessionStatus.DRAFT} // Disable if not in draft status
+                                readOnly
                             />
                         </div>
 
@@ -417,6 +460,7 @@ const Phase = () => {
                                 onClick={() => {
                                     handleYes()
                                     setShowPhase2(false)
+                                    setShowSignature(false)
                                 }}
                                 className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                             >
@@ -579,6 +623,7 @@ const Phase = () => {
             onNext={() => {
                 setShowPhase2(true)
                 setShowPhase(false)
+                setShowSignature(false)
             }}
             sessionId={sessionId}
             threadId={threadId}
@@ -588,6 +633,14 @@ const Phase = () => {
                     description: displayProduct?.description
                 }
             }
+        />
+    }
+
+    if (showSignature) {
+        return <SignD
+            firstName={userInfo.first_name}
+            lastName={userInfo.last_name}
+            dob={userInfo.dob}
         />
     }
 

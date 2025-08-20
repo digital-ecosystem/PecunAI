@@ -1,10 +1,11 @@
 // app/signd/page.tsx
 'use client';
 
+import { SignDIframe } from '@/components/SignDIframe';
+import { useSignD } from '@/hooks/useSignD';
+import { SignDHandshakePayload } from '@/types/signd';
 import { useState } from 'react';
-import { useSignD } from '../../hooks/useSignD';
-import { SignDIframe } from '../../components/SignDIframe';
-import { SignDHandshakePayload } from '../../types/signd';
+
 
 // Test credentials from the documentation
 const TEST_CREDENTIALS = {
@@ -12,7 +13,17 @@ const TEST_CREDENTIALS = {
   token: 'TD5QZ22FAmh3IMd8ozeuwG9kVCkwcmsbPhy1KPWaMaAaGKiMmOHPsRm7MGaeRbQ8',
 };
 
-const SignDPage = () => {
+interface SignDProps {
+  firstName?: string
+  lastName?: string
+  dob?: string
+}
+
+const SignDPage = ({
+  firstName,
+  lastName,
+  dob,
+}: SignDProps) => {
   const {
     isLoading,
     error,
@@ -27,16 +38,16 @@ const SignDPage = () => {
 
   const [formData, setFormData] = useState({
     type: 'identification' as 'signature' | 'identification',
-    firstName: 'John',
-    lastName: 'Doe',
-    dob: '1981-12-24',
-    phoneNumber: '+43123456789',
-    email: 'john@doe.com',
-    street: 'Johannesgasse',
-    number: '12',
-    zip: '1010',
-    city: 'Wien',
-    countryCode: 'AT',
+    firstName: firstName,
+    lastName: lastName,
+    dob: dob,
+    phoneNumber: '',
+    email: '',
+    street: '',
+    number: '',
+    zip: '',
+    city: '',
+    countryCode: '',
     magicFlow: true, // For testing
   });
 

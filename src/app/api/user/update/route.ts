@@ -24,7 +24,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
     }
 
-    const { first_name, last_name, age } = await request.json();
+    const { first_name, last_name, age, dob } = await request.json();
 
     const updatedOrCreatedUser = await prisma.personalInfo.upsert({
       where: { qaSessionId: id },
@@ -32,6 +32,7 @@ export async function PATCH(request: Request) {
         firstName: first_name,
         lastName: last_name,
         age: age,
+        dob: dob
       },
       create: {
         qaSessionId: id,
