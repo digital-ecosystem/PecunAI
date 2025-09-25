@@ -307,6 +307,10 @@ const Phase = () => {
         return age;
     };
 
+    const redirectDashboard = () => {
+        router.push('/customer/dashboard');
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -330,7 +334,7 @@ const Phase = () => {
                         {/* Response summary */}
                         <div className="flex justify-between w-full mt-4">
                             <button
-                                onClick={() => router.push('/customer/dashboard')}
+                                onClick={() => {redirectDashboard()}}
                                 className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                             >
                                 Back to Dashboard
@@ -641,6 +645,8 @@ const Phase = () => {
             firstName={userInfo.first_name}
             lastName={userInfo.last_name}
             dob={userInfo.dob}
+            sessionId={sessionId}
+            redirectDashboard={redirectDashboard}
         />
     }
 

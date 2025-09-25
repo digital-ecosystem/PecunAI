@@ -4,7 +4,7 @@
 import { SignDIframe } from '@/components/SignDIframe';
 import { useSignD } from '@/hooks/useSignD';
 import { SignDHandshakePayload } from '@/types/signd';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 
 // Test credentials from the documentation
@@ -17,12 +17,15 @@ interface SignDProps {
   firstName?: string
   lastName?: string
   dob?: string
+  sessionId?: string
+  redirectDashboard?:() => void
 }
 
 const SignDPage = ({
   firstName,
   lastName,
   dob,
+  sessionId, redirectDashboard
 }: SignDProps) => {
   const {
     isLoading,
@@ -101,12 +104,37 @@ const SignDPage = ({
   const handleDownloadIDV = async () => {
     if (sessionData?.session_token) {
       try {
-        await downloadIDV(sessionData.session_token);
+       const pdfBlob = await downloadIDV(sessionData.session_token);
+        const fileName = `session-signTeq-${sessionId}.pdf`;
+        const arrayBuffer = await pdfBlob.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const pdfSave = await fetch('/api/phase/save-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName, pdfBase64: buffer })
+      });
+      const pdfSaveResponse = await pdfSave.json();
+      if (pdfSaveResponse?.success) {
+        if (redirectDashboard) {
+          setTimeout(() => {
+            redirectDashboard();
+          }, 3000);
+        }
+      } else {
+          alert('Error saving PDF');
+      }
       } catch (err) {
         console.error('Failed to download IDV:', err);
       }
     }
   };
+
+
+  useEffect(() => {
+    if (result && sessionData?.session_token) {
+      handleDownloadIDV();
+    }
+  }, [result, sessionData?.session_token])
 
   // const inputField = `mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500`;
 
@@ -119,7 +147,95 @@ const SignDPage = ({
         <div className="bg-red-100 text-red-700 p-3 rounded-md">{error}</div>
       )}
 
-      {!showIframe && (
+      {result && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Verification Result</h2>
+            <button
+              onClick={handleDownloadIDV}
+              className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
+            >
+              Download IDV PDF
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Personal Information</h3>
+              <dl className="text-sm space-y-1">
+                <div className="flex">
+                  <dt className="font-medium text-gray-500 w-20">Name:</dt>
+                  <dd>{result.individual.first_name} {result.individual.last_name}</dd>
+                </div>
+                <div className="flex">
+                  <dt className="font-medium text-gray-500 w-20">DOB:</dt>
+                  <dd>{result.individual.dob}</dd>
+                </div>
+                <div className="flex">
+                  <dt className="font-medium text-gray-500 w-20">Phone:</dt>
+                  <dd>{result.individual.mobile_number}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Address</h3>
+              <dl className="text-sm space-y-1">
+                <div className="flex">
+                  <dt className="font-medium text-gray-500 w-20">Street:</dt>
+                  <dd>{result.address.street} {result.address.number}</dd>
+                </div>
+                <div className="flex">
+                  <dt className="font-medium text-gray-500 w-20">City:</dt>
+                  <dd>{result.address.zip} {result.address.city}</dd>
+                </div>
+                <div className="flex">
+                  <dt className="font-medium text-gray-500 w-20">Country:</dt>
+                  <dd>{result.address.country_code}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Document Information</h3>
+              <dl className="text-sm space-y-1">
+                <div className="flex">
+                  <dt className="font-medium text-gray-500 w-20">Type:</dt>
+                  <dd>{result.id.type}</dd>
+                </div>
+                <div className="flex">
+                  <dt className="font-medium text-gray-500 w-20">Number:</dt>
+                  <dd>{result.id.number}</dd>
+                </div>
+                <div className="flex">
+                  <dt className="font-medium text-gray-500 w-20">Expires:</dt>
+                  <dd>{result.id.expiration_date}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Risk Scores</h3>
+              <dl className="text-sm space-y-1">
+                <div className="flex">
+                  <dt className="font-medium text-gray-500 w-20">Risk 1:</dt>
+                  <dd>{result.scores.risk_1}</dd>
+                </div>
+                <div className="flex">
+                  <dt className="font-medium text-gray-500 w-20">Risk 2:</dt>
+                  <dd>{result.scores.risk_2}</dd>
+                </div>
+                <div className="flex">
+                  <dt className="font-medium text-gray-500 w-20">Total:</dt>
+                  <dd className="font-medium">{result.scores.total}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!showIframe && !result && (
         <div className="bg-white shadow rounded-xl p-6 space-y-6">
           <h2 className="text-xl font-semibold text-gray-800">Verification Form</h2>
 
@@ -270,97 +386,12 @@ const SignDPage = ({
             onUserCanceled={() => setShowIframe(false)}
             onSignatureToken={(token) => downloadIDV(token)}
             className="rounded-md border border-gray-200"
+            onEvent={(e) => {console.log("Event : ", JSON.stringify(e))}}
           />
         </div>
       )}
 
-      {result && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Verification Result</h2>
-            <button
-              onClick={handleDownloadIDV}
-              className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
-            >
-              Download IDV PDF
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Personal Information</h3>
-              <dl className="text-sm space-y-1">
-                <div className="flex">
-                  <dt className="font-medium text-gray-500 w-20">Name:</dt>
-                  <dd>{result.individual.first_name} {result.individual.last_name}</dd>
-                </div>
-                <div className="flex">
-                  <dt className="font-medium text-gray-500 w-20">DOB:</dt>
-                  <dd>{result.individual.dob}</dd>
-                </div>
-                <div className="flex">
-                  <dt className="font-medium text-gray-500 w-20">Phone:</dt>
-                  <dd>{result.individual.mobile_number}</dd>
-                </div>
-              </dl>
-            </div>
-
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Address</h3>
-              <dl className="text-sm space-y-1">
-                <div className="flex">
-                  <dt className="font-medium text-gray-500 w-20">Street:</dt>
-                  <dd>{result.address.street} {result.address.number}</dd>
-                </div>
-                <div className="flex">
-                  <dt className="font-medium text-gray-500 w-20">City:</dt>
-                  <dd>{result.address.zip} {result.address.city}</dd>
-                </div>
-                <div className="flex">
-                  <dt className="font-medium text-gray-500 w-20">Country:</dt>
-                  <dd>{result.address.country_code}</dd>
-                </div>
-              </dl>
-            </div>
-
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Document Information</h3>
-              <dl className="text-sm space-y-1">
-                <div className="flex">
-                  <dt className="font-medium text-gray-500 w-20">Type:</dt>
-                  <dd>{result.id.type}</dd>
-                </div>
-                <div className="flex">
-                  <dt className="font-medium text-gray-500 w-20">Number:</dt>
-                  <dd>{result.id.number}</dd>
-                </div>
-                <div className="flex">
-                  <dt className="font-medium text-gray-500 w-20">Expires:</dt>
-                  <dd>{result.id.expiration_date}</dd>
-                </div>
-              </dl>
-            </div>
-
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Risk Scores</h3>
-              <dl className="text-sm space-y-1">
-                <div className="flex">
-                  <dt className="font-medium text-gray-500 w-20">Risk 1:</dt>
-                  <dd>{result.scores.risk_1}</dd>
-                </div>
-                <div className="flex">
-                  <dt className="font-medium text-gray-500 w-20">Risk 2:</dt>
-                  <dd>{result.scores.risk_2}</dd>
-                </div>
-                <div className="flex">
-                  <dt className="font-medium text-gray-500 w-20">Total:</dt>
-                  <dd className="font-medium">{result.scores.total}</dd>
-                </div>
-              </dl>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 }

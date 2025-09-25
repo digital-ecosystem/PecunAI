@@ -401,15 +401,26 @@ const Dashboard = () => {
                                     selectedSession.status != SessionStatus.DRAFT && (
                                         <div className="bg-white border border-gray-200 rounded-lg p-4">
                                             <h3 className="text-lg font-semibold text-gray-900 mb-3">Download Session PDF</h3>
-                                            <button
-                                                // onClick={() => router.push(`/customer/phase/${selectedSession.id}/pdf`)}
-                                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                                            >
-                                                <a href={`/documents/session-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                                                    <FileText className="w-4 h-4 mr-2" />
-                                                    Download PDF
-                                                </a>
-                                            </button>
+                                            <div className="flex justify-start items-center">
+                                                <button
+                                                    // onClick={() => router.push(`/customer/phase/${selectedSession.id}/pdf`)}
+                                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center me-2"
+                                                >
+                                                    <a href={`/documents/session-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                                                        <FileText className="w-4 h-4 mr-2" />
+                                                        Download PDF
+                                                    </a>
+                                                </button>
+                                                <button
+                                                    // onClick={() => router.push(`/customer/phase/${selectedSession.id}/pdf`)}
+                                                    className="ms-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                                                >
+                                                    <a href={`/documents/session-signTeq-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                                                        <FileText className="w-4 h-4 mr-2" />
+                                                        Download SignD PDF
+                                                    </a>
+                                                </button>
+                                            </div>
                                         </div>
                                     )
                                 }

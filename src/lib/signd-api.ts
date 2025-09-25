@@ -65,13 +65,14 @@ export class SignDAPI {
   }
 
   getIframeUrl(sessionToken: string, locale: 'en' | 'de' | 'es' | 'fr' | 'ro' = 'en', testMode: boolean = false): string {
+    console.log("🚀 ~ SignDAPI ~ getIframeUrl ~ testMode:", testMode)
     const url = new URL(SIGND_WEB_BASE);
     url.searchParams.set('sessionToken', sessionToken);
     url.searchParams.set('locale', locale);
     
-    if (testMode) {
-      url.searchParams.set('test', 'true');
-    }
+    // if (testMode) {
+    //   url.searchParams.set('test', 'true');
+    // }
     
     return url.toString();
   }
