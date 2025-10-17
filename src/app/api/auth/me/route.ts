@@ -25,7 +25,7 @@ export async function GET() {
         email: user.email,
         name: user.name,
         isActive: user.isActive,
-        age: user.age,
+        // age: user.age,
         createdAt: user.createdAt,
         sessionId: sessionId // Assuming sessionStatus is part of the user object
       }

@@ -1,0 +1,1066 @@
+'use client';
+import { Message, Option, PersonalInfoFormData, Question, Role, TermsAndConditions } from "@/types";
+import { CheckCircle } from "lucide-react";
+import dynamic from "next/dynamic";
+import React, { useCallback, useEffect, useState } from "react";
+import './index.css';
+const QuestionCard = dynamic(() => import('./QuestionCard'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse">Loading questions...</div>
+})
+const PersonalInfoForm = dynamic(() => import('./PersonalInfoForm'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse">Loading personal info...</div>
+});
+const Chatbot = dynamic(() => import('./Chatbot'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse">Loading personal info...</div>
+});
+import * as Yup from "yup";
+import { useFormik } from "formik";
+import { useSearchParams } from 'next/navigation'
+import { useSignD } from "@/hooks/useSignD";
+import { SignDHandshakePayload } from "@/types/signd";
+import { SignDIframe } from "@/components/SignDIframe";
+import { generateFinalPDF } from "@/utils/pdfGenerator";
+
+const PHASES = {
+  TERMS1: 1,
+  QUESTIONS1: 2,
+  TERMS2: 3,
+  QUESTIONS2: 4,
+  SUGGESTIONS: 5,
+  CHAT: 6,
+  PERSONAL_INFO: 7,
+  SIGN_DOCUMENT: 8,
+  RESULT_PDF: 9
+};
+
+type Portfolio = {
+  from: number;
+  to: number;
+  risk: string;
+  name: string;
+};
+
+const stepperBarClass = "flex-1 h-2 mx-1 rounded";
+const stepperContainerClass = "stepper-root max-w-full p-6 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-[100vh] flex flex-col justify-center";
+const cardClass = "card flex items-center justify-center w-full max-w-full h-[76vh] p-8 bg-white rounded-2xl shadow-xl";
+const buttonBaseClass = "button flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-all duration-300 transform shadow-lg hover:shadow-xl";
+const buttonConfirmClass = "bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105 active:scale-95";
+const buttonConfirmedClass = "bg-green-500 text-white scale-95";
+const buttonNextClass = "bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105 active:scale-95";
+const buttonBackClass = "px-4 py-2 rounded-lg border text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-40";
+
+const portfolios: Portfolio[] = [
+  { from: 7, to: 100, risk: "Gewinnorientiert", name: "VVKN-5" },
+  { from: 5, to: 6, risk: "Gewinnorientiert", name: "VVKN-4" },
+  { from: 3, to: 4, risk: "Gewinnorientiert", name: "VVKN-3" },
+  { from: 1, to: 2, risk: "Gewinnorientiert", name: "VVKN-2" },
+  { from: 0, to: 1, risk: "Gewinnorientiert", name: "VVKN-1" },
+  { from: 5, to: 100, risk: "Ausgewogen", name: "VVKN-4" },
+  { from: 3, to: 4, risk: "Ausgewogen", name: "VVKN-3" },
+  { from: 5, to: 100, risk: "Konservativ", name: "VVKN-3" },
+  { from: 1, to: 2, risk: "Ausgewogen", name: "VVKN-2" },
+  { from: 1, to: 2, risk: "Konservativ", name: "VVKN-2" },
+  { from: 0, to: 1, risk: "Ausgewogen", name: "VVKN-1" },
+  { from: 0, to: 1, risk: "Konservativ", name: "VVKN-1" }
+];
+
+const riskMap: Record<string, string> = {
+  conservative: 'Konservativ',
+  risk_aware: 'Ausgewogen',
+  opportunity_oriented: 'Gewinnorientiert',
+};
+
+
+const validationSchema = Yup.object({
+  firstName: Yup.string()
+    .min(2, "First name must be at least 2 characters")
+    .max(50, "First name must be at most 50 characters")
+    .required("First name is required"),
+
+  lastName: Yup.string()
+    .min(2, "Last name must be at least 2 characters")
+    .max(50, "Last name must be at most 50 characters")
+    .required("Last name is required"),
+
+  birthPlace: Yup.string()
+    .min(2, "Place of birth must be at least 2 characters")
+    .required("Place of birth is required"),
+
+  nationality: Yup.string()
+    .min(2, "Nationality must be at least 2 characters")
+    .required("Nationality is required"),
+
+  birthDate: Yup.date()
+    .max(new Date(), "Birth date cannot be in the future")
+    .required("Birth date is required"),
+
+  maritalStatus: Yup.string()
+    .oneOf(["Single", "Married", "Divorced", "Widowed"], "Invalid marital status")
+    .required("Marital status is required"),
+
+  street: Yup.string()
+    .min(2, "Street must be at least 2 characters")
+    .required("Street is required"),
+
+  houseNumber: Yup.string()
+    .matches(/^[a-zA-Z0-9/-]{1,10}$/, "Invalid house number")
+    .required("House number is required"),
+
+  postalCode: Yup.string()
+    .matches(/^\d{4,10}$/, "Postal code must be 4 to 10 digits")
+    .required("Postal code is required"),
+
+  city: Yup.string()
+    .min(2, "City must be at least 2 characters")
+    .required("City is required"),
+
+  phone: Yup.string()
+    .matches(/^\+?\d{7,15}$/, "Phone number must be 7 to 15 digits, optionally starting with '+'")
+    .required("Phone number is required"),
+
+  email: Yup.string()
+    .email("Invalid email format")
+    .required("Email is required"),
+
+  education: Yup.string()
+    .min(2, "Education field must be at least 2 characters")
+    .required("Education is required"),
+
+  currentJob: Yup.string()
+    .min(2, "Current job must be at least 2 characters")
+    .required("Current job is required"),
+
+  industry: Yup.string()
+    .min(2, "Industry must be at least 2 characters")
+    .required("Industry is required"),
+
+  occupation: Yup.string()
+    .min(2, "Occupation must be at least 2 characters")
+    .required("Occupation is required"),
+
+  documentType: Yup.string()
+    .oneOf(["passport", "identity_card", "drivers_license"], "Invalid document type")
+    .required("Document type is required"),
+
+  documentNumber: Yup.string()
+    .matches(/^[a-zA-Z0-9]{4,20}$/, "Document number must be 4–20 alphanumeric characters")
+    .required("Document number is required"),
+
+  issuingAuthority: Yup.string()
+    .min(2, "Issuing authority must be at least 2 characters")
+    .required("Issuing authority is required"),
+
+  issuedOn: Yup.date()
+    .required("Issue date is required")
+    .max(new Date(), "Issue date can't be in the future"),
+
+  validUntil: Yup.date()
+    .min(Yup.ref("issuedOn"), "Valid until must be after issue date")
+    .required("Valid until date is required"),
+});
+
+// Test credentials from the documentation
+const TEST_CREDENTIALS = {
+  login: '83212e3b-6ff3-4cfe-afe3-80f107d8ae20',
+  token: 'TD5QZ22FAmh3IMd8ozeuwG9kVCkwcmsbPhy1KPWaMaAaGKiMmOHPsRm7MGaeRbQ8',
+};
+
+export default function Stepper() {
+  const [loading, setLoading] = useState(true);
+  const [chatBtnLading, setChatBtnLanding] = useState(false);
+  const [step, setStep] = useState(PHASES.TERMS1);
+  const [confirmed, setConfirmed] = useState(false);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [questionIndex, setQuestionIndex] = useState(1);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [termsAndConditions, setTermsAndConditions] = useState<TermsAndConditions[]>([]);
+  const [suggestedProduct, setSuggestedProduct] = useState<Portfolio | null>(null);
+  const searchParams = useSearchParams()
+  const [threadId, setThreadId] = useState(null);
+  const [messages, setMessages] = useState<Message[]>([])
+  const [input, setInput] = useState('')
+
+  const session_id = searchParams.get('session_id')
+  console.log("🚀 ~ Stepper ~ session_id:", session_id)
+  const sendMessage = React.useCallback(async (messageOverride: string = '') => {
+    const messageToSend = messageOverride.length > 0 ? messageOverride : input.trim();
+    const messageNotAppended = messageOverride.length > 0;
+    console.log("🚀 ~ sendMessage ~ messageToSend:", messageToSend)
+    if (!messageToSend || loading) return;
+
+    const userMessage: Message = {
+      role: Role.customer,
+      content: messageToSend,
+      timestamp: new Date()
+    }
+    if (!messageNotAppended) {
+      setMessages(prev => [...prev, userMessage])
+    }
+    setInput('')
+    setChatBtnLanding(true)
+
+    try {
+      const response = await fetch('/api/phase/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage.content,
+          sessionId: session_id,
+          threadId
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to get response')
+      }
+
+      const data = await response.json()
+
+      if (data.threadId && !threadId) {
+        setThreadId(data.threadId)
+      }
+
+      const botMessage: Message = {
+        role: Role.assistant,
+        content: data.message,
+        timestamp: new Date()
+      }
+
+      setMessages(prev => [...prev, botMessage])
+    } catch (error) {
+      console.error('Error:', error)
+      const errorMessage: Message = {
+        role: Role.assistant,
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setChatBtnLanding(false)
+    }
+  }, [input, loading, session_id, threadId]);
+  // For PHASES.QUESTIONS1
+  const questions1 = questions.slice(0, 3);
+  const currentQ = questions1[questionIndex - 1];
+  // For PHASES.QUESTIONS2
+  const questions2 = questions.slice(3, 5);
+  const currentQ2 = questions2[questionIndex - 1];
+
+  const {
+    // isLoading,
+    error,
+    sessionData: signDSessionData,
+    result,
+    createSession,
+    getResult,
+    downloadIDV,
+    getIframeUrl,
+    setError,
+  } = useSignD(TEST_CREDENTIALS);
+  console.log("🚀 ~ Stepper ~ result:", result)
+
+  const formik = useFormik({
+    initialValues: {
+      firstName: "",
+      lastName: "",
+      birthPlace: "",
+      nationality: "",
+      birthDate: "",
+      maritalStatus: "",
+      street: "",
+      houseNumber: "",
+      postalCode: "",
+      city: "",
+      phone: "",
+      email: "",
+      education: "",
+      currentJob: "",
+      industry: "",
+      occupation: "",
+      documentType: "",
+      documentNumber: "",
+      issuingAuthority: "",
+      issuedOn: "",
+      validUntil: "",
+      isPEP: false,
+      residenceAbroad: false,
+      actingFor: "",
+      magicFlow: true
+    },
+    validationSchema,
+    onSubmit: (values: PersonalInfoFormData) => {
+      onPersonalInfoSubmit(values);
+    },
+  });
+
+  const handleConfirm = async () => {
+    setConfirmed(true);
+    await saveUpdatedTermsStatus(); // Call API to save acceptance
+    setTimeout(() => {
+      setConfirmed(false);
+      nextStep();
+    }, 2000);
+  };
+
+  const nextStep = () => setStep((prev) => Math.min(prev + 1, 9));
+  const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
+  const lastQuestionNext = () => {
+    setQuestionIndex(1);
+    nextStep();
+  }
+
+  const fetchTermsAndConditions = useCallback(async () => {
+    setLoading(true);
+    try {
+      // URL should be like /api/terms-conditions?id=1
+
+      const fetchUrl = '/api/terms-conditions?session_id=' + session_id;
+      const response = await fetch(fetchUrl, {
+        method: 'GET',
+      });
+      const data = await response.json();
+      if (data?.success) {
+        setTermsAndConditions(data.data);
+      } else {
+        // router.push('/customer/signin')
+      }
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [session_id]);
+
+  const suggestProduct = (duration: string, risk: string) => {
+    let from = 0, to = 0;
+
+    switch (duration) {
+      case 'short_term': from = 0; to = 2; break;
+      case 'medium_term': from = 3; to = 6; break;
+      case 'long_term': from = 7; to = 10; break;
+      case 'very_long_term': from = 11; to = Infinity; break;
+      default: from = 0; to = Infinity;
+    }
+
+    const mappedRisk = riskMap[risk];
+
+    // Step 1: Filter by risk
+    const matchingPortfolios = portfolios.filter(p => p.risk === mappedRisk);
+    if (matchingPortfolios.length === 0) return null;
+
+    // Step 2: Score portfolios based on closeness to selected range
+    const scored = matchingPortfolios.map(p => {
+      const distance = Math.abs(p.from - from) + Math.abs(p.to - to);
+      return { ...p, distance };
+    });
+
+    // Step 3: Find all with the best (lowest) distance
+    scored.sort((a, b) => a.distance - b.distance);
+    const bestDistance = scored[0].distance;
+    const bestMatches = scored.filter(p => p.distance === bestDistance);
+
+    // Step 4: Prefer the portfolio that starts earlier
+    bestMatches.sort((a, b) => a.from - b.from);
+
+    return bestMatches[0] || null;
+  };
+
+  useEffect(() => {
+    const fetchSuggestedProduct = async () => {
+      if (step === PHASES.SUGGESTIONS) {
+        try {
+          setLoading(true);
+
+          const DURATION_KEY = "63cb24b6-0daa-4a38-a452-b17921d1c8a4";
+          const RISK_KEY = "90bc2a13-572a-402c-b10d-a043ed3efdc4";
+
+          const product = await suggestProduct(
+            answers[DURATION_KEY],
+            answers[RISK_KEY]
+          );
+          setSuggestedProduct(product);
+        } catch (error) {
+          console.error("❌ Failed to fetch product suggestion:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    const loadChatHistory = async () => {
+      if (step === PHASES.CHAT) {
+        if (!session_id && !threadId) return
+
+        try {
+          const response = await fetch(`/api/phase/chat?threadId=${threadId}&sessionId=${session_id}`)
+          if (response.ok) {
+            const data = await response.json()
+            console.log("🚀 ~ loadChatHistory ~ data.messages?.length:", data.messages?.length)
+            if (data.messages?.length > 0) {
+              setMessages(data.messages.map((msg: Message) => ({
+                ...msg,
+                timestamp: new Date(msg.timestamp)
+              })))
+            } else {
+              // if (product?.name && product?.description) {
+              // console.log("🚀 ~ loadChatHistory ~ product:", product)
+              // const productMsg: string = await generateProductPrompt({ name: product?.name, description: product?.description })
+              const productMsg = 'Create a professional one-page investment product factsheet (like VVKN-1) in PDF style. Include: product overview, investment goal, key performance table, strategy details, risk indicators (SRI, Sharpe Ratio, Max Drawdown), fees & costs, asset allocation chart, and risk disclaimer. Design it clean, corporate, and data-driven with sections and tables clearly structured.';
+              await sendMessage(productMsg)
+              // }
+            }
+          }
+        } catch (error) {
+          console.error('Error loading chat history:', error)
+        }
+      }
+    }
+
+    fetchSuggestedProduct();
+    loadChatHistory();
+  }, [step, answers, session_id, threadId, sendMessage]);
+
+  useEffect(() => {
+    fetchTermsAndConditions()
+  }, [fetchTermsAndConditions, session_id]);
+
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/phase?id=' + session_id, {
+          method: 'GET',
+        });
+        const data = await res.json();
+        console.log("🚀 ~ fetchQuestions ~ data:", data)
+        if (data.success) {
+          setQuestions(data.questions);
+          setAnswers(data.answers || {});
+        }
+      } catch (error) {
+        console.error("Fetch questions error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    const threadCreate = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch('/api/phase/chat/thread', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ qaSessionId: session_id })
+        })
+
+        const data = await res.json()
+        if (data?.success) {
+          setThreadId(data?.session.id)
+        } else {
+          // handle error
+        }
+      } catch (error) {
+        console.log("🚀 ~ threadCreate ~ error:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchQuestions();
+    threadCreate();
+  }, [session_id])
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch('/api/user/info/' + session_id, {
+          method: 'GET',
+        });
+        const data = await response.json();
+        if (data?.success) {
+          const user = data.user;
+          console.log("🚀 ~ fetchUserInfo ~ user:", user);
+          // Set formik values if user details are available
+          if (user) {
+            formik.setValues({
+              firstName: user.firstName || "",
+              lastName: user.lastName || "",
+              birthPlace: user.placeOfBirth || "",
+              nationality: user.nationality || "",
+              birthDate: user.dateOfBirth || "",
+              maritalStatus: user.maritalStatus || "",
+              street: user.street || "",
+              houseNumber: user.houseNumber || "",
+              postalCode: user.postalCode || "",
+              city: user.city || "",
+              phone: user.phone || "",
+              email: user.email || "",
+              education: user.education || "",
+              currentJob: user.currentProfession || "",
+              industry: user.industry || "",
+              occupation: user?.documents?.[0]?.occupation || "",
+              documentType: user?.documents?.[0]?.documentType || "",
+              documentNumber: user?.documents?.[0]?.documentNumber || "",
+              issuingAuthority: user?.documents?.[0]?.issuingAuthority || "",
+              issuedOn: user?.documents?.[0]?.issuedOn || "",
+              validUntil: user?.documents?.[0]?.validUntil || "",
+              isPEP: user.isPep || false,
+              residenceAbroad: user.residenceAbroad || false,
+              actingFor: user.actsOnOwnAccount ? "own" : "other",
+              magicFlow: true
+            });
+          }
+        } else {
+          console.error('Error fetching user info:', data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    };
+
+    fetchUserInfo();
+  }, [session_id, formik]);
+
+  const onPersonalInfoSubmit = async (data: PersonalInfoFormData) => {
+    try {
+      const response = await fetch(`/api/user/update?id=${session_id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          // age: data.age,
+          dateOfBirth: data.birthDate ? new Date(data.birthDate).toISOString() : undefined,
+          actsOnOwnAccount: data.actingFor === 'own',
+          city: data.city,
+          currentProfession: data.currentJob,
+          customerClassification: '',
+          education: data.education,
+          email: data.email,
+          firstName: data.firstName,
+          houseNumber: data.houseNumber,
+          industry: data.industry,
+          isPep: data.isPEP,
+          lastName: data.lastName,
+          maritalStatus: data.maritalStatus,
+          nationality: data.nationality,
+          phone: data.phone,
+          placeOfBirth: data.birthPlace,
+          postalCode: data.postalCode,
+          residenceAbroad: data.residenceAbroad,
+          street: data.street,
+          occupation: data.occupation,
+          documentType: data.documentType,
+          documentNumber: data.documentNumber,
+          issuingAuthority: data.issuingAuthority,
+          issuedOn: data.issuedOn ? new Date(data.issuedOn).toISOString() : undefined,
+          validUntil: data.validUntil ? new Date(data.validUntil).toISOString() : undefined,
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        console.log('User info updated:', result.user);
+      } else {
+        console.error('Failed to update user info:', result.message);
+      }
+    } catch (error) {
+      console.error('API error:', error);
+    }
+    const payload: Omit<SignDHandshakePayload, 'login' | 'token'> = {
+      type: 'identification',
+      attributes: {
+        individual: {
+          first_name: data.firstName,
+          last_name: data.lastName,
+          dob: data.birthDate,
+          // birth_place: data.birthPlace,
+          // nationality: data.nationality,
+          phone_number: data.phone,
+          email: data.email,
+          // education: data.education,
+          // current_job: data.currentJob,
+          // industry: data.industry,
+          // occupation: data.occupation,
+          // is_pep: data.isPEP,
+          // residence_abroad: data.residenceAbroad,
+        },
+        address: {
+          street: data.street,
+          number: data.houseNumber,
+          zip: data.postalCode,
+          city: data.city,
+          country_code: "AT", // or a field from form if it's dynamic
+        },
+        // ye
+      },
+      settings: {
+        redirect_success_url: 'http://localhost:3000/success',
+        redirect_error_url: 'http://localhost:3000/error',
+      },
+      magic_flow: true,
+    };
+    await createSession(payload);
+    nextStep();
+  }
+
+  const saveUpdatedTermsStatus = async () => {
+    // Get the current terms and session info
+    const termsIndex = step === PHASES.TERMS1 ? 0 : (termsAndConditions.length > 1 ? 1 : 0);
+    const terms = termsAndConditions[termsIndex];
+
+    // You may want to get user agent and IP from the client or server
+    const payload = {
+      qaSessionId: session_id,
+      termsId: terms?.id,
+      termsType: terms?.termsType,
+      title: terms?.title,
+      content: terms?.content,
+      version: terms?.version,
+      acceptedAt: new Date().toISOString(),
+      ipAddress: '', // Optionally set client IP if available
+      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : '',
+    };
+
+    try {
+      const response = await fetch('/api/terms-conditions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (data.success) {
+        // Handle success (e.g., show a message or update state)
+        console.log('Terms acceptance saved:', data.data);
+      } else {
+        // Handle error
+        console.error('Failed to save terms acceptance:', data.error);
+      }
+    } catch (error) {
+      console.error('API error:', error);
+    }
+  }
+
+  const saveAnswer = async (questionId: string, answer: string, question: string, options?: Option[]) => {
+    try {
+      const response = await fetch(`/api/answers?id=${session_id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          questionId,
+          answer,
+          question,
+          options,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        console.log('Answer saved:', data.answer);
+      } else {
+        console.error('Failed to save answer:', data.message);
+      }
+    } catch (error) {
+      console.error('API error:', error);
+    }
+  };
+
+  const handleChatbotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || loading) return
+    await sendMessage();
+  };
+
+  const handleSignDSuccess = async () => {
+    setLoading(true);
+    if (signDSessionData?.session_token) {
+      try {
+        await getResult(signDSessionData.session_token);
+        await handleDownloadIDV(signDSessionData.session_token);
+        // Proceed to next step after successfully getting result and downloading IDV
+        //
+        await generatePDF();
+        nextStep();
+      } catch (err) {
+        console.error('Failed to get result:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleDownloadIDV = async (token: string) => {
+    console.log("🚀 ~ handleDownloadIDV ~ token:", token)
+    try {
+      const pdfBlob = await downloadIDV(token);
+      const fileName = `signD-identity-verification-${session_id}.pdf`;
+      const arrayBuffer = await pdfBlob.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const pdfSave = await fetch('/api/phase/save-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName, pdfBase64: buffer })
+      });
+      const pdfSaveResponse = await pdfSave.json();
+      if (pdfSaveResponse?.success) {
+        nextStep();
+      } else {
+        alert('Error saving PDF');
+      }
+    } catch (err) {
+      console.error('Failed to download IDV:', err);
+    }
+  };
+
+  const generatePDF = async () => {
+
+    setLoading(true);
+
+    try {
+      // fetch existing product PDF (if one exists) and pass its bytes to generator
+      let existingPdfBytes: ArrayBuffer | undefined = undefined;
+      if (suggestedProduct?.name) {
+        const existingPdfUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}products/${suggestedProduct.name}.pdf`;
+        try {
+          const resp = await fetch(existingPdfUrl);
+          if (resp.ok) existingPdfBytes = await resp.arrayBuffer();
+        } catch (err) {
+          console.warn('Could not fetch existing product PDF:', err);
+        }
+      }
+
+      const mergedBytes = await generateFinalPDF(
+        termsAndConditions?.[0]?.content || '',
+        termsAndConditions.length > 1 ? termsAndConditions[1].content : '',
+        questions,
+        answers,
+        formik.values,
+        suggestedProduct?.name || '',
+        existingPdfBytes
+      );
+
+      const fileName = `final_session_pdf_${session_id}.pdf`;
+      // ensure we pass an ArrayBuffer (slice to avoid SharedArrayBuffer issues)
+      const mergedCopy = new Uint8Array(mergedBytes); // copy to ensure ArrayBuffer compatibility
+      const blob = new Blob([mergedCopy], { type: 'application/pdf' });
+
+      const arrayBuffer = await blob.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const pdfSave = await fetch('/api/phase/save-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName, pdfBase64: buffer })
+      });
+      const pdfSaveResponse = await pdfSave.json();
+      if (pdfSaveResponse?.success) {
+        console.log('Final PDF Path : ', process.env.NEXT_PUBLIC_FRONTEND_URL + pdfSaveResponse.fileUrl);
+      } else {
+        alert('Error saving PDF');
+      }
+    } catch (error) {
+      console.error('Error generating final PDF:', error);
+    } finally {
+      setLoading(false);
+    }
+
+    // Generate final PDF based on all collected data like confirm terms, Q&A, suggested product, personal info, and last signature section add
+    // setLoading(true);
+    // const pdf = await generateFinalPDF(
+    //   termsAndConditions[0].content,
+    //   termsAndConditions.length > 1 ? termsAndConditions[1].content : '',
+    //   questions,
+    //   answers,
+    //   formik.values,
+    //   suggestedProduct?.name || '',
+    // )
+
+    // // Existing PDF URL
+    // const existingPdfUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL + 'products/' + suggestedProduct?.name + '.pdf'}`
+    // console.log("🚀 ~ generatePDF ~ existingPdfUrl:", existingPdfUrl)
+
+
+    // // Save the PDF
+    // const fileName = `final_session_pdf_${session_id}.pdf`;
+
+    // // pdf.save(fileName);
+
+    // // You can also convert to blob for upload to server
+    // const pdfBlob = pdf.output('blob');
+    // // uploadPDFToServer(pdfBlob);
+
+    // const arrayBuffer = await pdfBlob.arrayBuffer();
+    // const buffer = Buffer.from(arrayBuffer);
+    // const pdfSave = await fetch('/api/phase/save-pdf', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ fileName, pdfBase64: buffer })
+    // });
+    // const pdfSaveResponse = await pdfSave.json();
+    // if (pdfSaveResponse?.success) {
+    //   console.log("FInal PDF Path : ", process.env.NEXT_PUBLIC_FRONTEND_URL + pdfSaveResponse.fileUrl);
+    // } else {
+    //   alert('Error saving PDF');
+    // }
+    // try {
+    //   const response = await fetch('/api/phase/generate-final-pdf', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ sessionId: session_id })
+    //   });
+    //   const data = await response.json();
+    //   if (data?.success) {
+    //     nextStep();
+    //   } else {
+    //     alert('Error generating final PDF');
+    //   }
+    // } catch (error) {
+    //   console.error('Error generating final PDF:', error);
+    // } finally {
+    //   setLoading(false);
+    // }
+
+  }
+
+  // const saveSuggestionProduct = async () => {
+  //   if (!suggestedProduct || !session_id) return;
+
+  //   const payload = {
+  //     qaSessionId: session_id,
+  //     productId: suggestedProduct.name, // Use the actual product ID if available
+  //     name: suggestedProduct.name,
+  //     shortName: suggestedProduct.name,
+  //     description: '', // Fill if available
+  //     fileName: '', // Fill if available
+  //     suggestionReason: '', // Fill if available
+  //     confidenceScore: null, // Fill if available
+  //     isConfirmed: false,
+  //     confirmedAt: null
+  //   };
+
+  //   try {
+  //     const response = await fetch('/api/phase/suggest-product', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify(payload),
+  //     });
+  //     const data = await response.json();
+  //     if (data.success) {
+  //       console.log('Suggested product saved:', data.data);
+  //     } else {
+  //       console.error('Failed to save suggested product:', data.error);
+  //     }
+  //   } catch (error) {
+  //     console.error('API error:', error);
+  //   }
+  // };
+
+  return (
+    <div className={stepperContainerClass}>
+      {/* Stepper Progress */}
+      <div className="flex items-center justify-between mb-8">
+        {[...Array(9)].map((_, i) => (
+          <div
+            key={i}
+            className={`${stepperBarClass} ${step > i ? "bg-blue-600" : "bg-gray-300"}`}
+          ></div>
+        ))}
+      </div>
+      {
+        loading ? (
+          <div className="flex items-center justify-center w-full h-64">
+            <div className="text-gray-500 animate-pulse">Loading...</div>
+          </div>
+        ) : (
+          <React.Fragment>
+
+            {/* Stepper Content */}
+            <div className={cardClass}>
+              {(step === PHASES.TERMS1 || step === PHASES.TERMS2) && (
+                <div>
+                  {/* Header */}
+                  <div className="mb-6">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                      Terms and Conditions
+                    </h1>
+                    <p className="text-gray-600">
+                      Please read carefully before confirming
+                    </p>
+                  </div>
+
+                  {/* Description Container */}
+                  <div className="bg-gray-50 rounded-lg p-6 mb-6 max-h-96 overflow-y-auto border border-gray-200">
+                    <div className="prose prose-sm max-w-none text-gray-700 space-y-4">
+                      {/* Render terms and conditions content here */}
+                      <p>
+                        {termsAndConditions?.[
+                          step === PHASES.TERMS1
+                            ? 0
+                            : (termsAndConditions.length > 1 ? 1 : 0)]?.content
+                          || 'No terms and conditions available.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Status Message */}
+                  {confirmed && (
+                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-center animate-pulse">
+                      Thank you for confirming!
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {step === PHASES.QUESTIONS1 && (
+                <QuestionCard
+                  step={questionIndex}
+                  totalSteps={3}
+                  // title={currentQ?.title}
+                  // subtitle={currentQ?.subtitle}
+                  question={currentQ?.text}
+                  options={currentQ?.options?.length ? currentQ.options.map(opt => ({ label: opt.label, value: opt.value })) : undefined}
+                  selected={answers[currentQ?.id]}
+                  onSelect={async (opt) => {
+                    setAnswers({ ...answers, [currentQ?.id]: opt });
+                    await saveAnswer(currentQ?.id, opt, currentQ?.text, currentQ?.options);
+                  }}
+                  onNext={() => questionIndex === 3 ? lastQuestionNext() : setQuestionIndex((s) => Math.min(s + 1, 3))}
+                  onBack={() => setQuestionIndex((s) => Math.max(s - 1, 1))}
+                />
+              )}
+
+              {step === PHASES.QUESTIONS2 && (
+                <QuestionCard
+                  step={questionIndex}
+                  totalSteps={2}
+                  // title={currentQ2?.title}
+                  // subtitle={currentQ2?.subtitle}
+                  question={currentQ2?.text}
+                  options={currentQ2?.options?.length ? currentQ2.options.map(opt => ({ label: opt.label, value: opt.value })) : undefined}
+                  selected={answers[currentQ2?.id]}
+                  onSelect={async (opt) => {
+                    setAnswers({ ...answers, [currentQ2?.id]: opt });
+                    await saveAnswer(currentQ2?.id, opt, currentQ2?.text, currentQ2?.options);
+                  }}
+                  onNext={() => questionIndex === 2 ? lastQuestionNext() : setQuestionIndex((s) => Math.min(s + 1, 2))}
+                  onBack={() => setQuestionIndex((s) => Math.max(s - 1, 1))}
+                />
+              )}
+
+              {step === PHASES.SUGGESTIONS && (
+                <div className="w-full h-full">
+                  <h2 className="text-xl font-bold mb-4">Suggested Product</h2>
+                  <p className="text-gray-600 mb-6">
+                    Based on your answers, we recommend:
+                  </p>
+                  <div className="border p-4 rounded shadow iframe-container" style={{ height: '85%' }} >
+                      <h3 className="font-semibold">Product {suggestedProduct?.name}</h3>
+                      <iframe src={`${process.env.NEXT_PUBLIC_FRONTEND_URL + 'products/' + suggestedProduct?.name + '.pdf'}`} className="iframe-preview w-full rounded" style={{ height: '95%' }} />
+                    </div>
+                </div>
+              )}
+
+              {step === PHASES.CHAT && (
+                <Chatbot
+                  sessionId={session_id || ''}
+                  threadId={threadId || ''}
+                  messages={messages}
+                  input={input}
+                  setInput={setInput}
+                  handleSubmit={handleChatbotSubmit}
+                  loading={chatBtnLading}
+                />
+              )}
+
+              {step === PHASES.PERSONAL_INFO && (
+                <div className="container mx-auto p-4">
+                  {/* <h1 className="text-xl font-bold text-center mb-6">Personal Information Form</h1> */}
+                  <PersonalInfoForm
+                    formik={formik}
+                  />
+                </div>
+              )}
+
+              {step === PHASES.SIGN_DOCUMENT && (
+                <div className="w-full p-8">
+                  {/* <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Identity Verification Process</h2>
+                  </div> */}
+
+                  <SignDIframe
+                    src={getIframeUrl(signDSessionData?.session_token ?? '', 'en', formik.values.magicFlow)}
+                    onSuccess={handleSignDSuccess}
+                    onError={(error) => setError(error?.description)}
+                    onUserCanceled={prevStep}
+                    // onSignatureToken={(token) => handleDownloadIDV(token)}
+                    className="rounded-md border border-gray-200"
+                    onEvent={(e) => { console.log("Event : ", JSON.stringify(e)) }}
+                  />
+                  {error && (
+                    <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                      {error}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {step === PHASES.RESULT_PDF && (
+                <div>
+                  <h2 className="text-xl font-bold mb-4">Final Result</h2>
+                  <div className="border rounded h-96 flex items-center justify-center bg-gray-100">
+                    <p className="text-gray-500">PDF Preview / Viewer</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Navigation */}
+            <div className="flex justify-center my-3">
+              <p className="text-gray-600">Step {step} of 8</p>
+            </div>
+            <div className="flex justify-between mt-3 nav-buttons">
+              <button
+                onClick={prevStep}
+                disabled={step === PHASES.TERMS1}
+                className={buttonBackClass}
+              >
+                Back
+              </button>
+              <div className="flex justify-end">
+                {step === PHASES.TERMS1 || step === PHASES.TERMS2 ? (
+                  <button
+                    onClick={handleConfirm}
+                    disabled={confirmed}
+                    className={`${buttonBaseClass} ${confirmed ? buttonConfirmedClass : buttonConfirmClass} disabled:cursor-not-allowed`}
+                  >
+                    {confirmed ? (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        Confirmed!
+                      </>
+                    ) : (
+                      'I Confirm'
+                    )}
+                  </button>
+                ) : (step === PHASES.QUESTIONS1 || step === PHASES.QUESTIONS2 || step === PHASES.PERSONAL_INFO) ? null : (
+                  <button
+                    onClick={nextStep}
+                    className={`${buttonBaseClass} ${buttonNextClass}`}
+                  >
+                    Next
+                  </button>
+                )}
+              </div>
+            </div>
+          </React.Fragment>
+        )
+      }
+    </div>
+  );
+}

@@ -24,24 +24,121 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
     }
 
-    const { first_name, last_name, age, dob } = await request.json();
+    const body = await request.json();
+    // Destructure all fields from PersonalInfo schema and document fields
+    const {
+      actsOnOwnAccount,
+      city,
+      currentProfession,
+      customerClassification,
+      education,
+      email,
+      firstName,
+      houseNumber,
+      industry,
+      isPep,
+      lastName,
+      maritalStatus,
+      nationality,
+      phone,
+      placeOfBirth,
+      postalCode,
+      residenceAbroad,
+      street,
+      dateOfBirth,
+      documentType,
+      issuingAuthority,
+      documentNumber,
+      issuedOn,
+      validUntil,
+      filename
+    } = body;
+
+    // Ensure dateOfBirth is ISO string
+    const dateOfBirthISO = dateOfBirth ? new Date(dateOfBirth).toISOString() : undefined;
 
     const updatedOrCreatedUser = await prisma.personalInfo.upsert({
       where: { qaSessionId: id },
       update: {
-        firstName: first_name,
-        lastName: last_name,
-        age: age,
-        dob: dob
+        actsOnOwnAccount,
+        city,
+        currentProfession,
+        customerClassification,
+        education,
+        email,
+        firstName,
+        houseNumber,
+        industry,
+        isPep,
+        lastName,
+        maritalStatus,
+        nationality,
+        phone,
+        placeOfBirth,
+        postalCode,
+        residenceAbroad,
+        street,
+        ...(dateOfBirthISO ? { dateOfBirth: dateOfBirthISO } : {})
       },
       create: {
         qaSessionId: id,
-        firstName: first_name,
-        lastName: last_name,
-        age: age,
+        actsOnOwnAccount,
+        city,
+        currentProfession,
+        customerClassification,
+        education,
+        email,
+        firstName,
+        houseNumber,
+        industry,
+        isPep,
+        lastName,
+        maritalStatus,
+        nationality,
+        phone,
+        placeOfBirth,
+        postalCode,
+        residenceAbroad,
+        street,
+        dateOfBirth: dateOfBirthISO ? dateOfBirthISO : new Date().toISOString() // Default to now if not provided
       }
     });
 
+    // Save document details (create or update)
+    if (documentType && issuingAuthority && documentNumber && issuedOn && validUntil) {
+      // Find personalInfoId
+      const personalInfoId = updatedOrCreatedUser.id;
+      // Upsert document (if you want to avoid duplicates, use unique fields)
+      // Find the document by unique fields first
+      const existingDocument = await prisma.document.findFirst({
+        where: {
+          documentNumber: documentNumber,
+          personalInfoId: personalInfoId
+        }
+      });
+
+      await prisma.document.upsert({
+        where: {
+          id: existingDocument ? existingDocument.id : 0 // Use 0 if not found, will trigger create
+        },
+        update: {
+          documentType,
+          issuingAuthority,
+          issuedOn: new Date(issuedOn),
+          validUntil: new Date(validUntil),
+          filename: filename || ''
+        },
+        create: {
+          documentType,
+          issuingAuthority,
+          documentNumber,
+          issuedOn: new Date(issuedOn),
+          validUntil: new Date(validUntil),
+          filename: filename || '',
+          personalInfoId
+        }
+      });
+    }
 
     return NextResponse.json({ success: true, user: updatedOrCreatedUser });
   } catch (error) {

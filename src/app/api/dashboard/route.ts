@@ -13,6 +13,7 @@ export async function GET() {
     }
 
     const user = await AuthService.getUserFromToken(token);
+    console.log("🚀 ~ GET ~ user:", user)
     if (!user) {
       return NextResponse.json({ message: "Invalid token" }, { status: 401 });
     }
@@ -22,6 +23,7 @@ export async function GET() {
       include: { user: true, personalInfo: true },
       orderBy: { createdAt: "desc" }
     });
+    console.log("🚀 ~ GET ~ sessions:", sessions)
 
     return NextResponse.json({ success: true, sessions });
   } catch (error) {

@@ -16,7 +16,7 @@ export async function saveChatMessage(
         threadId: threadId,
         role,
         content,
-        index,
+        messageIndex: index,
       }
     })
 
@@ -32,7 +32,7 @@ export async function getChatMessages(threadId: string) {
   try {
     return await prisma.message.findMany({
       where: { threadId: threadId },
-      orderBy: [{ index: 'asc' }, { createdAt: 'asc' }],
+      orderBy: [{ messageIndex: 'asc' }, { createdAt: 'asc' }],
     })
   } catch (error) {
     console.error('Error fetching messages:', error)

@@ -113,7 +113,9 @@ const Dashboard = () => {
             const res = await response.json();
             if (res?.success) {
                 console.log("🚀 ~ handleStartNow ~ res:", res.session.id)
-                router.push('/customer/phase/' + res.session.id);
+                router.push('/customer/stepper?session_id=' + res.session.id);
+                // router.push('/customer/phase/' + res.session.id);
+                // customer/stepper
             } else {
                 console.log('Failed to create session:', res.message);
             }
@@ -318,7 +320,7 @@ const Dashboard = () => {
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {filteredSessions.map((session) => (
-                                            <tr key={session.id} className="hover:bg-gray-50 transition-colors" onClick={() => router.push(`/customer/phase/${session.id}`)}>
+                                            <tr key={session.id} className="hover:bg-gray-50 transition-colors" onClick={() => router.push(`/customer/stepper?session_id=${session.id}`)}>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center">
                                                         <div className="flex-shrink-0 h-10 w-10">

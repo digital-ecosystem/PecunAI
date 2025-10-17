@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
     }
 
-    const { questionId, answer } = await request.json();
+    const { questionId, answer, question, options } = await request.json();
     if (!questionId || !answer ) {
       return NextResponse.json({ message: 'Missing questionId, or answer' }, { status: 400 });
     }
@@ -41,15 +41,50 @@ export async function POST(request: Request) {
       
     const sessionId = session.id;
 
-    const newAnswer = await prisma.answer.create({
-      data: {
+    const newAnswer = await prisma.answer.upsert({
+      where: {
+        qaSessionId_questionText: {
+          qaSessionId: sessionId,
+          questionText: question,
+        }        
+      },
+      update: {
+        value: answer,
+        questionText: question,
+        questionOptions: options,
+        // updatedAt will be set automatically if using @updatedAt
+      },
+      create: {
+        // Generate a new UUID for the answer ID
         id: uuidv4(),
         qaSessionId: sessionId,
         questionId,
         value: answer,
+        questionText: question,
+        questionOptions: options,
         // createdAt will be set automatically if using @default(now())
       }
     });
+
+    // await prisma.qASession.update({
+    //   where: { id: sessionId },
+    //   data: {
+    //     updatedAt: new Date()
+    //   }
+    // });
+
+    // // Log the creation of a new answer
+    // await prisma.answerHistory.create({
+    //   data: {
+    //     id: uuidv4(),
+    //     qaSessionId: sessionId,
+    //     questionId,
+    //     value: answer,
+    //     questionText: question,
+    //     questionOptions: options,
+    //     // createdAt will be set automatically if using @default(now())
+    //   }
+    // });
 
     return NextResponse.json({ success: true, answer: newAnswer });
   } catch (error) {

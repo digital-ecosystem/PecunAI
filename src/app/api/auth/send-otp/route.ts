@@ -62,6 +62,7 @@ export async function POST(request: Request) {
     // } else {
       // Create OTP
       const otp = await AuthService.createOTP(email);
+      console.log("🚀 ~ POST ~ otp:", otp)
 
       // Send email
       await transporter.sendMail({
@@ -105,6 +106,7 @@ export async function POST(request: Request) {
     // }
 
   } catch (error) {
+    console.log("🚀 ~ POST ~ error:", error)
     
     let message = 'Failed to send OTP';
     let status = 500;

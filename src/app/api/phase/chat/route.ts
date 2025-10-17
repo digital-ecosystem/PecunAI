@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     conversationHistory.push({ role: 'user', content: message })
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4',
       messages: [
         { role: 'system', content: 'You are a helpful assistant.' },
         ...conversationHistory
@@ -95,7 +95,7 @@ export async function GET(req: Request) {
         role: msg.role,
         content: msg.content,
         timestamp: msg.createdAt,
-        index: msg.index
+        index: msg.messageIndex
       }))
     })
   } catch (error) {

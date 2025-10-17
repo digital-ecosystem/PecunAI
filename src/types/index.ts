@@ -4,7 +4,7 @@ export interface Session {
     status: SessionStatus
     token: string
     expiresAt: string
-    createdAt: string
+    created_at: string
     updatedAt: string
     user: User,
     personalInfo: PersonalInfo
@@ -13,7 +13,7 @@ export interface Session {
 export interface PersonalInfo {
     firstName: string
     lastName: string
-    age: number
+    // age: number
     qaSessionId: string
 }
 export interface User {
@@ -21,7 +21,7 @@ export interface User {
     email: string
     name: string
     isActive: boolean
-    createdAt: string
+    created_at: string
     updatedAt: string
     sessionStatus: SessionStatus // Optional, if not always present
 }
@@ -36,7 +36,7 @@ export enum SessionStatus {
 export interface Question {
     id: string
     text: string
-    createdAt: string
+    created_at: string
     options: Option[]
 }
 
@@ -45,13 +45,13 @@ export interface Option {
     questionId: string
     label: string
     value: string
-    createdAt: string
+    created_at: string
 }
 
 export interface UserUpdate {
     first_name: string
     last_name: string
-    age: number
+    // age: number
     dob: string
 }
 
@@ -78,6 +78,55 @@ export interface Product {
   shortName: string
   description: string
   keyFeatures: string[]
-  createdAt: string
+  created_at: string
   updatedAt: string
+}
+
+export interface TermsAndConditions {
+  id: string;
+  title: string;
+  content: string;
+  version: string;
+  termsType: string;
+  isActive: boolean;
+  createdBy?: string;       // optional because it can be empty
+  createdAt: string;        // ISO date string or formatted date string
+  updatedAt: string;        // ISO date string or formatted date string
+}
+
+
+export interface PersonalInfoFormData {
+  firstName: string;
+  lastName: string;
+  birthPlace: string;
+  nationality: string;
+  birthDate: string;
+  maritalStatus: string;
+  street: string;
+  houseNumber: string;
+  postalCode: string;
+  city: string;
+  phone: string;
+  email: string;
+  education: string;
+  currentJob: string;
+  industry: string;
+  occupation: string;
+  documentType: string;
+  documentNumber: string;
+  issuingAuthority: string;
+  issuedOn: string;
+  validUntil: string;
+  residenceAbroad: boolean;
+  actingFor: string;
+  isPEP: boolean;
+  magicFlow: boolean;
+}
+
+export interface Message {
+  id?: string
+  role: Role.customer | 'assistant'
+  content: string
+  timestamp: Date
+  index?: number
 }
