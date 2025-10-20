@@ -44,9 +44,9 @@ type Portfolio = {
 };
 
 const stepperBarClass = "flex-1 h-2 mx-1 rounded";
-const stepperContainerClass = "stepper-root max-w-full p-6 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-[100vh] flex flex-col justify-center";
-const cardClass = "card flex items-center justify-center w-full max-w-full h-[76vh] p-8 bg-white rounded-2xl shadow-xl";
-const buttonBaseClass = "button flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-all duration-300 transform shadow-lg hover:shadow-xl";
+const stepperContainerClass = "max-w-full p-6 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-[100vh] flex flex-col justify-center";
+const cardClass = "flex items-center justify-center w-full max-w-full h-[76vh] p-8 bg-white rounded-2xl shadow-xl";
+const buttonBaseClass = "flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-all duration-300 transform shadow-lg hover:shadow-xl";
 const buttonConfirmClass = "bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105 active:scale-95";
 const buttonConfirmedClass = "bg-green-500 text-white scale-95";
 const buttonNextClass = "bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105 active:scale-95";
@@ -185,65 +185,7 @@ export default function Stepper() {
 
   const session_id = searchParams.get('session_id')
   console.log("🚀 ~ Stepper ~ session_id:", session_id)
-  const sendMessage = React.useCallback(async (messageOverride: string = '') => {
-    const messageToSend = messageOverride.length > 0 ? messageOverride : input.trim();
-    const messageNotAppended = messageOverride.length > 0;
-    console.log("🚀 ~ sendMessage ~ messageToSend:", messageToSend)
-    if (!messageToSend || loading) return;
 
-    const userMessage: Message = {
-      role: Role.customer,
-      content: messageToSend,
-      timestamp: new Date()
-    }
-    if (!messageNotAppended) {
-      setMessages(prev => [...prev, userMessage])
-    }
-    setInput('')
-    setChatBtnLanding(true)
-
-    try {
-      const response = await fetch('/api/phase/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-          sessionId: session_id,
-          threadId
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to get response')
-      }
-
-      const data = await response.json()
-
-      if (data.threadId && !threadId) {
-        setThreadId(data.threadId)
-      }
-
-      const botMessage: Message = {
-        role: Role.assistant,
-        content: data.message,
-        timestamp: new Date()
-      }
-
-      setMessages(prev => [...prev, botMessage])
-    } catch (error) {
-      console.error('Error:', error)
-      const errorMessage: Message = {
-        role: Role.assistant,
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, errorMessage])
-    } finally {
-      setChatBtnLanding(false)
-    }
-  }, [input, loading, session_id, threadId]);
   // For PHASES.QUESTIONS1
   const questions1 = questions.slice(0, 3);
   const currentQ = questions1[questionIndex - 1];
@@ -423,7 +365,7 @@ export default function Stepper() {
 
     fetchSuggestedProduct();
     loadChatHistory();
-  }, [step, answers, session_id, threadId, sendMessage]);
+  }, [step]);
 
   useEffect(() => {
     fetchTermsAndConditions()
@@ -522,7 +464,7 @@ export default function Stepper() {
     };
 
     fetchUserInfo();
-  }, [session_id, formik]);
+  }, [session_id]);
 
   const onPersonalInfoSubmit = async (data: PersonalInfoFormData) => {
     try {
@@ -675,6 +617,73 @@ export default function Stepper() {
     if (!input.trim() || loading) return
     await sendMessage();
   };
+
+  const sendMessage = async (messageOverride: string = '') => {
+    // e.preventDefault()
+    // if (!input.trim() || loading) return
+
+    const messageToSend = messageOverride.length > 0 ? messageOverride : input.trim();
+    const messageNotAppended = messageOverride.length > 0;
+    console.log("🚀 ~ sendMessage ~ messageToSend:", messageToSend)
+    if (!messageToSend || loading) return;
+
+    const userMessage: Message = {
+      role: Role.customer,
+      content: messageToSend,
+      timestamp: new Date()
+    }
+    if (!messageNotAppended) {
+      setMessages(prev => [...prev, userMessage])
+    }
+    setInput('')
+    setChatBtnLanding(true)
+
+    try {
+      const response = await fetch('/api/phase/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage.content,
+          sessionId: session_id,
+          threadId
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to get response')
+      }
+
+      const data = await response.json()
+
+      // Update session and thread IDs from response
+      // if (data.sessionId && !session_id) {
+      //   setSessionId(data.sessionId)
+      // }
+      if (data.threadId && !threadId) {
+        setThreadId(data.threadId)
+      }
+
+      const botMessage: Message = {
+        role: Role.assistant,
+        content: data.message,
+        timestamp: new Date()
+      }
+
+      setMessages(prev => [...prev, botMessage])
+    } catch (error) {
+      console.error('Error:', error)
+      const errorMessage: Message = {
+        role: Role.assistant,
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setChatBtnLanding(false)
+    }
+  }
 
   const handleSignDSuccess = async () => {
     setLoading(true);
@@ -959,10 +968,10 @@ export default function Stepper() {
                   <p className="text-gray-600 mb-6">
                     Based on your answers, we recommend:
                   </p>
-                  <div className="border p-4 rounded shadow iframe-container" style={{ height: '85%' }} >
-                      <h3 className="font-semibold">Product {suggestedProduct?.name}</h3>
-                      <iframe src={`${process.env.NEXT_PUBLIC_FRONTEND_URL + 'products/' + suggestedProduct?.name + '.pdf'}`} className="iframe-preview w-full rounded" style={{ height: '95%' }} />
-                    </div>
+                  <div className="border p-4 rounded shadow" style={{ height: '85%' }} >
+                    <h3 className="font-semibold">Product {suggestedProduct?.name}</h3>
+                    <iframe src={`${process.env.NEXT_PUBLIC_FRONTEND_URL + 'products/' + suggestedProduct?.name + '.pdf'}`} className="w-full rounded" style={{ height: '95%' }} />
+                  </div>
                 </div>
               )}
 
@@ -1024,7 +1033,7 @@ export default function Stepper() {
             <div className="flex justify-center my-3">
               <p className="text-gray-600">Step {step} of 8</p>
             </div>
-            <div className="flex justify-between mt-3 nav-buttons">
+            <div className="flex justify-between mt-3">
               <button
                 onClick={prevStep}
                 disabled={step === PHASES.TERMS1}
