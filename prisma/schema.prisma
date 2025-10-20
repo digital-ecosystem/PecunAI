@@ -90,6 +90,9 @@ model Product {
   createdAt          DateTime                   @default(now()) 
   fileName           String?                    
   shortName          String?                    
+  minimumYear        Int?                       
+  maximumYear        Int?                       
+  riskType           RiskType?                  
   updatedAt          DateTime                   @updatedAt 
   aiSettings         AISettings[]
   productSuggestions SessionProductSuggestion[]
@@ -355,4 +358,10 @@ enum QuestionPhase {
 enum TermsType {
   INITIAL
   PRODUCT_SPECIFIC
+}
+
+enum RiskType {
+  CONSERVATIVE
+  RISK_AWARE
+  OPPORTUNITY_ORIENTED
 }

@@ -173,6 +173,15 @@ export const TermsType: {
 
 export type TermsType = (typeof TermsType)[keyof typeof TermsType]
 
+
+export const RiskType: {
+  CONSERVATIVE: 'CONSERVATIVE',
+  RISK_AWARE: 'RISK_AWARE',
+  OPPORTUNITY_ORIENTED: 'OPPORTUNITY_ORIENTED'
+};
+
+export type RiskType = (typeof RiskType)[keyof typeof RiskType]
+
 }
 
 export type SessionStatus = $Enums.SessionStatus
@@ -194,6 +203,10 @@ export const QuestionPhase: typeof $Enums.QuestionPhase
 export type TermsType = $Enums.TermsType
 
 export const TermsType: typeof $Enums.TermsType
+
+export type RiskType = $Enums.RiskType
+
+export const RiskType: typeof $Enums.RiskType
 
 /**
  * ##  Prisma Client ʲˢ
@@ -8833,8 +8846,20 @@ export namespace Prisma {
 
   export type AggregateProduct = {
     _count: ProductCountAggregateOutputType | null
+    _avg: ProductAvgAggregateOutputType | null
+    _sum: ProductSumAggregateOutputType | null
     _min: ProductMinAggregateOutputType | null
     _max: ProductMaxAggregateOutputType | null
+  }
+
+  export type ProductAvgAggregateOutputType = {
+    minimumYear: number | null
+    maximumYear: number | null
+  }
+
+  export type ProductSumAggregateOutputType = {
+    minimumYear: number | null
+    maximumYear: number | null
   }
 
   export type ProductMinAggregateOutputType = {
@@ -8844,6 +8869,9 @@ export namespace Prisma {
     createdAt: Date | null
     fileName: string | null
     shortName: string | null
+    minimumYear: number | null
+    maximumYear: number | null
+    riskType: $Enums.RiskType | null
     updatedAt: Date | null
   }
 
@@ -8854,6 +8882,9 @@ export namespace Prisma {
     createdAt: Date | null
     fileName: string | null
     shortName: string | null
+    minimumYear: number | null
+    maximumYear: number | null
+    riskType: $Enums.RiskType | null
     updatedAt: Date | null
   }
 
@@ -8864,10 +8895,23 @@ export namespace Prisma {
     createdAt: number
     fileName: number
     shortName: number
+    minimumYear: number
+    maximumYear: number
+    riskType: number
     updatedAt: number
     _all: number
   }
 
+
+  export type ProductAvgAggregateInputType = {
+    minimumYear?: true
+    maximumYear?: true
+  }
+
+  export type ProductSumAggregateInputType = {
+    minimumYear?: true
+    maximumYear?: true
+  }
 
   export type ProductMinAggregateInputType = {
     id?: true
@@ -8876,6 +8920,9 @@ export namespace Prisma {
     createdAt?: true
     fileName?: true
     shortName?: true
+    minimumYear?: true
+    maximumYear?: true
+    riskType?: true
     updatedAt?: true
   }
 
@@ -8886,6 +8933,9 @@ export namespace Prisma {
     createdAt?: true
     fileName?: true
     shortName?: true
+    minimumYear?: true
+    maximumYear?: true
+    riskType?: true
     updatedAt?: true
   }
 
@@ -8896,6 +8946,9 @@ export namespace Prisma {
     createdAt?: true
     fileName?: true
     shortName?: true
+    minimumYear?: true
+    maximumYear?: true
+    riskType?: true
     updatedAt?: true
     _all?: true
   }
@@ -8938,6 +8991,18 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
+     * Select which fields to average
+    **/
+    _avg?: ProductAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ProductSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: ProductMinAggregateInputType
@@ -8968,6 +9033,8 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: ProductCountAggregateInputType | true
+    _avg?: ProductAvgAggregateInputType
+    _sum?: ProductSumAggregateInputType
     _min?: ProductMinAggregateInputType
     _max?: ProductMaxAggregateInputType
   }
@@ -8979,8 +9046,13 @@ export namespace Prisma {
     createdAt: Date
     fileName: string | null
     shortName: string | null
+    minimumYear: number | null
+    maximumYear: number | null
+    riskType: $Enums.RiskType | null
     updatedAt: Date
     _count: ProductCountAggregateOutputType | null
+    _avg: ProductAvgAggregateOutputType | null
+    _sum: ProductSumAggregateOutputType | null
     _min: ProductMinAggregateOutputType | null
     _max: ProductMaxAggregateOutputType | null
   }
@@ -9006,6 +9078,9 @@ export namespace Prisma {
     createdAt?: boolean
     fileName?: boolean
     shortName?: boolean
+    minimumYear?: boolean
+    maximumYear?: boolean
+    riskType?: boolean
     updatedAt?: boolean
     aiSettings?: boolean | Product$aiSettingsArgs<ExtArgs>
     productSuggestions?: boolean | Product$productSuggestionsArgs<ExtArgs>
@@ -9019,6 +9094,9 @@ export namespace Prisma {
     createdAt?: boolean
     fileName?: boolean
     shortName?: boolean
+    minimumYear?: boolean
+    maximumYear?: boolean
+    riskType?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["product"]>
 
@@ -9029,6 +9107,9 @@ export namespace Prisma {
     createdAt?: boolean
     fileName?: boolean
     shortName?: boolean
+    minimumYear?: boolean
+    maximumYear?: boolean
+    riskType?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["product"]>
 
@@ -9039,10 +9120,13 @@ export namespace Prisma {
     createdAt?: boolean
     fileName?: boolean
     shortName?: boolean
+    minimumYear?: boolean
+    maximumYear?: boolean
+    riskType?: boolean
     updatedAt?: boolean
   }
 
-  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "createdAt" | "fileName" | "shortName" | "updatedAt", ExtArgs["result"]["product"]>
+  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "createdAt" | "fileName" | "shortName" | "minimumYear" | "maximumYear" | "riskType" | "updatedAt", ExtArgs["result"]["product"]>
   export type ProductInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     aiSettings?: boolean | Product$aiSettingsArgs<ExtArgs>
     productSuggestions?: boolean | Product$productSuggestionsArgs<ExtArgs>
@@ -9064,6 +9148,9 @@ export namespace Prisma {
       createdAt: Date
       fileName: string | null
       shortName: string | null
+      minimumYear: number | null
+      maximumYear: number | null
+      riskType: $Enums.RiskType | null
       updatedAt: Date
     }, ExtArgs["result"]["product"]>
     composites: {}
@@ -9496,6 +9583,9 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"Product", 'DateTime'>
     readonly fileName: FieldRef<"Product", 'String'>
     readonly shortName: FieldRef<"Product", 'String'>
+    readonly minimumYear: FieldRef<"Product", 'Int'>
+    readonly maximumYear: FieldRef<"Product", 'Int'>
+    readonly riskType: FieldRef<"Product", 'RiskType'>
     readonly updatedAt: FieldRef<"Product", 'DateTime'>
   }
     
@@ -26040,6 +26130,9 @@ export namespace Prisma {
     createdAt: 'createdAt',
     fileName: 'fileName',
     shortName: 'shortName',
+    minimumYear: 'minimumYear',
+    maximumYear: 'maximumYear',
+    riskType: 'riskType',
     updatedAt: 'updatedAt'
   };
 
@@ -26394,6 +26487,20 @@ export namespace Prisma {
    * Reference to a field of type 'QueryMode'
    */
   export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+  /**
+   * Reference to a field of type 'RiskType'
+   */
+  export type EnumRiskTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RiskType'>
+    
+
+
+  /**
+   * Reference to a field of type 'RiskType[]'
+   */
+  export type ListEnumRiskTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RiskType[]'>
     
 
 
@@ -26839,6 +26946,9 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Product"> | Date | string
     fileName?: StringNullableFilter<"Product"> | string | null
     shortName?: StringNullableFilter<"Product"> | string | null
+    minimumYear?: IntNullableFilter<"Product"> | number | null
+    maximumYear?: IntNullableFilter<"Product"> | number | null
+    riskType?: EnumRiskTypeNullableFilter<"Product"> | $Enums.RiskType | null
     updatedAt?: DateTimeFilter<"Product"> | Date | string
     aiSettings?: AISettingsListRelationFilter
     productSuggestions?: SessionProductSuggestionListRelationFilter
@@ -26851,6 +26961,9 @@ export namespace Prisma {
     createdAt?: SortOrder
     fileName?: SortOrderInput | SortOrder
     shortName?: SortOrderInput | SortOrder
+    minimumYear?: SortOrderInput | SortOrder
+    maximumYear?: SortOrderInput | SortOrder
+    riskType?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
     aiSettings?: AISettingsOrderByRelationAggregateInput
     productSuggestions?: SessionProductSuggestionOrderByRelationAggregateInput
@@ -26866,6 +26979,9 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Product"> | Date | string
     fileName?: StringNullableFilter<"Product"> | string | null
     shortName?: StringNullableFilter<"Product"> | string | null
+    minimumYear?: IntNullableFilter<"Product"> | number | null
+    maximumYear?: IntNullableFilter<"Product"> | number | null
+    riskType?: EnumRiskTypeNullableFilter<"Product"> | $Enums.RiskType | null
     updatedAt?: DateTimeFilter<"Product"> | Date | string
     aiSettings?: AISettingsListRelationFilter
     productSuggestions?: SessionProductSuggestionListRelationFilter
@@ -26878,10 +26994,15 @@ export namespace Prisma {
     createdAt?: SortOrder
     fileName?: SortOrderInput | SortOrder
     shortName?: SortOrderInput | SortOrder
+    minimumYear?: SortOrderInput | SortOrder
+    maximumYear?: SortOrderInput | SortOrder
+    riskType?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
     _count?: ProductCountOrderByAggregateInput
+    _avg?: ProductAvgOrderByAggregateInput
     _max?: ProductMaxOrderByAggregateInput
     _min?: ProductMinOrderByAggregateInput
+    _sum?: ProductSumOrderByAggregateInput
   }
 
   export type ProductScalarWhereWithAggregatesInput = {
@@ -26894,6 +27015,9 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"Product"> | Date | string
     fileName?: StringNullableWithAggregatesFilter<"Product"> | string | null
     shortName?: StringNullableWithAggregatesFilter<"Product"> | string | null
+    minimumYear?: IntNullableWithAggregatesFilter<"Product"> | number | null
+    maximumYear?: IntNullableWithAggregatesFilter<"Product"> | number | null
+    riskType?: EnumRiskTypeNullableWithAggregatesFilter<"Product"> | $Enums.RiskType | null
     updatedAt?: DateTimeWithAggregatesFilter<"Product"> | Date | string
   }
 
@@ -28371,6 +28495,9 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
+    minimumYear?: number | null
+    maximumYear?: number | null
+    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
     aiSettings?: AISettingsCreateNestedManyWithoutProductInput
     productSuggestions?: SessionProductSuggestionCreateNestedManyWithoutProductInput
@@ -28383,6 +28510,9 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
+    minimumYear?: number | null
+    maximumYear?: number | null
+    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
     aiSettings?: AISettingsUncheckedCreateNestedManyWithoutProductInput
     productSuggestions?: SessionProductSuggestionUncheckedCreateNestedManyWithoutProductInput
@@ -28395,6 +28525,9 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aiSettings?: AISettingsUpdateManyWithoutProductNestedInput
     productSuggestions?: SessionProductSuggestionUpdateManyWithoutProductNestedInput
@@ -28407,6 +28540,9 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aiSettings?: AISettingsUncheckedUpdateManyWithoutProductNestedInput
     productSuggestions?: SessionProductSuggestionUncheckedUpdateManyWithoutProductNestedInput
@@ -28419,6 +28555,9 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
+    minimumYear?: number | null
+    maximumYear?: number | null
+    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
   }
 
@@ -28429,6 +28568,9 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -28439,6 +28581,9 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -30145,6 +30290,13 @@ export namespace Prisma {
     _max?: NestedJsonFilter<$PrismaModel>
   }
 
+  export type EnumRiskTypeNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.RiskType | EnumRiskTypeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.RiskType[] | ListEnumRiskTypeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.RiskType[] | ListEnumRiskTypeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumRiskTypeNullableFilter<$PrismaModel> | $Enums.RiskType | null
+  }
+
   export type AISettingsListRelationFilter = {
     every?: AISettingsWhereInput
     some?: AISettingsWhereInput
@@ -30162,7 +30314,15 @@ export namespace Prisma {
     createdAt?: SortOrder
     fileName?: SortOrder
     shortName?: SortOrder
+    minimumYear?: SortOrder
+    maximumYear?: SortOrder
+    riskType?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type ProductAvgOrderByAggregateInput = {
+    minimumYear?: SortOrder
+    maximumYear?: SortOrder
   }
 
   export type ProductMaxOrderByAggregateInput = {
@@ -30172,6 +30332,9 @@ export namespace Prisma {
     createdAt?: SortOrder
     fileName?: SortOrder
     shortName?: SortOrder
+    minimumYear?: SortOrder
+    maximumYear?: SortOrder
+    riskType?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -30182,7 +30345,25 @@ export namespace Prisma {
     createdAt?: SortOrder
     fileName?: SortOrder
     shortName?: SortOrder
+    minimumYear?: SortOrder
+    maximumYear?: SortOrder
+    riskType?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type ProductSumOrderByAggregateInput = {
+    minimumYear?: SortOrder
+    maximumYear?: SortOrder
+  }
+
+  export type EnumRiskTypeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RiskType | EnumRiskTypeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.RiskType[] | ListEnumRiskTypeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.RiskType[] | ListEnumRiskTypeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumRiskTypeNullableWithAggregatesFilter<$PrismaModel> | $Enums.RiskType | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumRiskTypeNullableFilter<$PrismaModel>
+    _max?: NestedEnumRiskTypeNullableFilter<$PrismaModel>
   }
 
   export type EnumQuestionPhaseNullableFilter<$PrismaModel = never> = {
@@ -31545,6 +31726,10 @@ export namespace Prisma {
     connect?: SessionProductSuggestionWhereUniqueInput | SessionProductSuggestionWhereUniqueInput[]
   }
 
+  export type NullableEnumRiskTypeFieldUpdateOperationsInput = {
+    set?: $Enums.RiskType | null
+  }
+
   export type AISettingsUpdateManyWithoutProductNestedInput = {
     create?: XOR<AISettingsCreateWithoutProductInput, AISettingsUncheckedCreateWithoutProductInput> | AISettingsCreateWithoutProductInput[] | AISettingsUncheckedCreateWithoutProductInput[]
     connectOrCreate?: AISettingsCreateOrConnectWithoutProductInput | AISettingsCreateOrConnectWithoutProductInput[]
@@ -32415,6 +32600,23 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type NestedEnumRiskTypeNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.RiskType | EnumRiskTypeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.RiskType[] | ListEnumRiskTypeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.RiskType[] | ListEnumRiskTypeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumRiskTypeNullableFilter<$PrismaModel> | $Enums.RiskType | null
+  }
+
+  export type NestedEnumRiskTypeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RiskType | EnumRiskTypeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.RiskType[] | ListEnumRiskTypeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.RiskType[] | ListEnumRiskTypeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumRiskTypeNullableWithAggregatesFilter<$PrismaModel> | $Enums.RiskType | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumRiskTypeNullableFilter<$PrismaModel>
+    _max?: NestedEnumRiskTypeNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumQuestionPhaseNullableFilter<$PrismaModel = never> = {
@@ -34173,6 +34375,9 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
+    minimumYear?: number | null
+    maximumYear?: number | null
+    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
     aiSettings?: AISettingsCreateNestedManyWithoutProductInput
   }
@@ -34184,6 +34389,9 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
+    minimumYear?: number | null
+    maximumYear?: number | null
+    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
     aiSettings?: AISettingsUncheckedCreateNestedManyWithoutProductInput
   }
@@ -34248,6 +34456,9 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aiSettings?: AISettingsUpdateManyWithoutProductNestedInput
   }
@@ -34259,6 +34470,9 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aiSettings?: AISettingsUncheckedUpdateManyWithoutProductNestedInput
   }
@@ -35190,6 +35404,9 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
+    minimumYear?: number | null
+    maximumYear?: number | null
+    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
     productSuggestions?: SessionProductSuggestionCreateNestedManyWithoutProductInput
   }
@@ -35201,6 +35418,9 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
+    minimumYear?: number | null
+    maximumYear?: number | null
+    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
     productSuggestions?: SessionProductSuggestionUncheckedCreateNestedManyWithoutProductInput
   }
@@ -35228,6 +35448,9 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     productSuggestions?: SessionProductSuggestionUpdateManyWithoutProductNestedInput
   }
@@ -35239,6 +35462,9 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     productSuggestions?: SessionProductSuggestionUncheckedUpdateManyWithoutProductNestedInput
   }

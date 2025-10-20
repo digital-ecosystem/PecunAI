@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Search, CheckCircle, Clock, FileText, ChevronRight, X, Loader2, LogOut, Hourglass, Ban } from 'lucide-react';
+import { Search, CheckCircle, Clock, FileText, ChevronRight, X, Loader2, Hourglass, Ban } from 'lucide-react';
 import { DashboardQuestions, Session, SessionStatus } from '@/types';
 import { useRouter } from 'next/navigation';
+import AdminHeader from '@/components/AdminHeader';
 
 const Dashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -34,7 +35,7 @@ const Dashboard = () => {
             }
         }
         fetchSession();
-    }, [])
+    }, [router])
 
     useEffect(() => {
         if (selectedSession?.id) {
@@ -52,7 +53,7 @@ const Dashboard = () => {
             }
             fetchQuestionAnswer();
         }
-    }, [selectedSession])
+    }, [selectedSession, router])
 
 
     const handleLogout = async () => {
@@ -143,36 +144,7 @@ const Dashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-4">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-                            <p className="text-gray-600">Welcome back!</p>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            {/* <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                                Start Now
-                            </button> */}
-                            <div className="flex items-center space-x-2">
-                                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                                    <span className="text-white text-sm font-medium">{process.env.NEXT_PUBLIC_ADMIN_EMAIL ? process.env.NEXT_PUBLIC_ADMIN_EMAIL[0] : 'A'}</span>
-                                </div>
-                                <span className="text-sm text-gray-700">{process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@example.com'}</span>
-                            </div>
-                            <button
-                                onClick={handleLogout}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 hover:text-red-700 transition-colors text-sm font-medium shadow-sm"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                Logout
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+            <AdminHeader />
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Stats Cards */}
 
@@ -311,7 +283,7 @@ const Dashboard = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {formatDate(session.createdAt)}
+                                            {formatDate(session.created_at)}
                                         </td>
                                     </tr>
                                 ))}
@@ -391,7 +363,7 @@ const Dashboard = () => {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-600">Created Date</label>
-                                            <p className="text-sm text-gray-900">{formatDate(selectedSession.createdAt)}</p>
+                                            <p className="text-sm text-gray-900">{formatDate(selectedSession.created_at)}</p>
                                         </div>
                                     </div>
                                 </div>

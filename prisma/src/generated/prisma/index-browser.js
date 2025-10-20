@@ -176,6 +176,9 @@ exports.Prisma.ProductScalarFieldEnum = {
   createdAt: 'createdAt',
   fileName: 'fileName',
   shortName: 'shortName',
+  minimumYear: 'minimumYear',
+  maximumYear: 'maximumYear',
+  riskType: 'riskType',
   updatedAt: 'updatedAt'
 };
 
@@ -397,6 +400,12 @@ exports.SessionPhase = exports.$Enums.SessionPhase = {
   CONSULTATION: 'CONSULTATION',
   ONBOARDING: 'ONBOARDING',
   COMPLETED: 'COMPLETED'
+};
+
+exports.RiskType = exports.$Enums.RiskType = {
+  CONSERVATIVE: 'CONSERVATIVE',
+  RISK_AWARE: 'RISK_AWARE',
+  OPPORTUNITY_ORIENTED: 'OPPORTUNITY_ORIENTED'
 };
 
 exports.QuestionPhase = exports.$Enums.QuestionPhase = {

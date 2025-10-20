@@ -28,7 +28,7 @@ const Dashboard = () => {
             }
         };
         fetchUser();
-    }, []);
+    }, [router]);
 
     useEffect(() => {
         const fetchSession = async () => {
@@ -347,7 +347,7 @@ const Dashboard = () => {
                                                 </td>
 
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {formatDate(session.createdAt)}
+                                                    {formatDate(session?.created_at)}
                                                 </td>
                                             </tr>
                                         ))}
