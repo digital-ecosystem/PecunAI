@@ -54,6 +54,9 @@ async function main() {
   //   }
   // ];
 
+  await prisma.question.deleteMany();
+
+
   const questions = [
     {
       text: "Investment Goals",
@@ -111,33 +114,36 @@ async function main() {
   }
 
 
-  // const initialTerms = await prisma.termsAndConditions.upsert({
-  //   where: { id: 'terms-initial-v1' },
-  //   update: {},
-  //   create: {
-  //     id: 'terms-initial-v1',
-  //     title: 'Initial Terms and Conditions',
-  //     content: 'Welcome to our investment platform. By proceeding, you acknowledge that you have read and agree to our terms of service. We will collect information about your financial situation and investment preferences to provide suitable recommendations.',
-  //     version: 'v1.0',
-  //     termsType: 'INITIAL',
-  //     isActive: true
-  //   }
-  // })
-  // console.log("🚀 ~ main ~ initialTerms:", initialTerms)
+  // Delete all existing products and AI settings before seeding
+  await prisma.termsAndConditions.deleteMany();
 
-  // const productTerms = await prisma.termsAndConditions.upsert({
-  //   where: { id: 'terms-product-v1' },
-  //   update: {},
-  //   create: {
-  //     id: 'terms-product-v1',
-  //     title: 'Investment Product Terms',
-  //     content: 'Investment products carry inherent risks. Past performance does not guarantee future results. You may lose some or all of your invested capital. Please ensure you understand the risks before proceeding.',
-  //     version: 'v1.0',
-  //     termsType: 'PRODUCT_SPECIFIC',
-  //     isActive: true
-  //   }
-  // })
-  // console.log("🚀 ~ main ~ productTerms:", productTerms)
+  const initialTerms = await prisma.termsAndConditions.upsert({
+    where: { id: 'terms-initial-v1' },
+    update: {},
+    create: {
+      id: 'terms-initial-v1',
+      title: 'Initial Terms and Conditions',
+      content: 'Welcome to our investment platform. By proceeding, you acknowledge that you have read and agree to our terms of service. We will collect information about your financial situation and investment preferences to provide suitable recommendations.',
+      version: 'v1.0',
+      termsType: 'INITIAL',
+      isActive: true
+    }
+  })
+  console.log("🚀 ~ main ~ initialTerms:", initialTerms)
+
+  const productTerms = await prisma.termsAndConditions.upsert({
+    where: { id: 'terms-product-v1' },
+    update: {},
+    create: {
+      id: 'terms-product-v1',
+      title: 'Investment Product Terms',
+      content: 'Investment products carry inherent risks. Past performance does not guarantee future results. You may lose some or all of your invested capital. Please ensure you understand the risks before proceeding.',
+      version: 'v1.0',
+      termsType: 'PRODUCT_SPECIFIC',
+      isActive: true
+    }
+  })
+  console.log("🚀 ~ main ~ productTerms:", productTerms)
 
   // Delete all existing products and AI settings before seeding
   await prisma.aISettings.deleteMany();

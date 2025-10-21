@@ -37,10 +37,22 @@ const PHASES = {
 };
 
 type Portfolio = {
+  id?: string;
   from: number;
   to: number;
   risk: string;
   name: string;
+  fullName?: string;
+  description?: string | null;
+  fileName?: string | null;
+  riskType?: string;
+  aiSettings?: {
+    id: string;
+    model: string;
+    prompt: string;
+    vectorId: string | null;
+  } | null;
+  score?: number;
 };
 
 const stepperBarClass = "flex-1 h-2 mx-1 rounded";
@@ -52,26 +64,11 @@ const buttonConfirmedClass = "bg-green-500 text-white scale-95";
 const buttonNextClass = "bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105 active:scale-95";
 const buttonBackClass = "px-4 py-2 rounded-lg border text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-40";
 
-const portfolios: Portfolio[] = [
-  { from: 7, to: 100, risk: "Gewinnorientiert", name: "VVKN-5" },
-  { from: 5, to: 6, risk: "Gewinnorientiert", name: "VVKN-4" },
-  { from: 3, to: 4, risk: "Gewinnorientiert", name: "VVKN-3" },
-  { from: 1, to: 2, risk: "Gewinnorientiert", name: "VVKN-2" },
-  { from: 0, to: 1, risk: "Gewinnorientiert", name: "VVKN-1" },
-  { from: 5, to: 100, risk: "Ausgewogen", name: "VVKN-4" },
-  { from: 3, to: 4, risk: "Ausgewogen", name: "VVKN-3" },
-  { from: 5, to: 100, risk: "Konservativ", name: "VVKN-3" },
-  { from: 1, to: 2, risk: "Ausgewogen", name: "VVKN-2" },
-  { from: 1, to: 2, risk: "Konservativ", name: "VVKN-2" },
-  { from: 0, to: 1, risk: "Ausgewogen", name: "VVKN-1" },
-  { from: 0, to: 1, risk: "Konservativ", name: "VVKN-1" }
-];
-
-const riskMap: Record<string, string> = {
-  conservative: 'Konservativ',
-  risk_aware: 'Ausgewogen',
-  opportunity_oriented: 'Gewinnorientiert',
-};
+// const riskMap: Record<string, string> = {
+//   conservative: 'Konservativ',
+//   risk_aware: 'Ausgewogen',
+//   opportunity_oriented: 'Gewinnorientiert',
+// };
 
 
 const validationSchema = Yup.object({
@@ -256,6 +253,66 @@ export default function Stepper() {
     nextStep();
   }
 
+  const sendMessage = useCallback(async (messageOverride: string = '') => {
+    const messageToSend = messageOverride.length > 0 ? messageOverride : input.trim();
+    const messageNotAppended = messageOverride.length > 0;
+    console.log("🚀 ~ sendMessage ~ messageToSend:", messageToSend)
+    if (!messageToSend || loading) return;
+
+    const userMessage: Message = {
+      role: Role.customer,
+      content: messageToSend,
+      timestamp: new Date()
+    }
+    if (!messageNotAppended) {
+      setMessages(prev => [...prev, userMessage])
+    }
+    setInput('')
+    setChatBtnLanding(true)
+
+    try {
+      const response = await fetch('/api/phase/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage.content,
+          sessionId: session_id,
+          threadId
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to get response')
+      }
+
+      const data = await response.json()
+
+      if (data.threadId && !threadId) {
+        setThreadId(data.threadId)
+      }
+
+      const botMessage: Message = {
+        role: Role.assistant,
+        content: data.message,
+        timestamp: new Date()
+      }
+
+      setMessages(prev => [...prev, botMessage])
+    } catch (error) {
+      console.error('Error:', error)
+      const errorMessage: Message = {
+        role: Role.assistant,
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setChatBtnLanding(false)
+    }
+  }, [input, loading, session_id, threadId]);
+
   const fetchTermsAndConditions = useCallback(async () => {
     setLoading(true);
     try {
@@ -278,54 +335,134 @@ export default function Stepper() {
     }
   }, [session_id]);
 
-  const suggestProduct = (duration: string, risk: string) => {
-    let from = 0, to = 0;
+  // Helper function to analyze questions and find relevant ones
+  const findQuestionByKeywords = (questions: Question[], keywords: string[]) => {
+    return questions.find(q => 
+      keywords.some(keyword => q.text.toLowerCase().includes(keyword.toLowerCase()))
+    );
+  };
 
-    switch (duration) {
-      case 'short_term': from = 0; to = 2; break;
-      case 'medium_term': from = 3; to = 6; break;
-      case 'long_term': from = 7; to = 10; break;
-      case 'very_long_term': from = 11; to = Infinity; break;
-      default: from = 0; to = Infinity;
+  // Enhanced function to find questions with scoring
+  const findBestMatchingQuestion = (questions: Question[], keywords: string[]) => {
+    let bestMatch = null;
+    let highestScore = 0;
+
+    for (const question of questions) {
+      const questionText = question.text.toLowerCase();
+      let score = 0;
+      
+      // Count how many keywords match
+      for (const keyword of keywords) {
+        if (questionText.includes(keyword.toLowerCase())) {
+          score++;
+        }
+      }
+      
+      // Boost score if multiple keywords match
+      if (score > highestScore) {
+        highestScore = score;
+        bestMatch = question;
+      }
     }
 
-    const mappedRisk = riskMap[risk];
+    return bestMatch;
+  };
 
-    // Step 1: Filter by risk
-    const matchingPortfolios = portfolios.filter(p => p.risk === mappedRisk);
-    if (matchingPortfolios.length === 0) return null;
-
-    // Step 2: Score portfolios based on closeness to selected range
-    const scored = matchingPortfolios.map(p => {
-      const distance = Math.abs(p.from - from) + Math.abs(p.to - to);
-      return { ...p, distance };
-    });
-
-    // Step 3: Find all with the best (lowest) distance
-    scored.sort((a, b) => a.distance - b.distance);
-    const bestDistance = scored[0].distance;
-    const bestMatches = scored.filter(p => p.distance === bestDistance);
-
-    // Step 4: Prefer the portfolio that starts earlier
-    bestMatches.sort((a, b) => a.from - b.from);
-
-    return bestMatches[0] || null;
+  const suggestProduct = async (duration: string, risk: string): Promise<Portfolio | null> => {
+    try {
+      console.log('🔍 Requesting product suggestion:', { duration, risk });
+      
+      const response = await fetch(`/api/phase/product?duration=${duration}&risk=${risk}`, {
+        method: 'GET',
+      });
+      
+      const data = await response.json();
+      console.log('🎯 Product suggestion response:', data);
+      
+      if (data.success && data.data) {
+        return data.data;
+      } else {
+        console.warn('No product found for criteria:', { duration, risk });
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching product suggestion:', error);
+      return null;
+    }
   };
 
   useEffect(() => {
     const fetchSuggestedProduct = async () => {
-      if (step === PHASES.SUGGESTIONS) {
+      if (step === PHASES.SUGGESTIONS && questions.length > 0) {
         try {
           setLoading(true);
 
-          const DURATION_KEY = "63cb24b6-0daa-4a38-a452-b17921d1c8a4";
-          const RISK_KEY = "90bc2a13-572a-402c-b10d-a043ed3efdc4";
+          // Enhanced question matching with multiple strategies
+          console.log('📊 All questions available:', questions.map(q => ({ id: q.id, text: q.text })));
+          
+          const durationKeywords = ['time', 'year', 'duration', 'horizon', 'long', 'period', 'when', 'invest', 'plan', 'month'];
+          const riskKeywords = ['risk', 'comfortable', 'volatility', 'tolerance', 'fluctuation', 'loss', 'willing', 'safe'];
+          
+          // Strategy 1: Use enhanced matching for better accuracy
+          const durationQuestion = findBestMatchingQuestion(questions, durationKeywords) || findQuestionByKeywords(questions, durationKeywords);
+          const riskQuestion = findBestMatchingQuestion(questions, riskKeywords) || findQuestionByKeywords(questions, riskKeywords);
 
-          const product = await suggestProduct(
-            answers[DURATION_KEY],
-            answers[RISK_KEY]
-          );
-          setSuggestedProduct(product);
+          console.log('🎯 Question matching results:', {
+            durationQuestion: durationQuestion ? { id: durationQuestion.id, text: durationQuestion.text } : null,
+            riskQuestion: riskQuestion ? { id: riskQuestion.id, text: riskQuestion.text } : null
+          });
+
+          // Strategy 2: Fallback to positional logic
+          let durationQuestionId = durationQuestion?.id;
+          let riskQuestionId = riskQuestion?.id;
+          
+          // Strategy 3: If keyword matching fails, use positional fallback
+          if (!durationQuestionId && questions.length > 0) {
+            console.log('⚠️ Using positional fallback for duration question');
+            // Assume duration is typically asked early (first 3 questions)
+            durationQuestionId = questions[0]?.id;
+            for (let i = 0; i < Math.min(3, questions.length); i++) {
+              if (answers[questions[i].id]) {
+                durationQuestionId = questions[i].id;
+                break;
+              }
+            }
+          }
+          
+          if (!riskQuestionId && questions.length > 1) {
+            console.log('⚠️ Using positional fallback for risk question');
+            // Assume risk is typically asked later (questions 2-5)
+            riskQuestionId = questions[Math.min(3, questions.length - 1)]?.id;
+            for (let i = 1; i < questions.length; i++) {
+              if (answers[questions[i].id] && questions[i].id !== durationQuestionId) {
+                riskQuestionId = questions[i].id;
+                break;
+              }
+            }
+          }
+
+          console.log('🔍 Using question IDs:', { 
+            duration: durationQuestionId, 
+            risk: riskQuestionId,
+            durationAnswer: durationQuestionId ? answers[durationQuestionId] : undefined,
+            riskAnswer: riskQuestionId ? answers[riskQuestionId] : undefined,
+            allAnswers: answers
+          });
+
+          if (durationQuestionId && riskQuestionId && answers[durationQuestionId] && answers[riskQuestionId]) {
+            const product = await suggestProduct(
+              answers[durationQuestionId],
+              answers[riskQuestionId]
+            );
+            setSuggestedProduct(product);
+          } else {
+            console.warn('⚠️ Missing required answers for product suggestion', {
+              hasDurationId: !!durationQuestionId,
+              hasRiskId: !!riskQuestionId,
+              hasDurationAnswer: durationQuestionId ? !!answers[durationQuestionId] : false,
+              hasRiskAnswer: riskQuestionId ? !!answers[riskQuestionId] : false
+            });
+          }
         } catch (error) {
           console.error("❌ Failed to fetch product suggestion:", error);
         } finally {
@@ -334,7 +471,13 @@ export default function Stepper() {
       }
     };
 
-    const loadChatHistory = async () => {
+
+
+    fetchSuggestedProduct();
+  }, [step, answers, session_id]);
+  
+  useEffect(() => { 
+        const loadChatHistory = async () => {
       if (step === PHASES.CHAT) {
         if (!session_id && !threadId) return
 
@@ -362,10 +505,8 @@ export default function Stepper() {
         }
       }
     }
-
-    fetchSuggestedProduct();
     loadChatHistory();
-  }, [step]);
+  }, [sendMessage, session_id, step, threadId])
 
   useEffect(() => {
     fetchTermsAndConditions()
@@ -618,73 +759,6 @@ export default function Stepper() {
     await sendMessage();
   };
 
-  const sendMessage = async (messageOverride: string = '') => {
-    // e.preventDefault()
-    // if (!input.trim() || loading) return
-
-    const messageToSend = messageOverride.length > 0 ? messageOverride : input.trim();
-    const messageNotAppended = messageOverride.length > 0;
-    console.log("🚀 ~ sendMessage ~ messageToSend:", messageToSend)
-    if (!messageToSend || loading) return;
-
-    const userMessage: Message = {
-      role: Role.customer,
-      content: messageToSend,
-      timestamp: new Date()
-    }
-    if (!messageNotAppended) {
-      setMessages(prev => [...prev, userMessage])
-    }
-    setInput('')
-    setChatBtnLanding(true)
-
-    try {
-      const response = await fetch('/api/phase/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-          sessionId: session_id,
-          threadId
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to get response')
-      }
-
-      const data = await response.json()
-
-      // Update session and thread IDs from response
-      // if (data.sessionId && !session_id) {
-      //   setSessionId(data.sessionId)
-      // }
-      if (data.threadId && !threadId) {
-        setThreadId(data.threadId)
-      }
-
-      const botMessage: Message = {
-        role: Role.assistant,
-        content: data.message,
-        timestamp: new Date()
-      }
-
-      setMessages(prev => [...prev, botMessage])
-    } catch (error) {
-      console.error('Error:', error)
-      const errorMessage: Message = {
-        role: Role.assistant,
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, errorMessage])
-    } finally {
-      setChatBtnLanding(false)
-    }
-  }
-
   const handleSignDSuccess = async () => {
     setLoading(true);
     if (signDSessionData?.session_token) {
@@ -733,8 +807,10 @@ export default function Stepper() {
     try {
       // fetch existing product PDF (if one exists) and pass its bytes to generator
       let existingPdfBytes: ArrayBuffer | undefined = undefined;
-      if (suggestedProduct?.name) {
-        const existingPdfUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}products/${suggestedProduct.name}.pdf`;
+      if (suggestedProduct?.fileName) {
+        const existingPdfUrl = suggestedProduct.fileName.startsWith('http') 
+          ? suggestedProduct.fileName 
+          : `${process.env.NEXT_PUBLIC_FRONTEND_URL}${suggestedProduct.fileName}`;
         try {
           const resp = await fetch(existingPdfUrl);
           if (resp.ok) existingPdfBytes = await resp.arrayBuffer();
@@ -969,8 +1045,26 @@ export default function Stepper() {
                     Based on your answers, we recommend:
                   </p>
                   <div className="border p-4 rounded shadow" style={{ height: '85%' }} >
-                    <h3 className="font-semibold">Product {suggestedProduct?.name}</h3>
-                    <iframe src={`${process.env.NEXT_PUBLIC_FRONTEND_URL + 'products/' + suggestedProduct?.name + '.pdf'}`} className="w-full rounded" style={{ height: '95%' }} />
+                    <h3 className="font-semibold">
+                      {suggestedProduct?.fullName || suggestedProduct?.name || 'Product'}
+                    </h3>
+                    {suggestedProduct?.description && (
+                      <p className="text-sm text-gray-600 mb-2">{suggestedProduct.description}</p>
+                    )}
+                    {suggestedProduct?.fileName ? (
+                      <iframe 
+                        src={suggestedProduct.fileName.startsWith('http') 
+                          ? suggestedProduct.fileName 
+                          : `${process.env.NEXT_PUBLIC_FRONTEND_URL}${suggestedProduct.fileName}`
+                        } 
+                        className="w-full rounded" 
+                        style={{ height: '90%' }} 
+                      />
+                    ) : (
+                      <div className="w-full rounded bg-gray-100 flex items-center justify-center" style={{ height: '90%' }}>
+                        <p className="text-gray-500">No product document available</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
