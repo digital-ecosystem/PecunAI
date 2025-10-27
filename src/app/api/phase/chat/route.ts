@@ -41,14 +41,36 @@ export async function POST(req: Request) {
     conversationHistory.push({ role: 'user', content: message })
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-5',
       messages: [
         { role: 'system', content: 'You are a helpful assistant.' },
         ...conversationHistory
       ],
-      max_tokens: 500,
-      temperature: 0.7,
+      // max_tokens: 500,
+      // temperature: 0.7,
     })
+
+
+    // const responseAPI = await openai.responses.create({
+    //   instructions: '', // Main Prompt of the product
+    //   model: 'gpt-3.5-turbo',
+    //   tools: [
+    //     {
+    //       type: 'web_retrieval',
+    //       parameters: {
+    //         url: 'https://example.com/mcp-endpoint' // MCP URL of the product
+    //       }
+    //     },
+
+    //   ],
+      
+    //   messages: [
+    //     { role: 'system', content: 'You are a helpful assistant.' },
+    //     ...conversationHistory
+    //   ],
+    //   max_tokens: 500,
+    //   temperature: 0.7,
+    // })
 
     const botResponse = completion.choices[0].message?.content
     if (!botResponse) throw new Error('No response from OpenAI')
@@ -68,7 +90,7 @@ export async function POST(req: Request) {
     })
 
   } catch (error) {
-    console.error('API error:', error)
+    console.error('API error:', JSON.stringify(error))
     return NextResponse.json({
       message: 'Sorry, I encountered an error processing your request.',
       error: process.env.NODE_ENV === 'development' ? error : undefined

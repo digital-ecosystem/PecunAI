@@ -11,7 +11,7 @@ import {
   ChevronLeft, 
   ChevronRight,
   FileText,
-  TrendingUp,
+  // TrendingUp,
   Calendar,
   ShieldAlert,
   Eye,
@@ -322,7 +322,7 @@ const ProductsPage = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -335,7 +335,7 @@ const ProductsPage = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
+          {/* <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Products</p>
@@ -345,7 +345,7 @@ const ProductsPage = () => {
                 <TrendingUp className="w-6 h-6 text-green-600" />
               </div>
             </div>
-          </div>
+          </div> */}
 
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center justify-between">
@@ -644,14 +644,14 @@ const ProductsPage = () => {
                         {selectedProduct?.aiSettings?.find(ai => ai.isActive)?.model || selectedProduct?.aiSettings?.[0]?.model || '—'}
                       </div>
                     </div>
-                    <div>
+                    {/* <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Vector ID</label>
                       <div className="text-gray-900">
                         {selectedProduct?.aiSettings?.find(ai => ai.isActive)?.vectorId || selectedProduct?.aiSettings?.[0]?.vectorId || '—'}
                       </div>
-                    </div>
+                    </div> */}
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">AI Prompt</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Product Prompt</label>
                       <div className="text-gray-900 bg-gray-50 rounded-lg p-3 text-sm">
                         {selectedProduct?.aiSettings?.find(ai => ai.isActive)?.prompt || selectedProduct?.aiSettings?.[0]?.prompt || '—'}
                       </div>
@@ -801,9 +801,9 @@ const ProductsPage = () => {
                       </select>
                     </div>
 
-                    <div>
+                    {/* <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        AI Model *
+                        Model *
                       </label>
                       <select
                         value={formData.aiModel}
@@ -822,9 +822,9 @@ const ProductsPage = () => {
                         <option value="claude-3-haiku">Claude 3 Haiku</option>
                       </select>
                       {errors.aiModel && <div className="text-red-600 text-sm mt-1">{errors.aiModel}</div>}
-                    </div>
+                    </div> */}
 
-                    <div>
+                    {/* <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Vector ID
                       </label>
@@ -838,11 +838,11 @@ const ProductsPage = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                         placeholder="Enter vector ID (optional)"
                       />
-                    </div>
+                    </div> */}
 
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        AI Prompt *
+                        Product Prompt *
                       </label>
                       <textarea
                         value={formData.aiPrompt}

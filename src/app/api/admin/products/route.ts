@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma';
+import { decrypt } from '@/lib/session';
+import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -28,6 +30,14 @@ const productSchema = z.object({
 // GET - List all products with pagination and search
 export async function GET(request: NextRequest) {
   try {
+
+    const cookie = (await cookies()).get('session')?.value;
+    const session = await decrypt(cookie);
+
+    if (!session?.userId) {
+      return NextResponse.json({ message: 'Not authenticated', success: false }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');

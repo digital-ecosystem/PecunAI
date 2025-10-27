@@ -51,7 +51,8 @@ export async function PATCH(request: Request) {
       documentNumber,
       issuedOn,
       validUntil,
-      filename
+      filename,
+      occupation,
     } = body;
 
     // Ensure dateOfBirth is ISO string
@@ -136,6 +137,35 @@ export async function PATCH(request: Request) {
           validUntil: new Date(validUntil),
           filename: filename || '',
           personalInfoId
+        }
+      });
+    }
+
+    // Save the Occupation details if provided
+    if (occupation) {
+      // Find personalInfoId
+      const personalInfoId = updatedOrCreatedUser.id;
+      // Upsert document (if you want to avoid duplicates, use unique fields)
+      // Find the document by unique fields first
+      const existingJob = await prisma.previousJob.findFirst({
+        where: {
+          personalInfoId: personalInfoId
+        }
+      });
+      await prisma.previousJob.upsert({
+        where: {
+          id: existingJob ? existingJob.id : 0 // Use 0 if not found, will trigger create
+        },
+        update: {
+          jobTitle: occupation,
+        },
+        create: {
+          jobTitle: occupation,
+          personalInfoId: personalInfoId,
+          // Add required fields with sensible defaults to satisfy the Prisma type
+          startDate: new Date(),
+          endDate: new Date(),
+          companyName: ""
         }
       });
     }

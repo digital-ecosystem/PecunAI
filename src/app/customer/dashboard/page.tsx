@@ -37,7 +37,7 @@ const Dashboard = () => {
                 method: 'GET',
             });
             const data = await response.json();
-            console.log("🚀 ~ fetchSession ~ data:", data)
+            // console.log("🚀 ~ fetchSession ~ data:", data)
             // setLoading(null);
             if (data?.success) {
                 setSessions(data.sessions);
@@ -347,7 +347,7 @@ const Dashboard = () => {
                                                 </td>
 
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {formatDate(session?.created_at)}
+                                                    {formatDate(session?.createdAt)}
                                                 </td>
                                             </tr>
                                         ))}

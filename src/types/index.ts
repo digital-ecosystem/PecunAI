@@ -4,7 +4,7 @@ export interface Session {
     status: SessionStatus
     token: string
     expiresAt: string
-    created_at: string
+    createdAt: string
     updatedAt: string
     user: User,
     personalInfo: PersonalInfo

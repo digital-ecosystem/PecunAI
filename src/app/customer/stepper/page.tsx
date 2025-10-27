@@ -18,7 +18,7 @@ const Chatbot = dynamic(() => import('./Chatbot'), {
 });
 import * as Yup from "yup";
 import { useFormik } from "formik";
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useSignD } from "@/hooks/useSignD";
 import { SignDHandshakePayload } from "@/types/signd";
 import { SignDIframe } from "@/components/SignDIframe";
@@ -176,12 +176,13 @@ export default function Stepper() {
   const [termsAndConditions, setTermsAndConditions] = useState<TermsAndConditions[]>([]);
   const [suggestedProduct, setSuggestedProduct] = useState<Portfolio | null>(null);
   const searchParams = useSearchParams()
+  const router = useRouter();
   const [threadId, setThreadId] = useState(null);
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  const [finalPDFUrl, setFinalPDFUrl] = useState<string | null>(null);
 
   const session_id = searchParams.get('session_id')
-  console.log("🚀 ~ Stepper ~ session_id:", session_id)
 
   // For PHASES.QUESTIONS1
   const questions1 = questions.slice(0, 3);
@@ -194,14 +195,13 @@ export default function Stepper() {
     // isLoading,
     error,
     sessionData: signDSessionData,
-    result,
+    // result,
     createSession,
     getResult,
     downloadIDV,
     getIframeUrl,
     setError,
   } = useSignD(TEST_CREDENTIALS);
-  console.log("🚀 ~ Stepper ~ result:", result)
 
   const formik = useFormik({
     initialValues: {
@@ -248,6 +248,24 @@ export default function Stepper() {
 
   const nextStep = () => setStep((prev) => Math.min(prev + 1, 9));
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
+
+  const backDashboard = async () => {
+    // Logic to navigate back to the dashboard
+    setLoading(true);
+    try {
+      await fetch('/api/user/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: session_id }),
+      });
+    } catch (err) {
+      console.error('Failed to update user status', err);
+    } finally {
+      setLoading(false);
+    }
+    router.push('/customer/dashboard');
+  };
+
   const lastQuestionNext = () => {
     setQuestionIndex(1);
     nextStep();
@@ -326,7 +344,7 @@ export default function Stepper() {
       if (data?.success) {
         setTermsAndConditions(data.data);
       } else {
-        // router.push('/customer/signin')
+        router.push('/customer/signin')
       }
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -335,50 +353,52 @@ export default function Stepper() {
     }
   }, [session_id]);
 
-  // Helper function to analyze questions and find relevant ones
-  const findQuestionByKeywords = (questions: Question[], keywords: string[]) => {
-    return questions.find(q => 
-      keywords.some(keyword => q.text.toLowerCase().includes(keyword.toLowerCase()))
-    );
-  };
+  // // Helper function to analyze questions and find relevant ones
+  // const findQuestionByKeywords = (questions: Question[], keywords: string[]) => {
+  //   return questions.find(q => 
+  //     keywords.some(keyword => q.text.toLowerCase().includes(keyword.toLowerCase()))
+  //   );
+  // };
 
-  // Enhanced function to find questions with scoring
-  const findBestMatchingQuestion = (questions: Question[], keywords: string[]) => {
-    let bestMatch = null;
-    let highestScore = 0;
+  // // Enhanced function to find questions with scoring
+  // const findBestMatchingQuestion = (questions: Question[], keywords: string[]) => {
+  //   console.log("🚀 ~ findBestMatchingQuestion ~ keywords:", keywords)
+  //   console.log("🚀 ~ findBestMatchingQuestion ~ questions:", questions)
+  //   let bestMatch = null;
+  //   let highestScore = 0;
 
-    for (const question of questions) {
-      const questionText = question.text.toLowerCase();
-      let score = 0;
-      
-      // Count how many keywords match
-      for (const keyword of keywords) {
-        if (questionText.includes(keyword.toLowerCase())) {
-          score++;
-        }
-      }
-      
-      // Boost score if multiple keywords match
-      if (score > highestScore) {
-        highestScore = score;
-        bestMatch = question;
-      }
-    }
+  //   for (const question of questions) {
+  //     const questionText = question.text.toLowerCase();
+  //     let score = 0;
 
-    return bestMatch;
-  };
+  //     // Count how many keywords match
+  //     for (const keyword of keywords) {
+  //       if (questionText.includes(keyword.toLowerCase())) {
+  //         score++;
+  //       }
+  //     }
+
+  //     // Boost score if multiple keywords match
+  //     if (score > highestScore) {
+  //       highestScore = score;
+  //       bestMatch = question;
+  //     }
+  //   }
+
+  //   return bestMatch;
+  // };
 
   const suggestProduct = async (duration: string, risk: string): Promise<Portfolio | null> => {
     try {
       console.log('🔍 Requesting product suggestion:', { duration, risk });
-      
+
       const response = await fetch(`/api/phase/product?duration=${duration}&risk=${risk}`, {
         method: 'GET',
       });
-      
+
       const data = await response.json();
       console.log('🎯 Product suggestion response:', data);
-      
+
       if (data.success && data.data) {
         return data.data;
       } else {
@@ -398,27 +418,29 @@ export default function Stepper() {
           setLoading(true);
 
           // Enhanced question matching with multiple strategies
-          console.log('📊 All questions available:', questions.map(q => ({ id: q.id, text: q.text })));
-          
-          const durationKeywords = ['time', 'year', 'duration', 'horizon', 'long', 'period', 'when', 'invest', 'plan', 'month'];
-          const riskKeywords = ['risk', 'comfortable', 'volatility', 'tolerance', 'fluctuation', 'loss', 'willing', 'safe'];
-          
-          // Strategy 1: Use enhanced matching for better accuracy
-          const durationQuestion = findBestMatchingQuestion(questions, durationKeywords) || findQuestionByKeywords(questions, durationKeywords);
-          const riskQuestion = findBestMatchingQuestion(questions, riskKeywords) || findQuestionByKeywords(questions, riskKeywords);
+          // console.log('📊 All questions available:', questions.map(q => ({ id: q.id, text: q.text })));
 
-          console.log('🎯 Question matching results:', {
-            durationQuestion: durationQuestion ? { id: durationQuestion.id, text: durationQuestion.text } : null,
-            riskQuestion: riskQuestion ? { id: riskQuestion.id, text: riskQuestion.text } : null
-          });
+          const durationKeywords = ['short_term', 'medium_term', 'long_term', 'very_long_term']; // 'time', 'year', 'duration', 'horizon', 'long', 'period', 'when', 'invest', 'plan', 'month'
+          const riskKeywords = ['conservative', 'opportunity_oriented', 'risk_aware']; // 'risk', 'comfortable', 'volatility', 'tolerance', 'fluctuation', 'loss', 'willing', 'safe'
 
-          // Strategy 2: Fallback to positional logic
-          let durationQuestionId = durationQuestion?.id;
-          let riskQuestionId = riskQuestion?.id;
-          
+          const durationEntry = Object.entries(answers).find(
+            ([, value]) => durationKeywords.includes(value)
+          );
+          const riskEntry = Object.entries(answers).find(
+            ([, value]) => riskKeywords.includes(value)
+          );
+
+          const durationKey = durationEntry?.[0]; // question id for duration
+          // const durationValue = durationEntry?.[1]; // actual selected value
+
+          const riskKey = riskEntry?.[0]; // question id for risk
+          // const riskValue = riskEntry?.[1]; // actual selected value
+
+          let durationQuestionId = durationKey;
+          let riskQuestionId = riskKey;
+
           // Strategy 3: If keyword matching fails, use positional fallback
           if (!durationQuestionId && questions.length > 0) {
-            console.log('⚠️ Using positional fallback for duration question');
             // Assume duration is typically asked early (first 3 questions)
             durationQuestionId = questions[0]?.id;
             for (let i = 0; i < Math.min(3, questions.length); i++) {
@@ -428,9 +450,8 @@ export default function Stepper() {
               }
             }
           }
-          
+
           if (!riskQuestionId && questions.length > 1) {
-            console.log('⚠️ Using positional fallback for risk question');
             // Assume risk is typically asked later (questions 2-5)
             riskQuestionId = questions[Math.min(3, questions.length - 1)]?.id;
             for (let i = 1; i < questions.length; i++) {
@@ -440,14 +461,6 @@ export default function Stepper() {
               }
             }
           }
-
-          console.log('🔍 Using question IDs:', { 
-            duration: durationQuestionId, 
-            risk: riskQuestionId,
-            durationAnswer: durationQuestionId ? answers[durationQuestionId] : undefined,
-            riskAnswer: riskQuestionId ? answers[riskQuestionId] : undefined,
-            allAnswers: answers
-          });
 
           if (durationQuestionId && riskQuestionId && answers[durationQuestionId] && answers[riskQuestionId]) {
             const product = await suggestProduct(
@@ -475,9 +488,9 @@ export default function Stepper() {
 
     fetchSuggestedProduct();
   }, [step, answers, session_id]);
-  
-  useEffect(() => { 
-        const loadChatHistory = async () => {
+
+  useEffect(() => {
+    const loadChatHistory = async () => {
       if (step === PHASES.CHAT) {
         if (!session_id && !threadId) return
 
@@ -485,7 +498,6 @@ export default function Stepper() {
           const response = await fetch(`/api/phase/chat?threadId=${threadId}&sessionId=${session_id}`)
           if (response.ok) {
             const data = await response.json()
-            console.log("🚀 ~ loadChatHistory ~ data.messages?.length:", data.messages?.length)
             if (data.messages?.length > 0) {
               setMessages(data.messages.map((msg: Message) => ({
                 ...msg,
@@ -493,7 +505,6 @@ export default function Stepper() {
               })))
             } else {
               // if (product?.name && product?.description) {
-              // console.log("🚀 ~ loadChatHistory ~ product:", product)
               // const productMsg: string = await generateProductPrompt({ name: product?.name, description: product?.description })
               const productMsg = 'Create a professional one-page investment product factsheet (like VVKN-1) in PDF style. Include: product overview, investment goal, key performance table, strategy details, risk indicators (SRI, Sharpe Ratio, Max Drawdown), fees & costs, asset allocation chart, and risk disclaimer. Design it clean, corporate, and data-driven with sections and tables clearly structured.';
               await sendMessage(productMsg)
@@ -520,7 +531,6 @@ export default function Stepper() {
           method: 'GET',
         });
         const data = await res.json();
-        console.log("🚀 ~ fetchQuestions ~ data:", data)
         if (data.success) {
           setQuestions(data.questions);
           setAnswers(data.answers || {});
@@ -565,7 +575,6 @@ export default function Stepper() {
         const data = await response.json();
         if (data?.success) {
           const user = data.user;
-          console.log("🚀 ~ fetchUserInfo ~ user:", user);
           // Set formik values if user details are available
           if (user) {
             formik.setValues({
@@ -584,7 +593,7 @@ export default function Stepper() {
               education: user.education || "",
               currentJob: user.currentProfession || "",
               industry: user.industry || "",
-              occupation: user?.documents?.[0]?.occupation || "",
+              occupation: user?.previousJobsRel?.[0]?.jobTitle || "",
               documentType: user?.documents?.[0]?.documentType || "",
               documentNumber: user?.documents?.[0]?.documentNumber || "",
               issuingAuthority: user?.documents?.[0]?.issuingAuthority || "",
@@ -645,7 +654,7 @@ export default function Stepper() {
       });
       const result = await response.json();
       if (result.success) {
-        console.log('User info updated:', result.user);
+        console.log('User info updated:');
       } else {
         console.error('Failed to update user info:', result.message);
       }
@@ -718,7 +727,7 @@ export default function Stepper() {
       const data = await response.json();
       if (data.success) {
         // Handle success (e.g., show a message or update state)
-        console.log('Terms acceptance saved:', data.data);
+        console.log('Terms acceptance saved:');
       } else {
         // Handle error
         console.error('Failed to save terms acceptance:', data.error);
@@ -744,7 +753,7 @@ export default function Stepper() {
       });
       const data = await response.json();
       if (data.success) {
-        console.log('Answer saved:', data.answer);
+        console.log('Answer saved:');
       } else {
         console.error('Failed to save answer:', data.message);
       }
@@ -778,7 +787,6 @@ export default function Stepper() {
   };
 
   const handleDownloadIDV = async (token: string) => {
-    console.log("🚀 ~ handleDownloadIDV ~ token:", token)
     try {
       const pdfBlob = await downloadIDV(token);
       const fileName = `signD-identity-verification-${session_id}.pdf`;
@@ -808,8 +816,8 @@ export default function Stepper() {
       // fetch existing product PDF (if one exists) and pass its bytes to generator
       let existingPdfBytes: ArrayBuffer | undefined = undefined;
       if (suggestedProduct?.fileName) {
-        const existingPdfUrl = suggestedProduct.fileName.startsWith('http') 
-          ? suggestedProduct.fileName 
+        const existingPdfUrl = suggestedProduct.fileName.startsWith('http')
+          ? suggestedProduct.fileName
           : `${process.env.NEXT_PUBLIC_FRONTEND_URL}${suggestedProduct.fileName}`;
         try {
           const resp = await fetch(existingPdfUrl);
@@ -843,7 +851,7 @@ export default function Stepper() {
       });
       const pdfSaveResponse = await pdfSave.json();
       if (pdfSaveResponse?.success) {
-        console.log('Final PDF Path : ', process.env.NEXT_PUBLIC_FRONTEND_URL + pdfSaveResponse.fileUrl);
+        setFinalPDFUrl(process.env.NEXT_PUBLIC_FRONTEND_URL + pdfSaveResponse.fileUrl);
       } else {
         alert('Error saving PDF');
       }
@@ -1052,13 +1060,13 @@ export default function Stepper() {
                       <p className="text-sm text-gray-600 mb-2">{suggestedProduct.description}</p>
                     )}
                     {suggestedProduct?.fileName ? (
-                      <iframe 
-                        src={suggestedProduct.fileName.startsWith('http') 
-                          ? suggestedProduct.fileName 
+                      <iframe
+                        src={suggestedProduct.fileName.startsWith('http')
+                          ? suggestedProduct.fileName
                           : `${process.env.NEXT_PUBLIC_FRONTEND_URL}${suggestedProduct.fileName}`
-                        } 
-                        className="w-full rounded" 
-                        style={{ height: '90%' }} 
+                        }
+                        className="w-full rounded"
+                        style={{ height: '90%' }}
                       />
                     ) : (
                       <div className="w-full rounded bg-gray-100 flex items-center justify-center" style={{ height: '90%' }}>
@@ -1114,10 +1122,26 @@ export default function Stepper() {
               )}
 
               {step === PHASES.RESULT_PDF && (
-                <div>
+                <div className="w-full h-full">
                   <h2 className="text-xl font-bold mb-4">Final Result</h2>
-                  <div className="border rounded h-96 flex items-center justify-center bg-gray-100">
-                    <p className="text-gray-500">PDF Preview / Viewer</p>
+                  <p className="text-gray-600 mb-6">
+                    Thank you for completing the process. You can download your final document below.
+                  </p>
+                  <div className="border p-4 rounded shadow" style={{ height: '85%' }} >
+
+                    {finalPDFUrl ? (
+                      <iframe
+                        src={finalPDFUrl}
+                        className="w-full rounded"
+                        style={{ height: '90%' }}
+                      />
+                    ) : (
+                      <div className="w-full rounded bg-gray-100 flex items-center justify-center" style={{ height: '90%' }}>
+                        <p className="text-gray-500">
+                          Final PDF is not available at the moment.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1125,7 +1149,7 @@ export default function Stepper() {
 
             {/* Navigation */}
             <div className="flex justify-center my-3">
-              <p className="text-gray-600">Step {step} of 8</p>
+              <p className="text-gray-600">Step {step} of 9</p>
             </div>
             <div className="flex justify-between mt-3">
               <button
@@ -1153,10 +1177,10 @@ export default function Stepper() {
                   </button>
                 ) : (step === PHASES.QUESTIONS1 || step === PHASES.QUESTIONS2 || step === PHASES.PERSONAL_INFO) ? null : (
                   <button
-                    onClick={nextStep}
+                    onClick={step < PHASES.RESULT_PDF ? nextStep : backDashboard}
                     className={`${buttonBaseClass} ${buttonNextClass}`}
                   >
-                    Next
+                    {step === PHASES.RESULT_PDF ? 'Finish' : 'Next'}
                   </button>
                 )}
               </div>

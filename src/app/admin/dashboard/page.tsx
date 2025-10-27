@@ -56,17 +56,17 @@ const Dashboard = () => {
     }, [selectedSession, router])
 
 
-    const handleLogout = async () => {
-        try {
-            const response = await fetch('/api/auth/logout', {
-                method: 'POST'
-            });
-            await response.json();
-            router.push('/admin/signin')
-        } catch (error) {
-            console.log('error : ', error)
-        }
-    }
+    // const handleLogout = async () => {
+    //     try {
+    //         const response = await fetch('/api/auth/logout', {
+    //             method: 'POST'
+    //         });
+    //         await response.json();
+    //         router.push('/admin/signin')
+    //     } catch (error) {
+    //         console.log('error : ', error)
+    //     }
+    // }
 
     const filteredSessions = sessions.filter(session => {
         const matchesSearch = session?.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -283,7 +283,7 @@ const Dashboard = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {formatDate(session.created_at)}
+                                            {formatDate(session.createdAt)}
                                         </td>
                                     </tr>
                                 ))}
@@ -363,7 +363,7 @@ const Dashboard = () => {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-600">Created Date</label>
-                                            <p className="text-sm text-gray-900">{formatDate(selectedSession.created_at)}</p>
+                                            <p className="text-sm text-gray-900">{formatDate(selectedSession.createdAt)}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -378,7 +378,7 @@ const Dashboard = () => {
                                                     // onClick={() => router.push(`/customer/phase/${selectedSession.id}/pdf`)}
                                                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center me-2"
                                                 >
-                                                    <a href={`/documents/session-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                                                    <a href={`/documents/final_session_pdf_${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center">
                                                         <FileText className="w-4 h-4 mr-2" />
                                                         Download PDF
                                                     </a>
