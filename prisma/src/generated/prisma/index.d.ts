@@ -113,6 +113,11 @@ export type AISettings = $Result.DefaultSelection<Prisma.$AISettingsPayload>
  * 
  */
 export type SessionAuditLog = $Result.DefaultSelection<Prisma.$SessionAuditLogPayload>
+/**
+ * Model MainProductPrompt
+ * 
+ */
+export type MainProductPrompt = $Result.DefaultSelection<Prisma.$MainProductPromptPayload>
 
 /**
  * Enums
@@ -532,6 +537,16 @@ export class PrismaClient<
     * ```
     */
   get sessionAuditLog(): Prisma.SessionAuditLogDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.mainProductPrompt`: Exposes CRUD operations for the **MainProductPrompt** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more MainProductPrompts
+    * const mainProductPrompts = await prisma.mainProductPrompt.findMany()
+    * ```
+    */
+  get mainProductPrompt(): Prisma.MainProductPromptDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -991,7 +1006,8 @@ export namespace Prisma {
     PreviousJob: 'PreviousJob',
     SignedDocument: 'SignedDocument',
     AISettings: 'AISettings',
-    SessionAuditLog: 'SessionAuditLog'
+    SessionAuditLog: 'SessionAuditLog',
+    MainProductPrompt: 'MainProductPrompt'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1010,7 +1026,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "oTP" | "session" | "qASession" | "sessionWorkflowState" | "product" | "question" | "questionOption" | "answer" | "termsAndConditions" | "sessionTermsAcceptance" | "sessionProductSuggestion" | "thread" | "message" | "personalInfo" | "document" | "previousJob" | "signedDocument" | "aISettings" | "sessionAuditLog"
+      modelProps: "user" | "oTP" | "session" | "qASession" | "sessionWorkflowState" | "product" | "question" | "questionOption" | "answer" | "termsAndConditions" | "sessionTermsAcceptance" | "sessionProductSuggestion" | "thread" | "message" | "personalInfo" | "document" | "previousJob" | "signedDocument" | "aISettings" | "sessionAuditLog" | "mainProductPrompt"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2494,6 +2510,80 @@ export namespace Prisma {
           }
         }
       }
+      MainProductPrompt: {
+        payload: Prisma.$MainProductPromptPayload<ExtArgs>
+        fields: Prisma.MainProductPromptFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.MainProductPromptFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MainProductPromptPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.MainProductPromptFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MainProductPromptPayload>
+          }
+          findFirst: {
+            args: Prisma.MainProductPromptFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MainProductPromptPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.MainProductPromptFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MainProductPromptPayload>
+          }
+          findMany: {
+            args: Prisma.MainProductPromptFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MainProductPromptPayload>[]
+          }
+          create: {
+            args: Prisma.MainProductPromptCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MainProductPromptPayload>
+          }
+          createMany: {
+            args: Prisma.MainProductPromptCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.MainProductPromptCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MainProductPromptPayload>[]
+          }
+          delete: {
+            args: Prisma.MainProductPromptDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MainProductPromptPayload>
+          }
+          update: {
+            args: Prisma.MainProductPromptUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MainProductPromptPayload>
+          }
+          deleteMany: {
+            args: Prisma.MainProductPromptDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.MainProductPromptUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.MainProductPromptUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MainProductPromptPayload>[]
+          }
+          upsert: {
+            args: Prisma.MainProductPromptUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MainProductPromptPayload>
+          }
+          aggregate: {
+            args: Prisma.MainProductPromptAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateMainProductPrompt>
+          }
+          groupBy: {
+            args: Prisma.MainProductPromptGroupByArgs<ExtArgs>
+            result: $Utils.Optional<MainProductPromptGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.MainProductPromptCountArgs<ExtArgs>
+            result: $Utils.Optional<MainProductPromptCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -2606,6 +2696,7 @@ export namespace Prisma {
     signedDocument?: SignedDocumentOmit
     aISettings?: AISettingsOmit
     sessionAuditLog?: SessionAuditLogOmit
+    mainProductPrompt?: MainProductPromptOmit
   }
 
   /* Types for Logging */
@@ -26046,6 +26137,1027 @@ export namespace Prisma {
 
 
   /**
+   * Model MainProductPrompt
+   */
+
+  export type AggregateMainProductPrompt = {
+    _count: MainProductPromptCountAggregateOutputType | null
+    _min: MainProductPromptMinAggregateOutputType | null
+    _max: MainProductPromptMaxAggregateOutputType | null
+  }
+
+  export type MainProductPromptMinAggregateOutputType = {
+    id: string | null
+    vectorId: string | null
+    aiModel: string | null
+    mcpUrl: string | null
+    mainPrompt: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type MainProductPromptMaxAggregateOutputType = {
+    id: string | null
+    vectorId: string | null
+    aiModel: string | null
+    mcpUrl: string | null
+    mainPrompt: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type MainProductPromptCountAggregateOutputType = {
+    id: number
+    vectorId: number
+    aiModel: number
+    mcpUrl: number
+    mainPrompt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type MainProductPromptMinAggregateInputType = {
+    id?: true
+    vectorId?: true
+    aiModel?: true
+    mcpUrl?: true
+    mainPrompt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type MainProductPromptMaxAggregateInputType = {
+    id?: true
+    vectorId?: true
+    aiModel?: true
+    mcpUrl?: true
+    mainPrompt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type MainProductPromptCountAggregateInputType = {
+    id?: true
+    vectorId?: true
+    aiModel?: true
+    mcpUrl?: true
+    mainPrompt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type MainProductPromptAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which MainProductPrompt to aggregate.
+     */
+    where?: MainProductPromptWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MainProductPrompts to fetch.
+     */
+    orderBy?: MainProductPromptOrderByWithRelationInput | MainProductPromptOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: MainProductPromptWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MainProductPrompts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MainProductPrompts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned MainProductPrompts
+    **/
+    _count?: true | MainProductPromptCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: MainProductPromptMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: MainProductPromptMaxAggregateInputType
+  }
+
+  export type GetMainProductPromptAggregateType<T extends MainProductPromptAggregateArgs> = {
+        [P in keyof T & keyof AggregateMainProductPrompt]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateMainProductPrompt[P]>
+      : GetScalarType<T[P], AggregateMainProductPrompt[P]>
+  }
+
+
+
+
+  export type MainProductPromptGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MainProductPromptWhereInput
+    orderBy?: MainProductPromptOrderByWithAggregationInput | MainProductPromptOrderByWithAggregationInput[]
+    by: MainProductPromptScalarFieldEnum[] | MainProductPromptScalarFieldEnum
+    having?: MainProductPromptScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: MainProductPromptCountAggregateInputType | true
+    _min?: MainProductPromptMinAggregateInputType
+    _max?: MainProductPromptMaxAggregateInputType
+  }
+
+  export type MainProductPromptGroupByOutputType = {
+    id: string
+    vectorId: string | null
+    aiModel: string
+    mcpUrl: string | null
+    mainPrompt: string
+    createdAt: Date
+    updatedAt: Date
+    _count: MainProductPromptCountAggregateOutputType | null
+    _min: MainProductPromptMinAggregateOutputType | null
+    _max: MainProductPromptMaxAggregateOutputType | null
+  }
+
+  type GetMainProductPromptGroupByPayload<T extends MainProductPromptGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<MainProductPromptGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof MainProductPromptGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], MainProductPromptGroupByOutputType[P]>
+            : GetScalarType<T[P], MainProductPromptGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type MainProductPromptSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    vectorId?: boolean
+    aiModel?: boolean
+    mcpUrl?: boolean
+    mainPrompt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["mainProductPrompt"]>
+
+  export type MainProductPromptSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    vectorId?: boolean
+    aiModel?: boolean
+    mcpUrl?: boolean
+    mainPrompt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["mainProductPrompt"]>
+
+  export type MainProductPromptSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    vectorId?: boolean
+    aiModel?: boolean
+    mcpUrl?: boolean
+    mainPrompt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["mainProductPrompt"]>
+
+  export type MainProductPromptSelectScalar = {
+    id?: boolean
+    vectorId?: boolean
+    aiModel?: boolean
+    mcpUrl?: boolean
+    mainPrompt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type MainProductPromptOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "vectorId" | "aiModel" | "mcpUrl" | "mainPrompt" | "createdAt" | "updatedAt", ExtArgs["result"]["mainProductPrompt"]>
+
+  export type $MainProductPromptPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "MainProductPrompt"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      vectorId: string | null
+      aiModel: string
+      mcpUrl: string | null
+      mainPrompt: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["mainProductPrompt"]>
+    composites: {}
+  }
+
+  type MainProductPromptGetPayload<S extends boolean | null | undefined | MainProductPromptDefaultArgs> = $Result.GetResult<Prisma.$MainProductPromptPayload, S>
+
+  type MainProductPromptCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<MainProductPromptFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: MainProductPromptCountAggregateInputType | true
+    }
+
+  export interface MainProductPromptDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['MainProductPrompt'], meta: { name: 'MainProductPrompt' } }
+    /**
+     * Find zero or one MainProductPrompt that matches the filter.
+     * @param {MainProductPromptFindUniqueArgs} args - Arguments to find a MainProductPrompt
+     * @example
+     * // Get one MainProductPrompt
+     * const mainProductPrompt = await prisma.mainProductPrompt.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends MainProductPromptFindUniqueArgs>(args: SelectSubset<T, MainProductPromptFindUniqueArgs<ExtArgs>>): Prisma__MainProductPromptClient<$Result.GetResult<Prisma.$MainProductPromptPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one MainProductPrompt that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {MainProductPromptFindUniqueOrThrowArgs} args - Arguments to find a MainProductPrompt
+     * @example
+     * // Get one MainProductPrompt
+     * const mainProductPrompt = await prisma.mainProductPrompt.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends MainProductPromptFindUniqueOrThrowArgs>(args: SelectSubset<T, MainProductPromptFindUniqueOrThrowArgs<ExtArgs>>): Prisma__MainProductPromptClient<$Result.GetResult<Prisma.$MainProductPromptPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first MainProductPrompt that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MainProductPromptFindFirstArgs} args - Arguments to find a MainProductPrompt
+     * @example
+     * // Get one MainProductPrompt
+     * const mainProductPrompt = await prisma.mainProductPrompt.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends MainProductPromptFindFirstArgs>(args?: SelectSubset<T, MainProductPromptFindFirstArgs<ExtArgs>>): Prisma__MainProductPromptClient<$Result.GetResult<Prisma.$MainProductPromptPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first MainProductPrompt that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MainProductPromptFindFirstOrThrowArgs} args - Arguments to find a MainProductPrompt
+     * @example
+     * // Get one MainProductPrompt
+     * const mainProductPrompt = await prisma.mainProductPrompt.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends MainProductPromptFindFirstOrThrowArgs>(args?: SelectSubset<T, MainProductPromptFindFirstOrThrowArgs<ExtArgs>>): Prisma__MainProductPromptClient<$Result.GetResult<Prisma.$MainProductPromptPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more MainProductPrompts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MainProductPromptFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all MainProductPrompts
+     * const mainProductPrompts = await prisma.mainProductPrompt.findMany()
+     * 
+     * // Get first 10 MainProductPrompts
+     * const mainProductPrompts = await prisma.mainProductPrompt.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const mainProductPromptWithIdOnly = await prisma.mainProductPrompt.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends MainProductPromptFindManyArgs>(args?: SelectSubset<T, MainProductPromptFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MainProductPromptPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a MainProductPrompt.
+     * @param {MainProductPromptCreateArgs} args - Arguments to create a MainProductPrompt.
+     * @example
+     * // Create one MainProductPrompt
+     * const MainProductPrompt = await prisma.mainProductPrompt.create({
+     *   data: {
+     *     // ... data to create a MainProductPrompt
+     *   }
+     * })
+     * 
+     */
+    create<T extends MainProductPromptCreateArgs>(args: SelectSubset<T, MainProductPromptCreateArgs<ExtArgs>>): Prisma__MainProductPromptClient<$Result.GetResult<Prisma.$MainProductPromptPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many MainProductPrompts.
+     * @param {MainProductPromptCreateManyArgs} args - Arguments to create many MainProductPrompts.
+     * @example
+     * // Create many MainProductPrompts
+     * const mainProductPrompt = await prisma.mainProductPrompt.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends MainProductPromptCreateManyArgs>(args?: SelectSubset<T, MainProductPromptCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many MainProductPrompts and returns the data saved in the database.
+     * @param {MainProductPromptCreateManyAndReturnArgs} args - Arguments to create many MainProductPrompts.
+     * @example
+     * // Create many MainProductPrompts
+     * const mainProductPrompt = await prisma.mainProductPrompt.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many MainProductPrompts and only return the `id`
+     * const mainProductPromptWithIdOnly = await prisma.mainProductPrompt.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends MainProductPromptCreateManyAndReturnArgs>(args?: SelectSubset<T, MainProductPromptCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MainProductPromptPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a MainProductPrompt.
+     * @param {MainProductPromptDeleteArgs} args - Arguments to delete one MainProductPrompt.
+     * @example
+     * // Delete one MainProductPrompt
+     * const MainProductPrompt = await prisma.mainProductPrompt.delete({
+     *   where: {
+     *     // ... filter to delete one MainProductPrompt
+     *   }
+     * })
+     * 
+     */
+    delete<T extends MainProductPromptDeleteArgs>(args: SelectSubset<T, MainProductPromptDeleteArgs<ExtArgs>>): Prisma__MainProductPromptClient<$Result.GetResult<Prisma.$MainProductPromptPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one MainProductPrompt.
+     * @param {MainProductPromptUpdateArgs} args - Arguments to update one MainProductPrompt.
+     * @example
+     * // Update one MainProductPrompt
+     * const mainProductPrompt = await prisma.mainProductPrompt.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends MainProductPromptUpdateArgs>(args: SelectSubset<T, MainProductPromptUpdateArgs<ExtArgs>>): Prisma__MainProductPromptClient<$Result.GetResult<Prisma.$MainProductPromptPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more MainProductPrompts.
+     * @param {MainProductPromptDeleteManyArgs} args - Arguments to filter MainProductPrompts to delete.
+     * @example
+     * // Delete a few MainProductPrompts
+     * const { count } = await prisma.mainProductPrompt.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends MainProductPromptDeleteManyArgs>(args?: SelectSubset<T, MainProductPromptDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more MainProductPrompts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MainProductPromptUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many MainProductPrompts
+     * const mainProductPrompt = await prisma.mainProductPrompt.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends MainProductPromptUpdateManyArgs>(args: SelectSubset<T, MainProductPromptUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more MainProductPrompts and returns the data updated in the database.
+     * @param {MainProductPromptUpdateManyAndReturnArgs} args - Arguments to update many MainProductPrompts.
+     * @example
+     * // Update many MainProductPrompts
+     * const mainProductPrompt = await prisma.mainProductPrompt.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more MainProductPrompts and only return the `id`
+     * const mainProductPromptWithIdOnly = await prisma.mainProductPrompt.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends MainProductPromptUpdateManyAndReturnArgs>(args: SelectSubset<T, MainProductPromptUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MainProductPromptPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one MainProductPrompt.
+     * @param {MainProductPromptUpsertArgs} args - Arguments to update or create a MainProductPrompt.
+     * @example
+     * // Update or create a MainProductPrompt
+     * const mainProductPrompt = await prisma.mainProductPrompt.upsert({
+     *   create: {
+     *     // ... data to create a MainProductPrompt
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the MainProductPrompt we want to update
+     *   }
+     * })
+     */
+    upsert<T extends MainProductPromptUpsertArgs>(args: SelectSubset<T, MainProductPromptUpsertArgs<ExtArgs>>): Prisma__MainProductPromptClient<$Result.GetResult<Prisma.$MainProductPromptPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of MainProductPrompts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MainProductPromptCountArgs} args - Arguments to filter MainProductPrompts to count.
+     * @example
+     * // Count the number of MainProductPrompts
+     * const count = await prisma.mainProductPrompt.count({
+     *   where: {
+     *     // ... the filter for the MainProductPrompts we want to count
+     *   }
+     * })
+    **/
+    count<T extends MainProductPromptCountArgs>(
+      args?: Subset<T, MainProductPromptCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], MainProductPromptCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a MainProductPrompt.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MainProductPromptAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends MainProductPromptAggregateArgs>(args: Subset<T, MainProductPromptAggregateArgs>): Prisma.PrismaPromise<GetMainProductPromptAggregateType<T>>
+
+    /**
+     * Group by MainProductPrompt.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MainProductPromptGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends MainProductPromptGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: MainProductPromptGroupByArgs['orderBy'] }
+        : { orderBy?: MainProductPromptGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, MainProductPromptGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetMainProductPromptGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the MainProductPrompt model
+   */
+  readonly fields: MainProductPromptFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for MainProductPrompt.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__MainProductPromptClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the MainProductPrompt model
+   */
+  interface MainProductPromptFieldRefs {
+    readonly id: FieldRef<"MainProductPrompt", 'String'>
+    readonly vectorId: FieldRef<"MainProductPrompt", 'String'>
+    readonly aiModel: FieldRef<"MainProductPrompt", 'String'>
+    readonly mcpUrl: FieldRef<"MainProductPrompt", 'String'>
+    readonly mainPrompt: FieldRef<"MainProductPrompt", 'String'>
+    readonly createdAt: FieldRef<"MainProductPrompt", 'DateTime'>
+    readonly updatedAt: FieldRef<"MainProductPrompt", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * MainProductPrompt findUnique
+   */
+  export type MainProductPromptFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MainProductPrompt
+     */
+    select?: MainProductPromptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MainProductPrompt
+     */
+    omit?: MainProductPromptOmit<ExtArgs> | null
+    /**
+     * Filter, which MainProductPrompt to fetch.
+     */
+    where: MainProductPromptWhereUniqueInput
+  }
+
+  /**
+   * MainProductPrompt findUniqueOrThrow
+   */
+  export type MainProductPromptFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MainProductPrompt
+     */
+    select?: MainProductPromptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MainProductPrompt
+     */
+    omit?: MainProductPromptOmit<ExtArgs> | null
+    /**
+     * Filter, which MainProductPrompt to fetch.
+     */
+    where: MainProductPromptWhereUniqueInput
+  }
+
+  /**
+   * MainProductPrompt findFirst
+   */
+  export type MainProductPromptFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MainProductPrompt
+     */
+    select?: MainProductPromptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MainProductPrompt
+     */
+    omit?: MainProductPromptOmit<ExtArgs> | null
+    /**
+     * Filter, which MainProductPrompt to fetch.
+     */
+    where?: MainProductPromptWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MainProductPrompts to fetch.
+     */
+    orderBy?: MainProductPromptOrderByWithRelationInput | MainProductPromptOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for MainProductPrompts.
+     */
+    cursor?: MainProductPromptWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MainProductPrompts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MainProductPrompts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of MainProductPrompts.
+     */
+    distinct?: MainProductPromptScalarFieldEnum | MainProductPromptScalarFieldEnum[]
+  }
+
+  /**
+   * MainProductPrompt findFirstOrThrow
+   */
+  export type MainProductPromptFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MainProductPrompt
+     */
+    select?: MainProductPromptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MainProductPrompt
+     */
+    omit?: MainProductPromptOmit<ExtArgs> | null
+    /**
+     * Filter, which MainProductPrompt to fetch.
+     */
+    where?: MainProductPromptWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MainProductPrompts to fetch.
+     */
+    orderBy?: MainProductPromptOrderByWithRelationInput | MainProductPromptOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for MainProductPrompts.
+     */
+    cursor?: MainProductPromptWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MainProductPrompts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MainProductPrompts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of MainProductPrompts.
+     */
+    distinct?: MainProductPromptScalarFieldEnum | MainProductPromptScalarFieldEnum[]
+  }
+
+  /**
+   * MainProductPrompt findMany
+   */
+  export type MainProductPromptFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MainProductPrompt
+     */
+    select?: MainProductPromptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MainProductPrompt
+     */
+    omit?: MainProductPromptOmit<ExtArgs> | null
+    /**
+     * Filter, which MainProductPrompts to fetch.
+     */
+    where?: MainProductPromptWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MainProductPrompts to fetch.
+     */
+    orderBy?: MainProductPromptOrderByWithRelationInput | MainProductPromptOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing MainProductPrompts.
+     */
+    cursor?: MainProductPromptWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MainProductPrompts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MainProductPrompts.
+     */
+    skip?: number
+    distinct?: MainProductPromptScalarFieldEnum | MainProductPromptScalarFieldEnum[]
+  }
+
+  /**
+   * MainProductPrompt create
+   */
+  export type MainProductPromptCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MainProductPrompt
+     */
+    select?: MainProductPromptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MainProductPrompt
+     */
+    omit?: MainProductPromptOmit<ExtArgs> | null
+    /**
+     * The data needed to create a MainProductPrompt.
+     */
+    data: XOR<MainProductPromptCreateInput, MainProductPromptUncheckedCreateInput>
+  }
+
+  /**
+   * MainProductPrompt createMany
+   */
+  export type MainProductPromptCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many MainProductPrompts.
+     */
+    data: MainProductPromptCreateManyInput | MainProductPromptCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * MainProductPrompt createManyAndReturn
+   */
+  export type MainProductPromptCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MainProductPrompt
+     */
+    select?: MainProductPromptSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the MainProductPrompt
+     */
+    omit?: MainProductPromptOmit<ExtArgs> | null
+    /**
+     * The data used to create many MainProductPrompts.
+     */
+    data: MainProductPromptCreateManyInput | MainProductPromptCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * MainProductPrompt update
+   */
+  export type MainProductPromptUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MainProductPrompt
+     */
+    select?: MainProductPromptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MainProductPrompt
+     */
+    omit?: MainProductPromptOmit<ExtArgs> | null
+    /**
+     * The data needed to update a MainProductPrompt.
+     */
+    data: XOR<MainProductPromptUpdateInput, MainProductPromptUncheckedUpdateInput>
+    /**
+     * Choose, which MainProductPrompt to update.
+     */
+    where: MainProductPromptWhereUniqueInput
+  }
+
+  /**
+   * MainProductPrompt updateMany
+   */
+  export type MainProductPromptUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update MainProductPrompts.
+     */
+    data: XOR<MainProductPromptUpdateManyMutationInput, MainProductPromptUncheckedUpdateManyInput>
+    /**
+     * Filter which MainProductPrompts to update
+     */
+    where?: MainProductPromptWhereInput
+    /**
+     * Limit how many MainProductPrompts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * MainProductPrompt updateManyAndReturn
+   */
+  export type MainProductPromptUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MainProductPrompt
+     */
+    select?: MainProductPromptSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the MainProductPrompt
+     */
+    omit?: MainProductPromptOmit<ExtArgs> | null
+    /**
+     * The data used to update MainProductPrompts.
+     */
+    data: XOR<MainProductPromptUpdateManyMutationInput, MainProductPromptUncheckedUpdateManyInput>
+    /**
+     * Filter which MainProductPrompts to update
+     */
+    where?: MainProductPromptWhereInput
+    /**
+     * Limit how many MainProductPrompts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * MainProductPrompt upsert
+   */
+  export type MainProductPromptUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MainProductPrompt
+     */
+    select?: MainProductPromptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MainProductPrompt
+     */
+    omit?: MainProductPromptOmit<ExtArgs> | null
+    /**
+     * The filter to search for the MainProductPrompt to update in case it exists.
+     */
+    where: MainProductPromptWhereUniqueInput
+    /**
+     * In case the MainProductPrompt found by the `where` argument doesn't exist, create a new MainProductPrompt with this data.
+     */
+    create: XOR<MainProductPromptCreateInput, MainProductPromptUncheckedCreateInput>
+    /**
+     * In case the MainProductPrompt was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<MainProductPromptUpdateInput, MainProductPromptUncheckedUpdateInput>
+  }
+
+  /**
+   * MainProductPrompt delete
+   */
+  export type MainProductPromptDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MainProductPrompt
+     */
+    select?: MainProductPromptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MainProductPrompt
+     */
+    omit?: MainProductPromptOmit<ExtArgs> | null
+    /**
+     * Filter which MainProductPrompt to delete.
+     */
+    where: MainProductPromptWhereUniqueInput
+  }
+
+  /**
+   * MainProductPrompt deleteMany
+   */
+  export type MainProductPromptDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which MainProductPrompts to delete
+     */
+    where?: MainProductPromptWhereInput
+    /**
+     * Limit how many MainProductPrompts to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * MainProductPrompt without action
+   */
+  export type MainProductPromptDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MainProductPrompt
+     */
+    select?: MainProductPromptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MainProductPrompt
+     */
+    omit?: MainProductPromptOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -26344,6 +27456,19 @@ export namespace Prisma {
   };
 
   export type SessionAuditLogScalarFieldEnum = (typeof SessionAuditLogScalarFieldEnum)[keyof typeof SessionAuditLogScalarFieldEnum]
+
+
+  export const MainProductPromptScalarFieldEnum: {
+    id: 'id',
+    vectorId: 'vectorId',
+    aiModel: 'aiModel',
+    mcpUrl: 'mcpUrl',
+    mainPrompt: 'mainPrompt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type MainProductPromptScalarFieldEnum = (typeof MainProductPromptScalarFieldEnum)[keyof typeof MainProductPromptScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -28101,6 +29226,68 @@ export namespace Prisma {
     userId?: StringNullableWithAggregatesFilter<"SessionAuditLog"> | string | null
   }
 
+  export type MainProductPromptWhereInput = {
+    AND?: MainProductPromptWhereInput | MainProductPromptWhereInput[]
+    OR?: MainProductPromptWhereInput[]
+    NOT?: MainProductPromptWhereInput | MainProductPromptWhereInput[]
+    id?: StringFilter<"MainProductPrompt"> | string
+    vectorId?: StringNullableFilter<"MainProductPrompt"> | string | null
+    aiModel?: StringFilter<"MainProductPrompt"> | string
+    mcpUrl?: StringNullableFilter<"MainProductPrompt"> | string | null
+    mainPrompt?: StringFilter<"MainProductPrompt"> | string
+    createdAt?: DateTimeFilter<"MainProductPrompt"> | Date | string
+    updatedAt?: DateTimeFilter<"MainProductPrompt"> | Date | string
+  }
+
+  export type MainProductPromptOrderByWithRelationInput = {
+    id?: SortOrder
+    vectorId?: SortOrderInput | SortOrder
+    aiModel?: SortOrder
+    mcpUrl?: SortOrderInput | SortOrder
+    mainPrompt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type MainProductPromptWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: MainProductPromptWhereInput | MainProductPromptWhereInput[]
+    OR?: MainProductPromptWhereInput[]
+    NOT?: MainProductPromptWhereInput | MainProductPromptWhereInput[]
+    vectorId?: StringNullableFilter<"MainProductPrompt"> | string | null
+    aiModel?: StringFilter<"MainProductPrompt"> | string
+    mcpUrl?: StringNullableFilter<"MainProductPrompt"> | string | null
+    mainPrompt?: StringFilter<"MainProductPrompt"> | string
+    createdAt?: DateTimeFilter<"MainProductPrompt"> | Date | string
+    updatedAt?: DateTimeFilter<"MainProductPrompt"> | Date | string
+  }, "id">
+
+  export type MainProductPromptOrderByWithAggregationInput = {
+    id?: SortOrder
+    vectorId?: SortOrderInput | SortOrder
+    aiModel?: SortOrder
+    mcpUrl?: SortOrderInput | SortOrder
+    mainPrompt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: MainProductPromptCountOrderByAggregateInput
+    _max?: MainProductPromptMaxOrderByAggregateInput
+    _min?: MainProductPromptMinOrderByAggregateInput
+  }
+
+  export type MainProductPromptScalarWhereWithAggregatesInput = {
+    AND?: MainProductPromptScalarWhereWithAggregatesInput | MainProductPromptScalarWhereWithAggregatesInput[]
+    OR?: MainProductPromptScalarWhereWithAggregatesInput[]
+    NOT?: MainProductPromptScalarWhereWithAggregatesInput | MainProductPromptScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"MainProductPrompt"> | string
+    vectorId?: StringNullableWithAggregatesFilter<"MainProductPrompt"> | string | null
+    aiModel?: StringWithAggregatesFilter<"MainProductPrompt"> | string
+    mcpUrl?: StringNullableWithAggregatesFilter<"MainProductPrompt"> | string | null
+    mainPrompt?: StringWithAggregatesFilter<"MainProductPrompt"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"MainProductPrompt"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"MainProductPrompt"> | Date | string
+  }
+
   export type UserCreateInput = {
     id?: string
     email: string
@@ -29741,6 +30928,76 @@ export namespace Prisma {
     userId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
+  export type MainProductPromptCreateInput = {
+    id?: string
+    vectorId?: string | null
+    aiModel?: string
+    mcpUrl?: string | null
+    mainPrompt: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type MainProductPromptUncheckedCreateInput = {
+    id?: string
+    vectorId?: string | null
+    aiModel?: string
+    mcpUrl?: string | null
+    mainPrompt: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type MainProductPromptUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    vectorId?: NullableStringFieldUpdateOperationsInput | string | null
+    aiModel?: StringFieldUpdateOperationsInput | string
+    mcpUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    mainPrompt?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type MainProductPromptUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    vectorId?: NullableStringFieldUpdateOperationsInput | string | null
+    aiModel?: StringFieldUpdateOperationsInput | string
+    mcpUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    mainPrompt?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type MainProductPromptCreateManyInput = {
+    id?: string
+    vectorId?: string | null
+    aiModel?: string
+    mcpUrl?: string | null
+    mainPrompt: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type MainProductPromptUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    vectorId?: NullableStringFieldUpdateOperationsInput | string | null
+    aiModel?: StringFieldUpdateOperationsInput | string
+    mcpUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    mainPrompt?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type MainProductPromptUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    vectorId?: NullableStringFieldUpdateOperationsInput | string | null
+    aiModel?: StringFieldUpdateOperationsInput | string
+    mcpUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    mainPrompt?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -31122,6 +32379,36 @@ export namespace Prisma {
     action?: SortOrder
     timestamp?: SortOrder
     userId?: SortOrder
+  }
+
+  export type MainProductPromptCountOrderByAggregateInput = {
+    id?: SortOrder
+    vectorId?: SortOrder
+    aiModel?: SortOrder
+    mcpUrl?: SortOrder
+    mainPrompt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type MainProductPromptMaxOrderByAggregateInput = {
+    id?: SortOrder
+    vectorId?: SortOrder
+    aiModel?: SortOrder
+    mcpUrl?: SortOrder
+    mainPrompt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type MainProductPromptMinOrderByAggregateInput = {
+    id?: SortOrder
+    vectorId?: SortOrder
+    aiModel?: SortOrder
+    mcpUrl?: SortOrder
+    mainPrompt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type OTPCreateNestedManyWithoutUserInput = {

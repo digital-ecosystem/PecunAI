@@ -57,7 +57,7 @@ type Portfolio = {
 
 const stepperBarClass = "flex-1 h-2 mx-1 rounded";
 const stepperContainerClass = "max-w-full p-6 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-[100vh] flex flex-col justify-center";
-const cardClass = "flex items-center justify-center w-full max-w-full h-[76vh] p-8 bg-white rounded-2xl shadow-xl";
+const cardClass = "flex items-center justify-center w-full max-w-full h-[82vh] p-8 bg-white rounded-2xl shadow-xl";
 const buttonBaseClass = "flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-all duration-300 transform shadow-lg hover:shadow-xl";
 const buttonConfirmClass = "bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105 active:scale-95";
 const buttonConfirmedClass = "bg-green-500 text-white scale-95";
@@ -208,7 +208,7 @@ export default function Stepper() {
       firstName: "",
       lastName: "",
       birthPlace: "",
-      nationality: "",
+      nationality: "Austria",
       birthDate: "",
       maritalStatus: "",
       street: "",
@@ -247,7 +247,15 @@ export default function Stepper() {
   };
 
   const nextStep = () => setStep((prev) => Math.min(prev + 1, 9));
-  const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
+  const prevStep = () => {
+    if (step === PHASES.SUGGESTIONS) {
+      setQuestionIndex(2);
+    } 
+    if (step === PHASES.TERMS2) {
+      setQuestionIndex(3);
+    }
+    setStep((prev) => Math.max(prev - 1, 1))
+  };
 
   const backDashboard = async () => {
     // Logic to navigate back to the dashboard
@@ -273,6 +281,7 @@ export default function Stepper() {
 
   const sendMessage = useCallback(async (messageOverride: string = '') => {
     const messageToSend = messageOverride.length > 0 ? messageOverride : input.trim();
+    console.log("🚀 ~ Stepper ~ messageToSend:", messageToSend)
     const messageNotAppended = messageOverride.length > 0;
     console.log("🚀 ~ sendMessage ~ messageToSend:", messageToSend)
     if (!messageToSend || loading) return;
@@ -329,7 +338,7 @@ export default function Stepper() {
     } finally {
       setChatBtnLanding(false)
     }
-  }, [input, loading, session_id, threadId]);
+  }, [loading, session_id, threadId]);
 
   const fetchTermsAndConditions = useCallback(async () => {
     setLoading(true);
@@ -351,7 +360,7 @@ export default function Stepper() {
     } finally {
       setLoading(false);
     }
-  }, [session_id]);
+  }, [session_id, router]);
 
   // // Helper function to analyze questions and find relevant ones
   // const findQuestionByKeywords = (questions: Question[], keywords: string[]) => {
@@ -411,6 +420,52 @@ export default function Stepper() {
     }
   };
 
+  // Function to initialize chat with automatic AI message
+  const initializeChatWithProduct = useCallback(async (productId: string) => {
+    try {
+      console.log('🤖 Initializing chat for product:', productId);
+
+      const response = await fetch('/api/phase/chat/init', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: session_id,
+          productId: productId
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('✅ Chat initialized successfully:', data.message);
+
+        // Update thread ID if provided
+        if (data.threadId && !threadId) {
+          setThreadId(data.threadId);
+        }
+
+        // Add the welcome message to the UI
+        const welcomeMessage: Message = {
+          role: Role.assistant,
+          content: data.message,
+          timestamp: new Date()
+        };
+
+        setMessages([welcomeMessage]);
+
+        return true;
+      } else {
+        console.error('Failed to initialize chat:', data.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error initializing chat:', error);
+      return false;
+    }
+  }, [session_id, threadId]);
+
   useEffect(() => {
     const fetchSuggestedProduct = async () => {
       if (step === PHASES.SUGGESTIONS && questions.length > 0) {
@@ -468,6 +523,37 @@ export default function Stepper() {
               answers[riskQuestionId]
             );
             setSuggestedProduct(product);
+
+            // Save the product suggestion to the session
+            if (product?.id) {
+              try {
+                await fetch('/api/phase/suggest-product', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    qaSessionId: session_id,
+                    productId: product.id,
+                    name: product.name,
+                    shortName: product.name,
+                    description: product.description,
+                    fileName: product.fileName,
+                    suggestionReason: `Selected based on ${answers[durationQuestionId]} duration and ${answers[riskQuestionId]} risk preference`,
+                    confidenceScore: product.score ? (product.score / 100).toFixed(2) : null,
+                    isConfirmed: false
+                  }),
+                });
+
+                // Automatically initialize chat with the selected product
+                console.log('🤖 Auto-initializing chat for selected product:', product.name);
+                await initializeChatWithProduct(product.id);
+              } catch (saveError) {
+                console.error('Failed to save product suggestion:', saveError);
+                // Still try to initialize chat even if saving fails
+                await initializeChatWithProduct(product.id);
+              }
+            }
           } else {
             console.warn('⚠️ Missing required answers for product suggestion', {
               hasDurationId: !!durationQuestionId,
@@ -487,7 +573,7 @@ export default function Stepper() {
 
 
     fetchSuggestedProduct();
-  }, [step, answers, session_id]);
+  }, [step, answers, session_id, questions, initializeChatWithProduct]);
 
   useEffect(() => {
     const loadChatHistory = async () => {
@@ -504,11 +590,18 @@ export default function Stepper() {
                 timestamp: new Date(msg.timestamp)
               })))
             } else {
-              // if (product?.name && product?.description) {
-              // const productMsg: string = await generateProductPrompt({ name: product?.name, description: product?.description })
-              const productMsg = 'Create a professional one-page investment product factsheet (like VVKN-1) in PDF style. Include: product overview, investment goal, key performance table, strategy details, risk indicators (SRI, Sharpe Ratio, Max Drawdown), fees & costs, asset allocation chart, and risk disclaimer. Design it clean, corporate, and data-driven with sections and tables clearly structured.';
-              await sendMessage(productMsg)
-              // }
+              // If no messages exist, try to initialize chat with the selected product
+              if (suggestedProduct?.id) {
+                await initializeChatWithProduct(suggestedProduct.id);
+              } else {
+                // Fallback message if no product is selected
+                const fallbackMessage: Message = {
+                  role: Role.assistant,
+                  content: 'Willkommen! Ich bin Ihr persönlicher Finanzberater und helfe Ihnen gerne bei all Ihren Fragen.',
+                  timestamp: new Date()
+                };
+                setMessages([fallbackMessage]);
+              }
             }
           }
         } catch (error) {
@@ -517,7 +610,7 @@ export default function Stepper() {
       }
     }
     loadChatHistory();
-  }, [sendMessage, session_id, step, threadId])
+  }, [sendMessage, session_id, step, threadId, suggestedProduct?.id, initializeChatWithProduct])
 
   useEffect(() => {
     fetchTermsAndConditions()
@@ -617,6 +710,7 @@ export default function Stepper() {
   }, [session_id]);
 
   const onPersonalInfoSubmit = async (data: PersonalInfoFormData) => {
+    setLoading(true);
     try {
       const response = await fetch(`/api/user/update?id=${session_id}`, {
         method: 'PATCH',
@@ -660,7 +754,7 @@ export default function Stepper() {
       }
     } catch (error) {
       console.error('API error:', error);
-    }
+    } 
     const payload: Omit<SignDHandshakePayload, 'login' | 'token'> = {
       type: 'identification',
       attributes: {
@@ -695,6 +789,7 @@ export default function Stepper() {
       magic_flow: true,
     };
     await createSession(payload);
+    setLoading(false);
     nextStep();
   }
 
@@ -1017,14 +1112,15 @@ export default function Stepper() {
                   // title={currentQ?.title}
                   // subtitle={currentQ?.subtitle}
                   question={currentQ?.text}
+                  questionText={currentQ?.text}
                   options={currentQ?.options?.length ? currentQ.options.map(opt => ({ label: opt.label, value: opt.value })) : undefined}
                   selected={answers[currentQ?.id]}
                   onSelect={async (opt) => {
                     setAnswers({ ...answers, [currentQ?.id]: opt });
                     await saveAnswer(currentQ?.id, opt, currentQ?.text, currentQ?.options);
                   }}
-                  onNext={() => questionIndex === 3 ? lastQuestionNext() : setQuestionIndex((s) => Math.min(s + 1, 3))}
-                  onBack={() => setQuestionIndex((s) => Math.max(s - 1, 1))}
+                  // onNext={() => questionIndex === 3 ? lastQuestionNext() : setQuestionIndex((s) => Math.min(s + 1, 3))}
+                  // onBack={() => setQuestionIndex((s) => Math.max(s - 1, 1))}
                 />
               )}
 
@@ -1035,14 +1131,15 @@ export default function Stepper() {
                   // title={currentQ2?.title}
                   // subtitle={currentQ2?.subtitle}
                   question={currentQ2?.text}
+                  questionText={currentQ2?.text}
                   options={currentQ2?.options?.length ? currentQ2.options.map(opt => ({ label: opt.label, value: opt.value })) : undefined}
                   selected={answers[currentQ2?.id]}
                   onSelect={async (opt) => {
                     setAnswers({ ...answers, [currentQ2?.id]: opt });
                     await saveAnswer(currentQ2?.id, opt, currentQ2?.text, currentQ2?.options);
                   }}
-                  onNext={() => questionIndex === 2 ? lastQuestionNext() : setQuestionIndex((s) => Math.min(s + 1, 2))}
-                  onBack={() => setQuestionIndex((s) => Math.max(s - 1, 1))}
+                  // onNext={() => questionIndex === 2 ? lastQuestionNext() : setQuestionIndex((s) => Math.min(s + 1, 2))}
+                  // onBack={() => setQuestionIndex((s) => Math.max(s - 1, 1))}
                 />
               )}
 
@@ -1066,7 +1163,7 @@ export default function Stepper() {
                           : `${process.env.NEXT_PUBLIC_FRONTEND_URL}${suggestedProduct.fileName}`
                         }
                         className="w-full rounded"
-                        style={{ height: '90%' }}
+                        style={{ height: '85%' }}
                       />
                     ) : (
                       <div className="w-full rounded bg-gray-100 flex items-center justify-center" style={{ height: '90%' }}>
@@ -1133,7 +1230,7 @@ export default function Stepper() {
                       <iframe
                         src={finalPDFUrl}
                         className="w-full rounded"
-                        style={{ height: '90%' }}
+                        style={{ height: '85%' }}
                       />
                     ) : (
                       <div className="w-full rounded bg-gray-100 flex items-center justify-center" style={{ height: '90%' }}>
@@ -1148,10 +1245,10 @@ export default function Stepper() {
             </div>
 
             {/* Navigation */}
-            <div className="flex justify-center my-3">
+            {/* <div className="flex justify-center my-3">
               <p className="text-gray-600">Step {step} of 9</p>
-            </div>
-            <div className="flex justify-between mt-3">
+            </div> */}
+            {/* <div className="flex justify-between mt-3">
               <button
                 onClick={prevStep}
                 disabled={step === PHASES.TERMS1}
@@ -1176,6 +1273,78 @@ export default function Stepper() {
                     )}
                   </button>
                 ) : (step === PHASES.QUESTIONS1 || step === PHASES.QUESTIONS2 || step === PHASES.PERSONAL_INFO) ? null : (
+                  <button
+                    onClick={step < PHASES.RESULT_PDF ? nextStep : backDashboard}
+                    className={`${buttonBaseClass} ${buttonNextClass}`}
+                  >
+                    {step === PHASES.RESULT_PDF ? 'Finish' : 'Next'}
+                  </button>
+                )}
+              </div>
+            </div> */}
+            <div className="flex justify-between mt-3">
+              <button
+                onClick={() => {
+                  if (step === PHASES.QUESTIONS1 || step === PHASES.QUESTIONS2) {
+                    if (questionIndex === 1) {
+                      prevStep(); // Go to previous phase
+                    } else {
+                      setQuestionIndex((s) => s - 1);
+                    }
+                  } else {
+                    prevStep();
+                  }
+                }}
+                disabled={step === PHASES.TERMS1}
+                className={buttonBackClass}
+              >
+                Back
+              </button>
+              <div className="flex justify-end">
+                {step === PHASES.TERMS1 || step === PHASES.TERMS2 ? (
+                  <button
+                    onClick={handleConfirm}
+                    disabled={confirmed}
+                    className={`${buttonBaseClass} ${confirmed ? buttonConfirmedClass : buttonConfirmClass} disabled:cursor-not-allowed`}
+                  >
+                    {confirmed ? (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        Confirmed!
+                      </>
+                    ) : (
+                      'I Confirm'
+                    )}
+                  </button>
+                ) : (step === PHASES.QUESTIONS1 || step === PHASES.QUESTIONS2 || step === PHASES.PERSONAL_INFO) ? (
+                  <button
+                    onClick={() => {
+                      if (step === PHASES.QUESTIONS1) {
+                        if (questionIndex === 3) {
+                          lastQuestionNext();
+                        } else {
+                          setQuestionIndex((s) => Math.min(s + 1, 3));
+                        }
+                      } else if (step === PHASES.QUESTIONS2) {
+                        if (questionIndex === 2) {
+                          lastQuestionNext();
+                        } else {
+                          setQuestionIndex((s) => Math.min(s + 1, 2));
+                        }
+                      } else {
+                        formik.handleSubmit();
+                      }
+                    }}
+                    disabled={
+                      (step === PHASES.QUESTIONS1 && !answers[currentQ?.id]) ||
+                      (step === PHASES.QUESTIONS2 && !answers[currentQ2?.id])
+                    }
+                    className={`${buttonBaseClass} ${buttonNextClass} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    type={step === PHASES.PERSONAL_INFO ? 'submit' : 'button'}
+                  >
+                    Next
+                  </button>
+                ) : (
                   <button
                     onClick={step < PHASES.RESULT_PDF ? nextStep : backDashboard}
                     className={`${buttonBaseClass} ${buttonNextClass}`}

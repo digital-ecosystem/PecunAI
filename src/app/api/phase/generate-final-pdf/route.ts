@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generatePDF } from "@/utils/pdfGenerator";
+import { UserUpdate } from "@/types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
     const productDescription = productSuggestion ? `${productSuggestion.name}\n\n${productSuggestion.description || ''}` : '';
 
     // Personal info mapping to expected keys used by generatePDF
-    const personalForPdf: any = {
+    const personalForPdf: UserUpdate = {
       first_name: personalInfo?.firstName || '',
       last_name: personalInfo?.lastName || '',
       // other fields may be included if needed

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LogOut, Package, BarChart3 } from 'lucide-react';
+import { LogOut, Package, BarChart3, MessageSquare } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 
 const AdminHeader = () => {
@@ -31,6 +31,11 @@ const AdminHeader = () => {
       href: '/admin/products',
       icon: Package,
     },
+    {
+      name: 'Main Prompts',
+      href: '/admin/main-product-prompt',
+      icon: MessageSquare,
+    },
   ];
 
   return (
@@ -40,10 +45,14 @@ const AdminHeader = () => {
           <div className="flex items-center space-x-8">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                {pathname === '/admin/dashboard' ? 'Dashboard' : 'Products Management'}
+                {pathname === '/admin/dashboard' && 'Dashboard'}
+                {pathname === '/admin/products' && 'Products Management'}
+                {pathname === '/admin/main-product-prompt' && 'Main Product Prompts'}
               </h1>
               <p className="text-gray-600">
-                {pathname === '/admin/dashboard' ? 'Welcome back!' : 'Manage your product catalog'}
+                {pathname === '/admin/dashboard' && 'Welcome back!'}
+                {pathname === '/admin/products' && 'Manage your product catalog'}
+                {pathname === '/admin/main-product-prompt' && 'Manage your AI model configurations'}
               </p>
             </div>
             <nav className="flex space-x-6">

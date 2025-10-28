@@ -102,7 +102,7 @@ type PersonalInfoFormProps = {
 const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
   { formik }
 ) => {
-  
+
   // const formik = useFormik({
   //   initialValues: {
   //     firstName: "",
@@ -160,7 +160,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                   .toISOString()
                   .substring(0, 10)
                 : ""
-            : formik.values[name as keyof typeof formik.values] as string
+              : formik.values[name as keyof typeof formik.values] as string
         }
         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
@@ -175,13 +175,51 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
 
 
   return (
-    <div className="max-w-full mx-auto overflow-y-auto p-4" style={{ maxHeight: '70vh' }}>
-      <form onSubmit={formik.handleSubmit} className="space-y-4 personal-info-form">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div className="max-w-full mx-auto overflow-y-auto p-2" style={{ maxHeight: '70vh' }}>
+      <form className="space-y-4 personal-info-form">
+        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
           {renderField("firstName", "First Name")}
           {renderField("lastName", "Last Name")}
           {renderField("birthPlace", "Place of Birth")}
-          {renderField("nationality", "Nationality")}
+          {/* {renderField("nationality", "Nationality")} */}
+          <div>
+            <label htmlFor="nationality" className="block text-sm font-medium text-gray-700">
+              Nationality
+            </label>
+            <select
+              id="nationality"
+              name="nationality"
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              value={formik.values.nationality}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            >
+              <option value="">Select nationality...</option>
+              <option value="Austria">Austria</option>
+              <option value="Germany">Germany</option>
+              <option value="Switzerland">Switzerland</option>
+              <option value="Italy">Italy</option>
+              <option value="France">France</option>
+              <option value="Spain">Spain</option>
+              <option value="Netherlands">Netherlands</option>
+              <option value="Belgium">Belgium</option>
+              <option value="Poland">Poland</option>
+              <option value="Czech Republic">Czech Republic</option>
+              <option value="Hungary">Hungary</option>
+              <option value="Slovakia">Slovakia</option>
+              <option value="Slovenia">Slovenia</option>
+              <option value="Croatia">Croatia</option>
+              <option value="United Kingdom">United Kingdom</option>
+              <option value="United States">United States</option>
+              <option value="Canada">Canada</option>
+              <option value="Australia">Australia</option>
+              <option value="India">India</option>
+              <option value="Other">Other</option>
+            </select>
+            {formik.touched.nationality && formik.errors.nationality && (
+              <p className="text-red-500 text-sm mt-1">{formik.errors.nationality}</p>
+            )}
+          </div>
           {renderField("birthDate", "Birth Date", "date")}
           {/* {renderField("maritalStatus", "Marital Status")} */}
           <div>
@@ -287,14 +325,14 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
         </div>
 
         {/* Submit Button on Right side */}
-        <div className="flex justify-end">
+        {/* <div className="flex justify-end">
           <button
             type="submit"
             className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Submit
           </button>
-        </div>
+        </div> */}
       </form>
     </div>
   );

@@ -1,10 +1,12 @@
 // app/api/chat/route.ts
 
 import { getChatMessages, saveChatMessage } from '@/lib/chat'
+import { getMainProductPrompt, getProductAISettings, getSessionProductId } from '@/lib/ai-settings'
 import { Role } from '@/types'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { ChatCompletionMessageParam } from 'openai/resources/index.mjs'
+import type { AssistantTool } from 'openai/resources/beta/assistants'
 
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
@@ -21,7 +23,6 @@ export async function POST(req: Request) {
     const currentSessionId = sessionId
     let messageIndex = 0
 
-
     const messagesSoFar = await getChatMessages(threadId || currentSessionId)
     messageIndex = messagesSoFar.length
 
@@ -32,6 +33,15 @@ export async function POST(req: Request) {
       messageIndex
     )
 
+    // Get AI settings for the session
+    const productId = await getSessionProductId(sessionId)
+    const mainPrompt = await getMainProductPrompt()
+    const productSettings = productId ? await getProductAISettings(productId) : null
+
+    // Use AI settings for model selection and instructions
+    const model = productSettings?.model || mainPrompt?.aiModel || 'gpt-4'
+    const systemPrompt = mainPrompt?.mainPrompt || 'You are a helpful financial assistant.'
+
     // Construct chat context
     const conversationHistory: ChatCompletionMessageParam[] = messagesSoFar.map(msg => ({
       role: msg.role === Role.customer ? 'user' : 'assistant',
@@ -40,39 +50,51 @@ export async function POST(req: Request) {
 
     conversationHistory.push({ role: 'user', content: message })
 
+    // Build tools array if vector_id is available
+    const tools: AssistantTool[] = [];
+    
+    if (mainPrompt?.vectorId) {
+      tools.push({
+        type: 'file_search'
+      });
+    }
+
+    if (productSettings?.vectorId && productSettings.vectorId !== mainPrompt?.vectorId) {
+      tools.push({
+        type: 'file_search'
+      });
+    }
+
+    if (mainPrompt?.mcpUrl) {
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'web_retrieval',
+          description: 'Retrieve information from MCP endpoint',
+          parameters: {
+            type: 'object',
+            properties: {
+              url: {
+                type: 'string',
+                description: 'MCP endpoint URL'
+              }
+            },
+            required: ['url']
+          }
+        }
+      });
+    }
+
+    // Use chat completions with enhanced system prompt
     const completion = await openai.chat.completions.create({
-      model: 'gpt-5',
+      model: model,
       messages: [
-        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'system', content: systemPrompt },
         ...conversationHistory
       ],
-      // max_tokens: 500,
-      // temperature: 0.7,
-    })
-
-
-    // const responseAPI = await openai.responses.create({
-    //   instructions: '', // Main Prompt of the product
-    //   model: 'gpt-3.5-turbo',
-    //   tools: [
-    //     {
-    //       type: 'web_retrieval',
-    //       parameters: {
-    //         url: 'https://example.com/mcp-endpoint' // MCP URL of the product
-    //       }
-    //     },
-
-    //   ],
-      
-    //   messages: [
-    //     { role: 'system', content: 'You are a helpful assistant.' },
-    //     ...conversationHistory
-    //   ],
-    //   max_tokens: 500,
-    //   temperature: 0.7,
-    // })
-
-    const botResponse = completion.choices[0].message?.content
+    });
+    
+    const botResponse = completion.choices[0].message?.content;
     if (!botResponse) throw new Error('No response from OpenAI')
 
     await saveChatMessage(
@@ -86,7 +108,8 @@ export async function POST(req: Request) {
       message: botResponse,
       sessionId: currentSessionId,
       threadId: threadId || currentSessionId,
-      usage: completion.usage
+      model: model,
+      usedAssistant: tools.length > 0
     })
 
   } catch (error) {

@@ -52,7 +52,7 @@ export interface UserUpdate {
     first_name: string
     last_name: string
     // age: number
-    dob: string
+    dob?: string
 }
 
 export interface DashboardQuestions {

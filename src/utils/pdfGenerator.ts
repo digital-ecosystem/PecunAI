@@ -132,116 +132,6 @@
 //   }
 // };
 
-// export const generatePDF = async (questionsData: Question[], answers: Record<string, string>, personalInfo: UserUpdate, productDescription: string) => {
-//   const pdf = new jsPDF('p', 'mm', 'a4');
-//   const pageWidth = pdf.internal.pageSize.getWidth();
-//   const pageHeight = pdf.internal.pageSize.getHeight();
-//   const margin = 20;
-
-//   // Page 1: Questions & Answers
-//   pdf.setFontSize(20);
-//   pdf.setFont('helvetica', 'bold');
-//   pdf.text('Product Discovery Survey', margin, 30);
-
-//   pdf.setFontSize(12);
-//   pdf.setFont('helvetica', 'normal');
-//   pdf.text(`Date: ${new Date().toLocaleDateString()}`, margin, 45);
-
-//   let yPosition = 60;
-
-//   questionsData.forEach((question, index) => {
-//     // Check if we need a new page
-//     if (yPosition > pageHeight - 40) {
-//       pdf.addPage();
-//       yPosition = 30;
-//     }
-
-//     // Question
-//     pdf.setFont('helvetica', 'bold');
-//     pdf.setFontSize(12);
-//     const questionText = `${index + 1}. ${question.text}`;
-//     const questionLines = pdf.splitTextToSize(questionText, pageWidth - 2 * margin);
-//     pdf.text(questionLines, margin, yPosition);
-//     yPosition += questionLines.length * 6;
-
-//     // Answer
-//     pdf.setFont('helvetica', 'normal');
-//     pdf.setFontSize(11);
-//     // Get the selected answer value
-//     const selectedValue = answers[question.id];
-//     // Find the option label
-//     const selectedOption = question.options.find(opt => opt.value === selectedValue);
-//     const answerValue = selectedOption ? selectedOption.label : 'Not answered';
-
-//     // const answerValue = answers[question.id] || 'Not answered';
-//     const answerText = `Answer: ${answerValue}`;
-//     // const answerText = `Answer: ${'Not answered'}`;
-//     const answerLines = pdf.splitTextToSize(answerText, pageWidth - 2 * margin);
-//     pdf.text(answerLines, margin + 5, yPosition);
-//     yPosition += answerLines.length * 6 + 8;
-//   });
-
-//   // Page 2: Personal Information
-//   pdf.addPage();
-//   yPosition = 30;
-
-//   pdf.setFontSize(20);
-//   pdf.setFont('helvetica', 'bold');
-//   pdf.text('Personal Information', margin, yPosition);
-//   yPosition += 20;
-
-//   pdf.setFontSize(12);
-//   pdf.setFont('helvetica', 'normal');
-
-//   const personalFields = [
-//     { label: 'First Name', value: personalInfo.first_name },
-//     { label: 'Last Name', value: personalInfo.last_name },
-//     { label: 'Age', value: 0 },
-//   ];
-
-//   personalFields.forEach(field => {
-//     if (field.value) {
-//       pdf.setFont('helvetica', 'bold');
-//       pdf.text(`${field.label}:`, margin, yPosition);
-//       pdf.setFont('helvetica', 'normal');
-//       pdf.text(String(field.value), margin + 40, yPosition);
-//       yPosition += 12;
-//     }
-//   });
-
-//   // Add signature section
-//   yPosition += 20;
-//   pdf.setFont('helvetica', 'bold');
-//   pdf.text('Digital Signature:', margin, yPosition);
-//   yPosition += 15;
-
-//   // Signature line
-//   pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-//   yPosition += 8;
-//   pdf.setFont('helvetica', 'normal');
-//   pdf.setFontSize(10);
-//   pdf.text('Signature', margin, yPosition);
-//   pdf.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - margin - 40, yPosition);
-
-//   // Page 3: Product Description
-//   pdf.addPage();
-//   yPosition = 30;
-
-//   pdf.setFontSize(20);
-//   pdf.setFont('helvetica', 'bold');
-//   pdf.text('Recommended Product', margin, yPosition);
-//   yPosition += 20;
-
-//   pdf.setFontSize(12);
-//   pdf.setFont('helvetica', 'normal');
-
-//   // Split the description into multiple lines
-//   const descriptionLines = pdf.splitTextToSize(productDescription, pageWidth - 2 * margin);
-//   pdf.text(descriptionLines, margin, yPosition);
-
-//   return pdf;
-// };
-
 // export const generateFinalPDF = async (termsConditionsText: string, confirmationText: string, questionsData: Question[], answers: Record<string, string>, personalInfo: PersonalInfoFormData, productDescription: string, existingPdf?: ArrayBuffer | Uint8Array | string) => {
 //   // header info for PDF (string URL or text). Set to '' to omit.
 //   const headerPath = '';
@@ -477,7 +367,118 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { PageSizes, PDFDocument } from 'pdf-lib';
-import { PersonalInfoFormData, Question } from '@/types';
+import { PersonalInfoFormData, Question, UserUpdate } from '@/types';
+
+
+export const generatePDF = async (questionsData: Question[], answers: Record<string, string>, personalInfo: UserUpdate, productDescription: string) => {
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 20;
+
+  // Page 1: Questions & Answers
+  pdf.setFontSize(20);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Product Discovery Survey', margin, 30);
+
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text(`Date: ${new Date().toLocaleDateString()}`, margin, 45);
+
+  let yPosition = 60;
+
+  questionsData.forEach((question, index) => {
+    // Check if we need a new page
+    if (yPosition > pageHeight - 40) {
+      pdf.addPage();
+      yPosition = 30;
+    }
+
+    // Question
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    const questionText = `${index + 1}. ${question.text}`;
+    const questionLines = pdf.splitTextToSize(questionText, pageWidth - 2 * margin);
+    pdf.text(questionLines, margin, yPosition);
+    yPosition += questionLines.length * 6;
+
+    // Answer
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(11);
+    // Get the selected answer value
+    const selectedValue = answers[question.id];
+    // Find the option label
+    const selectedOption = question.options.find(opt => opt.value === selectedValue);
+    const answerValue = selectedOption ? selectedOption.label : 'Not answered';
+
+    // const answerValue = answers[question.id] || 'Not answered';
+    const answerText = `Answer: ${answerValue}`;
+    // const answerText = `Answer: ${'Not answered'}`;
+    const answerLines = pdf.splitTextToSize(answerText, pageWidth - 2 * margin);
+    pdf.text(answerLines, margin + 5, yPosition);
+    yPosition += answerLines.length * 6 + 8;
+  });
+
+  // Page 2: Personal Information
+  pdf.addPage();
+  yPosition = 30;
+
+  pdf.setFontSize(20);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Personal Information', margin, yPosition);
+  yPosition += 20;
+
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'normal');
+
+  const personalFields = [
+    { label: 'First Name', value: personalInfo.first_name },
+    { label: 'Last Name', value: personalInfo.last_name },
+    { label: 'Age', value: 0 },
+  ];
+
+  personalFields.forEach(field => {
+    if (field.value) {
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`${field.label}:`, margin, yPosition);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(String(field.value), margin + 40, yPosition);
+      yPosition += 12;
+    }
+  });
+
+  // Add signature section
+  yPosition += 20;
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Digital Signature:', margin, yPosition);
+  yPosition += 15;
+
+  // Signature line
+  pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+  yPosition += 8;
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(10);
+  pdf.text('Signature', margin, yPosition);
+  pdf.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - margin - 40, yPosition);
+
+  // Page 3: Product Description
+  pdf.addPage();
+  yPosition = 30;
+
+  pdf.setFontSize(20);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Recommended Product', margin, yPosition);
+  yPosition += 20;
+
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'normal');
+
+  // Split the description into multiple lines
+  const descriptionLines = pdf.splitTextToSize(productDescription, pageWidth - 2 * margin);
+  pdf.text(descriptionLines, margin, yPosition);
+
+  return pdf;
+};
 
 // Normalize input to Uint8Array
 export function normalizeToUint8(input: ArrayBuffer | Uint8Array | string): Uint8Array {

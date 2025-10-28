@@ -319,6 +319,18 @@ model SessionAuditLog {
   @@map("session_audit_log")
 }
 
+model MainProductPrompt {
+  id         String   @id @default(uuid())
+  vectorId   String?
+  aiModel    String   @default("gpt-5")
+  mcpUrl     String?
+  mainPrompt String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("main_product_prompts")
+}
+
 enum SessionStatus {
   DRAFT
   TERMS_1_PENDING

@@ -192,8 +192,8 @@ export default function Chatbot({
 
 
   return (
-    <div className="h-full w-full flex items-center justify-center p-4">
-      <div className="flex flex-col h-full w-full max-w-2xl border border-gray-300 rounded-lg bg-white shadow-lg">
+    <div className="h-full w-full flex items-center justify-center">
+      <div className="flex flex-col h-full w-full max-w-full border border-gray-300 rounded-lg bg-white shadow-lg">
         {/* Header */}
         <div className="bg-blue-600 text-white p-4 rounded-t-lg flex-shrink-0 flex justify-between items-center">
           <h2 className="text-lg font-semibold">AI Chatbot</h2>

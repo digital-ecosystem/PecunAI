@@ -347,6 +347,16 @@ exports.Prisma.SessionAuditLogScalarFieldEnum = {
   userId: 'userId'
 };
 
+exports.Prisma.MainProductPromptScalarFieldEnum = {
+  id: 'id',
+  vectorId: 'vectorId',
+  aiModel: 'aiModel',
+  mcpUrl: 'mcpUrl',
+  mainPrompt: 'mainPrompt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -443,7 +453,8 @@ exports.Prisma.ModelName = {
   PreviousJob: 'PreviousJob',
   SignedDocument: 'SignedDocument',
   AISettings: 'AISettings',
-  SessionAuditLog: 'SessionAuditLog'
+  SessionAuditLog: 'SessionAuditLog',
+  MainProductPrompt: 'MainProductPrompt'
 };
 
 /**
