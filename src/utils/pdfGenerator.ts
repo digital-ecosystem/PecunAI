@@ -935,9 +935,9 @@ export async function mergeThreePdfs(
   }
 
   // Add existing PDF
-  if (existingPdf) {
-    await addPagesFromPdf(existingPdf);
-  }
+  // if (existingPdf) {
+  //   await addPagesFromPdf(existingPdf);
+  // }
 
   // Add after PDF
   if (afterPdf) {

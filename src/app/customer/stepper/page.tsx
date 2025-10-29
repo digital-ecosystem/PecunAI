@@ -3,6 +3,7 @@ import { Message, Option, PersonalInfoFormData, Question, Role, TermsAndConditio
 import { CheckCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 import React, { useCallback, useEffect, useState } from "react";
+import HTMLRenderer from '@/components/HTMLRenderer';
 import './index.css';
 const QuestionCard = dynamic(() => import('./QuestionCard'), {
   ssr: false,
@@ -22,7 +23,10 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useSignD } from "@/hooks/useSignD";
 import { SignDHandshakePayload } from "@/types/signd";
 import { SignDIframe } from "@/components/SignDIframe";
-import { generateFinalPDF } from "@/utils/pdfGenerator";
+import { generatePDF as GenerateSimplePDF } from "@/utils/pdfGenerator";
+import { SignTeqIframe } from "@/components/SignTeqIframe";
+import { pdfBlobToBase64 } from "@/utils/pdfUtils";
+// import { pdfBlobToBase64 } from "@/utils/pdfUtils";
 
 const PHASES = {
   TERMS1: 1,
@@ -180,8 +184,13 @@ export default function Stepper() {
   const [threadId, setThreadId] = useState(null);
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
-  const [finalPDFUrl, setFinalPDFUrl] = useState<string | null>(null);
-
+  // const [finalPDFUrl, setFinalPDFUrl] = useState<string | null>(null);
+  const [signingUrl, setSigningUrl] = useState<string | null>(null);
+  const [signTeqRequestId, setSignTeqRequestId] = useState<string | null>(null);
+  console.log("🚀 ~ Stepper ~ signTeqRequestId:", signTeqRequestId)
+  const [signTeqDocumentId, setSignTeqDocumentId] = useState<string | null>(null);
+  const [downloadedDocumentPath, setDownloadedDocumentPath] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const session_id = searchParams.get('session_id')
 
   // For PHASES.QUESTIONS1
@@ -250,7 +259,7 @@ export default function Stepper() {
   const prevStep = () => {
     if (step === PHASES.SUGGESTIONS) {
       setQuestionIndex(2);
-    } 
+    }
     if (step === PHASES.TERMS2) {
       setQuestionIndex(3);
     }
@@ -754,7 +763,7 @@ export default function Stepper() {
       }
     } catch (error) {
       console.error('API error:', error);
-    } 
+    }
     const payload: Omit<SignDHandshakePayload, 'login' | 'token'> = {
       type: 'identification',
       attributes: {
@@ -909,46 +918,65 @@ export default function Stepper() {
 
     try {
       // fetch existing product PDF (if one exists) and pass its bytes to generator
-      let existingPdfBytes: ArrayBuffer | undefined = undefined;
-      if (suggestedProduct?.fileName) {
-        const existingPdfUrl = suggestedProduct.fileName.startsWith('http')
-          ? suggestedProduct.fileName
-          : `${process.env.NEXT_PUBLIC_FRONTEND_URL}${suggestedProduct.fileName}`;
-        try {
-          const resp = await fetch(existingPdfUrl);
-          if (resp.ok) existingPdfBytes = await resp.arrayBuffer();
-        } catch (err) {
-          console.warn('Could not fetch existing product PDF:', err);
-        }
-      }
+      // let existingPdfBytes: ArrayBuffer | undefined = undefined;
+      // if (suggestedProduct?.fileName) {
+      //   const existingPdfUrl = suggestedProduct.fileName.startsWith('http')
+      //     ? suggestedProduct.fileName
+      //     : `${process.env.NEXT_PUBLIC_FRONTEND_URL}${suggestedProduct.fileName}`;
+      //   try {
+      //     const resp = await fetch(existingPdfUrl);
+      //     if (resp.ok) existingPdfBytes = await resp.arrayBuffer();
+      //   } catch (err) {
+      //     console.warn('Could not fetch existing product PDF:', err);
+      //   }
+      // }
+      
+      const pdf = await GenerateSimplePDF(questions, answers, {
+        first_name: formik.values.firstName,
+        last_name: formik.values.lastName,
+        dob: formik.values.birthDate,
+      }, 'A loan processor is a professional responsible for thoroughly examining loan applications, assessing credit standings, and finalizing loan contracts. They play an intermediary role between clients and financial institutions, ensuring timely loan approvals and protecting the organization’s credibility. With expertise in banking procedures and regulations, they analyze applicants’ eligibility and develop repayment plans while maintaining strong communication and sales skills. A loan processor acts as a key link in facilitating loan approvals and maintaining customer satisfaction.');
 
-      const mergedBytes = await generateFinalPDF(
-        termsAndConditions?.[0]?.content || '',
-        termsAndConditions.length > 1 ? termsAndConditions[1].content : '',
-        questions,
-        answers,
-        formik.values,
-        suggestedProduct?.name || '',
-        existingPdfBytes
-      );
+      // You can also convert to blob for upload to server
+      const pdfBlob = pdf.output('blob');
+      // uploadPDFToServer(pdfBlob);
+      const base64 = await pdfBlobToBase64(pdfBlob);
+      console.log("🚀 ~ generatePDF ~ base64:", base64)
 
-      const fileName = `final_session_pdf_${session_id}.pdf`;
-      // ensure we pass an ArrayBuffer (slice to avoid SharedArrayBuffer issues)
-      const mergedCopy = new Uint8Array(mergedBytes); // copy to ensure ArrayBuffer compatibility
-      const blob = new Blob([mergedCopy], { type: 'application/pdf' });
+      // const arrayBuffer = await pdfBlob.arrayBuffer();
+      // const buffer = Buffer.from(arrayBuffer);
 
-      const arrayBuffer = await blob.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const pdfSave = await fetch('/api/phase/save-pdf', {
+      const response = await fetch('/api/signteq/create-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName, pdfBase64: buffer })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subject: 'Test Document Signature',
+          documentName: 'test_document.pdf',
+          documentBase64: base64, // Remove data:application/pdf;base64, prefix
+          recipientEmail: formik.values.email,
+          recipientName: `${formik.values.firstName} ${formik.values.lastName}`,
+          sessionId: session_id,
+        }),
       });
-      const pdfSaveResponse = await pdfSave.json();
-      if (pdfSaveResponse?.success) {
-        setFinalPDFUrl(process.env.NEXT_PUBLIC_FRONTEND_URL + pdfSaveResponse.fileUrl);
+
+      const data = await response.json();
+
+      if (data.success && data.signing_url) {
+        setSigningUrl(data.signing_url);
+        setSignTeqRequestId(data.id);
+        // Extract document ID from the response data
+        if (data.data && data.data.documents && data.data.documents[0]) {
+          setSignTeqDocumentId(data.data.documents[0].id);
+        }
+        console.log('✅ SignTeq session created:', {
+          requestId: data.id,
+          documentId: data.data?.documents?.[0]?.id,
+          signingUrl: data.signing_url
+        });
       } else {
-        alert('Error saving PDF');
+        throw new Error(data.error || 'Failed to create SignTeq session');
       }
     } catch (error) {
       console.error('Error generating final PDF:', error);
@@ -1049,6 +1077,88 @@ export default function Stepper() {
   //   }
   // };
 
+  const handleSigningSuccess = async () => {
+    console.log('✅ Document signed successfully!');
+    setLoading(true);
+    
+    try {
+      // Download the signed document if we have the document ID
+      if (signTeqDocumentId) {
+        console.log('📄 Downloading signed document...', signTeqDocumentId);
+        
+        const downloadResponse = await fetch(
+          `/api/signteq/documents/${signTeqDocumentId}/download?type=completed`
+        );
+        const downloadData = await downloadResponse.json();
+        
+        if (downloadData.success) {
+          // Save the downloaded document
+          const saveResponse = await fetch('/api/signteq/save-document', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              base64Data: downloadData.base64,
+              filename: `signed_document_${session_id}.pdf`,
+              sessionId: session_id,
+              documentId: signTeqDocumentId,
+            }),
+          });
+          
+          const saveData = await saveResponse.json();
+          if (saveData.success) {
+            setDownloadedDocumentPath(saveData.path);
+            console.log('✅ Document saved successfully:', saveData.path);
+          } else {
+            console.error('❌ Failed to save document:', saveData.error);
+          }
+        } else {
+          console.error('❌ Failed to download document:', downloadData.error);
+        }
+      }
+      
+      setSuccess(true);
+      
+      await fetch('/api/user/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: session_id }),
+      });
+
+      // Redirect to success page after a short delay
+      setTimeout(() => {
+        router.push('/customer/success');
+      }, 2000);
+      
+    } catch (error) {
+      console.error('❌ Error in post-signing process:', error);
+      setSuccess(true); // Still mark as success since signing completed
+      // Redirect anyway but log the error
+      setTimeout(() => {
+        router.push('/customer/success');
+      }, 2000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSigningError = (error: string) => {
+    console.error('❌ Signing error:', error);
+    setError(error);
+  };
+
+  const handleSigningCancel = () => {
+    console.log('ℹ️ Signing cancelled by user');
+    setSigningUrl(null);
+  };
+
+  const resetTest = () => {
+    setSigningUrl(null);
+    setError(null);
+    setSuccess(false);
+  };
+
   return (
     <div className={stepperContainerClass}>
       {/* Stepper Progress */}
@@ -1085,14 +1195,16 @@ export default function Stepper() {
                   {/* Description Container */}
                   <div className="bg-gray-50 rounded-lg p-6 mb-6 max-h-96 overflow-y-auto border border-gray-200">
                     <div className="prose prose-sm max-w-none text-gray-700 space-y-4">
-                      {/* Render terms and conditions content here */}
-                      <p>
-                        {termsAndConditions?.[
-                          step === PHASES.TERMS1
-                            ? 0
-                            : (termsAndConditions.length > 1 ? 1 : 0)]?.content
-                          || 'No terms and conditions available.'}
-                      </p>
+                      {/* Render terms and conditions content here using HTMLRenderer component */}
+                      <HTMLRenderer
+                        content={
+                          termsAndConditions?.[
+                            step === PHASES.TERMS1
+                              ? 0
+                              : (termsAndConditions.length > 1 ? 1 : 0)]?.content || ''
+                        }
+                        fallback="No terms and conditions available."
+                      />
                     </div>
                   </div>
 
@@ -1119,8 +1231,8 @@ export default function Stepper() {
                     setAnswers({ ...answers, [currentQ?.id]: opt });
                     await saveAnswer(currentQ?.id, opt, currentQ?.text, currentQ?.options);
                   }}
-                  // onNext={() => questionIndex === 3 ? lastQuestionNext() : setQuestionIndex((s) => Math.min(s + 1, 3))}
-                  // onBack={() => setQuestionIndex((s) => Math.max(s - 1, 1))}
+                // onNext={() => questionIndex === 3 ? lastQuestionNext() : setQuestionIndex((s) => Math.min(s + 1, 3))}
+                // onBack={() => setQuestionIndex((s) => Math.max(s - 1, 1))}
                 />
               )}
 
@@ -1138,8 +1250,8 @@ export default function Stepper() {
                     setAnswers({ ...answers, [currentQ2?.id]: opt });
                     await saveAnswer(currentQ2?.id, opt, currentQ2?.text, currentQ2?.options);
                   }}
-                  // onNext={() => questionIndex === 2 ? lastQuestionNext() : setQuestionIndex((s) => Math.min(s + 1, 2))}
-                  // onBack={() => setQuestionIndex((s) => Math.max(s - 1, 1))}
+                // onNext={() => questionIndex === 2 ? lastQuestionNext() : setQuestionIndex((s) => Math.min(s + 1, 2))}
+                // onBack={() => setQuestionIndex((s) => Math.max(s - 1, 1))}
                 />
               )}
 
@@ -1226,7 +1338,7 @@ export default function Stepper() {
                   </p>
                   <div className="border p-4 rounded shadow" style={{ height: '85%' }} >
 
-                    {finalPDFUrl ? (
+                    {/* {finalPDFUrl ? (
                       <iframe
                         src={finalPDFUrl}
                         className="w-full rounded"
@@ -1237,6 +1349,93 @@ export default function Stepper() {
                         <p className="text-gray-500">
                           Final PDF is not available at the moment.
                         </p>
+                      </div>
+                    )} */}
+
+                    {signingUrl && !success && (
+                      <React.Fragment>
+                        <div className="mb-4">
+                          <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                            Document Ready for Signature
+                          </h2>
+                          <p className="text-gray-600">
+                            Please sign the document below to complete the test.
+                          </p>
+                        </div>
+
+                        <SignTeqIframe
+                          src={signingUrl}
+                          onSuccess={handleSigningSuccess}
+                          onError={handleSigningError}
+                          onCancel={handleSigningCancel}
+                          className="rounded-lg border border-gray-200"
+                        />
+
+                        {/* <div className="mt-4 text-center">
+                          <button
+                            onClick={resetTest}
+                            className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                          >
+                            Reset Test
+                          </button>
+                        </div> */}
+                      </React.Fragment>
+                    )}
+
+                    {success && (
+                      <div className="text-center py-8">
+                        <div className="mb-6">
+                          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <h2 className="text-2xl font-bold text-green-600 mb-2">
+                            Document Signed Successfully!
+                          </h2>
+                          <p className="text-gray-600 mb-4">
+                            Your document has been signed and processed.
+                          </p>
+                          {loading && (
+                            <div className="mb-4">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                              <p className="text-sm text-gray-500">Downloading and saving signed document...</p>
+                            </div>
+                          )}
+                          {downloadedDocumentPath && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                              <p className="text-blue-800 font-medium mb-2">
+                                ✅ Signed document saved successfully!
+                              </p>
+                              <a 
+                                href={downloadedDocumentPath} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline"
+                              >
+                                📄 View Signed Document
+                              </a>
+                            </div>
+                          )}
+                          <p className="text-sm text-gray-500 mb-4">
+                            Redirecting to success page...
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => router.push('/customer/success')}
+                            className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors mr-4"
+                          >
+                            Go to Success Page
+                          </button>
+                          <button
+                            onClick={resetTest}
+                            className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                          >
+                            Start New Test
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
