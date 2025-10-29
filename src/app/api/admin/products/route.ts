@@ -13,7 +13,8 @@ const productSchema = z.object({
   minimumYear: z.number().int().min(0).max(50).optional(),
   maximumYear: z.number().int().min(0).max(50).optional(),
   riskType: z.enum(['CONSERVATIVE', 'RISK_AWARE', 'OPPORTUNITY_ORIENTED']).optional(),
-  aiModel: z.string().min(1, 'AI model is required').default('gpt-4'),
+  aiModel: z.string().min(1, 'AI model is required').default('gpt-5'),
+  firstMessage: z.string().min(1, 'First message is required'),
   aiPrompt: z.string().min(1, 'AI prompt is required'),
   vectorId: z.string().optional(),
 }).refine((data) => {
@@ -79,6 +80,7 @@ export async function GET(request: NextRequest) {
               id: true,
               model: true,
               prompt: true,
+              first_message: true,
               vectorId: true,
               isActive: true,
             },

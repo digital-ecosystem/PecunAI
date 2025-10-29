@@ -219,6 +219,7 @@ const MainProductPromptPage = () => {
   const getAiModelColor = (aiModel: string) => {
     switch (aiModel) {
       case 'gpt-5': return 'bg-purple-100 text-purple-800';
+      case 'gpt-5-mini': return 'bg-purple-100 text-purple-800';
       case 'gpt-4': return 'bg-blue-100 text-blue-800';
       case 'gpt-3.5-turbo': return 'bg-green-100 text-green-800';
       case 'claude-3-sonnet': return 'bg-orange-100 text-orange-800';
@@ -573,6 +574,7 @@ const MainProductPromptPage = () => {
                         }`}
                       >
                         <option value="gpt-5">GPT-5</option>
+                        <option value="gpt-5-mini">GPT-5-mini</option>
                         <option value="gpt-4">GPT-4</option>
                         <option value="gpt-4-turbo">GPT-4 Turbo</option>
                         <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>

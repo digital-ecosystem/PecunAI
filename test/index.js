@@ -16,9 +16,10 @@ async function fillPecunAIPdf() {
   console.log("📝 PDF Form Fields:", fields);
 
   // 4️⃣ Fill text fields (update names if needed after inspecting actual field names)
-  form.getTextField("vorname").setText("Bassem");
+  form.getTextField("vorname").setText("Robert");
+  form.getTextField("nachname").setText("HI");
   form.getTextField("Name, Gebdatum").setText("Bassem Mahdi , 15.05.1985");
-  form.getCheckBox("Kontrollkästchen 478").check();
+  //form.getCheckBox("Kontrollkästchen 478").check();
 
   
 

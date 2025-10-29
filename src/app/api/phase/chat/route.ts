@@ -6,7 +6,7 @@ import { Role } from '@/types'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { ChatCompletionMessageParam } from 'openai/resources/index.mjs'
-import type { AssistantTool } from 'openai/resources/beta/assistants'
+import type {ResponseInputItem} from 'openai/resources/beta/responses'
 
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
@@ -39,11 +39,14 @@ export async function POST(req: Request) {
     const productSettings = productId ? await getProductAISettings(productId) : null
 
     // Use AI settings for model selection and instructions
-    const model = productSettings?.model || mainPrompt?.aiModel || 'gpt-4'
+    const model = mainPrompt?.aiModel || 'gpt-5'
     const systemPrompt = mainPrompt?.mainPrompt || 'You are a helpful financial assistant.'
 
+    console.log('Using model:', model)
+    console.log('Using system prompt:', systemPrompt)
+
     // Construct chat context
-    const conversationHistory: ChatCompletionMessageParam[] = messagesSoFar.map(msg => ({
+    const conversationHistory: ResponseInputItem[] = messagesSoFar.map(msg => ({
       role: msg.role === Role.customer ? 'user' : 'assistant',
       content: msg.content
     }))
@@ -51,50 +54,37 @@ export async function POST(req: Request) {
     conversationHistory.push({ role: 'user', content: message })
 
     // Build tools array if vector_id is available
-    const tools: AssistantTool[] = [];
+    const tools: any[] = [];
     
     if (mainPrompt?.vectorId) {
       tools.push({
-        type: 'file_search'
+        type: 'file_search',
+        vector_store_ids: [mainPrompt.vectorId]
       });
     }
 
-    if (productSettings?.vectorId && productSettings.vectorId !== mainPrompt?.vectorId) {
+    /*if (mainPrompt?.mcpUrl) {
       tools.push({
-        type: 'file_search'
-      });
-    }
-
-    if (mainPrompt?.mcpUrl) {
-      tools.push({
-        type: 'function',
-        function: {
-          name: 'web_retrieval',
-          description: 'Retrieve information from MCP endpoint',
-          parameters: {
-            type: 'object',
-            properties: {
-              url: {
-                type: 'string',
-                description: 'MCP endpoint URL'
-              }
-            },
-            required: ['url']
-          }
-        }
-      });
-    }
+      type: "mcp",
+      server_label: "dmcp",
+      server_description: "mcp tool",
+      server_url: mainPrompt.mcpUrl,
+      require_approval: "never",
+    });
+    }*/
 
     // Use chat completions with enhanced system prompt
-    const completion = await openai.chat.completions.create({
+    const response = await openai.responses.create({
       model: model,
-      messages: [
+      instructions: systemPrompt + (productSettings?.firstMessage ? `\n\n${productSettings.firstMessage}` : '' ),
+      input: [
         { role: 'system', content: systemPrompt },
         ...conversationHistory
       ],
+      ...(tools.length > 0 && { tools: tools })
     });
     
-    const botResponse = completion.choices[0].message?.content;
+    const botResponse = response.output_text;
     if (!botResponse) throw new Error('No response from OpenAI')
 
     await saveChatMessage(

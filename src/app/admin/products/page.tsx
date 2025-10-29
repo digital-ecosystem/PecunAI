@@ -40,6 +40,7 @@ interface Product {
     id: string;
     model: string;
     prompt: string;
+    first_message: string;
     vectorId: string | null;
     isActive: boolean;
   }[];
@@ -55,6 +56,7 @@ interface ProductFormData {
   riskType: 'CONSERVATIVE' | 'RISK_AWARE' | 'OPPORTUNITY_ORIENTED' | null;
   aiModel: string;
   aiPrompt: string;
+  firstMessage: string;
   vectorId: string;
 }
 
@@ -83,8 +85,9 @@ const ProductsPage = () => {
     minimumYear: null,
     maximumYear: null,
     riskType: null,
-    aiModel: 'gpt-4',
+    aiModel: 'gpt-5',
     aiPrompt: '',
+    firstMessage: '',
     vectorId: '',
   });
 
@@ -147,8 +150,9 @@ const ProductsPage = () => {
       minimumYear: null,
       maximumYear: null,
       riskType: null,
-      aiModel: 'gpt-4',
+      aiModel: 'gpt-5',
       aiPrompt: '',
+      firstMessage: '',
       vectorId: '',
     });
     setErrors({});
@@ -174,8 +178,9 @@ const ProductsPage = () => {
       minimumYear: product.minimumYear,
       maximumYear: product.maximumYear,
       riskType: product.riskType,
-      aiModel: activeAiSetting?.model || 'gpt-4',
+      aiModel: activeAiSetting?.model || 'gpt-5',
       aiPrompt: activeAiSetting?.prompt || '',
+      firstMessage: activeAiSetting?.first_message || '',
       vectorId: activeAiSetting?.vectorId || '',
     });
     setUploadedFile(product.fileName);
@@ -857,6 +862,25 @@ const ProductsPage = () => {
                         rows={4}
                       />
                       {errors.aiPrompt && <div className="text-red-600 text-sm mt-1">{errors.aiPrompt}</div>}
+                    </div>
+
+                                        <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        First Message *
+                      </label>
+                      <textarea
+                        value={formData.firstMessage}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          firstMessage: e.target.value
+                        }))}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                          errors.firstMessage ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                        placeholder="Enter first message for product recommendations"
+                        rows={4}
+                      />
+                      {errors.firstMessage && <div className="text-red-600 text-sm mt-1">{errors.firstMessage}</div>}
                     </div>
 
                     <div className="md:col-span-2">
