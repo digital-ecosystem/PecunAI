@@ -353,19 +353,57 @@ export default function Stepper() {
           throw new Error("Failed to get response");
         }
 
-        const data = await response.json();
-
-        if (data.threadId && !threadId) {
-          setThreadId(data.threadId);
-        }
-
+        // Create a placeholder bot message for streaming
         const botMessage: Message = {
           role: Role.assistant,
-          content: data.message,
+          content: "",
           timestamp: new Date(),
         };
-
         setMessages((prev) => [...prev, botMessage]);
+
+        // Handle streaming response
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  
+                  if (data.done) {
+                    // Final response with metadata
+                    if (data.threadId && !threadId) {
+                      setThreadId(data.threadId);
+                    }
+                    break;
+                  } else if (data.content) {
+                    // Update the last message with new content
+                    setMessages((prev) => {
+                      const newMessages = [...prev];
+                      const lastMessage = newMessages[newMessages.length - 1];
+                      if (lastMessage && lastMessage.role === Role.assistant) {
+                        lastMessage.content += data.content;
+                      }
+                      return newMessages;
+                    });
+                  }
+                } catch (e) {
+                  console.error("Error parsing streaming data:", e);
+                }
+              }
+            }
+          }
+        }
       } catch (error) {
         console.error("Error:", error);
         const errorMessage: Message = {
@@ -378,7 +416,7 @@ export default function Stepper() {
         setChatBtnLanding(false);
       }
     },
-    [loading, session_id, threadId]
+    [loading, session_id, threadId, input]
   );
 
   const fetchTermsAndConditions = useCallback(async () => {
