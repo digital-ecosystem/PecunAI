@@ -141,8 +141,8 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
     label: string,
     type = "text"
   ) => (
-    <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+    <div className="w-full">
+      <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
         {label}
       </label>
       <input
@@ -162,11 +162,14 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                 : ""
               : formik.values[name as keyof typeof formik.values] as string
         }
-        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm 
+                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                   transition-colors duration-200 ease-in-out
+                   disabled:bg-gray-50 disabled:text-gray-500"
       />
       {formik.touched[name as keyof typeof formik.touched] &&
         formik.errors[name as keyof typeof formik.errors] && (
-          <p className="text-red-500 text-sm mt-1">
+          <p className="text-red-500 text-xs mt-1">
             {formik.errors[name as keyof typeof formik.errors]}
           </p>
         )}
@@ -175,152 +178,205 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
 
 
   return (
-    <div className="max-w-full mx-auto overflow-y-auto p-2" style={{ maxHeight: '70vh' }}>
-      <form className="space-y-4 personal-info-form">
-        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-          {renderField("firstName", "First Name")}
-          {renderField("lastName", "Last Name")}
-          {renderField("birthPlace", "Place of Birth")}
-          {/* {renderField("nationality", "Nationality")} */}
-          <div>
-            <label htmlFor="nationality" className="block text-sm font-medium text-gray-700">
-              Nationality
-            </label>
-            <select
-              id="nationality"
-              name="nationality"
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              value={formik.values.nationality}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-            >
-              <option value="">Select nationality...</option>
-              <option value="Austria">Austria</option>
-              <option value="Germany">Germany</option>
-              <option value="Switzerland">Switzerland</option>
-              <option value="Italy">Italy</option>
-              <option value="France">France</option>
-              <option value="Spain">Spain</option>
-              <option value="Netherlands">Netherlands</option>
-              <option value="Belgium">Belgium</option>
-              <option value="Poland">Poland</option>
-              <option value="Czech Republic">Czech Republic</option>
-              <option value="Hungary">Hungary</option>
-              <option value="Slovakia">Slovakia</option>
-              <option value="Slovenia">Slovenia</option>
-              <option value="Croatia">Croatia</option>
-              <option value="United Kingdom">United Kingdom</option>
-              <option value="United States">United States</option>
-              <option value="Canada">Canada</option>
-              <option value="Australia">Australia</option>
-              <option value="India">India</option>
-              <option value="Other">Other</option>
-            </select>
-            {formik.touched.nationality && formik.errors.nationality && (
-              <p className="text-red-500 text-sm mt-1">{formik.errors.nationality}</p>
-            )}
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-2 lg:px-8">
+      <form className="space-y-6 personal-info-form">
+        {/* Personal Information Section */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-2">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {renderField("firstName", "First Name")}
+            {renderField("lastName", "Last Name")}
+            {renderField("birthPlace", "Place of Birth")}
+            {renderField("birthDate", "Birth Date", "date")}
+            
+            {/* Nationality dropdown */}
+            <div className="w-full">
+              <label htmlFor="nationality" className="block text-sm font-medium text-gray-700 mb-1">
+                Nationality
+              </label>
+              <select
+                id="nationality"
+                name="nationality"
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.nationality}
+                className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-colors duration-200 ease-in-out
+                           disabled:bg-gray-50 disabled:text-gray-500"
+              >
+                <option value="">Select nationality...</option>
+                <option value="Austria">Austria</option>
+                <option value="Germany">Germany</option>
+                <option value="Switzerland">Switzerland</option>
+                <option value="Italy">Italy</option>
+                <option value="France">France</option>
+                <option value="Spain">Spain</option>
+                <option value="Netherlands">Netherlands</option>
+                <option value="Belgium">Belgium</option>
+                <option value="Poland">Poland</option>
+                <option value="Czech Republic">Czech Republic</option>
+                <option value="Hungary">Hungary</option>
+                <option value="Slovakia">Slovakia</option>
+                <option value="Slovenia">Slovenia</option>
+                <option value="Croatia">Croatia</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="United States">United States</option>
+                <option value="Canada">Canada</option>
+                <option value="Australia">Australia</option>
+                <option value="India">India</option>
+                <option value="Other">Other</option>
+              </select>
+              {formik.touched.nationality && formik.errors.nationality && (
+                <p className="text-red-500 text-xs mt-1">{formik.errors.nationality}</p>
+              )}
+            </div>
+
+            {/* Marital Status dropdown */}
+            <div className="w-full">
+              <label htmlFor="maritalStatus" className="block text-sm font-medium text-gray-700 mb-1">
+                Marital Status
+              </label>
+              <select
+                id="maritalStatus"
+                name="maritalStatus"
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.maritalStatus}
+                className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-colors duration-200 ease-in-out
+                           disabled:bg-gray-50 disabled:text-gray-500"
+              >
+                <option value="">Select status...</option>
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Widowed">Widowed</option>
+              </select>
+              {formik.touched.maritalStatus && formik.errors.maritalStatus && (
+                <p className="text-red-500 text-xs mt-1">{formik.errors.maritalStatus}</p>
+              )}
+            </div>
           </div>
-          {renderField("birthDate", "Birth Date", "date")}
-          {/* {renderField("maritalStatus", "Marital Status")} */}
-          <div>
-            <label htmlFor="maritalStatus" className="block text-sm font-medium text-gray-700">
-              Marital Status
-            </label>
-            <select
-              id="maritalStatus"
-              name="maritalStatus"
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              value={formik.values.maritalStatus}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-            >
-              <option value="">Select status...</option>
-              <option value="Single">Single</option>
-              <option value="Married">Married</option>
-              <option value="Divorced">Divorced</option>
-              <option value="Widowed">Widowed</option>
-            </select>
-            {formik.touched.maritalStatus && formik.errors.maritalStatus && (
-              <p className="text-red-500 text-sm mt-1">{formik.errors.maritalStatus}</p>
-            )}
+        </div>
+
+        {/* Address Information Section */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Address Information</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {renderField("street", "Street")}
+            {renderField("houseNumber", "House Number")}
+            {renderField("postalCode", "Postal Code")}
+            {renderField("city", "City")}
           </div>
+        </div>
 
-          {renderField("street", "Street")}
-          {renderField("houseNumber", "House Number")}
-          {renderField("postalCode", "Postal Code")}
-          {renderField("city", "City")}
-          {renderField("phone", "Phone")}
-          {renderField("email", "Email", "email")}
-          {renderField("education", "Education")}
-          {renderField("currentJob", "Current Job")}
-          {renderField("industry", "Industry")}
-          {renderField("occupation", "Occupation")}
-
-          <div>
-            <label htmlFor="documentType" className="block text-sm font-medium text-gray-700">
-              Document Type
-            </label>
-            <select
-              id="documentType"
-              name="documentType"
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              value={formik.values.documentType}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-            >
-              <option value="">Select...</option>
-              <option value="passport">Passport</option>
-              <option value="identity_card">Identity Card</option>
-              <option value="drivers_license">Driver License</option>
-            </select>
-            {formik.touched.documentType && formik.errors.documentType && (
-              <p className="text-red-500 text-sm mt-1">{formik.errors.documentType}</p>
-            )}
+        {/* Contact Information Section */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {renderField("phone", "Phone")}
+            {renderField("email", "Email", "email")}
           </div>
+        </div>
 
-          {renderField("documentNumber", "Document Number")}
-          {renderField("issuingAuthority", "Issuing Authority")}
-          {renderField("issuedOn", "Issued On", "date")}
-          {renderField("validUntil", "Valid Until", "date")}
+        {/* Professional Information Section */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Professional Information</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {renderField("education", "Education")}
+            {renderField("currentJob", "Current Job")}
+            {renderField("industry", "Industry")}
+            {renderField("occupation", "Occupation")}
+          </div>
+        </div>
 
-          {/* Checkboxes */}
-          <div className="col-span-2">
-            <label className="inline-flex items-center space-x-3">
+        {/* Document Information Section */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Document Information</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {/* Document Type dropdown */}
+            <div className="w-full">
+              <label htmlFor="documentType" className="block text-sm font-medium text-gray-700 mb-1">
+                Document Type
+              </label>
+              <select
+                id="documentType"
+                name="documentType"
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.documentType}
+                className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-colors duration-200 ease-in-out
+                           disabled:bg-gray-50 disabled:text-gray-500"
+              >
+                <option value="">Select...</option>
+                <option value="passport">Passport</option>
+                <option value="identity_card">Identity Card</option>
+                <option value="drivers_license">Driver License</option>
+              </select>
+              {formik.touched.documentType && formik.errors.documentType && (
+                <p className="text-red-500 text-xs mt-1">{formik.errors.documentType}</p>
+              )}
+            </div>
+
+            {renderField("documentNumber", "Document Number")}
+            {renderField("issuingAuthority", "Issuing Authority")}
+            {renderField("issuedOn", "Issued On", "date")}
+            {renderField("validUntil", "Valid Until", "date")}
+          </div>
+        </div>
+
+        {/* Additional Options Section */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Options</h3>
+          <div className="space-y-4">
+            <div className="flex items-start space-x-3">
               <input
                 type="checkbox"
                 name="isPEP"
+                id="isPEP"
                 checked={formik.values.isPEP}
                 onChange={formik.handleChange}
-                className="form-checkbox h-4 w-4"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded 
+                           mt-0.5 flex-shrink-0"
               />
-              <span>Politically Exposed Person (PEP)</span>
-            </label>
-          </div>
+              <label htmlFor="isPEP" className="text-sm text-gray-700 leading-5">
+                Politically Exposed Person (PEP)
+              </label>
+            </div>
 
-          <div className="col-span-2">
-            <label className="inline-flex items-center space-x-3">
+            <div className="flex items-start space-x-3">
               <input
                 type="checkbox"
                 name="residenceAbroad"
+                id="residenceAbroad"
                 checked={formik.values.residenceAbroad}
                 onChange={formik.handleChange}
-                className="form-checkbox h-4 w-4"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded 
+                           mt-0.5 flex-shrink-0"
               />
-              <span>Do you have a residence abroad?</span>
-            </label>
-          </div>
+              <label htmlFor="residenceAbroad" className="text-sm text-gray-700 leading-5">
+                Do you have a residence abroad?
+              </label>
+            </div>
 
-          <div className="col-span-2">
-            <label className="inline-flex items-center space-x-3">
+            <div className="flex items-start space-x-3">
               <input
                 type="checkbox"
                 name="magicFlow"
+                id="magicFlow"
                 checked={formik.values.magicFlow}
                 onChange={formik.handleChange}
-                className="form-checkbox h-4 w-4"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded 
+                           mt-0.5 flex-shrink-0"
               />
-              <span>Magic Flow (SignD - Testing Purpose)</span>
-            </label>
+              <label htmlFor="magicFlow" className="text-sm text-gray-700 leading-5">
+                Magic Flow (SignD - Testing Purpose)
+              </label>
+            </div>
           </div>
         </div>
 

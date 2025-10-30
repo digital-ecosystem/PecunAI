@@ -7,7 +7,6 @@ import OpenAI from 'openai';
 import { Tool } from 'openai/resources/responses/responses.mjs';
 // import type { AssistantTool } from 'openai/resources/beta/assistants';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 // POST: Initialize chat with automatic AI message when product is selected
 export async function POST(req: Request) {
@@ -54,78 +53,17 @@ export async function POST(req: Request) {
       }
     });
 
-    // Get main product prompt settings
-    const mainPrompt = await getMainProductPrompt();
-    if (!mainPrompt) {
-      return NextResponse.json({ message: 'Main product prompt not configured' }, { status: 500 });
-    }
 
     // Get product-specific AI settings
     const productSettings = await getProductAISettings(finalProductId);
 
-    // Prepare OpenAI request
-    const model = productSettings?.model || mainPrompt.aiModel;
-    const instructions = mainPrompt.mainPrompt;
-    
-    // Get welcome message for the product
-    // const welcomeMessage = getWelcomeMessage(product?.shortName || product?.name || null);
-    const welcomeMessage = productSettings?.prompt || getWelcomeMessage(product?.shortName || product?.name || null);
-
+    if (!productSettings || !productSettings.first_message) {
+      return NextResponse.json({ message: 'No AI settings found for product' }, { status: 404 });
+    }
+    const welcomeMessage = productSettings.first_message;
     try {
-      // Build the tools array conditionally
-      const tools: Tool[] = [];
-      
-      // Add vector retrieval if vectorId is available from main prompt
-      if (mainPrompt.vectorId) {
-        tools.push({
-          type: 'file_search',
-          vector_store_ids: [mainPrompt.vectorId]
-        });
-      }
-      
-      // Add MCP URL if available - using function calling
-      if (mainPrompt.mcpUrl) {
-        tools.push({
-          type: 'mcp',
-          server_label: 'mcp_retrieval',
-          server_url: mainPrompt.mcpUrl
-        //   function: {
-        //     name: 'web_retrieval',
-        //     description: 'Retrieve information from MCP endpoint',
-        //     parameters: {
-        //       type: 'object',
-        //       properties: {
-        //         url: {
-        //           type: 'string',
-        //           description: 'MCP endpoint URL',
-        //           default: mainPrompt.mcpUrl
-        //         }
-        //       },
-        //       required: ['url']
-        //     }
-        //   }
-        });
-      }
 
-      // Create assistant with instructions
-      const assistant = await openai.responses.create({
-        // name: `Product Assistant - ${product?.name || 'Financial Advisor'}`,
-        instructions: instructions,
-        model: model,
-        tools: tools.length > 0 ? tools : undefined,
-        // input: welcomeMessage,
-      });
-
-      // Create a thread for the conversation
-    //   const openaiThread = await openai.responses.create();
-
-      // Create the initial message
-      await openai.beta.threads.messages.create(assistant.id, {
-        role: 'assistant',
-        content: welcomeMessage
-      });
-
-      // Save the initial AI message to our database
+      // Save the itial AI message to our database
       await saveChatMessage(
         Role.assistant,
         welcomeMessage,
@@ -146,8 +84,6 @@ export async function POST(req: Request) {
         success: true,
         message: welcomeMessage,
         threadId: thread.id,
-        assistantId: assistant.id,
-        openaiThreadId: assistant.id,
         productId: finalProductId,
         productName: product?.name
       });

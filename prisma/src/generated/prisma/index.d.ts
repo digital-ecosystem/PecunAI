@@ -2796,14 +2796,12 @@ export namespace Prisma {
    */
 
   export type UserCountOutputType = {
-    otps: number
     qaSessions: number
     auditLogs: number
     sessions: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    otps?: boolean | UserCountOutputTypeCountOtpsArgs
     qaSessions?: boolean | UserCountOutputTypeCountQaSessionsArgs
     auditLogs?: boolean | UserCountOutputTypeCountAuditLogsArgs
     sessions?: boolean | UserCountOutputTypeCountSessionsArgs
@@ -2818,13 +2816,6 @@ export namespace Prisma {
      * Select specific fields to fetch from the UserCountOutputType
      */
     select?: UserCountOutputTypeSelect<ExtArgs> | null
-  }
-
-  /**
-   * UserCountOutputType without action
-   */
-  export type UserCountOutputTypeCountOtpsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: OTPWhereInput
   }
 
   /**
@@ -2855,18 +2846,12 @@ export namespace Prisma {
 
   export type QASessionCountOutputType = {
     answers: number
-    auditLogs: number
-    productSuggestions: number
     termsAcceptance: number
-    signedDocuments: number
   }
 
   export type QASessionCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     answers?: boolean | QASessionCountOutputTypeCountAnswersArgs
-    auditLogs?: boolean | QASessionCountOutputTypeCountAuditLogsArgs
-    productSuggestions?: boolean | QASessionCountOutputTypeCountProductSuggestionsArgs
     termsAcceptance?: boolean | QASessionCountOutputTypeCountTermsAcceptanceArgs
-    signedDocuments?: boolean | QASessionCountOutputTypeCountSignedDocumentsArgs
   }
 
   // Custom InputTypes
@@ -2890,29 +2875,8 @@ export namespace Prisma {
   /**
    * QASessionCountOutputType without action
    */
-  export type QASessionCountOutputTypeCountAuditLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: SessionAuditLogWhereInput
-  }
-
-  /**
-   * QASessionCountOutputType without action
-   */
-  export type QASessionCountOutputTypeCountProductSuggestionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: SessionProductSuggestionWhereInput
-  }
-
-  /**
-   * QASessionCountOutputType without action
-   */
   export type QASessionCountOutputTypeCountTermsAcceptanceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: SessionTermsAcceptanceWhereInput
-  }
-
-  /**
-   * QASessionCountOutputType without action
-   */
-  export type QASessionCountOutputTypeCountSignedDocumentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: SignedDocumentWhereInput
   }
 
 
@@ -3376,7 +3340,7 @@ export namespace Prisma {
   export type $UserPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "User"
     objects: {
-      otps: Prisma.$OTPPayload<ExtArgs>[]
+      otps: Prisma.$OTPPayload<ExtArgs> | null
       qaSessions: Prisma.$QASessionPayload<ExtArgs>[]
       auditLogs: Prisma.$SessionAuditLogPayload<ExtArgs>[]
       sessions: Prisma.$SessionPayload<ExtArgs>[]
@@ -3783,7 +3747,7 @@ export namespace Prisma {
    */
   export interface Prisma__UserClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    otps<T extends User$otpsArgs<ExtArgs> = {}>(args?: Subset<T, User$otpsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OTPPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    otps<T extends User$otpsArgs<ExtArgs> = {}>(args?: Subset<T, User$otpsArgs<ExtArgs>>): Prisma__OTPClient<$Result.GetResult<Prisma.$OTPPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     qaSessions<T extends User$qaSessionsArgs<ExtArgs> = {}>(args?: Subset<T, User$qaSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QASessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     auditLogs<T extends User$auditLogsArgs<ExtArgs> = {}>(args?: Subset<T, User$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionAuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     sessions<T extends User$sessionsArgs<ExtArgs> = {}>(args?: Subset<T, User$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -4227,11 +4191,6 @@ export namespace Prisma {
      */
     include?: OTPInclude<ExtArgs> | null
     where?: OTPWhereInput
-    orderBy?: OTPOrderByWithRelationInput | OTPOrderByWithRelationInput[]
-    cursor?: OTPWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: OTPScalarFieldEnum | OTPScalarFieldEnum[]
   }
 
   /**
@@ -6783,11 +6742,11 @@ export namespace Prisma {
       answers: Prisma.$AnswerPayload<ExtArgs>[]
       personalInfo: Prisma.$PersonalInfoPayload<ExtArgs> | null
       user: Prisma.$UserPayload<ExtArgs>
-      auditLogs: Prisma.$SessionAuditLogPayload<ExtArgs>[]
-      productSuggestions: Prisma.$SessionProductSuggestionPayload<ExtArgs>[]
+      auditLogs: Prisma.$SessionAuditLogPayload<ExtArgs> | null
+      productSuggestions: Prisma.$SessionProductSuggestionPayload<ExtArgs> | null
       termsAcceptance: Prisma.$SessionTermsAcceptancePayload<ExtArgs>[]
       workflowState: Prisma.$SessionWorkflowStatePayload<ExtArgs> | null
-      signedDocuments: Prisma.$SignedDocumentPayload<ExtArgs>[]
+      signedDocuments: Prisma.$SignedDocumentPayload<ExtArgs> | null
       thread: Prisma.$ThreadPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -7194,11 +7153,11 @@ export namespace Prisma {
     answers<T extends QASession$answersArgs<ExtArgs> = {}>(args?: Subset<T, QASession$answersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AnswerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     personalInfo<T extends QASession$personalInfoArgs<ExtArgs> = {}>(args?: Subset<T, QASession$personalInfoArgs<ExtArgs>>): Prisma__PersonalInfoClient<$Result.GetResult<Prisma.$PersonalInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    auditLogs<T extends QASession$auditLogsArgs<ExtArgs> = {}>(args?: Subset<T, QASession$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionAuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    productSuggestions<T extends QASession$productSuggestionsArgs<ExtArgs> = {}>(args?: Subset<T, QASession$productSuggestionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionProductSuggestionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    auditLogs<T extends QASession$auditLogsArgs<ExtArgs> = {}>(args?: Subset<T, QASession$auditLogsArgs<ExtArgs>>): Prisma__SessionAuditLogClient<$Result.GetResult<Prisma.$SessionAuditLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    productSuggestions<T extends QASession$productSuggestionsArgs<ExtArgs> = {}>(args?: Subset<T, QASession$productSuggestionsArgs<ExtArgs>>): Prisma__SessionProductSuggestionClient<$Result.GetResult<Prisma.$SessionProductSuggestionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     termsAcceptance<T extends QASession$termsAcceptanceArgs<ExtArgs> = {}>(args?: Subset<T, QASession$termsAcceptanceArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionTermsAcceptancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     workflowState<T extends QASession$workflowStateArgs<ExtArgs> = {}>(args?: Subset<T, QASession$workflowStateArgs<ExtArgs>>): Prisma__SessionWorkflowStateClient<$Result.GetResult<Prisma.$SessionWorkflowStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-    signedDocuments<T extends QASession$signedDocumentsArgs<ExtArgs> = {}>(args?: Subset<T, QASession$signedDocumentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SignedDocumentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    signedDocuments<T extends QASession$signedDocumentsArgs<ExtArgs> = {}>(args?: Subset<T, QASession$signedDocumentsArgs<ExtArgs>>): Prisma__SignedDocumentClient<$Result.GetResult<Prisma.$SignedDocumentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     thread<T extends QASession$threadArgs<ExtArgs> = {}>(args?: Subset<T, QASession$threadArgs<ExtArgs>>): Prisma__ThreadClient<$Result.GetResult<Prisma.$ThreadPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -7690,11 +7649,6 @@ export namespace Prisma {
      */
     include?: SessionAuditLogInclude<ExtArgs> | null
     where?: SessionAuditLogWhereInput
-    orderBy?: SessionAuditLogOrderByWithRelationInput | SessionAuditLogOrderByWithRelationInput[]
-    cursor?: SessionAuditLogWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: SessionAuditLogScalarFieldEnum | SessionAuditLogScalarFieldEnum[]
   }
 
   /**
@@ -7714,11 +7668,6 @@ export namespace Prisma {
      */
     include?: SessionProductSuggestionInclude<ExtArgs> | null
     where?: SessionProductSuggestionWhereInput
-    orderBy?: SessionProductSuggestionOrderByWithRelationInput | SessionProductSuggestionOrderByWithRelationInput[]
-    cursor?: SessionProductSuggestionWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: SessionProductSuggestionScalarFieldEnum | SessionProductSuggestionScalarFieldEnum[]
   }
 
   /**
@@ -7781,11 +7730,6 @@ export namespace Prisma {
      */
     include?: SignedDocumentInclude<ExtArgs> | null
     where?: SignedDocumentWhereInput
-    orderBy?: SignedDocumentOrderByWithRelationInput | SignedDocumentOrderByWithRelationInput[]
-    cursor?: SignedDocumentWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: SignedDocumentScalarFieldEnum | SignedDocumentScalarFieldEnum[]
   }
 
   /**
@@ -8944,13 +8888,13 @@ export namespace Prisma {
   }
 
   export type ProductAvgAggregateOutputType = {
-    minimumYear: number | null
     maximumYear: number | null
+    minimumYear: number | null
   }
 
   export type ProductSumAggregateOutputType = {
-    minimumYear: number | null
     maximumYear: number | null
+    minimumYear: number | null
   }
 
   export type ProductMinAggregateOutputType = {
@@ -8960,10 +8904,10 @@ export namespace Prisma {
     createdAt: Date | null
     fileName: string | null
     shortName: string | null
-    minimumYear: number | null
-    maximumYear: number | null
-    riskType: $Enums.RiskType | null
     updatedAt: Date | null
+    maximumYear: number | null
+    minimumYear: number | null
+    riskType: $Enums.RiskType | null
   }
 
   export type ProductMaxAggregateOutputType = {
@@ -8973,10 +8917,10 @@ export namespace Prisma {
     createdAt: Date | null
     fileName: string | null
     shortName: string | null
-    minimumYear: number | null
-    maximumYear: number | null
-    riskType: $Enums.RiskType | null
     updatedAt: Date | null
+    maximumYear: number | null
+    minimumYear: number | null
+    riskType: $Enums.RiskType | null
   }
 
   export type ProductCountAggregateOutputType = {
@@ -8986,22 +8930,22 @@ export namespace Prisma {
     createdAt: number
     fileName: number
     shortName: number
-    minimumYear: number
-    maximumYear: number
-    riskType: number
     updatedAt: number
+    maximumYear: number
+    minimumYear: number
+    riskType: number
     _all: number
   }
 
 
   export type ProductAvgAggregateInputType = {
-    minimumYear?: true
     maximumYear?: true
+    minimumYear?: true
   }
 
   export type ProductSumAggregateInputType = {
-    minimumYear?: true
     maximumYear?: true
+    minimumYear?: true
   }
 
   export type ProductMinAggregateInputType = {
@@ -9011,10 +8955,10 @@ export namespace Prisma {
     createdAt?: true
     fileName?: true
     shortName?: true
-    minimumYear?: true
-    maximumYear?: true
-    riskType?: true
     updatedAt?: true
+    maximumYear?: true
+    minimumYear?: true
+    riskType?: true
   }
 
   export type ProductMaxAggregateInputType = {
@@ -9024,10 +8968,10 @@ export namespace Prisma {
     createdAt?: true
     fileName?: true
     shortName?: true
-    minimumYear?: true
-    maximumYear?: true
-    riskType?: true
     updatedAt?: true
+    maximumYear?: true
+    minimumYear?: true
+    riskType?: true
   }
 
   export type ProductCountAggregateInputType = {
@@ -9037,10 +8981,10 @@ export namespace Prisma {
     createdAt?: true
     fileName?: true
     shortName?: true
-    minimumYear?: true
-    maximumYear?: true
-    riskType?: true
     updatedAt?: true
+    maximumYear?: true
+    minimumYear?: true
+    riskType?: true
     _all?: true
   }
 
@@ -9137,10 +9081,10 @@ export namespace Prisma {
     createdAt: Date
     fileName: string | null
     shortName: string | null
-    minimumYear: number | null
-    maximumYear: number | null
-    riskType: $Enums.RiskType | null
     updatedAt: Date
+    maximumYear: number | null
+    minimumYear: number | null
+    riskType: $Enums.RiskType | null
     _count: ProductCountAggregateOutputType | null
     _avg: ProductAvgAggregateOutputType | null
     _sum: ProductSumAggregateOutputType | null
@@ -9169,10 +9113,10 @@ export namespace Prisma {
     createdAt?: boolean
     fileName?: boolean
     shortName?: boolean
-    minimumYear?: boolean
-    maximumYear?: boolean
-    riskType?: boolean
     updatedAt?: boolean
+    maximumYear?: boolean
+    minimumYear?: boolean
+    riskType?: boolean
     aiSettings?: boolean | Product$aiSettingsArgs<ExtArgs>
     productSuggestions?: boolean | Product$productSuggestionsArgs<ExtArgs>
     _count?: boolean | ProductCountOutputTypeDefaultArgs<ExtArgs>
@@ -9185,10 +9129,10 @@ export namespace Prisma {
     createdAt?: boolean
     fileName?: boolean
     shortName?: boolean
-    minimumYear?: boolean
-    maximumYear?: boolean
-    riskType?: boolean
     updatedAt?: boolean
+    maximumYear?: boolean
+    minimumYear?: boolean
+    riskType?: boolean
   }, ExtArgs["result"]["product"]>
 
   export type ProductSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -9198,10 +9142,10 @@ export namespace Prisma {
     createdAt?: boolean
     fileName?: boolean
     shortName?: boolean
-    minimumYear?: boolean
-    maximumYear?: boolean
-    riskType?: boolean
     updatedAt?: boolean
+    maximumYear?: boolean
+    minimumYear?: boolean
+    riskType?: boolean
   }, ExtArgs["result"]["product"]>
 
   export type ProductSelectScalar = {
@@ -9211,13 +9155,13 @@ export namespace Prisma {
     createdAt?: boolean
     fileName?: boolean
     shortName?: boolean
-    minimumYear?: boolean
-    maximumYear?: boolean
-    riskType?: boolean
     updatedAt?: boolean
+    maximumYear?: boolean
+    minimumYear?: boolean
+    riskType?: boolean
   }
 
-  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "createdAt" | "fileName" | "shortName" | "minimumYear" | "maximumYear" | "riskType" | "updatedAt", ExtArgs["result"]["product"]>
+  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "createdAt" | "fileName" | "shortName" | "updatedAt" | "maximumYear" | "minimumYear" | "riskType", ExtArgs["result"]["product"]>
   export type ProductInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     aiSettings?: boolean | Product$aiSettingsArgs<ExtArgs>
     productSuggestions?: boolean | Product$productSuggestionsArgs<ExtArgs>
@@ -9239,10 +9183,10 @@ export namespace Prisma {
       createdAt: Date
       fileName: string | null
       shortName: string | null
-      minimumYear: number | null
-      maximumYear: number | null
-      riskType: $Enums.RiskType | null
       updatedAt: Date
+      maximumYear: number | null
+      minimumYear: number | null
+      riskType: $Enums.RiskType | null
     }, ExtArgs["result"]["product"]>
     composites: {}
   }
@@ -9674,10 +9618,10 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"Product", 'DateTime'>
     readonly fileName: FieldRef<"Product", 'String'>
     readonly shortName: FieldRef<"Product", 'String'>
-    readonly minimumYear: FieldRef<"Product", 'Int'>
-    readonly maximumYear: FieldRef<"Product", 'Int'>
-    readonly riskType: FieldRef<"Product", 'RiskType'>
     readonly updatedAt: FieldRef<"Product", 'DateTime'>
+    readonly maximumYear: FieldRef<"Product", 'Int'>
+    readonly minimumYear: FieldRef<"Product", 'Int'>
+    readonly riskType: FieldRef<"Product", 'RiskType'>
   }
     
 
@@ -19123,13 +19067,13 @@ export namespace Prisma {
     nationality: string | null
     phone: string | null
     placeOfBirth: string | null
-    dateOfBirth: Date | null
     postalCode: string | null
     qaSessionId: string | null
     residenceAbroad: boolean | null
     street: string | null
     updatedAt: Date | null
     id: number | null
+    dateOfBirth: Date | null
   }
 
   export type PersonalInfoMaxAggregateOutputType = {
@@ -19149,13 +19093,13 @@ export namespace Prisma {
     nationality: string | null
     phone: string | null
     placeOfBirth: string | null
-    dateOfBirth: Date | null
     postalCode: string | null
     qaSessionId: string | null
     residenceAbroad: boolean | null
     street: string | null
     updatedAt: Date | null
     id: number | null
+    dateOfBirth: Date | null
   }
 
   export type PersonalInfoCountAggregateOutputType = {
@@ -19175,13 +19119,13 @@ export namespace Prisma {
     nationality: number
     phone: number
     placeOfBirth: number
-    dateOfBirth: number
     postalCode: number
     qaSessionId: number
     residenceAbroad: number
     street: number
     updatedAt: number
     id: number
+    dateOfBirth: number
     _all: number
   }
 
@@ -19211,13 +19155,13 @@ export namespace Prisma {
     nationality?: true
     phone?: true
     placeOfBirth?: true
-    dateOfBirth?: true
     postalCode?: true
     qaSessionId?: true
     residenceAbroad?: true
     street?: true
     updatedAt?: true
     id?: true
+    dateOfBirth?: true
   }
 
   export type PersonalInfoMaxAggregateInputType = {
@@ -19237,13 +19181,13 @@ export namespace Prisma {
     nationality?: true
     phone?: true
     placeOfBirth?: true
-    dateOfBirth?: true
     postalCode?: true
     qaSessionId?: true
     residenceAbroad?: true
     street?: true
     updatedAt?: true
     id?: true
+    dateOfBirth?: true
   }
 
   export type PersonalInfoCountAggregateInputType = {
@@ -19263,13 +19207,13 @@ export namespace Prisma {
     nationality?: true
     phone?: true
     placeOfBirth?: true
-    dateOfBirth?: true
     postalCode?: true
     qaSessionId?: true
     residenceAbroad?: true
     street?: true
     updatedAt?: true
     id?: true
+    dateOfBirth?: true
     _all?: true
   }
 
@@ -19376,13 +19320,13 @@ export namespace Prisma {
     nationality: string
     phone: string
     placeOfBirth: string
-    dateOfBirth: Date
     postalCode: string
     qaSessionId: string
     residenceAbroad: boolean
     street: string
     updatedAt: Date
     id: number
+    dateOfBirth: Date
     _count: PersonalInfoCountAggregateOutputType | null
     _avg: PersonalInfoAvgAggregateOutputType | null
     _sum: PersonalInfoSumAggregateOutputType | null
@@ -19421,13 +19365,13 @@ export namespace Prisma {
     nationality?: boolean
     phone?: boolean
     placeOfBirth?: boolean
-    dateOfBirth?: boolean
     postalCode?: boolean
     qaSessionId?: boolean
     residenceAbroad?: boolean
     street?: boolean
     updatedAt?: boolean
     id?: boolean
+    dateOfBirth?: boolean
     documents?: boolean | PersonalInfo$documentsArgs<ExtArgs>
     qaSession?: boolean | QASessionDefaultArgs<ExtArgs>
     previousJobsRel?: boolean | PersonalInfo$previousJobsRelArgs<ExtArgs>
@@ -19452,13 +19396,13 @@ export namespace Prisma {
     nationality?: boolean
     phone?: boolean
     placeOfBirth?: boolean
-    dateOfBirth?: boolean
     postalCode?: boolean
     qaSessionId?: boolean
     residenceAbroad?: boolean
     street?: boolean
     updatedAt?: boolean
     id?: boolean
+    dateOfBirth?: boolean
     qaSession?: boolean | QASessionDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["personalInfo"]>
 
@@ -19479,13 +19423,13 @@ export namespace Prisma {
     nationality?: boolean
     phone?: boolean
     placeOfBirth?: boolean
-    dateOfBirth?: boolean
     postalCode?: boolean
     qaSessionId?: boolean
     residenceAbroad?: boolean
     street?: boolean
     updatedAt?: boolean
     id?: boolean
+    dateOfBirth?: boolean
     qaSession?: boolean | QASessionDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["personalInfo"]>
 
@@ -19506,16 +19450,16 @@ export namespace Prisma {
     nationality?: boolean
     phone?: boolean
     placeOfBirth?: boolean
-    dateOfBirth?: boolean
     postalCode?: boolean
     qaSessionId?: boolean
     residenceAbroad?: boolean
     street?: boolean
     updatedAt?: boolean
     id?: boolean
+    dateOfBirth?: boolean
   }
 
-  export type PersonalInfoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"actsOnOwnAccount" | "city" | "createdAt" | "currentProfession" | "customerClassification" | "education" | "email" | "firstName" | "houseNumber" | "industry" | "isPep" | "lastName" | "maritalStatus" | "nationality" | "phone" | "placeOfBirth" | "dateOfBirth" | "postalCode" | "qaSessionId" | "residenceAbroad" | "street" | "updatedAt" | "id", ExtArgs["result"]["personalInfo"]>
+  export type PersonalInfoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"actsOnOwnAccount" | "city" | "createdAt" | "currentProfession" | "customerClassification" | "education" | "email" | "firstName" | "houseNumber" | "industry" | "isPep" | "lastName" | "maritalStatus" | "nationality" | "phone" | "placeOfBirth" | "postalCode" | "qaSessionId" | "residenceAbroad" | "street" | "updatedAt" | "id" | "dateOfBirth", ExtArgs["result"]["personalInfo"]>
   export type PersonalInfoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     documents?: boolean | PersonalInfo$documentsArgs<ExtArgs>
     qaSession?: boolean | QASessionDefaultArgs<ExtArgs>
@@ -19555,13 +19499,13 @@ export namespace Prisma {
       nationality: string
       phone: string
       placeOfBirth: string
-      dateOfBirth: Date
       postalCode: string
       qaSessionId: string
       residenceAbroad: boolean
       street: string
       updatedAt: Date
       id: number
+      dateOfBirth: Date
     }, ExtArgs["result"]["personalInfo"]>
     composites: {}
   }
@@ -20005,13 +19949,13 @@ export namespace Prisma {
     readonly nationality: FieldRef<"PersonalInfo", 'String'>
     readonly phone: FieldRef<"PersonalInfo", 'String'>
     readonly placeOfBirth: FieldRef<"PersonalInfo", 'String'>
-    readonly dateOfBirth: FieldRef<"PersonalInfo", 'DateTime'>
     readonly postalCode: FieldRef<"PersonalInfo", 'String'>
     readonly qaSessionId: FieldRef<"PersonalInfo", 'String'>
     readonly residenceAbroad: FieldRef<"PersonalInfo", 'Boolean'>
     readonly street: FieldRef<"PersonalInfo", 'String'>
     readonly updatedAt: FieldRef<"PersonalInfo", 'DateTime'>
     readonly id: FieldRef<"PersonalInfo", 'Int'>
+    readonly dateOfBirth: FieldRef<"PersonalInfo", 'DateTime'>
   }
     
 
@@ -23939,6 +23883,7 @@ export namespace Prisma {
   export type AISettingsMinAggregateOutputType = {
     id: string | null
     prompt: string | null
+    first_message: string | null
     model: string | null
     vectorId: string | null
     productId: string | null
@@ -23950,6 +23895,7 @@ export namespace Prisma {
   export type AISettingsMaxAggregateOutputType = {
     id: string | null
     prompt: string | null
+    first_message: string | null
     model: string | null
     vectorId: string | null
     productId: string | null
@@ -23961,6 +23907,7 @@ export namespace Prisma {
   export type AISettingsCountAggregateOutputType = {
     id: number
     prompt: number
+    first_message: number
     model: number
     vectorId: number
     productId: number
@@ -23974,6 +23921,7 @@ export namespace Prisma {
   export type AISettingsMinAggregateInputType = {
     id?: true
     prompt?: true
+    first_message?: true
     model?: true
     vectorId?: true
     productId?: true
@@ -23985,6 +23933,7 @@ export namespace Prisma {
   export type AISettingsMaxAggregateInputType = {
     id?: true
     prompt?: true
+    first_message?: true
     model?: true
     vectorId?: true
     productId?: true
@@ -23996,6 +23945,7 @@ export namespace Prisma {
   export type AISettingsCountAggregateInputType = {
     id?: true
     prompt?: true
+    first_message?: true
     model?: true
     vectorId?: true
     productId?: true
@@ -24080,6 +24030,7 @@ export namespace Prisma {
   export type AISettingsGroupByOutputType = {
     id: string
     prompt: string
+    first_message: string
     model: string
     vectorId: string | null
     productId: string | null
@@ -24108,6 +24059,7 @@ export namespace Prisma {
   export type AISettingsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     prompt?: boolean
+    first_message?: boolean
     model?: boolean
     vectorId?: boolean
     productId?: boolean
@@ -24120,6 +24072,7 @@ export namespace Prisma {
   export type AISettingsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     prompt?: boolean
+    first_message?: boolean
     model?: boolean
     vectorId?: boolean
     productId?: boolean
@@ -24132,6 +24085,7 @@ export namespace Prisma {
   export type AISettingsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     prompt?: boolean
+    first_message?: boolean
     model?: boolean
     vectorId?: boolean
     productId?: boolean
@@ -24144,6 +24098,7 @@ export namespace Prisma {
   export type AISettingsSelectScalar = {
     id?: boolean
     prompt?: boolean
+    first_message?: boolean
     model?: boolean
     vectorId?: boolean
     productId?: boolean
@@ -24152,7 +24107,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type AISettingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "prompt" | "model" | "vectorId" | "productId" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["aISettings"]>
+  export type AISettingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "prompt" | "first_message" | "model" | "vectorId" | "productId" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["aISettings"]>
   export type AISettingsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     product?: boolean | AISettings$productArgs<ExtArgs>
   }
@@ -24171,6 +24126,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       prompt: string
+      first_message: string
       model: string
       vectorId: string | null
       productId: string | null
@@ -24603,6 +24559,7 @@ export namespace Prisma {
   interface AISettingsFieldRefs {
     readonly id: FieldRef<"AISettings", 'String'>
     readonly prompt: FieldRef<"AISettings", 'String'>
+    readonly first_message: FieldRef<"AISettings", 'String'>
     readonly model: FieldRef<"AISettings", 'String'>
     readonly vectorId: FieldRef<"AISettings", 'String'>
     readonly productId: FieldRef<"AISettings", 'String'>
@@ -27242,10 +27199,10 @@ export namespace Prisma {
     createdAt: 'createdAt',
     fileName: 'fileName',
     shortName: 'shortName',
-    minimumYear: 'minimumYear',
+    updatedAt: 'updatedAt',
     maximumYear: 'maximumYear',
-    riskType: 'riskType',
-    updatedAt: 'updatedAt'
+    minimumYear: 'minimumYear',
+    riskType: 'riskType'
   };
 
   export type ProductScalarFieldEnum = (typeof ProductScalarFieldEnum)[keyof typeof ProductScalarFieldEnum]
@@ -27378,13 +27335,13 @@ export namespace Prisma {
     nationality: 'nationality',
     phone: 'phone',
     placeOfBirth: 'placeOfBirth',
-    dateOfBirth: 'dateOfBirth',
     postalCode: 'postalCode',
     qaSessionId: 'qaSessionId',
     residenceAbroad: 'residenceAbroad',
     street: 'street',
     updatedAt: 'updatedAt',
-    id: 'id'
+    id: 'id',
+    dateOfBirth: 'dateOfBirth'
   };
 
   export type PersonalInfoScalarFieldEnum = (typeof PersonalInfoScalarFieldEnum)[keyof typeof PersonalInfoScalarFieldEnum]
@@ -27435,6 +27392,7 @@ export namespace Prisma {
   export const AISettingsScalarFieldEnum: {
     id: 'id',
     prompt: 'prompt',
+    first_message: 'first_message',
     model: 'model',
     vectorId: 'vectorId',
     productId: 'productId',
@@ -27713,7 +27671,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"User"> | Date | string
     isActive?: BoolFilter<"User"> | boolean
     updatedAt?: DateTimeFilter<"User"> | Date | string
-    otps?: OTPListRelationFilter
+    otps?: XOR<OTPNullableScalarRelationFilter, OTPWhereInput> | null
     qaSessions?: QASessionListRelationFilter
     auditLogs?: SessionAuditLogListRelationFilter
     sessions?: SessionListRelationFilter
@@ -27727,7 +27685,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     isActive?: SortOrder
     updatedAt?: SortOrder
-    otps?: OTPOrderByRelationAggregateInput
+    otps?: OTPOrderByWithRelationInput
     qaSessions?: QASessionOrderByRelationAggregateInput
     auditLogs?: SessionAuditLogOrderByRelationAggregateInput
     sessions?: SessionOrderByRelationAggregateInput
@@ -27744,7 +27702,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"User"> | Date | string
     isActive?: BoolFilter<"User"> | boolean
     updatedAt?: DateTimeFilter<"User"> | Date | string
-    otps?: OTPListRelationFilter
+    otps?: XOR<OTPNullableScalarRelationFilter, OTPWhereInput> | null
     qaSessions?: QASessionListRelationFilter
     auditLogs?: SessionAuditLogListRelationFilter
     sessions?: SessionListRelationFilter
@@ -27928,11 +27886,11 @@ export namespace Prisma {
     answers?: AnswerListRelationFilter
     personalInfo?: XOR<PersonalInfoNullableScalarRelationFilter, PersonalInfoWhereInput> | null
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
-    auditLogs?: SessionAuditLogListRelationFilter
-    productSuggestions?: SessionProductSuggestionListRelationFilter
+    auditLogs?: XOR<SessionAuditLogNullableScalarRelationFilter, SessionAuditLogWhereInput> | null
+    productSuggestions?: XOR<SessionProductSuggestionNullableScalarRelationFilter, SessionProductSuggestionWhereInput> | null
     termsAcceptance?: SessionTermsAcceptanceListRelationFilter
     workflowState?: XOR<SessionWorkflowStateNullableScalarRelationFilter, SessionWorkflowStateWhereInput> | null
-    signedDocuments?: SignedDocumentListRelationFilter
+    signedDocuments?: XOR<SignedDocumentNullableScalarRelationFilter, SignedDocumentWhereInput> | null
     thread?: XOR<ThreadNullableScalarRelationFilter, ThreadWhereInput> | null
   }
 
@@ -27946,11 +27904,11 @@ export namespace Prisma {
     answers?: AnswerOrderByRelationAggregateInput
     personalInfo?: PersonalInfoOrderByWithRelationInput
     user?: UserOrderByWithRelationInput
-    auditLogs?: SessionAuditLogOrderByRelationAggregateInput
-    productSuggestions?: SessionProductSuggestionOrderByRelationAggregateInput
+    auditLogs?: SessionAuditLogOrderByWithRelationInput
+    productSuggestions?: SessionProductSuggestionOrderByWithRelationInput
     termsAcceptance?: SessionTermsAcceptanceOrderByRelationAggregateInput
     workflowState?: SessionWorkflowStateOrderByWithRelationInput
-    signedDocuments?: SignedDocumentOrderByRelationAggregateInput
+    signedDocuments?: SignedDocumentOrderByWithRelationInput
     thread?: ThreadOrderByWithRelationInput
   }
 
@@ -27967,11 +27925,11 @@ export namespace Prisma {
     answers?: AnswerListRelationFilter
     personalInfo?: XOR<PersonalInfoNullableScalarRelationFilter, PersonalInfoWhereInput> | null
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
-    auditLogs?: SessionAuditLogListRelationFilter
-    productSuggestions?: SessionProductSuggestionListRelationFilter
+    auditLogs?: XOR<SessionAuditLogNullableScalarRelationFilter, SessionAuditLogWhereInput> | null
+    productSuggestions?: XOR<SessionProductSuggestionNullableScalarRelationFilter, SessionProductSuggestionWhereInput> | null
     termsAcceptance?: SessionTermsAcceptanceListRelationFilter
     workflowState?: XOR<SessionWorkflowStateNullableScalarRelationFilter, SessionWorkflowStateWhereInput> | null
-    signedDocuments?: SignedDocumentListRelationFilter
+    signedDocuments?: XOR<SignedDocumentNullableScalarRelationFilter, SignedDocumentWhereInput> | null
     thread?: XOR<ThreadNullableScalarRelationFilter, ThreadWhereInput> | null
   }, "id">
 
@@ -28071,10 +28029,10 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Product"> | Date | string
     fileName?: StringNullableFilter<"Product"> | string | null
     shortName?: StringNullableFilter<"Product"> | string | null
-    minimumYear?: IntNullableFilter<"Product"> | number | null
-    maximumYear?: IntNullableFilter<"Product"> | number | null
-    riskType?: EnumRiskTypeNullableFilter<"Product"> | $Enums.RiskType | null
     updatedAt?: DateTimeFilter<"Product"> | Date | string
+    maximumYear?: IntNullableFilter<"Product"> | number | null
+    minimumYear?: IntNullableFilter<"Product"> | number | null
+    riskType?: EnumRiskTypeNullableFilter<"Product"> | $Enums.RiskType | null
     aiSettings?: AISettingsListRelationFilter
     productSuggestions?: SessionProductSuggestionListRelationFilter
   }
@@ -28086,10 +28044,10 @@ export namespace Prisma {
     createdAt?: SortOrder
     fileName?: SortOrderInput | SortOrder
     shortName?: SortOrderInput | SortOrder
-    minimumYear?: SortOrderInput | SortOrder
-    maximumYear?: SortOrderInput | SortOrder
-    riskType?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
+    maximumYear?: SortOrderInput | SortOrder
+    minimumYear?: SortOrderInput | SortOrder
+    riskType?: SortOrderInput | SortOrder
     aiSettings?: AISettingsOrderByRelationAggregateInput
     productSuggestions?: SessionProductSuggestionOrderByRelationAggregateInput
   }
@@ -28104,10 +28062,10 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Product"> | Date | string
     fileName?: StringNullableFilter<"Product"> | string | null
     shortName?: StringNullableFilter<"Product"> | string | null
-    minimumYear?: IntNullableFilter<"Product"> | number | null
-    maximumYear?: IntNullableFilter<"Product"> | number | null
-    riskType?: EnumRiskTypeNullableFilter<"Product"> | $Enums.RiskType | null
     updatedAt?: DateTimeFilter<"Product"> | Date | string
+    maximumYear?: IntNullableFilter<"Product"> | number | null
+    minimumYear?: IntNullableFilter<"Product"> | number | null
+    riskType?: EnumRiskTypeNullableFilter<"Product"> | $Enums.RiskType | null
     aiSettings?: AISettingsListRelationFilter
     productSuggestions?: SessionProductSuggestionListRelationFilter
   }, "id">
@@ -28119,10 +28077,10 @@ export namespace Prisma {
     createdAt?: SortOrder
     fileName?: SortOrderInput | SortOrder
     shortName?: SortOrderInput | SortOrder
-    minimumYear?: SortOrderInput | SortOrder
-    maximumYear?: SortOrderInput | SortOrder
-    riskType?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
+    maximumYear?: SortOrderInput | SortOrder
+    minimumYear?: SortOrderInput | SortOrder
+    riskType?: SortOrderInput | SortOrder
     _count?: ProductCountOrderByAggregateInput
     _avg?: ProductAvgOrderByAggregateInput
     _max?: ProductMaxOrderByAggregateInput
@@ -28140,10 +28098,10 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"Product"> | Date | string
     fileName?: StringNullableWithAggregatesFilter<"Product"> | string | null
     shortName?: StringNullableWithAggregatesFilter<"Product"> | string | null
-    minimumYear?: IntNullableWithAggregatesFilter<"Product"> | number | null
-    maximumYear?: IntNullableWithAggregatesFilter<"Product"> | number | null
-    riskType?: EnumRiskTypeNullableWithAggregatesFilter<"Product"> | $Enums.RiskType | null
     updatedAt?: DateTimeWithAggregatesFilter<"Product"> | Date | string
+    maximumYear?: IntNullableWithAggregatesFilter<"Product"> | number | null
+    minimumYear?: IntNullableWithAggregatesFilter<"Product"> | number | null
+    riskType?: EnumRiskTypeNullableWithAggregatesFilter<"Product"> | $Enums.RiskType | null
   }
 
   export type QuestionWhereInput = {
@@ -28738,13 +28696,13 @@ export namespace Prisma {
     nationality?: StringFilter<"PersonalInfo"> | string
     phone?: StringFilter<"PersonalInfo"> | string
     placeOfBirth?: StringFilter<"PersonalInfo"> | string
-    dateOfBirth?: DateTimeFilter<"PersonalInfo"> | Date | string
     postalCode?: StringFilter<"PersonalInfo"> | string
     qaSessionId?: StringFilter<"PersonalInfo"> | string
     residenceAbroad?: BoolFilter<"PersonalInfo"> | boolean
     street?: StringFilter<"PersonalInfo"> | string
     updatedAt?: DateTimeFilter<"PersonalInfo"> | Date | string
     id?: IntFilter<"PersonalInfo"> | number
+    dateOfBirth?: DateTimeFilter<"PersonalInfo"> | Date | string
     documents?: DocumentListRelationFilter
     qaSession?: XOR<QASessionScalarRelationFilter, QASessionWhereInput>
     previousJobsRel?: PreviousJobListRelationFilter
@@ -28768,13 +28726,13 @@ export namespace Prisma {
     nationality?: SortOrder
     phone?: SortOrder
     placeOfBirth?: SortOrder
-    dateOfBirth?: SortOrder
     postalCode?: SortOrder
     qaSessionId?: SortOrder
     residenceAbroad?: SortOrder
     street?: SortOrder
     updatedAt?: SortOrder
     id?: SortOrder
+    dateOfBirth?: SortOrder
     documents?: DocumentOrderByRelationAggregateInput
     qaSession?: QASessionOrderByWithRelationInput
     previousJobsRel?: PreviousJobOrderByRelationAggregateInput
@@ -28803,11 +28761,11 @@ export namespace Prisma {
     nationality?: StringFilter<"PersonalInfo"> | string
     phone?: StringFilter<"PersonalInfo"> | string
     placeOfBirth?: StringFilter<"PersonalInfo"> | string
-    dateOfBirth?: DateTimeFilter<"PersonalInfo"> | Date | string
     postalCode?: StringFilter<"PersonalInfo"> | string
     residenceAbroad?: BoolFilter<"PersonalInfo"> | boolean
     street?: StringFilter<"PersonalInfo"> | string
     updatedAt?: DateTimeFilter<"PersonalInfo"> | Date | string
+    dateOfBirth?: DateTimeFilter<"PersonalInfo"> | Date | string
     documents?: DocumentListRelationFilter
     qaSession?: XOR<QASessionScalarRelationFilter, QASessionWhereInput>
     previousJobsRel?: PreviousJobListRelationFilter
@@ -28831,13 +28789,13 @@ export namespace Prisma {
     nationality?: SortOrder
     phone?: SortOrder
     placeOfBirth?: SortOrder
-    dateOfBirth?: SortOrder
     postalCode?: SortOrder
     qaSessionId?: SortOrder
     residenceAbroad?: SortOrder
     street?: SortOrder
     updatedAt?: SortOrder
     id?: SortOrder
+    dateOfBirth?: SortOrder
     _count?: PersonalInfoCountOrderByAggregateInput
     _avg?: PersonalInfoAvgOrderByAggregateInput
     _max?: PersonalInfoMaxOrderByAggregateInput
@@ -28865,13 +28823,13 @@ export namespace Prisma {
     nationality?: StringWithAggregatesFilter<"PersonalInfo"> | string
     phone?: StringWithAggregatesFilter<"PersonalInfo"> | string
     placeOfBirth?: StringWithAggregatesFilter<"PersonalInfo"> | string
-    dateOfBirth?: DateTimeWithAggregatesFilter<"PersonalInfo"> | Date | string
     postalCode?: StringWithAggregatesFilter<"PersonalInfo"> | string
     qaSessionId?: StringWithAggregatesFilter<"PersonalInfo"> | string
     residenceAbroad?: BoolWithAggregatesFilter<"PersonalInfo"> | boolean
     street?: StringWithAggregatesFilter<"PersonalInfo"> | string
     updatedAt?: DateTimeWithAggregatesFilter<"PersonalInfo"> | Date | string
     id?: IntWithAggregatesFilter<"PersonalInfo"> | number
+    dateOfBirth?: DateTimeWithAggregatesFilter<"PersonalInfo"> | Date | string
   }
 
   export type DocumentWhereInput = {
@@ -29099,6 +29057,7 @@ export namespace Prisma {
     NOT?: AISettingsWhereInput | AISettingsWhereInput[]
     id?: StringFilter<"AISettings"> | string
     prompt?: StringFilter<"AISettings"> | string
+    first_message?: StringFilter<"AISettings"> | string
     model?: StringFilter<"AISettings"> | string
     vectorId?: StringNullableFilter<"AISettings"> | string | null
     productId?: StringNullableFilter<"AISettings"> | string | null
@@ -29111,6 +29070,7 @@ export namespace Prisma {
   export type AISettingsOrderByWithRelationInput = {
     id?: SortOrder
     prompt?: SortOrder
+    first_message?: SortOrder
     model?: SortOrder
     vectorId?: SortOrderInput | SortOrder
     productId?: SortOrderInput | SortOrder
@@ -29126,6 +29086,7 @@ export namespace Prisma {
     OR?: AISettingsWhereInput[]
     NOT?: AISettingsWhereInput | AISettingsWhereInput[]
     prompt?: StringFilter<"AISettings"> | string
+    first_message?: StringFilter<"AISettings"> | string
     model?: StringFilter<"AISettings"> | string
     vectorId?: StringNullableFilter<"AISettings"> | string | null
     productId?: StringNullableFilter<"AISettings"> | string | null
@@ -29138,6 +29099,7 @@ export namespace Prisma {
   export type AISettingsOrderByWithAggregationInput = {
     id?: SortOrder
     prompt?: SortOrder
+    first_message?: SortOrder
     model?: SortOrder
     vectorId?: SortOrderInput | SortOrder
     productId?: SortOrderInput | SortOrder
@@ -29155,6 +29117,7 @@ export namespace Prisma {
     NOT?: AISettingsScalarWhereWithAggregatesInput | AISettingsScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"AISettings"> | string
     prompt?: StringWithAggregatesFilter<"AISettings"> | string
+    first_message?: StringWithAggregatesFilter<"AISettings"> | string
     model?: StringWithAggregatesFilter<"AISettings"> | string
     vectorId?: StringNullableWithAggregatesFilter<"AISettings"> | string | null
     productId?: StringNullableWithAggregatesFilter<"AISettings"> | string | null
@@ -29296,7 +29259,7 @@ export namespace Prisma {
     createdAt?: Date | string
     isActive?: boolean
     updatedAt?: Date | string
-    otps?: OTPCreateNestedManyWithoutUserInput
+    otps?: OTPCreateNestedOneWithoutUserInput
     qaSessions?: QASessionCreateNestedManyWithoutUserInput
     auditLogs?: SessionAuditLogCreateNestedManyWithoutUserInput
     sessions?: SessionCreateNestedManyWithoutUserInput
@@ -29310,7 +29273,7 @@ export namespace Prisma {
     createdAt?: Date | string
     isActive?: boolean
     updatedAt?: Date | string
-    otps?: OTPUncheckedCreateNestedManyWithoutUserInput
+    otps?: OTPUncheckedCreateNestedOneWithoutUserInput
     qaSessions?: QASessionUncheckedCreateNestedManyWithoutUserInput
     auditLogs?: SessionAuditLogUncheckedCreateNestedManyWithoutUserInput
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
@@ -29324,7 +29287,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    otps?: OTPUpdateManyWithoutUserNestedInput
+    otps?: OTPUpdateOneWithoutUserNestedInput
     qaSessions?: QASessionUpdateManyWithoutUserNestedInput
     auditLogs?: SessionAuditLogUpdateManyWithoutUserNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
@@ -29338,7 +29301,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    otps?: OTPUncheckedUpdateManyWithoutUserNestedInput
+    otps?: OTPUncheckedUpdateOneWithoutUserNestedInput
     qaSessions?: QASessionUncheckedUpdateManyWithoutUserNestedInput
     auditLogs?: SessionAuditLogUncheckedUpdateManyWithoutUserNestedInput
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -29528,11 +29491,11 @@ export namespace Prisma {
     answers?: AnswerCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoCreateNestedOneWithoutQaSessionInput
     user: UserCreateNestedOneWithoutQaSessionsInput
-    auditLogs?: SessionAuditLogCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentCreateNestedOneWithoutQaSessionInput
     thread?: ThreadCreateNestedOneWithoutQaSessionInput
   }
 
@@ -29545,11 +29508,11 @@ export namespace Prisma {
     userId: string
     answers?: AnswerUncheckedCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoUncheckedCreateNestedOneWithoutQaSessionInput
-    auditLogs?: SessionAuditLogUncheckedCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogUncheckedCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateUncheckedCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentUncheckedCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentUncheckedCreateNestedOneWithoutQaSessionInput
     thread?: ThreadUncheckedCreateNestedOneWithoutQaSessionInput
   }
 
@@ -29562,11 +29525,11 @@ export namespace Prisma {
     answers?: AnswerUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUpdateOneWithoutQaSessionNestedInput
     user?: UserUpdateOneRequiredWithoutQaSessionsNestedInput
-    auditLogs?: SessionAuditLogUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -29579,11 +29542,11 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     answers?: AnswerUncheckedUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUncheckedUpdateOneWithoutQaSessionNestedInput
-    auditLogs?: SessionAuditLogUncheckedUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUncheckedUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUncheckedUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUncheckedUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUncheckedUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUncheckedUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUncheckedUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUncheckedUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -29682,10 +29645,10 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
-    minimumYear?: number | null
-    maximumYear?: number | null
-    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
+    maximumYear?: number | null
+    minimumYear?: number | null
+    riskType?: $Enums.RiskType | null
     aiSettings?: AISettingsCreateNestedManyWithoutProductInput
     productSuggestions?: SessionProductSuggestionCreateNestedManyWithoutProductInput
   }
@@ -29697,10 +29660,10 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
-    minimumYear?: number | null
-    maximumYear?: number | null
-    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
+    maximumYear?: number | null
+    minimumYear?: number | null
+    riskType?: $Enums.RiskType | null
     aiSettings?: AISettingsUncheckedCreateNestedManyWithoutProductInput
     productSuggestions?: SessionProductSuggestionUncheckedCreateNestedManyWithoutProductInput
   }
@@ -29712,10 +29675,10 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
-    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     aiSettings?: AISettingsUpdateManyWithoutProductNestedInput
     productSuggestions?: SessionProductSuggestionUpdateManyWithoutProductNestedInput
   }
@@ -29727,10 +29690,10 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
-    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     aiSettings?: AISettingsUncheckedUpdateManyWithoutProductNestedInput
     productSuggestions?: SessionProductSuggestionUncheckedUpdateManyWithoutProductNestedInput
   }
@@ -29742,10 +29705,10 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
-    minimumYear?: number | null
-    maximumYear?: number | null
-    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
+    maximumYear?: number | null
+    minimumYear?: number | null
+    riskType?: $Enums.RiskType | null
   }
 
   export type ProductUpdateManyMutationInput = {
@@ -29755,10 +29718,10 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
-    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
   }
 
   export type ProductUncheckedUpdateManyInput = {
@@ -29768,10 +29731,10 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
-    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
   }
 
   export type QuestionCreateInput = {
@@ -30400,11 +30363,11 @@ export namespace Prisma {
     nationality: string
     phone: string
     placeOfBirth: string
-    dateOfBirth: Date | string
     postalCode: string
     residenceAbroad?: boolean
     street: string
     updatedAt?: Date | string
+    dateOfBirth: Date | string
     documents?: DocumentCreateNestedManyWithoutPersonalInfoInput
     qaSession: QASessionCreateNestedOneWithoutPersonalInfoInput
     previousJobsRel?: PreviousJobCreateNestedManyWithoutPersonalInfoInput
@@ -30428,13 +30391,13 @@ export namespace Prisma {
     nationality: string
     phone: string
     placeOfBirth: string
-    dateOfBirth: Date | string
     postalCode: string
     qaSessionId: string
     residenceAbroad?: boolean
     street: string
     updatedAt?: Date | string
     id?: number
+    dateOfBirth: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutPersonalInfoInput
     previousJobsRel?: PreviousJobUncheckedCreateNestedManyWithoutPersonalInfoInput
     signedDocuments?: SignedDocumentUncheckedCreateNestedManyWithoutPersonalInfoInput
@@ -30457,11 +30420,11 @@ export namespace Prisma {
     nationality?: StringFieldUpdateOperationsInput | string
     phone?: StringFieldUpdateOperationsInput | string
     placeOfBirth?: StringFieldUpdateOperationsInput | string
-    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     postalCode?: StringFieldUpdateOperationsInput | string
     residenceAbroad?: BoolFieldUpdateOperationsInput | boolean
     street?: StringFieldUpdateOperationsInput | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutPersonalInfoNestedInput
     qaSession?: QASessionUpdateOneRequiredWithoutPersonalInfoNestedInput
     previousJobsRel?: PreviousJobUpdateManyWithoutPersonalInfoNestedInput
@@ -30485,13 +30448,13 @@ export namespace Prisma {
     nationality?: StringFieldUpdateOperationsInput | string
     phone?: StringFieldUpdateOperationsInput | string
     placeOfBirth?: StringFieldUpdateOperationsInput | string
-    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     postalCode?: StringFieldUpdateOperationsInput | string
     qaSessionId?: StringFieldUpdateOperationsInput | string
     residenceAbroad?: BoolFieldUpdateOperationsInput | boolean
     street?: StringFieldUpdateOperationsInput | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     id?: IntFieldUpdateOperationsInput | number
+    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutPersonalInfoNestedInput
     previousJobsRel?: PreviousJobUncheckedUpdateManyWithoutPersonalInfoNestedInput
     signedDocuments?: SignedDocumentUncheckedUpdateManyWithoutPersonalInfoNestedInput
@@ -30514,13 +30477,13 @@ export namespace Prisma {
     nationality: string
     phone: string
     placeOfBirth: string
-    dateOfBirth: Date | string
     postalCode: string
     qaSessionId: string
     residenceAbroad?: boolean
     street: string
     updatedAt?: Date | string
     id?: number
+    dateOfBirth: Date | string
   }
 
   export type PersonalInfoUpdateManyMutationInput = {
@@ -30540,11 +30503,11 @@ export namespace Prisma {
     nationality?: StringFieldUpdateOperationsInput | string
     phone?: StringFieldUpdateOperationsInput | string
     placeOfBirth?: StringFieldUpdateOperationsInput | string
-    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     postalCode?: StringFieldUpdateOperationsInput | string
     residenceAbroad?: BoolFieldUpdateOperationsInput | boolean
     street?: StringFieldUpdateOperationsInput | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PersonalInfoUncheckedUpdateManyInput = {
@@ -30564,13 +30527,13 @@ export namespace Prisma {
     nationality?: StringFieldUpdateOperationsInput | string
     phone?: StringFieldUpdateOperationsInput | string
     placeOfBirth?: StringFieldUpdateOperationsInput | string
-    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     postalCode?: StringFieldUpdateOperationsInput | string
     qaSessionId?: StringFieldUpdateOperationsInput | string
     residenceAbroad?: BoolFieldUpdateOperationsInput | boolean
     street?: StringFieldUpdateOperationsInput | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     id?: IntFieldUpdateOperationsInput | number
+    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type DocumentCreateInput = {
@@ -30794,6 +30757,7 @@ export namespace Prisma {
   export type AISettingsCreateInput = {
     id?: string
     prompt: string
+    first_message?: string
     model?: string
     vectorId?: string | null
     isActive?: boolean
@@ -30805,6 +30769,7 @@ export namespace Prisma {
   export type AISettingsUncheckedCreateInput = {
     id?: string
     prompt: string
+    first_message?: string
     model?: string
     vectorId?: string | null
     productId?: string | null
@@ -30816,6 +30781,7 @@ export namespace Prisma {
   export type AISettingsUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     prompt?: StringFieldUpdateOperationsInput | string
+    first_message?: StringFieldUpdateOperationsInput | string
     model?: StringFieldUpdateOperationsInput | string
     vectorId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
@@ -30827,6 +30793,7 @@ export namespace Prisma {
   export type AISettingsUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     prompt?: StringFieldUpdateOperationsInput | string
+    first_message?: StringFieldUpdateOperationsInput | string
     model?: StringFieldUpdateOperationsInput | string
     vectorId?: NullableStringFieldUpdateOperationsInput | string | null
     productId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30838,6 +30805,7 @@ export namespace Prisma {
   export type AISettingsCreateManyInput = {
     id?: string
     prompt: string
+    first_message?: string
     model?: string
     vectorId?: string | null
     productId?: string | null
@@ -30849,6 +30817,7 @@ export namespace Prisma {
   export type AISettingsUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     prompt?: StringFieldUpdateOperationsInput | string
+    first_message?: StringFieldUpdateOperationsInput | string
     model?: StringFieldUpdateOperationsInput | string
     vectorId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
@@ -30859,6 +30828,7 @@ export namespace Prisma {
   export type AISettingsUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     prompt?: StringFieldUpdateOperationsInput | string
+    first_message?: StringFieldUpdateOperationsInput | string
     model?: StringFieldUpdateOperationsInput | string
     vectorId?: NullableStringFieldUpdateOperationsInput | string | null
     productId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -31055,10 +31025,9 @@ export namespace Prisma {
     not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
-  export type OTPListRelationFilter = {
-    every?: OTPWhereInput
-    some?: OTPWhereInput
-    none?: OTPWhereInput
+  export type OTPNullableScalarRelationFilter = {
+    is?: OTPWhereInput | null
+    isNot?: OTPWhereInput | null
   }
 
   export type QASessionListRelationFilter = {
@@ -31082,10 +31051,6 @@ export namespace Prisma {
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
-  }
-
-  export type OTPOrderByRelationAggregateInput = {
-    _count?: SortOrder
   }
 
   export type QASessionOrderByRelationAggregateInput = {
@@ -31367,10 +31332,14 @@ export namespace Prisma {
     isNot?: PersonalInfoWhereInput | null
   }
 
-  export type SessionProductSuggestionListRelationFilter = {
-    every?: SessionProductSuggestionWhereInput
-    some?: SessionProductSuggestionWhereInput
-    none?: SessionProductSuggestionWhereInput
+  export type SessionAuditLogNullableScalarRelationFilter = {
+    is?: SessionAuditLogWhereInput | null
+    isNot?: SessionAuditLogWhereInput | null
+  }
+
+  export type SessionProductSuggestionNullableScalarRelationFilter = {
+    is?: SessionProductSuggestionWhereInput | null
+    isNot?: SessionProductSuggestionWhereInput | null
   }
 
   export type SessionTermsAcceptanceListRelationFilter = {
@@ -31384,10 +31353,9 @@ export namespace Prisma {
     isNot?: SessionWorkflowStateWhereInput | null
   }
 
-  export type SignedDocumentListRelationFilter = {
-    every?: SignedDocumentWhereInput
-    some?: SignedDocumentWhereInput
-    none?: SignedDocumentWhereInput
+  export type SignedDocumentNullableScalarRelationFilter = {
+    is?: SignedDocumentWhereInput | null
+    isNot?: SignedDocumentWhereInput | null
   }
 
   export type ThreadNullableScalarRelationFilter = {
@@ -31399,15 +31367,7 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
-  export type SessionProductSuggestionOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
   export type SessionTermsAcceptanceOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type SignedDocumentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -31560,7 +31520,17 @@ export namespace Prisma {
     none?: AISettingsWhereInput
   }
 
+  export type SessionProductSuggestionListRelationFilter = {
+    every?: SessionProductSuggestionWhereInput
+    some?: SessionProductSuggestionWhereInput
+    none?: SessionProductSuggestionWhereInput
+  }
+
   export type AISettingsOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type SessionProductSuggestionOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -31571,15 +31541,15 @@ export namespace Prisma {
     createdAt?: SortOrder
     fileName?: SortOrder
     shortName?: SortOrder
-    minimumYear?: SortOrder
-    maximumYear?: SortOrder
-    riskType?: SortOrder
     updatedAt?: SortOrder
+    maximumYear?: SortOrder
+    minimumYear?: SortOrder
+    riskType?: SortOrder
   }
 
   export type ProductAvgOrderByAggregateInput = {
-    minimumYear?: SortOrder
     maximumYear?: SortOrder
+    minimumYear?: SortOrder
   }
 
   export type ProductMaxOrderByAggregateInput = {
@@ -31589,10 +31559,10 @@ export namespace Prisma {
     createdAt?: SortOrder
     fileName?: SortOrder
     shortName?: SortOrder
-    minimumYear?: SortOrder
-    maximumYear?: SortOrder
-    riskType?: SortOrder
     updatedAt?: SortOrder
+    maximumYear?: SortOrder
+    minimumYear?: SortOrder
+    riskType?: SortOrder
   }
 
   export type ProductMinOrderByAggregateInput = {
@@ -31602,15 +31572,15 @@ export namespace Prisma {
     createdAt?: SortOrder
     fileName?: SortOrder
     shortName?: SortOrder
-    minimumYear?: SortOrder
-    maximumYear?: SortOrder
-    riskType?: SortOrder
     updatedAt?: SortOrder
+    maximumYear?: SortOrder
+    minimumYear?: SortOrder
+    riskType?: SortOrder
   }
 
   export type ProductSumOrderByAggregateInput = {
-    minimumYear?: SortOrder
     maximumYear?: SortOrder
+    minimumYear?: SortOrder
   }
 
   export type EnumRiskTypeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -32087,11 +32057,21 @@ export namespace Prisma {
     none?: PreviousJobWhereInput
   }
 
+  export type SignedDocumentListRelationFilter = {
+    every?: SignedDocumentWhereInput
+    some?: SignedDocumentWhereInput
+    none?: SignedDocumentWhereInput
+  }
+
   export type DocumentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type PreviousJobOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type SignedDocumentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -32112,13 +32092,13 @@ export namespace Prisma {
     nationality?: SortOrder
     phone?: SortOrder
     placeOfBirth?: SortOrder
-    dateOfBirth?: SortOrder
     postalCode?: SortOrder
     qaSessionId?: SortOrder
     residenceAbroad?: SortOrder
     street?: SortOrder
     updatedAt?: SortOrder
     id?: SortOrder
+    dateOfBirth?: SortOrder
   }
 
   export type PersonalInfoAvgOrderByAggregateInput = {
@@ -32142,13 +32122,13 @@ export namespace Prisma {
     nationality?: SortOrder
     phone?: SortOrder
     placeOfBirth?: SortOrder
-    dateOfBirth?: SortOrder
     postalCode?: SortOrder
     qaSessionId?: SortOrder
     residenceAbroad?: SortOrder
     street?: SortOrder
     updatedAt?: SortOrder
     id?: SortOrder
+    dateOfBirth?: SortOrder
   }
 
   export type PersonalInfoMinOrderByAggregateInput = {
@@ -32168,13 +32148,13 @@ export namespace Prisma {
     nationality?: SortOrder
     phone?: SortOrder
     placeOfBirth?: SortOrder
-    dateOfBirth?: SortOrder
     postalCode?: SortOrder
     qaSessionId?: SortOrder
     residenceAbroad?: SortOrder
     street?: SortOrder
     updatedAt?: SortOrder
     id?: SortOrder
+    dateOfBirth?: SortOrder
   }
 
   export type PersonalInfoSumOrderByAggregateInput = {
@@ -32321,6 +32301,7 @@ export namespace Prisma {
   export type AISettingsCountOrderByAggregateInput = {
     id?: SortOrder
     prompt?: SortOrder
+    first_message?: SortOrder
     model?: SortOrder
     vectorId?: SortOrder
     productId?: SortOrder
@@ -32332,6 +32313,7 @@ export namespace Prisma {
   export type AISettingsMaxOrderByAggregateInput = {
     id?: SortOrder
     prompt?: SortOrder
+    first_message?: SortOrder
     model?: SortOrder
     vectorId?: SortOrder
     productId?: SortOrder
@@ -32343,6 +32325,7 @@ export namespace Prisma {
   export type AISettingsMinOrderByAggregateInput = {
     id?: SortOrder
     prompt?: SortOrder
+    first_message?: SortOrder
     model?: SortOrder
     vectorId?: SortOrder
     productId?: SortOrder
@@ -32411,11 +32394,10 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
-  export type OTPCreateNestedManyWithoutUserInput = {
-    create?: XOR<OTPCreateWithoutUserInput, OTPUncheckedCreateWithoutUserInput> | OTPCreateWithoutUserInput[] | OTPUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: OTPCreateOrConnectWithoutUserInput | OTPCreateOrConnectWithoutUserInput[]
-    createMany?: OTPCreateManyUserInputEnvelope
-    connect?: OTPWhereUniqueInput | OTPWhereUniqueInput[]
+  export type OTPCreateNestedOneWithoutUserInput = {
+    create?: XOR<OTPCreateWithoutUserInput, OTPUncheckedCreateWithoutUserInput>
+    connectOrCreate?: OTPCreateOrConnectWithoutUserInput
+    connect?: OTPWhereUniqueInput
   }
 
   export type QASessionCreateNestedManyWithoutUserInput = {
@@ -32439,11 +32421,10 @@ export namespace Prisma {
     connect?: SessionWhereUniqueInput | SessionWhereUniqueInput[]
   }
 
-  export type OTPUncheckedCreateNestedManyWithoutUserInput = {
-    create?: XOR<OTPCreateWithoutUserInput, OTPUncheckedCreateWithoutUserInput> | OTPCreateWithoutUserInput[] | OTPUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: OTPCreateOrConnectWithoutUserInput | OTPCreateOrConnectWithoutUserInput[]
-    createMany?: OTPCreateManyUserInputEnvelope
-    connect?: OTPWhereUniqueInput | OTPWhereUniqueInput[]
+  export type OTPUncheckedCreateNestedOneWithoutUserInput = {
+    create?: XOR<OTPCreateWithoutUserInput, OTPUncheckedCreateWithoutUserInput>
+    connectOrCreate?: OTPCreateOrConnectWithoutUserInput
+    connect?: OTPWhereUniqueInput
   }
 
   export type QASessionUncheckedCreateNestedManyWithoutUserInput = {
@@ -32491,18 +32472,14 @@ export namespace Prisma {
     set?: boolean
   }
 
-  export type OTPUpdateManyWithoutUserNestedInput = {
-    create?: XOR<OTPCreateWithoutUserInput, OTPUncheckedCreateWithoutUserInput> | OTPCreateWithoutUserInput[] | OTPUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: OTPCreateOrConnectWithoutUserInput | OTPCreateOrConnectWithoutUserInput[]
-    upsert?: OTPUpsertWithWhereUniqueWithoutUserInput | OTPUpsertWithWhereUniqueWithoutUserInput[]
-    createMany?: OTPCreateManyUserInputEnvelope
-    set?: OTPWhereUniqueInput | OTPWhereUniqueInput[]
-    disconnect?: OTPWhereUniqueInput | OTPWhereUniqueInput[]
-    delete?: OTPWhereUniqueInput | OTPWhereUniqueInput[]
-    connect?: OTPWhereUniqueInput | OTPWhereUniqueInput[]
-    update?: OTPUpdateWithWhereUniqueWithoutUserInput | OTPUpdateWithWhereUniqueWithoutUserInput[]
-    updateMany?: OTPUpdateManyWithWhereWithoutUserInput | OTPUpdateManyWithWhereWithoutUserInput[]
-    deleteMany?: OTPScalarWhereInput | OTPScalarWhereInput[]
+  export type OTPUpdateOneWithoutUserNestedInput = {
+    create?: XOR<OTPCreateWithoutUserInput, OTPUncheckedCreateWithoutUserInput>
+    connectOrCreate?: OTPCreateOrConnectWithoutUserInput
+    upsert?: OTPUpsertWithoutUserInput
+    disconnect?: OTPWhereInput | boolean
+    delete?: OTPWhereInput | boolean
+    connect?: OTPWhereUniqueInput
+    update?: XOR<XOR<OTPUpdateToOneWithWhereWithoutUserInput, OTPUpdateWithoutUserInput>, OTPUncheckedUpdateWithoutUserInput>
   }
 
   export type QASessionUpdateManyWithoutUserNestedInput = {
@@ -32547,18 +32524,14 @@ export namespace Prisma {
     deleteMany?: SessionScalarWhereInput | SessionScalarWhereInput[]
   }
 
-  export type OTPUncheckedUpdateManyWithoutUserNestedInput = {
-    create?: XOR<OTPCreateWithoutUserInput, OTPUncheckedCreateWithoutUserInput> | OTPCreateWithoutUserInput[] | OTPUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: OTPCreateOrConnectWithoutUserInput | OTPCreateOrConnectWithoutUserInput[]
-    upsert?: OTPUpsertWithWhereUniqueWithoutUserInput | OTPUpsertWithWhereUniqueWithoutUserInput[]
-    createMany?: OTPCreateManyUserInputEnvelope
-    set?: OTPWhereUniqueInput | OTPWhereUniqueInput[]
-    disconnect?: OTPWhereUniqueInput | OTPWhereUniqueInput[]
-    delete?: OTPWhereUniqueInput | OTPWhereUniqueInput[]
-    connect?: OTPWhereUniqueInput | OTPWhereUniqueInput[]
-    update?: OTPUpdateWithWhereUniqueWithoutUserInput | OTPUpdateWithWhereUniqueWithoutUserInput[]
-    updateMany?: OTPUpdateManyWithWhereWithoutUserInput | OTPUpdateManyWithWhereWithoutUserInput[]
-    deleteMany?: OTPScalarWhereInput | OTPScalarWhereInput[]
+  export type OTPUncheckedUpdateOneWithoutUserNestedInput = {
+    create?: XOR<OTPCreateWithoutUserInput, OTPUncheckedCreateWithoutUserInput>
+    connectOrCreate?: OTPCreateOrConnectWithoutUserInput
+    upsert?: OTPUpsertWithoutUserInput
+    disconnect?: OTPWhereInput | boolean
+    delete?: OTPWhereInput | boolean
+    connect?: OTPWhereUniqueInput
+    update?: XOR<XOR<OTPUpdateToOneWithWhereWithoutUserInput, OTPUpdateWithoutUserInput>, OTPUncheckedUpdateWithoutUserInput>
   }
 
   export type QASessionUncheckedUpdateManyWithoutUserNestedInput = {
@@ -32662,18 +32635,16 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
-  export type SessionAuditLogCreateNestedManyWithoutQaSessionInput = {
-    create?: XOR<SessionAuditLogCreateWithoutQaSessionInput, SessionAuditLogUncheckedCreateWithoutQaSessionInput> | SessionAuditLogCreateWithoutQaSessionInput[] | SessionAuditLogUncheckedCreateWithoutQaSessionInput[]
-    connectOrCreate?: SessionAuditLogCreateOrConnectWithoutQaSessionInput | SessionAuditLogCreateOrConnectWithoutQaSessionInput[]
-    createMany?: SessionAuditLogCreateManyQaSessionInputEnvelope
-    connect?: SessionAuditLogWhereUniqueInput | SessionAuditLogWhereUniqueInput[]
+  export type SessionAuditLogCreateNestedOneWithoutQaSessionInput = {
+    create?: XOR<SessionAuditLogCreateWithoutQaSessionInput, SessionAuditLogUncheckedCreateWithoutQaSessionInput>
+    connectOrCreate?: SessionAuditLogCreateOrConnectWithoutQaSessionInput
+    connect?: SessionAuditLogWhereUniqueInput
   }
 
-  export type SessionProductSuggestionCreateNestedManyWithoutQaSessionInput = {
-    create?: XOR<SessionProductSuggestionCreateWithoutQaSessionInput, SessionProductSuggestionUncheckedCreateWithoutQaSessionInput> | SessionProductSuggestionCreateWithoutQaSessionInput[] | SessionProductSuggestionUncheckedCreateWithoutQaSessionInput[]
-    connectOrCreate?: SessionProductSuggestionCreateOrConnectWithoutQaSessionInput | SessionProductSuggestionCreateOrConnectWithoutQaSessionInput[]
-    createMany?: SessionProductSuggestionCreateManyQaSessionInputEnvelope
-    connect?: SessionProductSuggestionWhereUniqueInput | SessionProductSuggestionWhereUniqueInput[]
+  export type SessionProductSuggestionCreateNestedOneWithoutQaSessionInput = {
+    create?: XOR<SessionProductSuggestionCreateWithoutQaSessionInput, SessionProductSuggestionUncheckedCreateWithoutQaSessionInput>
+    connectOrCreate?: SessionProductSuggestionCreateOrConnectWithoutQaSessionInput
+    connect?: SessionProductSuggestionWhereUniqueInput
   }
 
   export type SessionTermsAcceptanceCreateNestedManyWithoutQaSessionInput = {
@@ -32689,11 +32660,10 @@ export namespace Prisma {
     connect?: SessionWorkflowStateWhereUniqueInput
   }
 
-  export type SignedDocumentCreateNestedManyWithoutQaSessionInput = {
-    create?: XOR<SignedDocumentCreateWithoutQaSessionInput, SignedDocumentUncheckedCreateWithoutQaSessionInput> | SignedDocumentCreateWithoutQaSessionInput[] | SignedDocumentUncheckedCreateWithoutQaSessionInput[]
-    connectOrCreate?: SignedDocumentCreateOrConnectWithoutQaSessionInput | SignedDocumentCreateOrConnectWithoutQaSessionInput[]
-    createMany?: SignedDocumentCreateManyQaSessionInputEnvelope
-    connect?: SignedDocumentWhereUniqueInput | SignedDocumentWhereUniqueInput[]
+  export type SignedDocumentCreateNestedOneWithoutQaSessionInput = {
+    create?: XOR<SignedDocumentCreateWithoutQaSessionInput, SignedDocumentUncheckedCreateWithoutQaSessionInput>
+    connectOrCreate?: SignedDocumentCreateOrConnectWithoutQaSessionInput
+    connect?: SignedDocumentWhereUniqueInput
   }
 
   export type ThreadCreateNestedOneWithoutQaSessionInput = {
@@ -32715,18 +32685,16 @@ export namespace Prisma {
     connect?: PersonalInfoWhereUniqueInput
   }
 
-  export type SessionAuditLogUncheckedCreateNestedManyWithoutQaSessionInput = {
-    create?: XOR<SessionAuditLogCreateWithoutQaSessionInput, SessionAuditLogUncheckedCreateWithoutQaSessionInput> | SessionAuditLogCreateWithoutQaSessionInput[] | SessionAuditLogUncheckedCreateWithoutQaSessionInput[]
-    connectOrCreate?: SessionAuditLogCreateOrConnectWithoutQaSessionInput | SessionAuditLogCreateOrConnectWithoutQaSessionInput[]
-    createMany?: SessionAuditLogCreateManyQaSessionInputEnvelope
-    connect?: SessionAuditLogWhereUniqueInput | SessionAuditLogWhereUniqueInput[]
+  export type SessionAuditLogUncheckedCreateNestedOneWithoutQaSessionInput = {
+    create?: XOR<SessionAuditLogCreateWithoutQaSessionInput, SessionAuditLogUncheckedCreateWithoutQaSessionInput>
+    connectOrCreate?: SessionAuditLogCreateOrConnectWithoutQaSessionInput
+    connect?: SessionAuditLogWhereUniqueInput
   }
 
-  export type SessionProductSuggestionUncheckedCreateNestedManyWithoutQaSessionInput = {
-    create?: XOR<SessionProductSuggestionCreateWithoutQaSessionInput, SessionProductSuggestionUncheckedCreateWithoutQaSessionInput> | SessionProductSuggestionCreateWithoutQaSessionInput[] | SessionProductSuggestionUncheckedCreateWithoutQaSessionInput[]
-    connectOrCreate?: SessionProductSuggestionCreateOrConnectWithoutQaSessionInput | SessionProductSuggestionCreateOrConnectWithoutQaSessionInput[]
-    createMany?: SessionProductSuggestionCreateManyQaSessionInputEnvelope
-    connect?: SessionProductSuggestionWhereUniqueInput | SessionProductSuggestionWhereUniqueInput[]
+  export type SessionProductSuggestionUncheckedCreateNestedOneWithoutQaSessionInput = {
+    create?: XOR<SessionProductSuggestionCreateWithoutQaSessionInput, SessionProductSuggestionUncheckedCreateWithoutQaSessionInput>
+    connectOrCreate?: SessionProductSuggestionCreateOrConnectWithoutQaSessionInput
+    connect?: SessionProductSuggestionWhereUniqueInput
   }
 
   export type SessionTermsAcceptanceUncheckedCreateNestedManyWithoutQaSessionInput = {
@@ -32742,11 +32710,10 @@ export namespace Prisma {
     connect?: SessionWorkflowStateWhereUniqueInput
   }
 
-  export type SignedDocumentUncheckedCreateNestedManyWithoutQaSessionInput = {
-    create?: XOR<SignedDocumentCreateWithoutQaSessionInput, SignedDocumentUncheckedCreateWithoutQaSessionInput> | SignedDocumentCreateWithoutQaSessionInput[] | SignedDocumentUncheckedCreateWithoutQaSessionInput[]
-    connectOrCreate?: SignedDocumentCreateOrConnectWithoutQaSessionInput | SignedDocumentCreateOrConnectWithoutQaSessionInput[]
-    createMany?: SignedDocumentCreateManyQaSessionInputEnvelope
-    connect?: SignedDocumentWhereUniqueInput | SignedDocumentWhereUniqueInput[]
+  export type SignedDocumentUncheckedCreateNestedOneWithoutQaSessionInput = {
+    create?: XOR<SignedDocumentCreateWithoutQaSessionInput, SignedDocumentUncheckedCreateWithoutQaSessionInput>
+    connectOrCreate?: SignedDocumentCreateOrConnectWithoutQaSessionInput
+    connect?: SignedDocumentWhereUniqueInput
   }
 
   export type ThreadUncheckedCreateNestedOneWithoutQaSessionInput = {
@@ -32795,32 +32762,24 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutQaSessionsInput, UserUpdateWithoutQaSessionsInput>, UserUncheckedUpdateWithoutQaSessionsInput>
   }
 
-  export type SessionAuditLogUpdateManyWithoutQaSessionNestedInput = {
-    create?: XOR<SessionAuditLogCreateWithoutQaSessionInput, SessionAuditLogUncheckedCreateWithoutQaSessionInput> | SessionAuditLogCreateWithoutQaSessionInput[] | SessionAuditLogUncheckedCreateWithoutQaSessionInput[]
-    connectOrCreate?: SessionAuditLogCreateOrConnectWithoutQaSessionInput | SessionAuditLogCreateOrConnectWithoutQaSessionInput[]
-    upsert?: SessionAuditLogUpsertWithWhereUniqueWithoutQaSessionInput | SessionAuditLogUpsertWithWhereUniqueWithoutQaSessionInput[]
-    createMany?: SessionAuditLogCreateManyQaSessionInputEnvelope
-    set?: SessionAuditLogWhereUniqueInput | SessionAuditLogWhereUniqueInput[]
-    disconnect?: SessionAuditLogWhereUniqueInput | SessionAuditLogWhereUniqueInput[]
-    delete?: SessionAuditLogWhereUniqueInput | SessionAuditLogWhereUniqueInput[]
-    connect?: SessionAuditLogWhereUniqueInput | SessionAuditLogWhereUniqueInput[]
-    update?: SessionAuditLogUpdateWithWhereUniqueWithoutQaSessionInput | SessionAuditLogUpdateWithWhereUniqueWithoutQaSessionInput[]
-    updateMany?: SessionAuditLogUpdateManyWithWhereWithoutQaSessionInput | SessionAuditLogUpdateManyWithWhereWithoutQaSessionInput[]
-    deleteMany?: SessionAuditLogScalarWhereInput | SessionAuditLogScalarWhereInput[]
+  export type SessionAuditLogUpdateOneWithoutQaSessionNestedInput = {
+    create?: XOR<SessionAuditLogCreateWithoutQaSessionInput, SessionAuditLogUncheckedCreateWithoutQaSessionInput>
+    connectOrCreate?: SessionAuditLogCreateOrConnectWithoutQaSessionInput
+    upsert?: SessionAuditLogUpsertWithoutQaSessionInput
+    disconnect?: SessionAuditLogWhereInput | boolean
+    delete?: SessionAuditLogWhereInput | boolean
+    connect?: SessionAuditLogWhereUniqueInput
+    update?: XOR<XOR<SessionAuditLogUpdateToOneWithWhereWithoutQaSessionInput, SessionAuditLogUpdateWithoutQaSessionInput>, SessionAuditLogUncheckedUpdateWithoutQaSessionInput>
   }
 
-  export type SessionProductSuggestionUpdateManyWithoutQaSessionNestedInput = {
-    create?: XOR<SessionProductSuggestionCreateWithoutQaSessionInput, SessionProductSuggestionUncheckedCreateWithoutQaSessionInput> | SessionProductSuggestionCreateWithoutQaSessionInput[] | SessionProductSuggestionUncheckedCreateWithoutQaSessionInput[]
-    connectOrCreate?: SessionProductSuggestionCreateOrConnectWithoutQaSessionInput | SessionProductSuggestionCreateOrConnectWithoutQaSessionInput[]
-    upsert?: SessionProductSuggestionUpsertWithWhereUniqueWithoutQaSessionInput | SessionProductSuggestionUpsertWithWhereUniqueWithoutQaSessionInput[]
-    createMany?: SessionProductSuggestionCreateManyQaSessionInputEnvelope
-    set?: SessionProductSuggestionWhereUniqueInput | SessionProductSuggestionWhereUniqueInput[]
-    disconnect?: SessionProductSuggestionWhereUniqueInput | SessionProductSuggestionWhereUniqueInput[]
-    delete?: SessionProductSuggestionWhereUniqueInput | SessionProductSuggestionWhereUniqueInput[]
-    connect?: SessionProductSuggestionWhereUniqueInput | SessionProductSuggestionWhereUniqueInput[]
-    update?: SessionProductSuggestionUpdateWithWhereUniqueWithoutQaSessionInput | SessionProductSuggestionUpdateWithWhereUniqueWithoutQaSessionInput[]
-    updateMany?: SessionProductSuggestionUpdateManyWithWhereWithoutQaSessionInput | SessionProductSuggestionUpdateManyWithWhereWithoutQaSessionInput[]
-    deleteMany?: SessionProductSuggestionScalarWhereInput | SessionProductSuggestionScalarWhereInput[]
+  export type SessionProductSuggestionUpdateOneWithoutQaSessionNestedInput = {
+    create?: XOR<SessionProductSuggestionCreateWithoutQaSessionInput, SessionProductSuggestionUncheckedCreateWithoutQaSessionInput>
+    connectOrCreate?: SessionProductSuggestionCreateOrConnectWithoutQaSessionInput
+    upsert?: SessionProductSuggestionUpsertWithoutQaSessionInput
+    disconnect?: SessionProductSuggestionWhereInput | boolean
+    delete?: SessionProductSuggestionWhereInput | boolean
+    connect?: SessionProductSuggestionWhereUniqueInput
+    update?: XOR<XOR<SessionProductSuggestionUpdateToOneWithWhereWithoutQaSessionInput, SessionProductSuggestionUpdateWithoutQaSessionInput>, SessionProductSuggestionUncheckedUpdateWithoutQaSessionInput>
   }
 
   export type SessionTermsAcceptanceUpdateManyWithoutQaSessionNestedInput = {
@@ -32847,18 +32806,14 @@ export namespace Prisma {
     update?: XOR<XOR<SessionWorkflowStateUpdateToOneWithWhereWithoutQaSessionInput, SessionWorkflowStateUpdateWithoutQaSessionInput>, SessionWorkflowStateUncheckedUpdateWithoutQaSessionInput>
   }
 
-  export type SignedDocumentUpdateManyWithoutQaSessionNestedInput = {
-    create?: XOR<SignedDocumentCreateWithoutQaSessionInput, SignedDocumentUncheckedCreateWithoutQaSessionInput> | SignedDocumentCreateWithoutQaSessionInput[] | SignedDocumentUncheckedCreateWithoutQaSessionInput[]
-    connectOrCreate?: SignedDocumentCreateOrConnectWithoutQaSessionInput | SignedDocumentCreateOrConnectWithoutQaSessionInput[]
-    upsert?: SignedDocumentUpsertWithWhereUniqueWithoutQaSessionInput | SignedDocumentUpsertWithWhereUniqueWithoutQaSessionInput[]
-    createMany?: SignedDocumentCreateManyQaSessionInputEnvelope
-    set?: SignedDocumentWhereUniqueInput | SignedDocumentWhereUniqueInput[]
-    disconnect?: SignedDocumentWhereUniqueInput | SignedDocumentWhereUniqueInput[]
-    delete?: SignedDocumentWhereUniqueInput | SignedDocumentWhereUniqueInput[]
-    connect?: SignedDocumentWhereUniqueInput | SignedDocumentWhereUniqueInput[]
-    update?: SignedDocumentUpdateWithWhereUniqueWithoutQaSessionInput | SignedDocumentUpdateWithWhereUniqueWithoutQaSessionInput[]
-    updateMany?: SignedDocumentUpdateManyWithWhereWithoutQaSessionInput | SignedDocumentUpdateManyWithWhereWithoutQaSessionInput[]
-    deleteMany?: SignedDocumentScalarWhereInput | SignedDocumentScalarWhereInput[]
+  export type SignedDocumentUpdateOneWithoutQaSessionNestedInput = {
+    create?: XOR<SignedDocumentCreateWithoutQaSessionInput, SignedDocumentUncheckedCreateWithoutQaSessionInput>
+    connectOrCreate?: SignedDocumentCreateOrConnectWithoutQaSessionInput
+    upsert?: SignedDocumentUpsertWithoutQaSessionInput
+    disconnect?: SignedDocumentWhereInput | boolean
+    delete?: SignedDocumentWhereInput | boolean
+    connect?: SignedDocumentWhereUniqueInput
+    update?: XOR<XOR<SignedDocumentUpdateToOneWithWhereWithoutQaSessionInput, SignedDocumentUpdateWithoutQaSessionInput>, SignedDocumentUncheckedUpdateWithoutQaSessionInput>
   }
 
   export type ThreadUpdateOneWithoutQaSessionNestedInput = {
@@ -32895,32 +32850,24 @@ export namespace Prisma {
     update?: XOR<XOR<PersonalInfoUpdateToOneWithWhereWithoutQaSessionInput, PersonalInfoUpdateWithoutQaSessionInput>, PersonalInfoUncheckedUpdateWithoutQaSessionInput>
   }
 
-  export type SessionAuditLogUncheckedUpdateManyWithoutQaSessionNestedInput = {
-    create?: XOR<SessionAuditLogCreateWithoutQaSessionInput, SessionAuditLogUncheckedCreateWithoutQaSessionInput> | SessionAuditLogCreateWithoutQaSessionInput[] | SessionAuditLogUncheckedCreateWithoutQaSessionInput[]
-    connectOrCreate?: SessionAuditLogCreateOrConnectWithoutQaSessionInput | SessionAuditLogCreateOrConnectWithoutQaSessionInput[]
-    upsert?: SessionAuditLogUpsertWithWhereUniqueWithoutQaSessionInput | SessionAuditLogUpsertWithWhereUniqueWithoutQaSessionInput[]
-    createMany?: SessionAuditLogCreateManyQaSessionInputEnvelope
-    set?: SessionAuditLogWhereUniqueInput | SessionAuditLogWhereUniqueInput[]
-    disconnect?: SessionAuditLogWhereUniqueInput | SessionAuditLogWhereUniqueInput[]
-    delete?: SessionAuditLogWhereUniqueInput | SessionAuditLogWhereUniqueInput[]
-    connect?: SessionAuditLogWhereUniqueInput | SessionAuditLogWhereUniqueInput[]
-    update?: SessionAuditLogUpdateWithWhereUniqueWithoutQaSessionInput | SessionAuditLogUpdateWithWhereUniqueWithoutQaSessionInput[]
-    updateMany?: SessionAuditLogUpdateManyWithWhereWithoutQaSessionInput | SessionAuditLogUpdateManyWithWhereWithoutQaSessionInput[]
-    deleteMany?: SessionAuditLogScalarWhereInput | SessionAuditLogScalarWhereInput[]
+  export type SessionAuditLogUncheckedUpdateOneWithoutQaSessionNestedInput = {
+    create?: XOR<SessionAuditLogCreateWithoutQaSessionInput, SessionAuditLogUncheckedCreateWithoutQaSessionInput>
+    connectOrCreate?: SessionAuditLogCreateOrConnectWithoutQaSessionInput
+    upsert?: SessionAuditLogUpsertWithoutQaSessionInput
+    disconnect?: SessionAuditLogWhereInput | boolean
+    delete?: SessionAuditLogWhereInput | boolean
+    connect?: SessionAuditLogWhereUniqueInput
+    update?: XOR<XOR<SessionAuditLogUpdateToOneWithWhereWithoutQaSessionInput, SessionAuditLogUpdateWithoutQaSessionInput>, SessionAuditLogUncheckedUpdateWithoutQaSessionInput>
   }
 
-  export type SessionProductSuggestionUncheckedUpdateManyWithoutQaSessionNestedInput = {
-    create?: XOR<SessionProductSuggestionCreateWithoutQaSessionInput, SessionProductSuggestionUncheckedCreateWithoutQaSessionInput> | SessionProductSuggestionCreateWithoutQaSessionInput[] | SessionProductSuggestionUncheckedCreateWithoutQaSessionInput[]
-    connectOrCreate?: SessionProductSuggestionCreateOrConnectWithoutQaSessionInput | SessionProductSuggestionCreateOrConnectWithoutQaSessionInput[]
-    upsert?: SessionProductSuggestionUpsertWithWhereUniqueWithoutQaSessionInput | SessionProductSuggestionUpsertWithWhereUniqueWithoutQaSessionInput[]
-    createMany?: SessionProductSuggestionCreateManyQaSessionInputEnvelope
-    set?: SessionProductSuggestionWhereUniqueInput | SessionProductSuggestionWhereUniqueInput[]
-    disconnect?: SessionProductSuggestionWhereUniqueInput | SessionProductSuggestionWhereUniqueInput[]
-    delete?: SessionProductSuggestionWhereUniqueInput | SessionProductSuggestionWhereUniqueInput[]
-    connect?: SessionProductSuggestionWhereUniqueInput | SessionProductSuggestionWhereUniqueInput[]
-    update?: SessionProductSuggestionUpdateWithWhereUniqueWithoutQaSessionInput | SessionProductSuggestionUpdateWithWhereUniqueWithoutQaSessionInput[]
-    updateMany?: SessionProductSuggestionUpdateManyWithWhereWithoutQaSessionInput | SessionProductSuggestionUpdateManyWithWhereWithoutQaSessionInput[]
-    deleteMany?: SessionProductSuggestionScalarWhereInput | SessionProductSuggestionScalarWhereInput[]
+  export type SessionProductSuggestionUncheckedUpdateOneWithoutQaSessionNestedInput = {
+    create?: XOR<SessionProductSuggestionCreateWithoutQaSessionInput, SessionProductSuggestionUncheckedCreateWithoutQaSessionInput>
+    connectOrCreate?: SessionProductSuggestionCreateOrConnectWithoutQaSessionInput
+    upsert?: SessionProductSuggestionUpsertWithoutQaSessionInput
+    disconnect?: SessionProductSuggestionWhereInput | boolean
+    delete?: SessionProductSuggestionWhereInput | boolean
+    connect?: SessionProductSuggestionWhereUniqueInput
+    update?: XOR<XOR<SessionProductSuggestionUpdateToOneWithWhereWithoutQaSessionInput, SessionProductSuggestionUpdateWithoutQaSessionInput>, SessionProductSuggestionUncheckedUpdateWithoutQaSessionInput>
   }
 
   export type SessionTermsAcceptanceUncheckedUpdateManyWithoutQaSessionNestedInput = {
@@ -32947,18 +32894,14 @@ export namespace Prisma {
     update?: XOR<XOR<SessionWorkflowStateUpdateToOneWithWhereWithoutQaSessionInput, SessionWorkflowStateUpdateWithoutQaSessionInput>, SessionWorkflowStateUncheckedUpdateWithoutQaSessionInput>
   }
 
-  export type SignedDocumentUncheckedUpdateManyWithoutQaSessionNestedInput = {
-    create?: XOR<SignedDocumentCreateWithoutQaSessionInput, SignedDocumentUncheckedCreateWithoutQaSessionInput> | SignedDocumentCreateWithoutQaSessionInput[] | SignedDocumentUncheckedCreateWithoutQaSessionInput[]
-    connectOrCreate?: SignedDocumentCreateOrConnectWithoutQaSessionInput | SignedDocumentCreateOrConnectWithoutQaSessionInput[]
-    upsert?: SignedDocumentUpsertWithWhereUniqueWithoutQaSessionInput | SignedDocumentUpsertWithWhereUniqueWithoutQaSessionInput[]
-    createMany?: SignedDocumentCreateManyQaSessionInputEnvelope
-    set?: SignedDocumentWhereUniqueInput | SignedDocumentWhereUniqueInput[]
-    disconnect?: SignedDocumentWhereUniqueInput | SignedDocumentWhereUniqueInput[]
-    delete?: SignedDocumentWhereUniqueInput | SignedDocumentWhereUniqueInput[]
-    connect?: SignedDocumentWhereUniqueInput | SignedDocumentWhereUniqueInput[]
-    update?: SignedDocumentUpdateWithWhereUniqueWithoutQaSessionInput | SignedDocumentUpdateWithWhereUniqueWithoutQaSessionInput[]
-    updateMany?: SignedDocumentUpdateManyWithWhereWithoutQaSessionInput | SignedDocumentUpdateManyWithWhereWithoutQaSessionInput[]
-    deleteMany?: SignedDocumentScalarWhereInput | SignedDocumentScalarWhereInput[]
+  export type SignedDocumentUncheckedUpdateOneWithoutQaSessionNestedInput = {
+    create?: XOR<SignedDocumentCreateWithoutQaSessionInput, SignedDocumentUncheckedCreateWithoutQaSessionInput>
+    connectOrCreate?: SignedDocumentCreateOrConnectWithoutQaSessionInput
+    upsert?: SignedDocumentUpsertWithoutQaSessionInput
+    disconnect?: SignedDocumentWhereInput | boolean
+    delete?: SignedDocumentWhereInput | boolean
+    connect?: SignedDocumentWhereUniqueInput
+    update?: XOR<XOR<SignedDocumentUpdateToOneWithWhereWithoutQaSessionInput, SignedDocumentUpdateWithoutQaSessionInput>, SignedDocumentUncheckedUpdateWithoutQaSessionInput>
   }
 
   export type ThreadUncheckedUpdateOneWithoutQaSessionNestedInput = {
@@ -34034,11 +33977,6 @@ export namespace Prisma {
     create: XOR<OTPCreateWithoutUserInput, OTPUncheckedCreateWithoutUserInput>
   }
 
-  export type OTPCreateManyUserInputEnvelope = {
-    data: OTPCreateManyUserInput | OTPCreateManyUserInput[]
-    skipDuplicates?: boolean
-  }
-
   export type QASessionCreateWithoutUserInput = {
     id?: string
     status?: $Enums.SessionStatus
@@ -34047,11 +33985,11 @@ export namespace Prisma {
     updatedAt?: Date | string
     answers?: AnswerCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoCreateNestedOneWithoutQaSessionInput
-    auditLogs?: SessionAuditLogCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentCreateNestedOneWithoutQaSessionInput
     thread?: ThreadCreateNestedOneWithoutQaSessionInput
   }
 
@@ -34063,11 +34001,11 @@ export namespace Prisma {
     updatedAt?: Date | string
     answers?: AnswerUncheckedCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoUncheckedCreateNestedOneWithoutQaSessionInput
-    auditLogs?: SessionAuditLogUncheckedCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogUncheckedCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateUncheckedCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentUncheckedCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentUncheckedCreateNestedOneWithoutQaSessionInput
     thread?: ThreadUncheckedCreateNestedOneWithoutQaSessionInput
   }
 
@@ -34133,35 +34071,37 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
-  export type OTPUpsertWithWhereUniqueWithoutUserInput = {
-    where: OTPWhereUniqueInput
+  export type OTPUpsertWithoutUserInput = {
     update: XOR<OTPUpdateWithoutUserInput, OTPUncheckedUpdateWithoutUserInput>
     create: XOR<OTPCreateWithoutUserInput, OTPUncheckedCreateWithoutUserInput>
+    where?: OTPWhereInput
   }
 
-  export type OTPUpdateWithWhereUniqueWithoutUserInput = {
-    where: OTPWhereUniqueInput
+  export type OTPUpdateToOneWithWhereWithoutUserInput = {
+    where?: OTPWhereInput
     data: XOR<OTPUpdateWithoutUserInput, OTPUncheckedUpdateWithoutUserInput>
   }
 
-  export type OTPUpdateManyWithWhereWithoutUserInput = {
-    where: OTPScalarWhereInput
-    data: XOR<OTPUpdateManyMutationInput, OTPUncheckedUpdateManyWithoutUserInput>
+  export type OTPUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    attempts?: IntFieldUpdateOperationsInput | number
+    used?: BoolFieldUpdateOperationsInput | boolean
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resendCount?: IntFieldUpdateOperationsInput | number
   }
 
-  export type OTPScalarWhereInput = {
-    AND?: OTPScalarWhereInput | OTPScalarWhereInput[]
-    OR?: OTPScalarWhereInput[]
-    NOT?: OTPScalarWhereInput | OTPScalarWhereInput[]
-    id?: StringFilter<"OTP"> | string
-    email?: StringFilter<"OTP"> | string
-    code?: StringFilter<"OTP"> | string
-    attempts?: IntFilter<"OTP"> | number
-    used?: BoolFilter<"OTP"> | boolean
-    blockedUntil?: DateTimeNullableFilter<"OTP"> | Date | string | null
-    createdAt?: DateTimeFilter<"OTP"> | Date | string
-    expiresAt?: DateTimeFilter<"OTP"> | Date | string
-    resendCount?: IntFilter<"OTP"> | number
+  export type OTPUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    attempts?: IntFieldUpdateOperationsInput | number
+    used?: BoolFieldUpdateOperationsInput | boolean
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resendCount?: IntFieldUpdateOperationsInput | number
   }
 
   export type QASessionUpsertWithWhereUniqueWithoutUserInput = {
@@ -34324,7 +34264,7 @@ export namespace Prisma {
     createdAt?: Date | string
     isActive?: boolean
     updatedAt?: Date | string
-    otps?: OTPCreateNestedManyWithoutUserInput
+    otps?: OTPCreateNestedOneWithoutUserInput
     qaSessions?: QASessionCreateNestedManyWithoutUserInput
     auditLogs?: SessionAuditLogCreateNestedManyWithoutUserInput
   }
@@ -34337,7 +34277,7 @@ export namespace Prisma {
     createdAt?: Date | string
     isActive?: boolean
     updatedAt?: Date | string
-    otps?: OTPUncheckedCreateNestedManyWithoutUserInput
+    otps?: OTPUncheckedCreateNestedOneWithoutUserInput
     qaSessions?: QASessionUncheckedCreateNestedManyWithoutUserInput
     auditLogs?: SessionAuditLogUncheckedCreateNestedManyWithoutUserInput
   }
@@ -34366,7 +34306,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    otps?: OTPUpdateManyWithoutUserNestedInput
+    otps?: OTPUpdateOneWithoutUserNestedInput
     qaSessions?: QASessionUpdateManyWithoutUserNestedInput
     auditLogs?: SessionAuditLogUpdateManyWithoutUserNestedInput
   }
@@ -34379,7 +34319,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    otps?: OTPUncheckedUpdateManyWithoutUserNestedInput
+    otps?: OTPUncheckedUpdateOneWithoutUserNestedInput
     qaSessions?: QASessionUncheckedUpdateManyWithoutUserNestedInput
     auditLogs?: SessionAuditLogUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -34431,11 +34371,11 @@ export namespace Prisma {
     nationality: string
     phone: string
     placeOfBirth: string
-    dateOfBirth: Date | string
     postalCode: string
     residenceAbroad?: boolean
     street: string
     updatedAt?: Date | string
+    dateOfBirth: Date | string
     documents?: DocumentCreateNestedManyWithoutPersonalInfoInput
     previousJobsRel?: PreviousJobCreateNestedManyWithoutPersonalInfoInput
     signedDocuments?: SignedDocumentCreateNestedManyWithoutPersonalInfoInput
@@ -34458,12 +34398,12 @@ export namespace Prisma {
     nationality: string
     phone: string
     placeOfBirth: string
-    dateOfBirth: Date | string
     postalCode: string
     residenceAbroad?: boolean
     street: string
     updatedAt?: Date | string
     id?: number
+    dateOfBirth: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutPersonalInfoInput
     previousJobsRel?: PreviousJobUncheckedCreateNestedManyWithoutPersonalInfoInput
     signedDocuments?: SignedDocumentUncheckedCreateNestedManyWithoutPersonalInfoInput
@@ -34482,7 +34422,7 @@ export namespace Prisma {
     createdAt?: Date | string
     isActive?: boolean
     updatedAt?: Date | string
-    otps?: OTPCreateNestedManyWithoutUserInput
+    otps?: OTPCreateNestedOneWithoutUserInput
     auditLogs?: SessionAuditLogCreateNestedManyWithoutUserInput
     sessions?: SessionCreateNestedManyWithoutUserInput
   }
@@ -34495,7 +34435,7 @@ export namespace Prisma {
     createdAt?: Date | string
     isActive?: boolean
     updatedAt?: Date | string
-    otps?: OTPUncheckedCreateNestedManyWithoutUserInput
+    otps?: OTPUncheckedCreateNestedOneWithoutUserInput
     auditLogs?: SessionAuditLogUncheckedCreateNestedManyWithoutUserInput
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
   }
@@ -34524,11 +34464,6 @@ export namespace Prisma {
   export type SessionAuditLogCreateOrConnectWithoutQaSessionInput = {
     where: SessionAuditLogWhereUniqueInput
     create: XOR<SessionAuditLogCreateWithoutQaSessionInput, SessionAuditLogUncheckedCreateWithoutQaSessionInput>
-  }
-
-  export type SessionAuditLogCreateManyQaSessionInputEnvelope = {
-    data: SessionAuditLogCreateManyQaSessionInput | SessionAuditLogCreateManyQaSessionInput[]
-    skipDuplicates?: boolean
   }
 
   export type SessionProductSuggestionCreateWithoutQaSessionInput = {
@@ -34564,11 +34499,6 @@ export namespace Prisma {
   export type SessionProductSuggestionCreateOrConnectWithoutQaSessionInput = {
     where: SessionProductSuggestionWhereUniqueInput
     create: XOR<SessionProductSuggestionCreateWithoutQaSessionInput, SessionProductSuggestionUncheckedCreateWithoutQaSessionInput>
-  }
-
-  export type SessionProductSuggestionCreateManyQaSessionInputEnvelope = {
-    data: SessionProductSuggestionCreateManyQaSessionInput | SessionProductSuggestionCreateManyQaSessionInput[]
-    skipDuplicates?: boolean
   }
 
   export type SessionTermsAcceptanceCreateWithoutQaSessionInput = {
@@ -34654,11 +34584,6 @@ export namespace Prisma {
     create: XOR<SignedDocumentCreateWithoutQaSessionInput, SignedDocumentUncheckedCreateWithoutQaSessionInput>
   }
 
-  export type SignedDocumentCreateManyQaSessionInputEnvelope = {
-    data: SignedDocumentCreateManyQaSessionInput | SignedDocumentCreateManyQaSessionInput[]
-    skipDuplicates?: boolean
-  }
-
   export type ThreadCreateWithoutQaSessionInput = {
     id?: string
     createdAt?: Date | string
@@ -34734,11 +34659,11 @@ export namespace Prisma {
     nationality?: StringFieldUpdateOperationsInput | string
     phone?: StringFieldUpdateOperationsInput | string
     placeOfBirth?: StringFieldUpdateOperationsInput | string
-    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     postalCode?: StringFieldUpdateOperationsInput | string
     residenceAbroad?: BoolFieldUpdateOperationsInput | boolean
     street?: StringFieldUpdateOperationsInput | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutPersonalInfoNestedInput
     previousJobsRel?: PreviousJobUpdateManyWithoutPersonalInfoNestedInput
     signedDocuments?: SignedDocumentUpdateManyWithoutPersonalInfoNestedInput
@@ -34761,12 +34686,12 @@ export namespace Prisma {
     nationality?: StringFieldUpdateOperationsInput | string
     phone?: StringFieldUpdateOperationsInput | string
     placeOfBirth?: StringFieldUpdateOperationsInput | string
-    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     postalCode?: StringFieldUpdateOperationsInput | string
     residenceAbroad?: BoolFieldUpdateOperationsInput | boolean
     street?: StringFieldUpdateOperationsInput | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     id?: IntFieldUpdateOperationsInput | number
+    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutPersonalInfoNestedInput
     previousJobsRel?: PreviousJobUncheckedUpdateManyWithoutPersonalInfoNestedInput
     signedDocuments?: SignedDocumentUncheckedUpdateManyWithoutPersonalInfoNestedInput
@@ -34791,7 +34716,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    otps?: OTPUpdateManyWithoutUserNestedInput
+    otps?: OTPUpdateOneWithoutUserNestedInput
     auditLogs?: SessionAuditLogUpdateManyWithoutUserNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
   }
@@ -34804,60 +34729,77 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    otps?: OTPUncheckedUpdateManyWithoutUserNestedInput
+    otps?: OTPUncheckedUpdateOneWithoutUserNestedInput
     auditLogs?: SessionAuditLogUncheckedUpdateManyWithoutUserNestedInput
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
   }
 
-  export type SessionAuditLogUpsertWithWhereUniqueWithoutQaSessionInput = {
-    where: SessionAuditLogWhereUniqueInput
+  export type SessionAuditLogUpsertWithoutQaSessionInput = {
     update: XOR<SessionAuditLogUpdateWithoutQaSessionInput, SessionAuditLogUncheckedUpdateWithoutQaSessionInput>
     create: XOR<SessionAuditLogCreateWithoutQaSessionInput, SessionAuditLogUncheckedCreateWithoutQaSessionInput>
+    where?: SessionAuditLogWhereInput
   }
 
-  export type SessionAuditLogUpdateWithWhereUniqueWithoutQaSessionInput = {
-    where: SessionAuditLogWhereUniqueInput
+  export type SessionAuditLogUpdateToOneWithWhereWithoutQaSessionInput = {
+    where?: SessionAuditLogWhereInput
     data: XOR<SessionAuditLogUpdateWithoutQaSessionInput, SessionAuditLogUncheckedUpdateWithoutQaSessionInput>
   }
 
-  export type SessionAuditLogUpdateManyWithWhereWithoutQaSessionInput = {
-    where: SessionAuditLogScalarWhereInput
-    data: XOR<SessionAuditLogUpdateManyMutationInput, SessionAuditLogUncheckedUpdateManyWithoutQaSessionInput>
+  export type SessionAuditLogUpdateWithoutQaSessionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    details?: NullableJsonNullValueInput | InputJsonValue
+    timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneWithoutAuditLogsNestedInput
   }
 
-  export type SessionProductSuggestionUpsertWithWhereUniqueWithoutQaSessionInput = {
-    where: SessionProductSuggestionWhereUniqueInput
+  export type SessionAuditLogUncheckedUpdateWithoutQaSessionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    details?: NullableJsonNullValueInput | InputJsonValue
+    timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type SessionProductSuggestionUpsertWithoutQaSessionInput = {
     update: XOR<SessionProductSuggestionUpdateWithoutQaSessionInput, SessionProductSuggestionUncheckedUpdateWithoutQaSessionInput>
     create: XOR<SessionProductSuggestionCreateWithoutQaSessionInput, SessionProductSuggestionUncheckedCreateWithoutQaSessionInput>
+    where?: SessionProductSuggestionWhereInput
   }
 
-  export type SessionProductSuggestionUpdateWithWhereUniqueWithoutQaSessionInput = {
-    where: SessionProductSuggestionWhereUniqueInput
+  export type SessionProductSuggestionUpdateToOneWithWhereWithoutQaSessionInput = {
+    where?: SessionProductSuggestionWhereInput
     data: XOR<SessionProductSuggestionUpdateWithoutQaSessionInput, SessionProductSuggestionUncheckedUpdateWithoutQaSessionInput>
   }
 
-  export type SessionProductSuggestionUpdateManyWithWhereWithoutQaSessionInput = {
-    where: SessionProductSuggestionScalarWhereInput
-    data: XOR<SessionProductSuggestionUpdateManyMutationInput, SessionProductSuggestionUncheckedUpdateManyWithoutQaSessionInput>
+  export type SessionProductSuggestionUpdateWithoutQaSessionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    shortName?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    suggestionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    confidenceScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    suggestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    isConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    product?: ProductUpdateOneRequiredWithoutProductSuggestionsNestedInput
   }
 
-  export type SessionProductSuggestionScalarWhereInput = {
-    AND?: SessionProductSuggestionScalarWhereInput | SessionProductSuggestionScalarWhereInput[]
-    OR?: SessionProductSuggestionScalarWhereInput[]
-    NOT?: SessionProductSuggestionScalarWhereInput | SessionProductSuggestionScalarWhereInput[]
-    id?: StringFilter<"SessionProductSuggestion"> | string
-    qaSessionId?: StringFilter<"SessionProductSuggestion"> | string
-    productId?: StringFilter<"SessionProductSuggestion"> | string
-    name?: StringFilter<"SessionProductSuggestion"> | string
-    shortName?: StringNullableFilter<"SessionProductSuggestion"> | string | null
-    description?: StringNullableFilter<"SessionProductSuggestion"> | string | null
-    fileName?: StringNullableFilter<"SessionProductSuggestion"> | string | null
-    suggestionReason?: StringNullableFilter<"SessionProductSuggestion"> | string | null
-    confidenceScore?: DecimalNullableFilter<"SessionProductSuggestion"> | Decimal | DecimalJsLike | number | string | null
-    suggestedAt?: DateTimeFilter<"SessionProductSuggestion"> | Date | string
-    isConfirmed?: BoolFilter<"SessionProductSuggestion"> | boolean
-    confirmedAt?: DateTimeNullableFilter<"SessionProductSuggestion"> | Date | string | null
-    createdAt?: DateTimeFilter<"SessionProductSuggestion"> | Date | string
+  export type SessionProductSuggestionUncheckedUpdateWithoutQaSessionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    productId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    shortName?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    suggestionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    confidenceScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    suggestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    isConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type SessionTermsAcceptanceUpsertWithWhereUniqueWithoutQaSessionInput = {
@@ -34920,35 +34862,36 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type SignedDocumentUpsertWithWhereUniqueWithoutQaSessionInput = {
-    where: SignedDocumentWhereUniqueInput
+  export type SignedDocumentUpsertWithoutQaSessionInput = {
     update: XOR<SignedDocumentUpdateWithoutQaSessionInput, SignedDocumentUncheckedUpdateWithoutQaSessionInput>
     create: XOR<SignedDocumentCreateWithoutQaSessionInput, SignedDocumentUncheckedCreateWithoutQaSessionInput>
+    where?: SignedDocumentWhereInput
   }
 
-  export type SignedDocumentUpdateWithWhereUniqueWithoutQaSessionInput = {
-    where: SignedDocumentWhereUniqueInput
+  export type SignedDocumentUpdateToOneWithWhereWithoutQaSessionInput = {
+    where?: SignedDocumentWhereInput
     data: XOR<SignedDocumentUpdateWithoutQaSessionInput, SignedDocumentUncheckedUpdateWithoutQaSessionInput>
   }
 
-  export type SignedDocumentUpdateManyWithWhereWithoutQaSessionInput = {
-    where: SignedDocumentScalarWhereInput
-    data: XOR<SignedDocumentUpdateManyMutationInput, SignedDocumentUncheckedUpdateManyWithoutQaSessionInput>
+  export type SignedDocumentUpdateWithoutQaSessionInput = {
+    documentType?: StringFieldUpdateOperationsInput | string
+    pdfUrl?: StringFieldUpdateOperationsInput | string
+    generationTimestamp?: DateTimeFieldUpdateOperationsInput | Date | string
+    templateVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    personalInfo?: PersonalInfoUpdateOneWithoutSignedDocumentsNestedInput
   }
 
-  export type SignedDocumentScalarWhereInput = {
-    AND?: SignedDocumentScalarWhereInput | SignedDocumentScalarWhereInput[]
-    OR?: SignedDocumentScalarWhereInput[]
-    NOT?: SignedDocumentScalarWhereInput | SignedDocumentScalarWhereInput[]
-    id?: IntFilter<"SignedDocument"> | number
-    personalInfoId?: IntNullableFilter<"SignedDocument"> | number | null
-    qaSessionId?: StringFilter<"SignedDocument"> | string
-    documentType?: StringFilter<"SignedDocument"> | string
-    pdfUrl?: StringFilter<"SignedDocument"> | string
-    generationTimestamp?: DateTimeFilter<"SignedDocument"> | Date | string
-    templateVersion?: StringNullableFilter<"SignedDocument"> | string | null
-    createdAt?: DateTimeFilter<"SignedDocument"> | Date | string
-    updatedAt?: DateTimeFilter<"SignedDocument"> | Date | string
+  export type SignedDocumentUncheckedUpdateWithoutQaSessionInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    personalInfoId?: NullableIntFieldUpdateOperationsInput | number | null
+    documentType?: StringFieldUpdateOperationsInput | string
+    pdfUrl?: StringFieldUpdateOperationsInput | string
+    generationTimestamp?: DateTimeFieldUpdateOperationsInput | Date | string
+    templateVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ThreadUpsertWithoutQaSessionInput = {
@@ -34983,10 +34926,10 @@ export namespace Prisma {
     answers?: AnswerCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoCreateNestedOneWithoutQaSessionInput
     user: UserCreateNestedOneWithoutQaSessionsInput
-    auditLogs?: SessionAuditLogCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceCreateNestedManyWithoutQaSessionInput
-    signedDocuments?: SignedDocumentCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentCreateNestedOneWithoutQaSessionInput
     thread?: ThreadCreateNestedOneWithoutQaSessionInput
   }
 
@@ -34999,10 +34942,10 @@ export namespace Prisma {
     userId: string
     answers?: AnswerUncheckedCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoUncheckedCreateNestedOneWithoutQaSessionInput
-    auditLogs?: SessionAuditLogUncheckedCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogUncheckedCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedCreateNestedManyWithoutQaSessionInput
-    signedDocuments?: SignedDocumentUncheckedCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentUncheckedCreateNestedOneWithoutQaSessionInput
     thread?: ThreadUncheckedCreateNestedOneWithoutQaSessionInput
   }
 
@@ -35031,10 +34974,10 @@ export namespace Prisma {
     answers?: AnswerUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUpdateOneWithoutQaSessionNestedInput
     user?: UserUpdateOneRequiredWithoutQaSessionsNestedInput
-    auditLogs?: SessionAuditLogUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUpdateManyWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -35047,16 +34990,17 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     answers?: AnswerUncheckedUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUncheckedUpdateOneWithoutQaSessionNestedInput
-    auditLogs?: SessionAuditLogUncheckedUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUncheckedUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUncheckedUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUncheckedUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedUpdateManyWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUncheckedUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUncheckedUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUncheckedUpdateOneWithoutQaSessionNestedInput
   }
 
   export type AISettingsCreateWithoutProductInput = {
     id?: string
     prompt: string
+    first_message?: string
     model?: string
     vectorId?: string | null
     isActive?: boolean
@@ -35067,6 +35011,7 @@ export namespace Prisma {
   export type AISettingsUncheckedCreateWithoutProductInput = {
     id?: string
     prompt: string
+    first_message?: string
     model?: string
     vectorId?: string | null
     isActive?: boolean
@@ -35146,6 +35091,7 @@ export namespace Prisma {
     NOT?: AISettingsScalarWhereInput | AISettingsScalarWhereInput[]
     id?: StringFilter<"AISettings"> | string
     prompt?: StringFilter<"AISettings"> | string
+    first_message?: StringFilter<"AISettings"> | string
     model?: StringFilter<"AISettings"> | string
     vectorId?: StringNullableFilter<"AISettings"> | string | null
     productId?: StringNullableFilter<"AISettings"> | string | null
@@ -35168,6 +35114,25 @@ export namespace Prisma {
   export type SessionProductSuggestionUpdateManyWithWhereWithoutProductInput = {
     where: SessionProductSuggestionScalarWhereInput
     data: XOR<SessionProductSuggestionUpdateManyMutationInput, SessionProductSuggestionUncheckedUpdateManyWithoutProductInput>
+  }
+
+  export type SessionProductSuggestionScalarWhereInput = {
+    AND?: SessionProductSuggestionScalarWhereInput | SessionProductSuggestionScalarWhereInput[]
+    OR?: SessionProductSuggestionScalarWhereInput[]
+    NOT?: SessionProductSuggestionScalarWhereInput | SessionProductSuggestionScalarWhereInput[]
+    id?: StringFilter<"SessionProductSuggestion"> | string
+    qaSessionId?: StringFilter<"SessionProductSuggestion"> | string
+    productId?: StringFilter<"SessionProductSuggestion"> | string
+    name?: StringFilter<"SessionProductSuggestion"> | string
+    shortName?: StringNullableFilter<"SessionProductSuggestion"> | string | null
+    description?: StringNullableFilter<"SessionProductSuggestion"> | string | null
+    fileName?: StringNullableFilter<"SessionProductSuggestion"> | string | null
+    suggestionReason?: StringNullableFilter<"SessionProductSuggestion"> | string | null
+    confidenceScore?: DecimalNullableFilter<"SessionProductSuggestion"> | Decimal | DecimalJsLike | number | string | null
+    suggestedAt?: DateTimeFilter<"SessionProductSuggestion"> | Date | string
+    isConfirmed?: BoolFilter<"SessionProductSuggestion"> | boolean
+    confirmedAt?: DateTimeNullableFilter<"SessionProductSuggestion"> | Date | string | null
+    createdAt?: DateTimeFilter<"SessionProductSuggestion"> | Date | string
   }
 
   export type AnswerCreateWithoutQuestionInput = {
@@ -35331,11 +35296,11 @@ export namespace Prisma {
     updatedAt?: Date | string
     personalInfo?: PersonalInfoCreateNestedOneWithoutQaSessionInput
     user: UserCreateNestedOneWithoutQaSessionsInput
-    auditLogs?: SessionAuditLogCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentCreateNestedOneWithoutQaSessionInput
     thread?: ThreadCreateNestedOneWithoutQaSessionInput
   }
 
@@ -35347,11 +35312,11 @@ export namespace Prisma {
     updatedAt?: Date | string
     userId: string
     personalInfo?: PersonalInfoUncheckedCreateNestedOneWithoutQaSessionInput
-    auditLogs?: SessionAuditLogUncheckedCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogUncheckedCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateUncheckedCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentUncheckedCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentUncheckedCreateNestedOneWithoutQaSessionInput
     thread?: ThreadUncheckedCreateNestedOneWithoutQaSessionInput
   }
 
@@ -35404,11 +35369,11 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     personalInfo?: PersonalInfoUpdateOneWithoutQaSessionNestedInput
     user?: UserUpdateOneRequiredWithoutQaSessionsNestedInput
-    auditLogs?: SessionAuditLogUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -35420,11 +35385,11 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     userId?: StringFieldUpdateOperationsInput | string
     personalInfo?: PersonalInfoUncheckedUpdateOneWithoutQaSessionNestedInput
-    auditLogs?: SessionAuditLogUncheckedUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUncheckedUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUncheckedUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUncheckedUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUncheckedUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUncheckedUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUncheckedUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUncheckedUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -35520,10 +35485,10 @@ export namespace Prisma {
     answers?: AnswerCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoCreateNestedOneWithoutQaSessionInput
     user: UserCreateNestedOneWithoutQaSessionsInput
-    auditLogs?: SessionAuditLogCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionCreateNestedOneWithoutQaSessionInput
     workflowState?: SessionWorkflowStateCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentCreateNestedOneWithoutQaSessionInput
     thread?: ThreadCreateNestedOneWithoutQaSessionInput
   }
 
@@ -35536,10 +35501,10 @@ export namespace Prisma {
     userId: string
     answers?: AnswerUncheckedCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoUncheckedCreateNestedOneWithoutQaSessionInput
-    auditLogs?: SessionAuditLogUncheckedCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogUncheckedCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedOneWithoutQaSessionInput
     workflowState?: SessionWorkflowStateUncheckedCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentUncheckedCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentUncheckedCreateNestedOneWithoutQaSessionInput
     thread?: ThreadUncheckedCreateNestedOneWithoutQaSessionInput
   }
 
@@ -35597,10 +35562,10 @@ export namespace Prisma {
     answers?: AnswerUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUpdateOneWithoutQaSessionNestedInput
     user?: UserUpdateOneRequiredWithoutQaSessionsNestedInput
-    auditLogs?: SessionAuditLogUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUpdateOneWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -35613,10 +35578,10 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     answers?: AnswerUncheckedUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUncheckedUpdateOneWithoutQaSessionNestedInput
-    auditLogs?: SessionAuditLogUncheckedUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUncheckedUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUncheckedUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUncheckedUpdateOneWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUncheckedUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUncheckedUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUncheckedUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUncheckedUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -35662,10 +35627,10 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
-    minimumYear?: number | null
-    maximumYear?: number | null
-    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
+    maximumYear?: number | null
+    minimumYear?: number | null
+    riskType?: $Enums.RiskType | null
     aiSettings?: AISettingsCreateNestedManyWithoutProductInput
   }
 
@@ -35676,10 +35641,10 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
-    minimumYear?: number | null
-    maximumYear?: number | null
-    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
+    maximumYear?: number | null
+    minimumYear?: number | null
+    riskType?: $Enums.RiskType | null
     aiSettings?: AISettingsUncheckedCreateNestedManyWithoutProductInput
   }
 
@@ -35697,10 +35662,10 @@ export namespace Prisma {
     answers?: AnswerCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoCreateNestedOneWithoutQaSessionInput
     user: UserCreateNestedOneWithoutQaSessionsInput
-    auditLogs?: SessionAuditLogCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentCreateNestedOneWithoutQaSessionInput
     thread?: ThreadCreateNestedOneWithoutQaSessionInput
   }
 
@@ -35713,10 +35678,10 @@ export namespace Prisma {
     userId: string
     answers?: AnswerUncheckedCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoUncheckedCreateNestedOneWithoutQaSessionInput
-    auditLogs?: SessionAuditLogUncheckedCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogUncheckedCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateUncheckedCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentUncheckedCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentUncheckedCreateNestedOneWithoutQaSessionInput
     thread?: ThreadUncheckedCreateNestedOneWithoutQaSessionInput
   }
 
@@ -35743,10 +35708,10 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
-    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     aiSettings?: AISettingsUpdateManyWithoutProductNestedInput
   }
 
@@ -35757,10 +35722,10 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
-    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     aiSettings?: AISettingsUncheckedUpdateManyWithoutProductNestedInput
   }
 
@@ -35784,10 +35749,10 @@ export namespace Prisma {
     answers?: AnswerUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUpdateOneWithoutQaSessionNestedInput
     user?: UserUpdateOneRequiredWithoutQaSessionsNestedInput
-    auditLogs?: SessionAuditLogUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -35800,10 +35765,10 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     answers?: AnswerUncheckedUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUncheckedUpdateOneWithoutQaSessionNestedInput
-    auditLogs?: SessionAuditLogUncheckedUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUncheckedUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUncheckedUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUncheckedUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUncheckedUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUncheckedUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -35844,11 +35809,11 @@ export namespace Prisma {
     answers?: AnswerCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoCreateNestedOneWithoutQaSessionInput
     user: UserCreateNestedOneWithoutQaSessionsInput
-    auditLogs?: SessionAuditLogCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentCreateNestedOneWithoutQaSessionInput
   }
 
   export type QASessionUncheckedCreateWithoutThreadInput = {
@@ -35860,11 +35825,11 @@ export namespace Prisma {
     userId: string
     answers?: AnswerUncheckedCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoUncheckedCreateNestedOneWithoutQaSessionInput
-    auditLogs?: SessionAuditLogUncheckedCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogUncheckedCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateUncheckedCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentUncheckedCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentUncheckedCreateNestedOneWithoutQaSessionInput
   }
 
   export type QASessionCreateOrConnectWithoutThreadInput = {
@@ -35921,11 +35886,11 @@ export namespace Prisma {
     answers?: AnswerUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUpdateOneWithoutQaSessionNestedInput
     user?: UserUpdateOneRequiredWithoutQaSessionsNestedInput
-    auditLogs?: SessionAuditLogUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUpdateOneWithoutQaSessionNestedInput
   }
 
   export type QASessionUncheckedUpdateWithoutThreadInput = {
@@ -35937,11 +35902,11 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     answers?: AnswerUncheckedUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUncheckedUpdateOneWithoutQaSessionNestedInput
-    auditLogs?: SessionAuditLogUncheckedUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUncheckedUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUncheckedUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUncheckedUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUncheckedUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUncheckedUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUncheckedUpdateOneWithoutQaSessionNestedInput
   }
 
   export type ThreadCreateWithoutMessagesInput = {
@@ -36021,11 +35986,11 @@ export namespace Prisma {
     updatedAt?: Date | string
     answers?: AnswerCreateNestedManyWithoutQaSessionInput
     user: UserCreateNestedOneWithoutQaSessionsInput
-    auditLogs?: SessionAuditLogCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentCreateNestedOneWithoutQaSessionInput
     thread?: ThreadCreateNestedOneWithoutQaSessionInput
   }
 
@@ -36037,11 +36002,11 @@ export namespace Prisma {
     updatedAt?: Date | string
     userId: string
     answers?: AnswerUncheckedCreateNestedManyWithoutQaSessionInput
-    auditLogs?: SessionAuditLogUncheckedCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogUncheckedCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateUncheckedCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentUncheckedCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentUncheckedCreateNestedOneWithoutQaSessionInput
     thread?: ThreadUncheckedCreateNestedOneWithoutQaSessionInput
   }
 
@@ -36157,11 +36122,11 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     answers?: AnswerUpdateManyWithoutQaSessionNestedInput
     user?: UserUpdateOneRequiredWithoutQaSessionsNestedInput
-    auditLogs?: SessionAuditLogUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -36173,11 +36138,11 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     userId?: StringFieldUpdateOperationsInput | string
     answers?: AnswerUncheckedUpdateManyWithoutQaSessionNestedInput
-    auditLogs?: SessionAuditLogUncheckedUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUncheckedUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUncheckedUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUncheckedUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUncheckedUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUncheckedUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUncheckedUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUncheckedUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -36226,6 +36191,21 @@ export namespace Prisma {
     data: XOR<SignedDocumentUpdateManyMutationInput, SignedDocumentUncheckedUpdateManyWithoutPersonalInfoInput>
   }
 
+  export type SignedDocumentScalarWhereInput = {
+    AND?: SignedDocumentScalarWhereInput | SignedDocumentScalarWhereInput[]
+    OR?: SignedDocumentScalarWhereInput[]
+    NOT?: SignedDocumentScalarWhereInput | SignedDocumentScalarWhereInput[]
+    id?: IntFilter<"SignedDocument"> | number
+    personalInfoId?: IntNullableFilter<"SignedDocument"> | number | null
+    qaSessionId?: StringFilter<"SignedDocument"> | string
+    documentType?: StringFilter<"SignedDocument"> | string
+    pdfUrl?: StringFilter<"SignedDocument"> | string
+    generationTimestamp?: DateTimeFilter<"SignedDocument"> | Date | string
+    templateVersion?: StringNullableFilter<"SignedDocument"> | string | null
+    createdAt?: DateTimeFilter<"SignedDocument"> | Date | string
+    updatedAt?: DateTimeFilter<"SignedDocument"> | Date | string
+  }
+
   export type PersonalInfoCreateWithoutDocumentsInput = {
     actsOnOwnAccount?: boolean
     city: string
@@ -36243,11 +36223,11 @@ export namespace Prisma {
     nationality: string
     phone: string
     placeOfBirth: string
-    dateOfBirth: Date | string
     postalCode: string
     residenceAbroad?: boolean
     street: string
     updatedAt?: Date | string
+    dateOfBirth: Date | string
     qaSession: QASessionCreateNestedOneWithoutPersonalInfoInput
     previousJobsRel?: PreviousJobCreateNestedManyWithoutPersonalInfoInput
     signedDocuments?: SignedDocumentCreateNestedManyWithoutPersonalInfoInput
@@ -36270,13 +36250,13 @@ export namespace Prisma {
     nationality: string
     phone: string
     placeOfBirth: string
-    dateOfBirth: Date | string
     postalCode: string
     qaSessionId: string
     residenceAbroad?: boolean
     street: string
     updatedAt?: Date | string
     id?: number
+    dateOfBirth: Date | string
     previousJobsRel?: PreviousJobUncheckedCreateNestedManyWithoutPersonalInfoInput
     signedDocuments?: SignedDocumentUncheckedCreateNestedManyWithoutPersonalInfoInput
   }
@@ -36314,11 +36294,11 @@ export namespace Prisma {
     nationality?: StringFieldUpdateOperationsInput | string
     phone?: StringFieldUpdateOperationsInput | string
     placeOfBirth?: StringFieldUpdateOperationsInput | string
-    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     postalCode?: StringFieldUpdateOperationsInput | string
     residenceAbroad?: BoolFieldUpdateOperationsInput | boolean
     street?: StringFieldUpdateOperationsInput | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     qaSession?: QASessionUpdateOneRequiredWithoutPersonalInfoNestedInput
     previousJobsRel?: PreviousJobUpdateManyWithoutPersonalInfoNestedInput
     signedDocuments?: SignedDocumentUpdateManyWithoutPersonalInfoNestedInput
@@ -36341,13 +36321,13 @@ export namespace Prisma {
     nationality?: StringFieldUpdateOperationsInput | string
     phone?: StringFieldUpdateOperationsInput | string
     placeOfBirth?: StringFieldUpdateOperationsInput | string
-    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     postalCode?: StringFieldUpdateOperationsInput | string
     qaSessionId?: StringFieldUpdateOperationsInput | string
     residenceAbroad?: BoolFieldUpdateOperationsInput | boolean
     street?: StringFieldUpdateOperationsInput | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     id?: IntFieldUpdateOperationsInput | number
+    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     previousJobsRel?: PreviousJobUncheckedUpdateManyWithoutPersonalInfoNestedInput
     signedDocuments?: SignedDocumentUncheckedUpdateManyWithoutPersonalInfoNestedInput
   }
@@ -36369,11 +36349,11 @@ export namespace Prisma {
     nationality: string
     phone: string
     placeOfBirth: string
-    dateOfBirth: Date | string
     postalCode: string
     residenceAbroad?: boolean
     street: string
     updatedAt?: Date | string
+    dateOfBirth: Date | string
     documents?: DocumentCreateNestedManyWithoutPersonalInfoInput
     qaSession: QASessionCreateNestedOneWithoutPersonalInfoInput
     signedDocuments?: SignedDocumentCreateNestedManyWithoutPersonalInfoInput
@@ -36396,13 +36376,13 @@ export namespace Prisma {
     nationality: string
     phone: string
     placeOfBirth: string
-    dateOfBirth: Date | string
     postalCode: string
     qaSessionId: string
     residenceAbroad?: boolean
     street: string
     updatedAt?: Date | string
     id?: number
+    dateOfBirth: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutPersonalInfoInput
     signedDocuments?: SignedDocumentUncheckedCreateNestedManyWithoutPersonalInfoInput
   }
@@ -36440,11 +36420,11 @@ export namespace Prisma {
     nationality?: StringFieldUpdateOperationsInput | string
     phone?: StringFieldUpdateOperationsInput | string
     placeOfBirth?: StringFieldUpdateOperationsInput | string
-    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     postalCode?: StringFieldUpdateOperationsInput | string
     residenceAbroad?: BoolFieldUpdateOperationsInput | boolean
     street?: StringFieldUpdateOperationsInput | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutPersonalInfoNestedInput
     qaSession?: QASessionUpdateOneRequiredWithoutPersonalInfoNestedInput
     signedDocuments?: SignedDocumentUpdateManyWithoutPersonalInfoNestedInput
@@ -36467,13 +36447,13 @@ export namespace Prisma {
     nationality?: StringFieldUpdateOperationsInput | string
     phone?: StringFieldUpdateOperationsInput | string
     placeOfBirth?: StringFieldUpdateOperationsInput | string
-    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     postalCode?: StringFieldUpdateOperationsInput | string
     qaSessionId?: StringFieldUpdateOperationsInput | string
     residenceAbroad?: BoolFieldUpdateOperationsInput | boolean
     street?: StringFieldUpdateOperationsInput | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     id?: IntFieldUpdateOperationsInput | number
+    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutPersonalInfoNestedInput
     signedDocuments?: SignedDocumentUncheckedUpdateManyWithoutPersonalInfoNestedInput
   }
@@ -36495,11 +36475,11 @@ export namespace Prisma {
     nationality: string
     phone: string
     placeOfBirth: string
-    dateOfBirth: Date | string
     postalCode: string
     residenceAbroad?: boolean
     street: string
     updatedAt?: Date | string
+    dateOfBirth: Date | string
     documents?: DocumentCreateNestedManyWithoutPersonalInfoInput
     qaSession: QASessionCreateNestedOneWithoutPersonalInfoInput
     previousJobsRel?: PreviousJobCreateNestedManyWithoutPersonalInfoInput
@@ -36522,13 +36502,13 @@ export namespace Prisma {
     nationality: string
     phone: string
     placeOfBirth: string
-    dateOfBirth: Date | string
     postalCode: string
     qaSessionId: string
     residenceAbroad?: boolean
     street: string
     updatedAt?: Date | string
     id?: number
+    dateOfBirth: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutPersonalInfoInput
     previousJobsRel?: PreviousJobUncheckedCreateNestedManyWithoutPersonalInfoInput
   }
@@ -36547,8 +36527,8 @@ export namespace Prisma {
     answers?: AnswerCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoCreateNestedOneWithoutQaSessionInput
     user: UserCreateNestedOneWithoutQaSessionsInput
-    auditLogs?: SessionAuditLogCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateCreateNestedOneWithoutQaSessionInput
     thread?: ThreadCreateNestedOneWithoutQaSessionInput
@@ -36563,8 +36543,8 @@ export namespace Prisma {
     userId: string
     answers?: AnswerUncheckedCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoUncheckedCreateNestedOneWithoutQaSessionInput
-    auditLogs?: SessionAuditLogUncheckedCreateNestedManyWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedManyWithoutQaSessionInput
+    auditLogs?: SessionAuditLogUncheckedCreateNestedOneWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateUncheckedCreateNestedOneWithoutQaSessionInput
     thread?: ThreadUncheckedCreateNestedOneWithoutQaSessionInput
@@ -36603,11 +36583,11 @@ export namespace Prisma {
     nationality?: StringFieldUpdateOperationsInput | string
     phone?: StringFieldUpdateOperationsInput | string
     placeOfBirth?: StringFieldUpdateOperationsInput | string
-    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     postalCode?: StringFieldUpdateOperationsInput | string
     residenceAbroad?: BoolFieldUpdateOperationsInput | boolean
     street?: StringFieldUpdateOperationsInput | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutPersonalInfoNestedInput
     qaSession?: QASessionUpdateOneRequiredWithoutPersonalInfoNestedInput
     previousJobsRel?: PreviousJobUpdateManyWithoutPersonalInfoNestedInput
@@ -36630,13 +36610,13 @@ export namespace Prisma {
     nationality?: StringFieldUpdateOperationsInput | string
     phone?: StringFieldUpdateOperationsInput | string
     placeOfBirth?: StringFieldUpdateOperationsInput | string
-    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     postalCode?: StringFieldUpdateOperationsInput | string
     qaSessionId?: StringFieldUpdateOperationsInput | string
     residenceAbroad?: BoolFieldUpdateOperationsInput | boolean
     street?: StringFieldUpdateOperationsInput | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     id?: IntFieldUpdateOperationsInput | number
+    dateOfBirth?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutPersonalInfoNestedInput
     previousJobsRel?: PreviousJobUncheckedUpdateManyWithoutPersonalInfoNestedInput
   }
@@ -36661,8 +36641,8 @@ export namespace Prisma {
     answers?: AnswerUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUpdateOneWithoutQaSessionNestedInput
     user?: UserUpdateOneRequiredWithoutQaSessionsNestedInput
-    auditLogs?: SessionAuditLogUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUpdateOneWithoutQaSessionNestedInput
@@ -36677,8 +36657,8 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     answers?: AnswerUncheckedUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUncheckedUpdateOneWithoutQaSessionNestedInput
-    auditLogs?: SessionAuditLogUncheckedUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUncheckedUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUncheckedUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUncheckedUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUncheckedUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUncheckedUpdateOneWithoutQaSessionNestedInput
@@ -36691,10 +36671,10 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
-    minimumYear?: number | null
-    maximumYear?: number | null
-    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
+    maximumYear?: number | null
+    minimumYear?: number | null
+    riskType?: $Enums.RiskType | null
     productSuggestions?: SessionProductSuggestionCreateNestedManyWithoutProductInput
   }
 
@@ -36705,10 +36685,10 @@ export namespace Prisma {
     createdAt?: Date | string
     fileName?: string | null
     shortName?: string | null
-    minimumYear?: number | null
-    maximumYear?: number | null
-    riskType?: $Enums.RiskType | null
     updatedAt?: Date | string
+    maximumYear?: number | null
+    minimumYear?: number | null
+    riskType?: $Enums.RiskType | null
     productSuggestions?: SessionProductSuggestionUncheckedCreateNestedManyWithoutProductInput
   }
 
@@ -36735,10 +36715,10 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
-    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     productSuggestions?: SessionProductSuggestionUpdateManyWithoutProductNestedInput
   }
 
@@ -36749,10 +36729,10 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     shortName?: NullableStringFieldUpdateOperationsInput | string | null
-    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
-    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    maximumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    minimumYear?: NullableIntFieldUpdateOperationsInput | number | null
+    riskType?: NullableEnumRiskTypeFieldUpdateOperationsInput | $Enums.RiskType | null
     productSuggestions?: SessionProductSuggestionUncheckedUpdateManyWithoutProductNestedInput
   }
 
@@ -36765,10 +36745,10 @@ export namespace Prisma {
     answers?: AnswerCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoCreateNestedOneWithoutQaSessionInput
     user: UserCreateNestedOneWithoutQaSessionsInput
-    productSuggestions?: SessionProductSuggestionCreateNestedManyWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentCreateNestedOneWithoutQaSessionInput
     thread?: ThreadCreateNestedOneWithoutQaSessionInput
   }
 
@@ -36781,10 +36761,10 @@ export namespace Prisma {
     userId: string
     answers?: AnswerUncheckedCreateNestedManyWithoutQaSessionInput
     personalInfo?: PersonalInfoUncheckedCreateNestedOneWithoutQaSessionInput
-    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedManyWithoutQaSessionInput
+    productSuggestions?: SessionProductSuggestionUncheckedCreateNestedOneWithoutQaSessionInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedCreateNestedManyWithoutQaSessionInput
     workflowState?: SessionWorkflowStateUncheckedCreateNestedOneWithoutQaSessionInput
-    signedDocuments?: SignedDocumentUncheckedCreateNestedManyWithoutQaSessionInput
+    signedDocuments?: SignedDocumentUncheckedCreateNestedOneWithoutQaSessionInput
     thread?: ThreadUncheckedCreateNestedOneWithoutQaSessionInput
   }
 
@@ -36801,7 +36781,7 @@ export namespace Prisma {
     createdAt?: Date | string
     isActive?: boolean
     updatedAt?: Date | string
-    otps?: OTPCreateNestedManyWithoutUserInput
+    otps?: OTPCreateNestedOneWithoutUserInput
     qaSessions?: QASessionCreateNestedManyWithoutUserInput
     sessions?: SessionCreateNestedManyWithoutUserInput
   }
@@ -36814,7 +36794,7 @@ export namespace Prisma {
     createdAt?: Date | string
     isActive?: boolean
     updatedAt?: Date | string
-    otps?: OTPUncheckedCreateNestedManyWithoutUserInput
+    otps?: OTPUncheckedCreateNestedOneWithoutUserInput
     qaSessions?: QASessionUncheckedCreateNestedManyWithoutUserInput
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
   }
@@ -36844,10 +36824,10 @@ export namespace Prisma {
     answers?: AnswerUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUpdateOneWithoutQaSessionNestedInput
     user?: UserUpdateOneRequiredWithoutQaSessionsNestedInput
-    productSuggestions?: SessionProductSuggestionUpdateManyWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -36860,10 +36840,10 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     answers?: AnswerUncheckedUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUncheckedUpdateOneWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUncheckedUpdateManyWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUncheckedUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUncheckedUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUncheckedUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUncheckedUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUncheckedUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -36886,7 +36866,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    otps?: OTPUpdateManyWithoutUserNestedInput
+    otps?: OTPUpdateOneWithoutUserNestedInput
     qaSessions?: QASessionUpdateManyWithoutUserNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
   }
@@ -36899,20 +36879,9 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    otps?: OTPUncheckedUpdateManyWithoutUserNestedInput
+    otps?: OTPUncheckedUpdateOneWithoutUserNestedInput
     qaSessions?: QASessionUncheckedUpdateManyWithoutUserNestedInput
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
-  }
-
-  export type OTPCreateManyUserInput = {
-    id?: string
-    code: string
-    attempts?: number
-    used?: boolean
-    blockedUntil?: Date | string | null
-    createdAt?: Date | string
-    expiresAt: Date | string
-    resendCount?: number
   }
 
   export type QASessionCreateManyUserInput = {
@@ -36939,39 +36908,6 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
-  export type OTPUpdateWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    code?: StringFieldUpdateOperationsInput | string
-    attempts?: IntFieldUpdateOperationsInput | number
-    used?: BoolFieldUpdateOperationsInput | boolean
-    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    resendCount?: IntFieldUpdateOperationsInput | number
-  }
-
-  export type OTPUncheckedUpdateWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    code?: StringFieldUpdateOperationsInput | string
-    attempts?: IntFieldUpdateOperationsInput | number
-    used?: BoolFieldUpdateOperationsInput | boolean
-    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    resendCount?: IntFieldUpdateOperationsInput | number
-  }
-
-  export type OTPUncheckedUpdateManyWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    code?: StringFieldUpdateOperationsInput | string
-    attempts?: IntFieldUpdateOperationsInput | number
-    used?: BoolFieldUpdateOperationsInput | boolean
-    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    resendCount?: IntFieldUpdateOperationsInput | number
-  }
-
   export type QASessionUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
@@ -36980,11 +36916,11 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     answers?: AnswerUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUpdateOneWithoutQaSessionNestedInput
-    auditLogs?: SessionAuditLogUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -36996,11 +36932,11 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     answers?: AnswerUncheckedUpdateManyWithoutQaSessionNestedInput
     personalInfo?: PersonalInfoUncheckedUpdateOneWithoutQaSessionNestedInput
-    auditLogs?: SessionAuditLogUncheckedUpdateManyWithoutQaSessionNestedInput
-    productSuggestions?: SessionProductSuggestionUncheckedUpdateManyWithoutQaSessionNestedInput
+    auditLogs?: SessionAuditLogUncheckedUpdateOneWithoutQaSessionNestedInput
+    productSuggestions?: SessionProductSuggestionUncheckedUpdateOneWithoutQaSessionNestedInput
     termsAcceptance?: SessionTermsAcceptanceUncheckedUpdateManyWithoutQaSessionNestedInput
     workflowState?: SessionWorkflowStateUncheckedUpdateOneWithoutQaSessionNestedInput
-    signedDocuments?: SignedDocumentUncheckedUpdateManyWithoutQaSessionNestedInput
+    signedDocuments?: SignedDocumentUncheckedUpdateOneWithoutQaSessionNestedInput
     thread?: ThreadUncheckedUpdateOneWithoutQaSessionNestedInput
   }
 
@@ -37070,29 +37006,6 @@ export namespace Prisma {
     questionText?: string | null
   }
 
-  export type SessionAuditLogCreateManyQaSessionInput = {
-    id?: string
-    action: string
-    details?: NullableJsonNullValueInput | InputJsonValue
-    timestamp?: Date | string
-    userId?: string | null
-  }
-
-  export type SessionProductSuggestionCreateManyQaSessionInput = {
-    id?: string
-    productId: string
-    name: string
-    shortName?: string | null
-    description?: string | null
-    fileName?: string | null
-    suggestionReason?: string | null
-    confidenceScore?: Decimal | DecimalJsLike | number | string | null
-    suggestedAt?: Date | string
-    isConfirmed?: boolean
-    confirmedAt?: Date | string | null
-    createdAt?: Date | string
-  }
-
   export type SessionTermsAcceptanceCreateManyQaSessionInput = {
     id?: string
     termsId: string
@@ -37104,17 +37017,6 @@ export namespace Prisma {
     ipAddress?: string | null
     userAgent?: string | null
     createdAt?: Date | string
-  }
-
-  export type SignedDocumentCreateManyQaSessionInput = {
-    id?: number
-    personalInfoId?: number | null
-    documentType: string
-    pdfUrl: string
-    generationTimestamp?: Date | string
-    templateVersion?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
   }
 
   export type AnswerUpdateWithoutQaSessionInput = {
@@ -37145,75 +37047,6 @@ export namespace Prisma {
     questionId?: StringFieldUpdateOperationsInput | string
     questionOptions?: NullableJsonNullValueInput | InputJsonValue
     questionText?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
-  export type SessionAuditLogUpdateWithoutQaSessionInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    action?: StringFieldUpdateOperationsInput | string
-    details?: NullableJsonNullValueInput | InputJsonValue
-    timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    user?: UserUpdateOneWithoutAuditLogsNestedInput
-  }
-
-  export type SessionAuditLogUncheckedUpdateWithoutQaSessionInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    action?: StringFieldUpdateOperationsInput | string
-    details?: NullableJsonNullValueInput | InputJsonValue
-    timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    userId?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
-  export type SessionAuditLogUncheckedUpdateManyWithoutQaSessionInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    action?: StringFieldUpdateOperationsInput | string
-    details?: NullableJsonNullValueInput | InputJsonValue
-    timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    userId?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
-  export type SessionProductSuggestionUpdateWithoutQaSessionInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    shortName?: NullableStringFieldUpdateOperationsInput | string | null
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    fileName?: NullableStringFieldUpdateOperationsInput | string | null
-    suggestionReason?: NullableStringFieldUpdateOperationsInput | string | null
-    confidenceScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
-    suggestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    isConfirmed?: BoolFieldUpdateOperationsInput | boolean
-    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    product?: ProductUpdateOneRequiredWithoutProductSuggestionsNestedInput
-  }
-
-  export type SessionProductSuggestionUncheckedUpdateWithoutQaSessionInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    productId?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    shortName?: NullableStringFieldUpdateOperationsInput | string | null
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    fileName?: NullableStringFieldUpdateOperationsInput | string | null
-    suggestionReason?: NullableStringFieldUpdateOperationsInput | string | null
-    confidenceScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
-    suggestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    isConfirmed?: BoolFieldUpdateOperationsInput | boolean
-    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type SessionProductSuggestionUncheckedUpdateManyWithoutQaSessionInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    productId?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    shortName?: NullableStringFieldUpdateOperationsInput | string | null
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    fileName?: NullableStringFieldUpdateOperationsInput | string | null
-    suggestionReason?: NullableStringFieldUpdateOperationsInput | string | null
-    confidenceScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
-    suggestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    isConfirmed?: BoolFieldUpdateOperationsInput | boolean
-    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type SessionTermsAcceptanceUpdateWithoutQaSessionInput = {
@@ -37255,41 +37088,10 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type SignedDocumentUpdateWithoutQaSessionInput = {
-    documentType?: StringFieldUpdateOperationsInput | string
-    pdfUrl?: StringFieldUpdateOperationsInput | string
-    generationTimestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    templateVersion?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    personalInfo?: PersonalInfoUpdateOneWithoutSignedDocumentsNestedInput
-  }
-
-  export type SignedDocumentUncheckedUpdateWithoutQaSessionInput = {
-    id?: IntFieldUpdateOperationsInput | number
-    personalInfoId?: NullableIntFieldUpdateOperationsInput | number | null
-    documentType?: StringFieldUpdateOperationsInput | string
-    pdfUrl?: StringFieldUpdateOperationsInput | string
-    generationTimestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    templateVersion?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type SignedDocumentUncheckedUpdateManyWithoutQaSessionInput = {
-    id?: IntFieldUpdateOperationsInput | number
-    personalInfoId?: NullableIntFieldUpdateOperationsInput | number | null
-    documentType?: StringFieldUpdateOperationsInput | string
-    pdfUrl?: StringFieldUpdateOperationsInput | string
-    generationTimestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    templateVersion?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
   export type AISettingsCreateManyProductInput = {
     id?: string
     prompt: string
+    first_message?: string
     model?: string
     vectorId?: string | null
     isActive?: boolean
@@ -37315,6 +37117,7 @@ export namespace Prisma {
   export type AISettingsUpdateWithoutProductInput = {
     id?: StringFieldUpdateOperationsInput | string
     prompt?: StringFieldUpdateOperationsInput | string
+    first_message?: StringFieldUpdateOperationsInput | string
     model?: StringFieldUpdateOperationsInput | string
     vectorId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
@@ -37325,6 +37128,7 @@ export namespace Prisma {
   export type AISettingsUncheckedUpdateWithoutProductInput = {
     id?: StringFieldUpdateOperationsInput | string
     prompt?: StringFieldUpdateOperationsInput | string
+    first_message?: StringFieldUpdateOperationsInput | string
     model?: StringFieldUpdateOperationsInput | string
     vectorId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
@@ -37335,6 +37139,7 @@ export namespace Prisma {
   export type AISettingsUncheckedUpdateManyWithoutProductInput = {
     id?: StringFieldUpdateOperationsInput | string
     prompt?: StringFieldUpdateOperationsInput | string
+    first_message?: StringFieldUpdateOperationsInput | string
     model?: StringFieldUpdateOperationsInput | string
     vectorId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean

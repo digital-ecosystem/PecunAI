@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from 'react';
 
 const SignTeqTestPage = () => {
@@ -214,10 +215,10 @@ const SignTeqTestPage = () => {
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
           <h3 className="font-semibold text-yellow-800 mb-2">🧪 Test Instructions</h3>
           <ol className="list-decimal list-inside text-yellow-700 space-y-1">
-            <li>Click "Create Test Session" to generate a signing session</li>
-            <li>Use "Open Signing Interface" to test actual signing (requires valid API key)</li>
-            <li>Use "Simulate Signing Success" to test the download flow</li>
-            <li>Check the downloaded document in the saved location</li>
+            <li>`{'Click "Create Test Session" to generate a signing session'}`</li>
+            <li>`{'Use "Open Signing Interface" to test actual signing (requires valid API key)'}`</li>
+            <li>`{'Use "Simulate Signing Success" to test the download flow'}`</li>
+            <li>`{'Check the downloaded document in the saved location'}`</li>
           </ol>
         </div>
       </div>

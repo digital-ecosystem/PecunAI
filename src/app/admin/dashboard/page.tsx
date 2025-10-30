@@ -145,68 +145,67 @@ const Dashboard = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             <AdminHeader />
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
                 {/* Stats Cards */}
-
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-                    <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
                         <div className="flex items-center">
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                                <FileText className="w-5 h-5 text-blue-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+                                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Total Sessions</p>
-                                <p className="text-2xl font-bold text-gray-900">{totalSessions}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Total Sessions</p>
+                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{totalSessions}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
                         <div className="flex items-center">
-                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4">
-                                <CheckCircle className="w-5 h-5 text-green-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+                                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Approved</p>
-                                <p className="text-2xl font-bold text-gray-900">{approvedSessions}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Approved</p>
+                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{approvedSessions}</p>
                             </div>
                         </div>
                     </div>
 
 
 
-                    <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
                         <div className="flex items-center">
-                            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-4">
-                                <Ban className="w-5 h-5 text-red-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+                                <Ban className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Rejected</p>
-                                <p className="text-2xl font-bold text-gray-900">{rejectedSessions}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Rejected</p>
+                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{rejectedSessions}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
                         <div className="flex items-center">
-                            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
-                                <Hourglass className="w-5 h-5 text-orange-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+                                <Hourglass className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Pending</p>
-                                <p className="text-2xl font-bold text-gray-900">{pendingSessions}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Pending</p>
+                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{pendingSessions}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
                         <div className="flex items-center">
-                            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-4">
-                                <Clock className="w-5 h-5 text-yellow-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+                                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Draft</p>
-                                <p className="text-2xl font-bold text-gray-900">{draftSessions}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Draft</p>
+                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{draftSessions}</p>
                             </div>
                         </div>
                     </div>
@@ -216,23 +215,23 @@ const Dashboard = () => {
                 {/* Sessions Table */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                     {/* Search and Filter */}
-                    <div className="p-6 border-b border-gray-200">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div className="relative">
+                    <div className="p-4 sm:p-6 border-b border-gray-200">
+                        <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:space-x-4">
+                            <div className="relative flex-1 max-w-md">
                                 <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                 <input
                                     type="text"
                                     placeholder="Search sessions..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
                                 />
                             </div>
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
                                 >
                                     <option value="all">All Status</option>
                                     <option value="DRAFT">{SessionStatus.DRAFT}</option>
@@ -240,7 +239,7 @@ const Dashboard = () => {
                                     <option value="REJECTED">{SessionStatus.REJECTED}</option>
                                     <option value="APPROVED">{SessionStatus.APPROVED}</option>
                                 </select>
-                                <span className="text-sm text-gray-500 ml-4">
+                                <span className="text-xs sm:text-sm text-gray-500 whitespace-nowrap">
                                     {filteredSessions.length} of {totalSessions} sessions
                                 </span>
                             </div>
@@ -252,13 +251,13 @@ const Dashboard = () => {
                         <table className="w-full">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         SESSION
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         STATUS
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                                         CREATED
                                     </th>
                                 </tr>
@@ -266,23 +265,30 @@ const Dashboard = () => {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {filteredSessions.map((session) => (
                                     <tr key={session.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleSessionClick(session)}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
-                                                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                                                    <FileText className="w-4 h-4 text-blue-600" />
+                                                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
+                                                    <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
                                                 </div>
-                                                <div>
-                                                    <div className="text-sm font-medium text-gray-900">{session?.personalInfo?.firstName} {session?.personalInfo?.lastName}</div>
-                                                    <div className="text-sm text-gray-500">{session.user.email}</div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="text-sm font-medium text-gray-900 truncate">
+                                                        {session?.personalInfo?.firstName} {session?.personalInfo?.lastName}
+                                                    </div>
+                                                    <div className="text-xs sm:text-sm text-gray-500 truncate">
+                                                        {session.user.email}
+                                                    </div>
+                                                    <div className="text-xs text-gray-400 sm:hidden mt-1">
+                                                        {formatDate(session.createdAt)}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(session.status)}`}>
                                                 {session.status}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
                                             {formatDate(session.createdAt)}
                                         </td>
                                     </tr>
@@ -292,8 +298,8 @@ const Dashboard = () => {
                     </div>
 
                     {filteredSessions.length === 0 && (
-                        <div className="text-center py-12">
-                            <p className="text-gray-500">No sessions found matching your criteria.</p>
+                        <div className="text-center py-8 sm:py-12 px-4">
+                            <p className="text-sm sm:text-base text-gray-500">No sessions found matching your criteria.</p>
                         </div>
                     )}
                 </div>
@@ -313,17 +319,17 @@ const Dashboard = () => {
                             onClick={closeDrawer}
                         />
                         {/* Drawer */}
-                        <div className="fixed inset-y-0 right-0 w-full max-w-4xl bg-white shadow-xl z-50 transform transition-transform overflow-y-auto">
+                        <div className="fixed inset-y-0 right-0 w-full sm:max-w-md md:max-w-2xl lg:max-w-4xl bg-white shadow-xl z-50 transform transition-transform overflow-y-auto">
                             {/* Drawer Header */}
-                            <div className="bg-white border-b border-gray-200 px-6 py-4">
+                            <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
                                 <div className="flex items-center justify-between">
-                                    <div>
-                                        <h2 className="text-xl font-bold text-gray-900">Session Details</h2>
-                                        <p className="text-sm text-gray-600">Session ID: #{selectedSession?.personalInfo?.qaSessionId}</p>
+                                    <div className="min-w-0 flex-1 mr-4">
+                                        <h2 className="text-lg sm:text-xl font-bold text-gray-900 truncate">Session Details</h2>
+                                        <p className="text-xs sm:text-sm text-gray-600 truncate">Session ID: #{selectedSession?.personalInfo?.qaSessionId}</p>
                                     </div>
                                     <button
                                         onClick={closeDrawer}
-                                        className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors"
+                                        className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors flex-shrink-0"
                                     >
                                         <X className="w-4 h-4 text-gray-600" />
                                     </button>
@@ -331,38 +337,34 @@ const Dashboard = () => {
                             </div>
 
                             {/* Drawer Content */}
-                            <div className="px-6 py-6 space-y-6">
+                            <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
                                 {/* User Information */}
                                 <div className="bg-gray-50 rounded-lg p-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-3">User Information</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">User Information</h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-600">Name</label>
+                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">Name</label>
                                             <p className="text-sm text-gray-900">{selectedSession?.personalInfo?.firstName && selectedSession?.personalInfo?.lastName ? selectedSession?.personalInfo?.firstName + ' ' + selectedSession?.personalInfo?.lastName : ''}</p>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-600">Email</label>
-                                            <p className="text-sm text-gray-900">{selectedSession.user.email || ''}</p>
+                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">Email</label>
+                                            <p className="text-sm text-gray-900 break-all">{selectedSession.user.email || ''}</p>
                                         </div>
-                                        {/* <div>
-                                            <label className="block text-sm font-medium text-gray-600">Duration</label>
-                                            <p className="text-sm text-gray-900">{formatDate(selectedSession.expiresAt)}</p>
-                                        </div> */}
                                     </div>
                                 </div>
 
                                 {/* Session Status */}
                                 <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Session Status</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Session Status</h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-600">Current Status</label>
+                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">Current Status</label>
                                             <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(selectedSession.status)}`}>
                                                 {selectedSession.status}
                                             </span>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-600">Created Date</label>
+                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">Created Date</label>
                                             <p className="text-sm text-gray-900">{formatDate(selectedSession.createdAt)}</p>
                                         </div>
                                     </div>
@@ -372,24 +374,18 @@ const Dashboard = () => {
                                 {
                                     selectedSession.status != SessionStatus.DRAFT && (
                                         <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-3">Download Session PDF</h3>
-                                            <div className="flex justify-start items-center">
-                                                <button
-                                                    // onClick={() => router.push(`/customer/phase/${selectedSession.id}/pdf`)}
-                                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center me-2"
-                                                >
-                                                    <a href={`/documents/final_session_pdf_${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                                                        <FileText className="w-4 h-4 mr-2" />
-                                                        Download PDF
+                                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Download Session PDF</h3>
+                                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                                                <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                                    <a href={`/documents/signed/${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
+                                                        <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                        <span className="truncate">Download PDF</span>
                                                     </a>
                                                 </button>
-                                                <button
-                                                    // onClick={() => router.push(`/customer/phase/${selectedSession.id}/pdf`)}
-                                                    className="ms-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                                                >
-                                                    <a href={`/documents/session-signTeq-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                                                        <FileText className="w-4 h-4 mr-2" />
-                                                        Download SignD PDF
+                                                <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                                    <a href={`/documents/signD-identity-verification-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
+                                                        <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                        <span className="truncate">Download SignD PDF</span>
                                                     </a>
                                                 </button>
                                             </div>
@@ -400,29 +396,27 @@ const Dashboard = () => {
                                 {/* Action Buttons */}
                                 {selectedSession.status === SessionStatus.PENDING &&
                                     <div className="bg-gray-50 rounded-lg p-4">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-3">Actions</h3>
-                                        <div className="flex space-x-3">
+                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Actions</h3>
+                                        <div className="flex flex-col sm:flex-row gap-3">
                                             {selectedSession.status === SessionStatus.PENDING && (
                                                 <>
                                                     <button
                                                         onClick={() => {
                                                             handleStatusChange(selectedSession.id, SessionStatus.APPROVED);
-                                                            // closeDrawer();
                                                         }}
-                                                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
+                                                        className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
                                                     >
-                                                        <CheckCircle className="w-4 h-4 mr-2" />
-                                                        Approve Session
+                                                        <CheckCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                        <span>Approve Session</span>
                                                     </button>
                                                     <button
                                                         onClick={() => {
                                                             handleStatusChange(selectedSession.id, SessionStatus.REJECTED);
-                                                            // closeDrawer();
                                                         }}
-                                                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                                                        className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
                                                     >
-                                                        <X className="w-4 h-4 mr-2" />
-                                                        Reject Session
+                                                        <X className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                        <span>Reject Session</span>
                                                     </button>
                                                 </>
                                             )}
@@ -432,22 +426,22 @@ const Dashboard = () => {
 
                                 {/* Question and Options */}
                                 <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Question & Response</h3>
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Question & Response</h3>
 
                                     {questionAnswer?.length > 0 &&
                                         questionAnswer.map((item, index) => (
                                             <React.Fragment key={index}>
                                                 {/* Question */}
                                                 <div className="mb-4">
-                                                    <label className="block text-sm font-medium text-gray-600 mb-2">Question</label>
+                                                    <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Question</label>
                                                     <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
-                                                        <p className="text-gray-900">{item.text}</p>
+                                                        <p className="text-sm sm:text-base text-gray-900">{item.text}</p>
                                                     </div>
                                                 </div>
 
                                                 {/* Available Options */}
                                                 <div className="mb-4">
-                                                    <label className="block text-sm font-medium text-gray-600 mb-2">Available Options</label>
+                                                    <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Available Options</label>
                                                     <div className="space-y-2">
                                                         {item.options.map((option, optIndex) => {
                                                             const isSelected = option.value === item.selectedValue
@@ -458,16 +452,16 @@ const Dashboard = () => {
                                                                         }`}
                                                                 >
                                                                     <div
-                                                                        className={`w-2 h-2 rounded-full mr-3 ${isSelected ? 'bg-green-500' : 'bg-gray-300'
+                                                                        className={`w-2 h-2 rounded-full mr-3 flex-shrink-0 ${isSelected ? 'bg-green-500' : 'bg-gray-300'
                                                                             }`}
                                                                     />
                                                                     <span
-                                                                        className={`text-sm ${isSelected ? 'text-green-900 font-medium' : 'text-gray-700'
+                                                                        className={`text-xs sm:text-sm flex-1 ${isSelected ? 'text-green-900 font-medium' : 'text-gray-700'
                                                                             }`}
                                                                     >
                                                                         {option.label}
                                                                     </span>
-                                                                    {isSelected && <ChevronRight className="w-4 h-4 text-green-600 ml-auto" />}
+                                                                    {isSelected && <ChevronRight className="w-4 h-4 text-green-600 flex-shrink-0" />}
                                                                 </div>
                                                             )
                                                         })}
@@ -476,8 +470,8 @@ const Dashboard = () => {
 
                                                 {/* Selected Answer Highlight */}
                                                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
-                                                    <label className="block text-sm font-medium text-green-800 mb-1">Selected Answer</label>
-                                                    <p className="text-green-900 font-semibold">
+                                                    <label className="block text-xs sm:text-sm font-medium text-green-800 mb-1">Selected Answer</label>
+                                                    <p className="text-sm sm:text-base text-green-900 font-semibold">
                                                         {item.options.find(option => option.value === item.selectedValue)?.label || 'N/A'}
                                                     </p>
                                                 </div>

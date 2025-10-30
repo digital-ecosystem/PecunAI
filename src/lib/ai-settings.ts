@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 export interface AISettings {
   id: string;
   prompt: string;
+  firstMessage: string;
   model: string;
   vectorId: string | null;
   productId: string | null;

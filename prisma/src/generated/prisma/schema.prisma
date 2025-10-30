@@ -16,7 +16,7 @@ model User {
   createdAt  DateTime          @default(now())
   isActive   Boolean           @default(true)
   updatedAt  DateTime          @updatedAt
-  otps       OTP[]
+  otps       OTP?
   qaSessions QASession[]
   auditLogs  SessionAuditLog[]
   sessions   Session[]
@@ -52,20 +52,20 @@ model Session {
 }
 
 model QASession {
-  id                 String                     @id @default(uuid())
-  status             SessionStatus              @default(DRAFT)
-  phase              SessionPhase               @default(DISCOVERY)
-  createdAt          DateTime                   @default(now())
-  updatedAt          DateTime                   @updatedAt
+  id                 String                    @id @default(uuid())
+  status             SessionStatus             @default(DRAFT)
+  phase              SessionPhase              @default(DISCOVERY)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
   userId             String
   answers            Answer[]
   personalInfo       PersonalInfo?
-  user               User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  auditLogs          SessionAuditLog[]
-  productSuggestions SessionProductSuggestion[]
+  user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditLogs          SessionAuditLog?
+  productSuggestions SessionProductSuggestion?
   termsAcceptance    SessionTermsAcceptance[]
   workflowState      SessionWorkflowState?
-  signedDocuments    SignedDocument[]
+  signedDocuments    SignedDocument?
   thread             Thread?
 
   @@map("qa_sessions")
@@ -90,10 +90,10 @@ model Product {
   createdAt          DateTime                   @default(now())
   fileName           String?
   shortName          String?
-  minimumYear        Int?
-  maximumYear        Int?
-  riskType           RiskType?
   updatedAt          DateTime                   @updatedAt
+  maximumYear        Int?
+  minimumYear        Int?
+  riskType           RiskType?
   aiSettings         AISettings[]
   productSuggestions SessionProductSuggestion[]
 
@@ -217,7 +217,6 @@ model Message {
 }
 
 model PersonalInfo {
-  // age                    Int?
   actsOnOwnAccount       Boolean          @default(false)
   city                   String
   createdAt              DateTime         @default(now())
@@ -234,13 +233,13 @@ model PersonalInfo {
   nationality            String
   phone                  String
   placeOfBirth           String
-  dateOfBirth            DateTime         @db.Date
   postalCode             String
   qaSessionId            String           @unique
   residenceAbroad        Boolean          @default(false)
   street                 String
   updatedAt              DateTime         @updatedAt
   id                     Int              @id @default(autoincrement())
+  dateOfBirth            DateTime         @db.Date
   documents              Document[]
   qaSession              QASession        @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
   previousJobsRel        PreviousJob[]
@@ -293,15 +292,16 @@ model SignedDocument {
 }
 
 model AISettings {
-  id        String   @id @default(uuid())
-  prompt    String
-  model     String   @default("gpt-4")
-  vectorId  String?
-  productId String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  product   Product? @relation(fields: [productId], references: [id])
+  id            String   @id @default(uuid())
+  prompt        String
+  first_message String   @default("Hello! I'm here to help you with your financial planning. How can I assist you today?")
+  model         String   @default("gpt-4")
+  vectorId      String?
+  productId     String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  product       Product? @relation(fields: [productId], references: [id])
 
   @@map("ai_settings")
 }

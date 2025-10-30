@@ -192,15 +192,15 @@ export default function Chatbot({
 
 
   return (
-    <div className="h-full w-full flex items-center justify-center">
-      <div className="flex flex-col h-full w-full max-w-full border border-gray-300 rounded-lg bg-white shadow-lg">
+    <div className="h-full w-full flex flex-col">
+      <div className="flex flex-col h-full w-full max-w-4xl mx-auto border border-gray-300 rounded-lg sm:rounded-xl bg-white shadow-lg">
         {/* Header */}
-        <div className="bg-blue-600 text-white p-4 rounded-t-lg flex-shrink-0 flex justify-between items-center">
-          <h2 className="text-lg font-semibold">AI Chatbot</h2>
+        <div className="bg-blue-600 text-white p-3 sm:p-4 rounded-t-lg sm:rounded-t-xl flex-shrink-0 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+          <h2 className="text-base sm:text-lg font-semibold">AI Investment Assistant</h2>
           <div className="flex items-center space-x-2">
             {threadId && (
-              <span className="text-xs opacity-75">
-                Thread: {threadId}
+              <span className="text-xs opacity-75 truncate max-w-32 sm:max-w-none">
+                <span className="hidden sm:inline">Thread: </span>{threadId}
               </span>
             )}
             {/* <button
@@ -213,10 +213,18 @@ export default function Chatbot({
         </div>
 
         {/* Messages Container */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 min-h-0 max-h-full">
           {messages.length === 0 && (
-            <div className="text-gray-500 text-center py-8">
-              Start a conversation! Ask me anything.
+            <div className="text-gray-500 text-center py-8 sm:py-12">
+              <div className="mb-4">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <p className="text-sm sm:text-base font-medium mb-2">Start a conversation!</p>
+                <p className="text-xs sm:text-sm text-gray-400">Ask me about investment options, risks, or any questions you have.</p>
+              </div>
             </div>
           )}
 
@@ -227,14 +235,14 @@ export default function Chatbot({
                 }`}
             >
               <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${message.role === Role.customer
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-800'
+                className={`max-w-[85%] sm:max-w-xs lg:max-w-md xl:max-w-lg px-3 sm:px-4 py-2 sm:py-3 rounded-lg ${message.role === Role.customer
+                  ? 'bg-blue-600 text-white rounded-br-none'
+                  : 'bg-gray-200 text-gray-800 rounded-bl-none'
                   }`}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                <span className="text-xs opacity-75 block mt-1">
-                  {message.timestamp.toLocaleTimeString()}
+                <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                <span className="text-xs opacity-75 block mt-1 sm:mt-2">
+                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
             </div>
@@ -242,10 +250,10 @@ export default function Chatbot({
 
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-gray-200 text-gray-800 max-w-xs lg:max-w-md px-4 py-2 rounded-lg">
+              <div className="bg-gray-200 text-gray-800 max-w-[85%] sm:max-w-xs lg:max-w-md px-3 sm:px-4 py-2 sm:py-3 rounded-lg rounded-bl-none">
                 <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                  <span className="text-sm">Thinking...</span>
+                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-gray-600"></div>
+                  <span className="text-xs sm:text-sm">Analyzing your request...</span>
                 </div>
               </div>
             </div>
@@ -254,23 +262,28 @@ export default function Chatbot({
         </div>
 
         {/* Input Form */}
-        <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200 flex-shrink-0">
-          <div className="flex space-x-2">
+        <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-t border-gray-200 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput && setInput(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Ask about investment options, risks, or advice..."
+              className="flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
               disabled={loading}
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base font-medium whitespace-nowrap"
               // ref={buttonRef}
             >
-              Send
+              <span className="">Send</span>
+              {/* <span className="sm:hidden">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              </span> */}
             </button>
           </div>
         </form>

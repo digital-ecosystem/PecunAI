@@ -176,10 +176,10 @@ exports.Prisma.ProductScalarFieldEnum = {
   createdAt: 'createdAt',
   fileName: 'fileName',
   shortName: 'shortName',
-  minimumYear: 'minimumYear',
+  updatedAt: 'updatedAt',
   maximumYear: 'maximumYear',
-  riskType: 'riskType',
-  updatedAt: 'updatedAt'
+  minimumYear: 'minimumYear',
+  riskType: 'riskType'
 };
 
 exports.Prisma.QuestionScalarFieldEnum = {
@@ -285,13 +285,13 @@ exports.Prisma.PersonalInfoScalarFieldEnum = {
   nationality: 'nationality',
   phone: 'phone',
   placeOfBirth: 'placeOfBirth',
-  dateOfBirth: 'dateOfBirth',
   postalCode: 'postalCode',
   qaSessionId: 'qaSessionId',
   residenceAbroad: 'residenceAbroad',
   street: 'street',
   updatedAt: 'updatedAt',
-  id: 'id'
+  id: 'id',
+  dateOfBirth: 'dateOfBirth'
 };
 
 exports.Prisma.DocumentScalarFieldEnum = {
@@ -330,6 +330,7 @@ exports.Prisma.SignedDocumentScalarFieldEnum = {
 exports.Prisma.AISettingsScalarFieldEnum = {
   id: 'id',
   prompt: 'prompt',
+  first_message: 'first_message',
   model: 'model',
   vectorId: 'vectorId',
   productId: 'productId',

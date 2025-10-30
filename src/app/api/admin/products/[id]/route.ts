@@ -13,6 +13,7 @@ const productUpdateSchema = z.object({
   riskType: z.enum(['CONSERVATIVE', 'RISK_AWARE', 'OPPORTUNITY_ORIENTED']).optional(),
   aiModel: z.string().min(1, 'AI model is required').optional(),
   aiPrompt: z.string().min(1, 'AI prompt is required').optional(),
+  firstMessage: z.string().min(1, 'First message is required'),
   vectorId: z.string().optional(),
 }).refine((data) => {
   // Ensure minimumYear <= maximumYear if both are provided
@@ -47,6 +48,7 @@ export async function GET(
             id: true,
             prompt: true,
             model: true,
+            first_message: true,
             vectorId: true,
             isActive: true,
             createdAt: true,
@@ -84,6 +86,7 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
+
     // Validate input
     const validatedData = productUpdateSchema.parse(body);
 
@@ -100,7 +103,7 @@ export async function PUT(
     }
 
     // Separate product data from AI settings data
-    const { aiModel, aiPrompt, vectorId, ...productData } = validatedData;
+    const { aiModel, aiPrompt, vectorId, firstMessage, ...productData } = validatedData;
 
     // Update product and AI settings in a transaction
     const updatedProduct = await prisma.$transaction(async (tx) => {
@@ -124,6 +127,7 @@ export async function PUT(
             data: {
               ...(aiModel !== undefined && { model: aiModel }),
               ...(aiPrompt !== undefined && { prompt: aiPrompt }),
+              ...(firstMessage !== undefined && { first_message: firstMessage }),
               ...(vectorId !== undefined && { vectorId: vectorId || null }),
             },
           });
@@ -133,6 +137,7 @@ export async function PUT(
             data: {
               model: aiModel,
               prompt: aiPrompt,
+              first_message: firstMessage,
               vectorId: vectorId || null,
               productId: id,
               isActive: true,
@@ -156,6 +161,7 @@ export async function PUT(
               id: true,
               model: true,
               prompt: true,
+              first_message: true,
               vectorId: true,
               isActive: true,
             },
@@ -171,6 +177,7 @@ export async function PUT(
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('Validation error:', error.issues);
       return NextResponse.json(
         { success: false, error: 'Validation error', details: error.issues },
         { status: 400 }

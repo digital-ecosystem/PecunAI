@@ -294,6 +294,7 @@ model SignedDocument {
 model AISettings {
   id        String   @id @default(uuid())
   prompt    String
+  first_message    String   @default("")
   model     String   @default("gpt-4")
   vectorId  String?
   productId String?
