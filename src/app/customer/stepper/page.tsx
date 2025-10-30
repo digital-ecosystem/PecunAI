@@ -344,19 +344,57 @@ export default function Stepper() {
           throw new Error("Failed to get response");
         }
 
-        const data = await response.json();
-
-        if (data.threadId && !threadId) {
-          setThreadId(data.threadId);
-        }
-
+        // Create a placeholder bot message for streaming
         const botMessage: Message = {
           role: Role.assistant,
-          content: data.message,
+          content: "",
           timestamp: new Date(),
         };
-
         setMessages((prev) => [...prev, botMessage]);
+
+        // Handle streaming response
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  
+                  if (data.done) {
+                    // Final response with metadata
+                    if (data.threadId && !threadId) {
+                      setThreadId(data.threadId);
+                    }
+                    break;
+                  } else if (data.content) {
+                    // Update the last message with new content
+                    setMessages((prev) => {
+                      const newMessages = [...prev];
+                      const lastMessage = newMessages[newMessages.length - 1];
+                      if (lastMessage && lastMessage.role === Role.assistant) {
+                        lastMessage.content += data.content;
+                      }
+                      return newMessages;
+                    });
+                  }
+                } catch (e) {
+                  console.error("Error parsing streaming data:", e);
+                }
+              }
+            }
+          }
+        }
       } catch (error) {
         console.error("Error:", error);
         const errorMessage: Message = {
@@ -369,7 +407,7 @@ export default function Stepper() {
         setChatBtnLanding(false);
       }
     },
-    [loading, session_id, threadId]
+    [loading, session_id, threadId, input]
   );
 
   const fetchTermsAndConditions = useCallback(async () => {
@@ -1174,95 +1212,36 @@ export default function Stepper() {
                   <div className="prose prose-sm max-w-none text-gray-700 space-y-4">
                     {/* Render terms and conditions content here */}
                     <p>
-                      Die 4money Financial Services GmbH (kurz 4money), mit der
-                      Geschäftsanschrift Einspinnergasse 1/3.OG, 8010 Graz, ist
-                      ein von der österreichischen Finanzmarktaufsicht (FMA)
-                      konzessioniertes Wertpapierdienstleistungsunternehmen
-                      (kurz WPDLU) gemäß §4 Abs. 1 WAG 2018. Das WPDLU ist zur
-                      Anlageberatung (gemäß § 3 Abs. 2 Z 1 & WAG 2018) und
-                      Annahme und Übermittlung von Aufträgen (§ 3 Abs 2 Z 3 WAG
-                      2018) im Hinblick auf Fondsanteile (gemäß § 1 Z 7 lit c
-                      WAG 2018) auch über natürliche Personen gemäß §1 Z45 WAG
-                      2018 berechtigt. Das WPDLU ist nicht Mitglied einer
-                      Anleger:innenentschädigungseinrichtung, sondern über eine
-                      Vermögensschadenhaftpflichtversicherung mit einer
-                      Versicherungssumme von 1.500.000€ pro Jahr und 1.000.000€
-                      pro Schadensfall abgesichert. Das Halten von
-                      Kund:innengeldern ist dem WPDLU gesetzlich untersagt. Es
-                      wird darauf hingewiesen, dass das WPDLU lediglich über
-                      einen Geschäftsleiter verfügt. Das WPDLU bietet in Bezug
-                      auf Wertpapierdienstleistungen nicht unabhängige
-                      Vermittlung- bzw. Beratung auf Provisions- und/oder
-                      Honorarbasis an. Das WPDLU hat zwar eine breite Palette
-                      von Produkten, kann aber nicht den gesamten Markt
-                      abbilden. Eine umfassende Marktuntersuchung, welche
-                      sämtliche auf dem Markt befindliche Produkte beinhaltet
-                      ist daher nicht geschuldet. Eigenprodukte werden nicht
-                      angeboten. Seitens des WPDLU besteht keine Pflicht
-                      Kund:innenportfolios laufend zu überwachen bzw. die
-                      Kund:innen über Veränderungen zu informieren. Daher ist
-                      das für das WPDLU nicht möglich laufend festzustellen ob
-                      bestimmte Produkte oder Wertpapierdienstleistungen
-                      weiterhin angemessen oder geeignet sind. Diesbezügliche
-                      Eignungstests können auch ohne Neuveranlagung auf
-                      Initiative der Kund:innen einmal jährlich unentgeltlich
-                      beim WPDLU gemacht werden. Den Kund:innen wird das Angebot
-                      gemacht einmal pro Jahr die Geeignetheit der vermittelten
-                      Finanzinstrumente und der damit in Zusammenhang stehenden
-                      Portfoliostruktur zu überprüfen. Gemäß
-                      Wertpapieraufsichtsgesetz 2018 ist das
-                      Wertpapierdienstleistungsunternehmen dazu verpflichtet von
-                      Kund:innen außer persönlichen Daten auch Informationen
-                      über finanziellen Verhältnisse, Kenntnisse und Erfahrungen
-                      im Wertpapierbereich, Risikoneigung und Anlageziele im
-                      allgemeinen sowie Anlagezweck und Anlagedauer hinsichtlich
-                      der beabsichtigten Geschäfte einzuholen und aufzuzeichnen,
-                      um ordnungsgemäß beraten und geeignete Produkte vermitteln
-                      zu können. Dies soll eine gleichbleibend hohe
-                      Servicequalität für Kund:innen sicherstellen und dient
-                      nicht zuletzt auch zu deren Schutz. Auch wenn manche
-                      Fragen sehr weit gehend erscheinen mögen, ist es zur
-                      Gewährleistung einer bestmöglichen Beratung gesetzlich
-                      zwingend erforderlich, dass alle Angaben richtig und
-                      vollständig sind. Gemäß Art. 54 Abs 8 del VO (EU) 2017/565
-                      in Verbindung mit Richtlinie 2014/65 Artikel 25 Abs. 2
-                      darf das WPDLU keine Anlageberatung machen oder eine
-                      Empfehlung für ein geeignetes Produkt abgeben, wenn nicht
-                      alle erforderlichen Informationen vorliegen. Treffen
-                      Angabe nicht mehr zu, sollten Kund:innen das
-                      Wertpapierdienstleistungsunternehmen unverzüglich darüber
-                      informieren, damit die Änderungen berücksichtigt werden
-                      können. 4money Financial Services GmbH | Einspinnergasse
-                      1, A-8010 Graz | +43 (676) 92 00 670 | office@4money.at |
-                      www.4money.at Konzessioniertes
-                      Wertpapierdienstleistungsunternehmen gem. §4 Abs. 1 WAG
-                      2018 | Firmenbuchgericht: LG f. ZRS Graz | FN 618973 f 02
-                      Das WPDLU ist kein Steuerberater und überprüft nicht, ob
-                      die gewählte Anlageform, die steuerlich günstigste ist. Es
-                      wird empfohlen steuerliche Fragen zur Veranlagung mit
-                      einem Steuerberater zu besprechen. Das
-                      Wertpapierdienstleistungsunternehmen ist nicht befugt
-                      Zusicherungen zu geben oder Angaben zu machen die von den
-                      Verkaufsunterlagen abweichen. Das WPDLU stellt die
-                      vereinfachten Verkaufsprospekte bzw. die
-                      Basisinformationsblätter sowie alle sonstigen
-                      Gesprächsunterlagen kostenlos zur Verfügung. Grundsätzlich
-                      werden dem/der Kund:in die Informationen in elektronischer
-                      Form zur Verfügung gestellt, auf Anfrage der Kundin bzw.
-                      des Kunden werden diese auch in Papierform kostenlos zur
-                      Verfügung gestellt. Anlageergebnisse in der Vergangenheit
-                      sind keine Garantie für zukünftige Ergebnisse. Bevor eine
-                      Entscheidung für eine bestimmte Anlage getroffen wird,
-                      sollten sich Kund:innen anhand der angebotenen Unterlagen
-                      und Informationen genau über Eigenheiten, Funktionsweisen
-                      und Risiken der Anlagen informieren und ggf. beim WPDLU
-                      nachfragen. Die Daten von Kund:innen werden absolut
-                      vertraulich behandelt und ausschließlich im Sinne der
-                      gegenständlichen Kund:innenbeziehung verwendet. Gemäß § 8
-                      WAG 2018 ist das WPDLU sowie für sie tätige Personen zur
-                      Verschwiegenheit verpflichtet. Die
-                      Verschwiegenheitspflicht darf nur in gesetzlich
-                      definierten (Ausnahme)fällen durchbrochen werden.
+                      Die 4money Financial Services GmbH (kurz 4money), mit der Geschäftsanschrift Einspinnergasse 1/3.OG, 8010 Graz,
+ist ein von der österreichischen Finanzmarktaufsicht (FMA) konzessioniertes Wertpapierdienstleistungsunternehmen
+(kurz WPDLU) gemäß §4 Abs. 1 WAG 2018. Das WPDLU ist zur Anlageberatung (gemäß § 3 Abs. 2 Z 1 & WAG 2018)
+und Annahme und Übermittlung von Aufträgen (§ 3 Abs 2 Z 3 WAG 2018) im Hinblick auf Fondsanteile (gemäß § 1 Z
+7 lit c WAG 2018) auch über natürliche Personen gemäß §1 Z45 WAG 2018 berechtigt. Das WPDLU ist nicht Mitglied
+einer Anleger:innenentschädigungseinrichtung, sondern über eine Vermögensschadenhaftpflichtversicherung mit
+einer Versicherungssumme von 1.500.000€ pro Jahr und 1.000.000€ pro Schadensfall abgesichert. Das Halten von
+Kund:innengeldern ist dem WPDLU gesetzlich untersagt.
+Es wird darauf hingewiesen, dass das WPDLU lediglich über einen Geschäftsleiter verfügt. Das WPDLU bietet in Bezug
+auf Wertpapierdienstleistungen nicht unabhängige Vermittlung- bzw. Beratung auf Provisions- und/oder Honorarbasis
+an. Das WPDLU hat zwar eine breite Palette von Produkten, kann aber nicht den gesamten Markt abbilden. Eine
+umfassende Marktuntersuchung, welche sämtliche auf dem Markt befindliche Produkte beinhaltet ist daher nicht
+geschuldet. Eigenprodukte werden nicht angeboten.
+Seitens des WPDLU besteht keine Pflicht Kund:innenportfolios laufend zu überwachen bzw. die Kund:innen
+über Veränderungen zu informieren. Daher ist das für das WPDLU nicht möglich laufend festzustellen ob
+bestimmte Produkte oder Wertpapierdienstleistungen weiterhin angemessen oder geeignet sind. Diesbezügliche
+Eignungstests können auch ohne Neuveranlagung auf Initiative der Kund:innen einmal jährlich unentgeltlich beim
+WPDLU gemacht werden. Den Kund:innen wird das Angebot gemacht einmal pro Jahr die Geeignetheit der vermittelten
+Finanzinstrumente und der damit in Zusammenhang stehenden Portfoliostruktur zu überprüfen.
+Gemäß Wertpapieraufsichtsgesetz 2018 ist das Wertpapierdienstleistungsunternehmen dazu verpflichtet von
+Kund:innen außer persönlichen Daten auch Informationen über finanziellen Verhältnisse, Kenntnisse und Erfahrungen
+im Wertpapierbereich, Risikoneigung und Anlageziele im allgemeinen sowie Anlagezweck und Anlagedauer hinsichtlich
+der beabsichtigten Geschäfte einzuholen und aufzuzeichnen, um ordnungsgemäß beraten und geeignete Produkte
+vermitteln zu können. Dies soll eine gleichbleibend hohe Servicequalität für Kund:innen sicherstellen und dient nicht zuletzt
+auch zu deren Schutz. Auch wenn manche Fragen sehr weit gehend erscheinen mögen, ist es zur Gewährleistung einer
+bestmöglichen Beratung gesetzlich zwingend erforderlich, dass alle Angaben richtig und vollständig sind. Gemäß Art. 54
+Abs 8 del VO (EU) 2017/565 in Verbindung mit Richtlinie 2014/65 Artikel 25 Abs. 2 darf das WPDLU keine Anlageberatung
+machen oder eine Empfehlung für ein geeignetes Produkt abgeben, wenn nicht alle erforderlichen Informationen vorliegen.
+Treffen Angabe nicht mehr zu, sollten Kund:innen das Wertpapierdienstleistungsunternehmen unverzüglich darüber
+informieren, damit die Änderungen berücksichtigt werden können.
                       {/*termsAndConditions?.[
                           step === PHASES.TERMS1
                             ? 0
@@ -1298,175 +1277,142 @@ export default function Stepper() {
                   <div className="prose prose-sm max-w-none text-gray-700 space-y-4">
                     {/* Render terms and conditions content here */}
                     <p>
-                      Umgang der 4money mit Nachhaltigkeitsrisiken
- ○ Sehr langfristig (> 10 Jahre)
-        %    
-  %
- Die 4money berücksichtigt Nachhaltigkeitsrisiken im Rahmen der Anlageberatung in der Regel nur auf ausdrücklichen 
-Kund:innenwunsch. Ohne einen solchen Kund:innenwunsch berücksichtigt die 4money daher bei der Erbringung der 
-Wertpapierdienstleistungen keine Nachhaltigkeitsrisiken. Dies erfolgt aus Verhältnismäßigkeitserwägungen sowie aus der 
-Überlegung, dass mit den Anlageempfehlungen in erster Linie die vermögensrechtlichen Interessen der Kund:innen zu wahren 
-sind.
- Informationen zur Nachhaltigkeit im Zusammenhang mit der Abfrage von Nachhaltigkeitspräferenzen
- Präambel
- Der europäische Aktionsplan für ein nachhaltiges Finanzsystem sieht vor, dass die europäische Finanzindustrie bei der 
-Konzeption und dem Vertrieb von Finanzprodukten ökologische (Environment), soziale (Social) und verantwortungsvolle 
-Unternehmensführungs- (Governance) Kriterien zu berücksichtigen hat (sogenannte ESG-Kriterien). Anleger:innen erhalten 
-dadurch die Möglichkeit, nachhaltige Geldanlagen zu tätigen, indem ihnen transparent dargelegt wird, wie sich investiertes 
-Kapital auf die Umwelt und Gesellschaft auswirkt.
- 4money Financial Services GmbH | Einspinnergasse 1, A-8010 Graz |  +43 (676) 92 00 670 |  office@4money.at |  www.4money.at
- Konzessioniertes 
-Wertpapierdienstleistungsunternehmen gem. §4 Abs. 1 WAG 2018 | Firmenbuchgericht: LG f. ZRS Graz | FN 618973 f
-03
- Umwelt
- (environment)
- ESG
- Soziales
- (social)
- Unternehmens
-führung
- (governance)
- Übersicht: ESG Kriterien
- Um einen einheitlichen Standard zu schaffen, was als „nachhaltige Geldanlage“ gilt, hat der Europäische Gesetzgeber die „Offenlegungs
-Verordnung“1 und die „Taxonomie- Verordnung“2 erlassen. Die Offenlegungs-Verordnung definiert nachhaltige Investitionen im 
-Allgemeinen, während die Taxonomie-Verordnung die Offenlegungs-Verordnung bezüglich „ökologisch nachhaltige Investitionen“ 
+                     Nachhaltigkeitsrisiken
+Umgang der 4money mit Nachhaltigkeitsrisiken
+Die 4money berücksichtigt Nachhaltigkeitsrisiken im Rahmen der Anlageberatung in der Regel nur auf ausdrücklichen
+Kund:innenwunsch. Ohne einen solchen Kund:innenwunsch berücksichtigt die 4money daher bei der Erbringung der
+Wertpapierdienstleistungen keine Nachhaltigkeitsrisiken. Dies erfolgt aus Verhältnismäßigkeitserwägungen sowie aus der
+Überlegung, dass mit den Anlageempfehlungen in erster Linie die vermögensrechtlichen Interessen der Kund:innen zu
+wahren sind.
+Informationen zur Nachhaltigkeit im Zusammenhang mit der Abfrage von Nachhaltigkeitspräferenzen
+Präambel
+Der europäische Aktionsplan für ein nachhaltiges Finanzsystem sieht vor, dass die europäische Finanzindustrie bei der
+Konzeption und dem Vertrieb von Finanzprodukten ökologische (Environment), soziale (Social) und verantwortungsvolle
+Unternehmensführungs- (Governance) Kriterien zu berücksichtigen hat (sogenannte ESG-Kriterien). Anleger:innen
+erhalten dadurch die Möglichkeit, nachhaltige Geldanlagen zu tätigen, indem ihnen transparent dargelegt wird, wie sich
+investiertes Kapital auf die Umwelt und Gesellschaft auswirkt.
+Um einen einheitlichen Standard zu schaffen, was als „nachhaltige Geldanlage“ gilt, hat der Europäische Gesetzgeber die „Offenlegungs-
+Verordnung“1 und die „Taxonomie- Verordnung“2 erlassen. Die Offenlegungs-Verordnung definiert nachhaltige Investitionen im
+Allgemeinen, während die Taxonomie-Verordnung die Offenlegungs-Verordnung bezüglich „ökologisch nachhaltige Investitionen“
 konkretisiert.
- In diesem Informationsblatt erhalten Sie Informationen zu den unterschiedlichen, rechtlichen Bedeutungen der Nachhaltigkeit, inwiefern 
-Sie Nachhaltigkeitskriterien bei Ihrer Investition berücksichtigen können, und woran Sie erkennen können, in welchen Ausmaß Ihre 
+In diesem Informationsblatt erhalten Sie Informationen zu den unterschiedlichen, rechtlichen Bedeutungen der Nachhaltigkeit, inwiefern
+Sie Nachhaltigkeitskriterien bei Ihrer Investition berücksichtigen können, und woran Sie erkennen können, in welchen Ausmaß Ihre
 Investition nachhaltig ist.
- 1. Was gilt als „nachhaltige“ Investition? 
-Die Offenlegungs-Verordnung orientiert sich an den zuvor genannten ESG-Kriterien und legt fest, dass eine Investition dann 
+1. Was gilt als „nachhaltige“ Investition?
+Die Offenlegungs-Verordnung orientiert sich an den zuvor genannten ESG-Kriterien und legt fest, dass eine Investition dann
 als nachhaltig gilt, wenn:
- E 
-S 
-G 
-die Investition zur Erreichung eines Umweltziels beiträgt
-       (siehe hierzu Punkt 2. zu „ökologisch nachhaltigen“ Investitionen) oder
- die Investition zur Erreichung eines sozialen Ziels beiträgt, insbesondere eine Investition, die zur Bekämpfung von  
-Ungleichheiten beiträgt oder den sozialen Zusammenhalt, die soziale Integration und die Arbeitsbeziehungen   
-fördert oder eine Investition in Humankapital oder zugunsten wirtschaftlich oder sozial benachteiligter    
+E die Investition zur Erreichung eines Umweltziels beiträgt
+(siehe hierzu Punkt 2. zu „ökologisch nachhaltigen“ Investitionen) oder
+S die Investition zur Erreichung eines sozialen Ziels beiträgt, insbesondere eine Investition, die zur Bekämpfung von
+Ungleichheiten beiträgt oder den sozialen Zusammenhalt, die soziale Integration und die Arbeitsbeziehungen
+fördert oder eine Investition in Humankapital oder zugunsten wirtschaftlich oder sozial benachteiligter
 Bevölkerungsgruppen und die Investition kein Umweltziel oder soziales Ziel erheblich beeinträchtigt und
- die Unternehmen, in die investiert wird, Verfahrensweisen einer guten Unternehmensführung anwenden,   
-insbesondere bei soliden Managementstrukturen, den Beziehungen zu den Arbeitnehmern, der Vergütung   
+G die Unternehmen, in die investiert wird, Verfahrensweisen einer guten Unternehmensführung anwenden,
+insbesondere bei soliden Managementstrukturen, den Beziehungen zu den Arbeitnehmern, der Vergütung
 von Mitarbeiter:innen sowie der Einhaltung der Steuervorschriften.
- 2. Was gilt als „ökologisch nachhaltige“ Investition? 
+2. Was gilt als „ökologisch nachhaltige“ Investition?
 Nach der Taxonomie-Verordnung gilt eine Investition in eine wirtschaftliche Tätigkeit dann als „ökologisch nachhaltig“, wenn
- die wirtschaftliche Tätigkeit zumindest einem Umweltziel dient und einen wesentlichen Beitrag zur Erreichung dieses  
+die wirtschaftliche Tätigkeit zumindest einem Umweltziel dient und einen wesentlichen Beitrag zur Erreichung dieses
 Ziels leistet,
- die wirtschaftliche Tätigkeit nicht gleichzeitig zu einer erheblichen Beeinträchtigung eines oder mehrerer   
+die wirtschaftliche Tätigkeit nicht gleichzeitig zu einer erheblichen Beeinträchtigung eines oder mehrerer
 Umweltziele führt,
- die wirtschaftliche Tätigkeit unter Einhaltung des festgelegten Mindestschutzes ausgeübt wird (betrifft Menschen-  
-und Arbeitnehmerrechte, Leitsätze in der Unternehmensführung etc.), sowie
- dabei die entsprechenden technischen Vorgaben, die an Kennzahlen gemessen werden, eingehalten werden (z.B.  
+die wirtschaftliche Tätigkeit unter Einhaltung des festgelegten Mindestschutzes ausgeübt wird (betrifft Menschenund
+Arbeitnehmerrechte, Leitsätze in der Unternehmensführung etc.), sowie
+dabei die entsprechenden technischen Vorgaben, die an Kennzahlen gemessen werden, eingehalten werden (z.B.
 Schwellenwerte für Emissionen oder CO2- Fußabdruck).
- Sind diese Punkte erfüllt, handelt es sich um eine „ökologisch nachhaltige“ Investition. Die Taxonomie-Verordnung nennt 
-dabei sechs Umweltziele.
- 1 Verordnung (EU) 2019/2088 vom 27. November 2019 über nachhaltigkeitsbezogene Offenlegungspflichten im Finanzdienstleistungssektor.
- 2 Verordnung (EU) 2020/852 vom 18. Juni 2020 über die Einrichtung eines Rahmens zur Erleichterung nachhaltiger Investitionen und zur Änderung der Verordnung (EU) 2019/2088.
- 4money Financial Services GmbH | Einspinnergasse 1, A-8010 Graz |  +43 (676) 92 00 670 |  office@4money.at |  www.4money.at
- Konzessioniertes 
-Wertpapierdienstleistungsunternehmen gem. §4 Abs. 1 WAG 2018 | Firmenbuchgericht: LG f. ZRS Graz | FN 618973 f
-04
- Sechs Umweltziele
- 1. Klimaschutz:
- Darunter versteht man Beiträge zur Stabilisierung von Treibhausgasemissionen, also eine Vorgehensweise, die den Anstieg 
-der durchschnittlichen Erdtemperatur auf deutlich unter 2 °C zu halten versucht. Da es einige Wirtschaftstätigkeiten gibt, 
-die sich negativ auf die Umwelt auswirken, kann ein wesentlicher Beitrag zu einem Umweltziel auch darin bestehen, solche 
-negativen Auswirkungen zu verringern. Beispiele hierfür sind der Ausbau klimaneutraler Mobilität oder die Erzeugung 
+Sind diese Punkte erfüllt, handelt es sich um eine „ökologisch nachhaltige“ Investition. Die Taxonomie-Verordnung nennt
+dabei sechs Umweltziele Sechs Umweltziele
+1. Klimaschutz:
+Darunter versteht man Beiträge zur Stabilisierung von Treibhausgasemissionen, also eine Vorgehensweise, die den Anstieg
+der durchschnittlichen Erdtemperatur auf deutlich unter 2 °C zu halten versucht. Da es einige Wirtschaftstätigkeiten gibt,
+die sich negativ auf die Umwelt auswirken, kann ein wesentlicher Beitrag zu einem Umweltziel auch darin bestehen, solche
+negativen Auswirkungen zu verringern. Beispiele hierfür sind der Ausbau klimaneutraler Mobilität oder die Erzeugung
 sauberer Kraftstoffe aus erneuerbaren Quellen.
- 2. Anpassung an den Klimawandel:
- Darunter versteht man Tätigkeiten, welche nachteilige Auswirkungen des derzeitigen oder künftigen Klimas oder die Gefahr 
-nachteiliger Auswirkungen auf die Tätigkeit selbst, Menschen, die Natur oder Vermögenswerte verringern oder vermeiden 
+2. Anpassung an den Klimawandel:
+Darunter versteht man Tätigkeiten, welche nachteilige Auswirkungen des derzeitigen oder künftigen Klimas oder die Gefahr
+nachteiliger Auswirkungen auf die Tätigkeit selbst, Menschen, die Natur oder Vermögenswerte verringern oder vermeiden
 soll.
- 3. Die nachhaltige Nutzung und der Schutz von Wasser- und Meeresressourcen:
- Hierzu zählt z.B. der Schutz vor den nachteiligen Auswirkungen der Einleitung von städtischem und industriellem Abwasser.
- 4. Der Übergang zu einer Kreislaufwirtschaft:
- Recycling“, aber auch die Verbesserung der Haltbarkeit und Reparaturfähigkeit von Produkten.
- 5. Vermeidung und Verminderung der Umweltverschmutzung:
- z.B. Verbesserung der Luft-, Wasser- oder Bodenqualität in den Gebieten, in denen die Wirtschaftstätigkeit stattfindet, aber 
+3. Die nachhaltige Nutzung und der Schutz von Wasser- und Meeresressourcen:
+Hierzu zählt z.B. der Schutz vor den nachteiligen Auswirkungen der Einleitung von städtischem und industriellem Abwasser.
+4. Der Übergang zu einer Kreislaufwirtschaft:
+Recycling“, aber auch die Verbesserung der Haltbarkeit und Reparaturfähigkeit von Produkten.
+5. Vermeidung und Verminderung der Umweltverschmutzung:
+z.B. Verbesserung der Luft-, Wasser- oder Bodenqualität in den Gebieten, in denen die Wirtschaftstätigkeit stattfindet, aber
 auch die Beseitigung von Abfall.
- 6. Der Schutz und die Wiederherstellung der Artenvielfalt (Biodiversität) und der Ökosysteme:
- Gemeint sind hier unter anderem nachhaltige Landnutzung und - bewirtschaftung oder die nachhaltige 
+6. Der Schutz und die Wiederherstellung der Artenvielfalt (Biodiversität) und der Ökosysteme:
+Gemeint sind hier unter anderem nachhaltige Landnutzung und - bewirtschaftung oder die nachhaltige
 Waldbewirtschaftung.
- 3. Berücksichtigung von ökologischen, sozialen und ethischen Nachhaltigkeitskriterienbei Ihrer Investition 
-Im Zuge einer Anlageberatung sind wir als Anlageberater:in verpflichtet, zu erheben, ob und inwiefern wir bei der 
+3. Berücksichtigung von ökologischen, sozialen und ethischen Nachhaltigkeitskriterienbei Ihrer Investition
+Im Zuge einer Anlageberatung sind wir als Anlageberater:in verpflichtet, zu erheben, ob und inwiefern wir bei der
 Veranlagung Ihres Kapitals die Nachhaltigkeit von Finanzinstrumenten berücksichtigen sollen.
- Bei dieser Erhebung können Sie zunächst folgende Angaben zu Ihrer Nachhaltigkeitspräferenz machen:
- a) Sie präferieren ökologisch nachhaltige Finanzinstrumente im Sinne der Taxonomie-Verordnung (siehe Punkt 2.).
- b) Sie präferieren (insbesondere sozial und unternehmerisch) nachhaltige Finanzinstrumente im Sinne 
+Bei dieser Erhebung können Sie zunächst folgende Angaben zu Ihrer Nachhaltigkeitspräferenz machen:
+a) Sie präferieren ökologisch nachhaltige Finanzinstrumente im Sinne der Taxonomie-Verordnung (siehe Punkt 2.).
+b) Sie präferieren (insbesondere sozial und unternehmerisch) nachhaltige Finanzinstrumente im Sinne
 der Offenlegungsverordnung (siehe Punkt 1.).
- c) Sie präferieren Finanzinstrumente, die weder als ökologisch nachhaltig“ im Sinne der Taxonomie-Verordnung noch 
-als „nachhaltig“ im Sinne der Offenlegungs-Verordnung eingestuft werden, bei denen aber die für Sie 
-wichtigsten nachteiligen Auswirkungen auf Nachhaltigkeitsfaktoren berücksichtigt werden. Als 
-Nachhaltigkeitsfaktoren gelten Umwelt-, Sozial- und Arbeitnehmerbelange, die Achtung der Menschenrechte und 
+c) Sie präferieren Finanzinstrumente, die weder als ökologisch nachhaltig“ im Sinne der Taxonomie-Verordnung noch
+als „nachhaltig“ im Sinne der Offenlegungs-Verordnung eingestuft werden, bei denen aber die für Sie
+wichtigsten nachteiligen Auswirkungen auf Nachhaltigkeitsfaktoren berücksichtigt werden. Als
+Nachhaltigkeitsfaktoren gelten Umwelt-, Sozial- und Arbeitnehmerbelange, die Achtung der Menschenrechte und
 die Bekämpfung von Korruption und Bestechung.
- d) Sie präferieren eine Kombination aus den orgenannten Finanzinstrumenten.
- e) Sie haben keine Präferenz für nachhaltige Finanzinstrumente.
- Anschließend können Sie bei Vorliegen einer Präferenz auch angeben, welchen Mindestanteil diese Investition ausmachen 
-soll, sowie welche Parameter (z.B. quantitative Werte) herangezogen werden sollen, um die nachteiligen Auswirkungen 
-auf Nachhaltigkeitsfaktoren zu ermitteln. Derartige Parameter können etwa Indikatoren aus dem Umweltbereich (z.B. 
-Energieintensität eines Unternehmens/einer Branche, CO2-Fußabdruck usw.) oder Indikatoren aus dem gesellschaftlichen 
+d) Sie präferieren eine Kombination aus den orgenannten Finanzinstrumenten.
+e) Sie haben keine Präferenz für nachhaltige Finanzinstrumente.
+Anschließend können Sie bei Vorliegen einer Präferenz auch angeben, welchen Mindestanteil diese Investition ausmachen
+soll, sowie welche Parameter (z.B. quantitative Werte) herangezogen werden sollen, um die nachteiligen Auswirkungen
+auf Nachhaltigkeitsfaktoren zu ermitteln. Derartige Parameter können etwa Indikatoren aus dem Umweltbereich (z.B.
+Energieintensität eines Unternehmens/einer Branche, CO2-Fußabdruck usw.) oder Indikatoren aus dem gesellschaftlichen
 Bereich (z.B. Gender-Diversity im Vorstand, Umgang mit kontroversen Waffen usw.) sein.
- Wenn Sie Nachhaltigkeitspräferenzen nennen, wird Ihnen ein Finanzprodukt empfohlen, welches Ihren 
-Nachhaltigkeitspräferenzen (Offenlegungs-Verordnung, Taxonomie- Verordnung und/oder nachteilige Auswirkungen auf 
-Nachhaltigkeitsfaktoren) entspricht.
- 4money Financial Services GmbH | Einspinnergasse 1, A-8010 Graz |  +43 (676) 92 00 670 |  office@4money.at |  www.4money.at
- Konzessioniertes 
-Wertpapierdienstleistungsunternehmen gem. §4 Abs. 1 WAG 2018 | Firmenbuchgericht: LG f. ZRS Graz | FN 618973 f
-05
- 4. Wie erkenne ich, ob eine Investition diesen Nachhaltigkeitskriterien entspricht?
- Wir dürfen Ihnen als Anlageberater:in nur Investitionen empfehlen, die Ihren Präferenzen entsprechen. Dies gilt für alle 
+Wenn Sie Nachhaltigkeitspräferenzen nennen, wird Ihnen ein Finanzprodukt empfohlen, welches Ihren
+Nachhaltigkeitspräferenzen (Offenlegungs-Verordnung, Taxonomie- Verordnung und/oder nachteilige Auswirkungen auf
+Nachhaltigkeitsfaktoren) entspricht. 4. Wie erkenne ich, ob eine Investition diesen Nachhaltigkeitskriterien entspricht?
+Wir dürfen Ihnen als Anlageberater:in nur Investitionen empfehlen, die Ihren Präferenzen entsprechen. Dies gilt für alle
 Finanzinstrumente und auch konkret i.Z.m. Ihren Nachhaltigkeitspräferenzen.
- Zusätzlich dazu normieren die Offenlegungs- und die Taxonomie-Verordnung für Finanzmarktteilnehmer, bspw. Hersteller 
-und Anbieter von Finanzprodukten, und Finanzberater umfassende Offenlegungspflichten zu Nachhaltigkeitsrisiken. 
-Diese umfassen insbesondere die Art und Weise, wie Nachhaltigkeitsrisiken bei ihren Investitionsentscheidungen bzw. 
-bei ihrer Beratung einbezogen werden und die Ergebnisse der Bewertung der zu erwartenden Auswirkungen von 
+Zusätzlich dazu normieren die Offenlegungs- und die Taxonomie-Verordnung für Finanzmarktteilnehmer, bspw. Hersteller
+und Anbieter von Finanzprodukten, und Finanzberater umfassende Offenlegungspflichten zu Nachhaltigkeitsrisiken.
+Diese umfassen insbesondere die Art und Weise, wie Nachhaltigkeitsrisiken bei ihren Investitionsentscheidungen bzw.
+bei ihrer Beratung einbezogen werden und die Ergebnisse der Bewertung der zu erwartenden Auswirkungen von
 Nachhaltigkeitsrisiken auf die Rendite von Finanzprodukten, die sie zur Verfügung stellen bzw. die von ihnen beraten werden.
- Darüber hinaus sind Finanzmarktteilnehmer und Finanzberater bei gewissen Finanzprodukten, die gemäß den Verordnungen 
-als „nachhaltig“ und „ökologisch nachhaltig“ bezeichnet werden dürfen, verpflichtet, weitere Informationen zu diesen 
-Finanzprodukten auf deren Internetseiten offenzulegen. Diese zusätzlichen Informationspflichten betreffen aber nur 
-folgende Finanzprodukte: Verwaltete Wertpapierportfolios, Investmentfonds (OGAW), alternative Investmentfonds (AIF), 
-Versicherungsanlageprodukte (IBIPs), Paneuropäische Private Pensionsprodukte (PEPPs) sowie Altersvorsorgeprodukte 
+Darüber hinaus sind Finanzmarktteilnehmer und Finanzberater bei gewissen Finanzprodukten, die gemäß den Verordnungen
+als „nachhaltig“ und „ökologisch nachhaltig“ bezeichnet werden dürfen, verpflichtet, weitere Informationen zu diesen
+Finanzprodukten auf deren Internetseiten offenzulegen. Diese zusätzlichen Informationspflichten betreffen aber nur
+folgende Finanzprodukte: Verwaltete Wertpapierportfolios, Investmentfonds (OGAW), alternative Investmentfonds (AIF),
+Versicherungsanlageprodukte (IBIPs), Paneuropäische Private Pensionsprodukte (PEPPs) sowie Altersvorsorgeprodukte
 und - systeme.
- Für diese Finanzprodukte gibt es drei Kategorien, die Ihnen zeigen, ob bzw. wie stark die Nachhaltigkeit im Finanzprodukt 
+Für diese Finanzprodukte gibt es drei Kategorien, die Ihnen zeigen, ob bzw. wie stark die Nachhaltigkeit im Finanzprodukt
 berücksichtigt ist:
- a) „dunkelgrüne“ Finanzprodukte (Art 9)  
-b) „hellgrüne“ Finanzprodukte (Art 8)  
-   Sonstige Finanzprodukte   
-Finanzprodukte, die eine nachhaltige Investition anstreben    
-(„dunkelgrüne“ Finanzprodukte - Art 9) - bei diesen 
-Finanzprodukten ist die Nachhaltigkeit am stärksten 
+a) „dunkelgrüne“ Finanzprodukte (Art 9) Finanzprodukte, die eine nachhaltige Investition anstreben
+(„dunkelgrüne“ Finanzprodukte - Art 9) - bei diesen
+Finanzprodukten ist die Nachhaltigkeit am stärksten
 sichergestellt und die Informationspflichten am umfangreichsten.
- Finanzprodukte, die ökologische oder soziale (oder eine Kombination  
-beider) Merkmale bewerben („hellgrüne“ Finanzprodukte - Art 8). Bei  
+b) „hellgrüne“ Finanzprodukte (Art 8) Finanzprodukte, die ökologische oder soziale (oder eine Kombination
+beider) Merkmale bewerben („hellgrüne“ Finanzprodukte - Art 8). Bei
 diesen Finanzprodukten werden ökologische oder soziale Merkmale
- lediglich berücksichtigt, während dunkelgrüne Finanzprodukte ein   
+lediglich berücksichtigt, während dunkelgrüne Finanzprodukte ein
 Umweltziel explizit anstreben.
- Sonstige Finanzprodukte,  die Nachhaltigkeitskriterien gemäß   
-Offenlegungs- bzw. Taxonomie-Verordnung nicht oder in geringem   
+Sonstige Finanzprodukte Sonstige Finanzprodukte, die Nachhaltigkeitskriterien gemäß
+Offenlegungs- bzw. Taxonomie-Verordnung nicht oder in geringem
 Umfang berücksichtigen.
- ACHTUNG: Diese zusätzlichen Informationspflichten gelten nur für gewisse Finanzinstrumente. Andere Finanzinstrumente, 
-wie z.B. Unternehmensanleihen, lösen diese zusätzlichen Informationspflichten nicht aus. Unabhängig davon werden Ihre 
+ACHTUNG: Diese zusätzlichen Informationspflichten gelten nur für gewisse Finanzinstrumente. Andere Finanzinstrumente,
+wie z.B. Unternehmensanleihen, lösen diese zusätzlichen Informationspflichten nicht aus. Unabhängig davon werden Ihre
 Nachhaltigkeitspräferenzen aber bei allen Finanzinstrumenten, die wir Ihnen empfehlen, berücksichtigt.
- Fazit
- Der Begriff der Nachhaltigkeit deckt im europäischen Rechtsrahmen verschiedene Aspekte ab - insbesondere ökologische, 
-soziale und unternehmerische Nachhaltigkeit. In welchem Ausmaß und in welcher Ausprägung die Nachhaltigkeit bei den 
-Finanzprodukten im Rahmen der Anlageberatung berücksichtigt wird, hängt von Ihren Präferenzen ab, die Sie Ihrem/Ihrer 
+Fazit
+Der Begriff der Nachhaltigkeit deckt im europäischen Rechtsrahmen verschiedene Aspekte ab - insbesondere ökologische,
+soziale und unternehmerische Nachhaltigkeit. In welchem Ausmaß und in welcher Ausprägung die Nachhaltigkeit bei den
+Finanzprodukten im Rahmen der Anlageberatung berücksichtigt wird, hängt von Ihren Präferenzen ab, die Sie Ihrem/Ihrer
 Anlageberater:in bei Ihrem Beratungsgespräch offenlegen.
- Wenn Sie uns Nachhaltigkeitspräferenzen nennen, empfehlen wir Ihnen im Rahmen der Anlageberatung nur 
+Wenn Sie uns Nachhaltigkeitspräferenzen nennen, empfehlen wir Ihnen im Rahmen der Anlageberatung nur
 Finanzinstrumente, die Ihren konkreten Nachhaltigkeitspräferenzen entsprechen.
- Wenn Sie uns keine Nachhaltigkeitspräferenzen nennen, stufen wir Sie als „nachhaltigkeitsneutral“ ein. Das heißt, dass 
-wir in die Eignungsbeurteilung bzw. in die Auswahl jener Finanzinstrumente, die wir Ihnen gegebenenfalls empfehlen 
-oder im Rahmen der Portfolioverwaltung einsetzen, Ihre sonstigen Anlagepräferenzen (z.B. Risikotoleranz, Erfahrungen 
-und Kenntnisse, Vermögens- verhältnisse) einbeziehen. Die Nachhaltigkeit ist dann allerdings kein Auswahl- bzw. 
+Wenn Sie uns keine Nachhaltigkeitspräferenzen nennen, stufen wir Sie als „nachhaltigkeitsneutral“ ein. Das heißt, dass
+wir in die Eignungsbeurteilung bzw. in die Auswahl jener Finanzinstrumente, die wir Ihnen gegebenenfalls empfehlen
+oder im Rahmen der Portfolioverwaltung einsetzen, Ihre sonstigen Anlagepräferenzen (z.B. Risikotoleranz, Erfahrungen
+und Kenntnisse, Vermögens- verhältnisse) einbeziehen. Die Nachhaltigkeit ist dann allerdings kein Auswahl- bzw.
 Ausschlusskriterium.
- Als Anlageberater:in beziehen wir die Informationen über die Nachhaltigkeit in Finanzinstrumenten, aus den offengelegten 
-Informationen der jeweiligen Produkthersteller, z.B. aus den regelmäßigen Berichten zu den Finanzinstrumenten. Diese 
-sind auch für Sie, z.B. auf den jeweiligen Internetseiten der Produktanbieter, einsehbar. Dort finden Sie unter anderem eine 
-Beschreibung der ökologischen oder sozialen Merkmale oder des nachhaltigen Investitionsziels, Angaben zu den Methoden, 
-die angewandt werden, um die ökologischen oder sozialen Merkmale der für das Finanzprodukt ausgewählten nachhaltigen 
-Investitionen zu bewerten, zu messen und zu überwachen sowie Informationen über die wichtigsten nachteiligen 
-Auswirkungen auf die Nachhaltigkeitsfaktoren von Finanzinstrumenten. Bedenken Sie, dass es sich dabei um Informationen 
+Als Anlageberater:in beziehen wir die Informationen über die Nachhaltigkeit in Finanzinstrumenten, aus den offengelegten
+Informationen der jeweiligen Produkthersteller, z.B. aus den regelmäßigen Berichten zu den Finanzinstrumenten. Diese
+sind auch für Sie, z.B. auf den jeweiligen Internetseiten der Produktanbieter, einsehbar. Dort finden Sie unter anderem eine
+Beschreibung der ökologischen oder sozialen Merkmale oder des nachhaltigen Investitionsziels, Angaben zu den Methoden,
+die angewandt werden, um die ökologischen oder sozialen Merkmale der für das Finanzprodukt ausgewählten nachhaltigen
+Investitionen zu bewerten, zu messen und zu überwachen sowie Informationen über die wichtigsten nachteiligen
+Auswirkungen auf die Nachhaltigkeitsfaktoren von Finanzinstrumenten. Bedenken Sie, dass es sich dabei um Informationen
 handeln kann, die sich auf Zeiträume beziehen, die in der Vergangenheit liegen.
                       {/*termsAndConditions?.[
                           step === PHASES.TERMS1
@@ -1550,9 +1496,9 @@ handeln kann, die sich auf Zeiträume beziehen, die in der Vergangenheit liegen.
 
             {step === PHASES.SUGGESTIONS && (
               <div className="w-full h-full">
-                <h2 className="text-xl font-bold mb-4">Suggested Product</h2>
+                <h2 className="text-xl font-bold mb-4">Vorgeschlagene Produkte</h2>
                 <p className="text-gray-600 mb-6">
-                  Based on your answers, we recommend:
+                  Basierend auf Ihren Antworten empfehlen wir:
                 </p>
                 <div
                   className="border p-4 rounded shadow"

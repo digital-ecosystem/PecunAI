@@ -59,44 +59,44 @@ async function main() {
 
   const questions = [
     {
-      text: "Investment Goals",
+      text: "Anlageziele",
       options: [
-        { label: "General Wealth Building", value: "general_wealth_building" },
-        { label: "Retirement Planning", value: "retirement_planning" },
-        { label: "Diversification of Total Assets", value: "diversification_total_assets" },
-        { label: "Other", value: "other" },
+        { label: "Allgemeiner Vermögensaufbau", value: "general_wealth_building" },
+        { label: "Altersvorsorge", value: "retirement_planning" },
+        { label: "Diversifikation des Gesamtvermögens", value: "diversification_total_assets" },
+        { label: "Sonstiges", value: "other" },
       ],
     },
     {
-      text: "Intended Investment Duration",
+      text: "Angedachte Anlagedauer",
       options: [
-        { label: "Short-term (< 3 years)", value: "short_term" },
-        { label: "Medium-term (3–7 years)", value: "medium_term" },
-        { label: "Long-term (7–10 years)", value: "long_term" },
-        { label: "Very Long-term (> 10 years)", value: "very_long_term" },
+        { label: "Kurzfristig (< 3 Jahre)", value: "short_term" },
+        { label: "Mittelfristig (3–7 Jahre)", value: "medium_term" },
+        { label: "Langfristig (7–10 Jahre)", value: "long_term" },
+        { label: "Sehr langfristig (> 10 Jahre)", value: "very_long_term" },
       ],
     },
     {
-      text: "Have we been made aware of the information on sustainability?",
+      text: "Mir uns wurden die Informationen zur Nachhaltigkeit zur Kenntnis gebracht?",
       options: [
-        { label: "Yes", value: "yes" },
-        { label: "No", value: "no" },
+        { label: "Ja", value: "yes" },
+        { label: "Nein", value: "no" },
       ],
     },
     {
-      text: "Would you like 'sustainability' to be considered in your investment advice?",
+      text: "Möchten Sie \"Nachhaltigkeit\" bei Ihrer Investition im Rahmen der Anlageberatung berücksichtigen?",
       options: [
-        { label: "Yes", value: "yes" },
-        { label: "No", value: "no" },
-        { label: "I am neutral regarding sustainability", value: "neutral" },
+        { label: "Ja", value: "yes" },
+        { label: "Nein", value: "no" },
+        { label: "Ich bin nachhaltigkeitsneutral", value: "neutral" },
       ],
     },
     {
-      text: "Information about risk appetite",
+      text: "Angaben über die Risikoneigung",
       options: [
-        { label: "Conservative", value: "conservative" },
-        { label: "Opportunity-oriented", value: "opportunity_oriented" },
-        { label: "Risk-aware", value: "risk_aware" },
+        { label: "Konservativ", value: "conservative" },
+        { label: "Chancenorientiert", value: "opportunity_oriented" },
+        { label: "Risikobewusst", value: "risk_aware" },
       ],
     },
   ];
@@ -312,7 +312,7 @@ async function main() {
         model: "gpt-5",
         prompt: "You are a financial advisor specializing in short-term growth portfolios. Recommend this product for clients seeking small growth opportunities while maintaining liquidity within 0–1 years.",
         firstMessage: "Welcome to the VVKN1 Goal Growth Portfolio! I'm here to help you achieve your short-term financial goals.",
-        vectorId: "vvkn1-growth",
+        vectorId: "",
       }
     },
     {

@@ -5,7 +5,6 @@ import { getMainProductPrompt, getProductAISettings, getSessionProductId } from 
 import { Role } from '@/types'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { ChatCompletionMessageParam } from 'openai/resources/index.mjs'
 import type {ResponseInputItem} from 'openai/resources/beta/responses'
 
 
@@ -73,9 +72,9 @@ export async function POST(req: Request) {
     });
     }*/
 
-    // Use chat completions with enhanced system prompt
     const response = await openai.responses.create({
       model: model,
+      stream: true,
       instructions: systemPrompt + (productSettings?.firstMessage ? `\n\n${productSettings.firstMessage}` : '' ),
       input: [
         { role: 'system', content: systemPrompt },
@@ -83,23 +82,57 @@ export async function POST(req: Request) {
       ],
       ...(tools.length > 0 && { tools: tools })
     });
-    
-    const botResponse = response.output_text;
-    if (!botResponse) throw new Error('No response from OpenAI')
 
-    await saveChatMessage(
-      Role.assistant,
-      botResponse,
-      threadId || currentSessionId,
-      messageIndex + 1
-    )
+    // Create a readable stream for the response
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        let fullResponse = '';
 
-    return NextResponse.json({
-      message: botResponse,
-      sessionId: currentSessionId,
-      threadId: threadId || currentSessionId,
-      model: model,
-      usedAssistant: tools.length > 0
+        try {
+          for await (const chunk of response) {
+            if (chunk.type === 'response.output_text.delta') {
+              const content = chunk.delta || '';
+              if (content) {
+                fullResponse += content;
+                // Send the chunk to the client
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content, done: false })}\n\n`));
+              }
+            } else if (chunk.type === 'response.completed') {
+              // Save the complete response to database
+              await saveChatMessage(
+                Role.assistant,
+                fullResponse,
+                threadId || currentSessionId,
+                messageIndex + 1
+              );
+              
+              // Send final chunk
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                content: '', 
+                done: true, 
+                sessionId: currentSessionId,
+                threadId: threadId || currentSessionId,
+                model: model,
+                usedAssistant: tools.length > 0
+              })}\n\n`));
+              
+              controller.close();
+            }
+          }
+        } catch (error) {
+          console.error('Streaming error:', error);
+          controller.error(error);
+        }
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
     })
 
   } catch (error) {
