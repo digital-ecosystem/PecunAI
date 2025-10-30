@@ -1153,11 +1153,11 @@ export default function Stepper() {
     setSigningUrl(null);
   };
 
-  const resetTest = () => {
-    setSigningUrl(null);
-    setError(null);
-    setSuccess(false);
-  };
+  // const resetTest = () => {
+  //   setSigningUrl(null);
+  //   setError(null);
+  //   setSuccess(false);
+  // };
 
   return (
     <div className={stepperContainerClass}>
@@ -1332,9 +1332,9 @@ export default function Stepper() {
 
               {step === PHASES.RESULT_PDF && (
                 <div className="w-full h-full">
-                  <h2 className="text-xl font-bold mb-4">Final Result</h2>
+                  <h2 className="text-xl font-bold mb-4">Document Ready for Signature</h2>
                   <p className="text-gray-600 mb-6">
-                    Thank you for completing the process. You can download your final document below.
+                    Thank you for completing the process. You can sign the document below.
                   </p>
                   <div className="border p-4 rounded shadow" style={{ height: '85%' }} >
 
@@ -1354,14 +1354,14 @@ export default function Stepper() {
 
                     {signingUrl && !success && (
                       <React.Fragment>
-                        <div className="mb-4">
+                        {/* <div className="mb-4">
                           <h2 className="text-xl font-semibold text-gray-800 mb-2">
                             Document Ready for Signature
                           </h2>
                           <p className="text-gray-600">
                             Please sign the document below to complete the test.
                           </p>
-                        </div>
+                        </div> */}
 
                         <SignTeqIframe
                           src={signingUrl}
@@ -1429,12 +1429,12 @@ export default function Stepper() {
                           >
                             Go to Success Page
                           </button>
-                          <button
+                          {/* <button
                             onClick={resetTest}
                             className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
                           >
                             Start New Test
-                          </button>
+                          </button> */}
                         </div>
                       </div>
                     )}
@@ -1543,7 +1543,7 @@ export default function Stepper() {
                   >
                     Next
                   </button>
-                ) : (
+                ) : step === PHASES.RESULT_PDF ? null : (
                   <button
                     onClick={step < PHASES.RESULT_PDF ? nextStep : backDashboard}
                     className={`${buttonBaseClass} ${buttonNextClass}`}

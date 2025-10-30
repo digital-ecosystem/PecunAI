@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     // Generate a unique filename with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const finalFilename = `${sessionId}`;
+    const finalFilename = `${sessionId}.pdf`;
     const finalFilenameX = `${sessionId}_${timestamp}_${sanitizedFilename}`;
     console.log("🚀 ~ POST ~ finalFilenameX:", finalFilenameX)
     const filePath = join(documentsDir, finalFilename);

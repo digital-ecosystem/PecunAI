@@ -97,7 +97,7 @@ export const SignTeqIframe: React.FC<SignTeqIframeProps> = ({
   }
 
   return (
-    <div className="rounded-lg overflow-hidden border border-gray-200" style={{width: '100%', height: '85%'}}>
+    <div className="rounded-lg overflow-hidden border border-gray-200" style={{width: '100%', height: '100%'}}>
       <iframe
         ref={iframeRef}
         src={src}
