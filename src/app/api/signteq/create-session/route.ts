@@ -7,13 +7,14 @@ const SIGNTEQ_API_TOKEN = process.env.SIGNTEQ_API_KEY || process.env.SIGNTEQ_API
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { 
-      subject, 
-      documentName, 
-      documentBase64, 
-      recipientEmail, 
+    const {
+      subject,
+      documentName,
+      documentBase64,
+      recipientEmail,
       recipientName,
-    //   sessionId 
+      //   sessionId 
+      signDSessionData,
     } = body;
 
     if (!SIGNTEQ_API_TOKEN) {
@@ -57,6 +58,12 @@ export async function POST(request: NextRequest) {
         redirect_success_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/customer/success`,
         redirect_error_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/customer/error`
       },
+      ...((signDSessionData.session_token && signDSessionData.id) && {
+        meta: {
+          session_token: signDSessionData.session_token,
+          session_id: signDSessionData.id,
+        },
+      }),
       documents: [{
         name: documentName || "document.pdf",
         base64: cleanBase64,
@@ -78,7 +85,8 @@ export async function POST(request: NextRequest) {
         email: recipientEmail,
         name: recipientName,
         do_not_notify: true,
-        language: "en"
+        language: "en",
+        qes: false
       }]
     };
     // Log the exact payload structure for debugging
@@ -147,24 +155,24 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ SignTeq integration error:', error);
-    
+
     // Handle axios errors specifically
     if (axios.isAxiosError(error)) {
       const axiosError = error;
       console.error('❌ SignTeq API error:', axiosError.response?.data);
       return NextResponse.json(
-        { 
-          success: false, 
-          error: axiosError.response?.data?.message || axiosError.message || 'SignTeq API error' 
+        {
+          success: false,
+          error: axiosError.response?.data?.message || axiosError.message || 'SignTeq API error'
         },
         { status: axiosError.response?.status || 500 }
       );
     }
-    
+
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'An unknown error occurred' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'An unknown error occurred'
       },
       { status: 500 }
     );

@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
     const existing = await prisma.sessionProductSuggestion.findFirst({
       where: {
         qaSessionId,
-        productId
       }
     });
+    console.log("🚀 ~ POST ~ existing:", existing)
 
     let suggestion;
     if (existing) {

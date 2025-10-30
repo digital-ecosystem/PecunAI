@@ -239,6 +239,7 @@ export default function Stepper() {
     getIframeUrl,
     setError,
   } = useSignD(TEST_CREDENTIALS);
+    console.log("🚀 ~ Stepper ~ signDSessionData:", signDSessionData)
 
   const formik = useFormik({
     initialValues: {
@@ -1083,6 +1084,7 @@ export default function Stepper() {
           recipientEmail: formik.values.email,
           recipientName: `${formik.values.firstName} ${formik.values.lastName}`,
           sessionId: session_id,
+          signDSessionData: signDSessionData,
         }),
       });
 
@@ -1644,14 +1646,14 @@ export default function Stepper() {
                 <div className="w-full h-full flex flex-col">
                   <div className="flex-1 p-4 sm:p-6 md:p-8 flex flex-col">
                     <div className="max-w-4xl mx-auto w-full flex flex-col h-full">
-                      <div className="text-center mb-4 sm:mb-6 flex-shrink-0">
+                      {/* <div className="text-center mb-4 sm:mb-6 flex-shrink-0">
                         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4">Identity Verification</h2>
                         <p className="text-sm sm:text-base text-gray-600">
                           Please complete the identity verification process to continue
                         </p>
-                      </div>
+                      </div> */}
 
-                      <div className="bg-white border border-gray-200 rounded-lg sm:rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
+                      {/* <div className="bg-white border border-gray-200 rounded-lg sm:rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col min-h-0"> */}
                         <SignDIframe
                           src={getIframeUrl(
                             signDSessionData?.session_token ?? "",
@@ -1687,7 +1689,7 @@ export default function Stepper() {
                             </div>
                           </div>
                         )}
-                      </div>
+                      {/* </div> */}
                     </div>
                   </div>
                 </div>
