@@ -39,6 +39,7 @@ export interface Question {
     questionType?: string // "choice" or "text"
     created_at: string
     options: Option[]
+    questionOrder: number
 }
 
 export interface Option {

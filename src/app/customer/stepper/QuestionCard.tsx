@@ -13,6 +13,7 @@ type QuestionCardProps = {
   onSelect: (option: string) => void;
   onNext?: () => void;
   onBack?: () => void;
+  questionOrder?: number;
 };
 
 const QuestionCard = ({
@@ -28,27 +29,29 @@ const QuestionCard = ({
   onSelect,
   onNext,
   onBack,
+  questionOrder,
 }: QuestionCardProps) => {
+  console.log("🚀 ~ QuestionCard ~ totalSteps:", totalSteps)
   // Check if this is Question 4 about sustainability and "neutral" is selected
   const isSustainabilityQuestion = 
   (questionText?.includes("sustainability") || questionText?.includes("Nachhaltigkeit")) &&
-  (questionText?.includes("considered in your investment advice") || questionText?.includes("Investition berücksichtigen"));
+  (questionText?.includes("considered in your investment advice") || questionText?.includes("berücksichtigen"));
 
   const isNeutralSelected = isSustainabilityQuestion && selected === "neutral";
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 md:p-8 bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 h-full overflow-y-auto">
       {/* Progress bar */}
-      <div className="flex flex-col sm:flex-row sm:justify-between mb-4 sm:mb-6">
+      {/* <div className="flex flex-col sm:flex-row sm:justify-between mb-4 sm:mb-6">
         <p className="text-sm sm:text-base text-gray-500 mb-2 sm:mb-0">Question {step} of {totalSteps}</p>
         <p className="text-sm sm:text-base text-gray-500">{Math.round((step / totalSteps) * 100)}%</p>
-      </div>
-      <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 mb-6 sm:mb-8">
+      </div> */}
+      {/* <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 mb-6 sm:mb-8">
         <div
           className="bg-blue-600 h-2 sm:h-3 rounded-full transition-all duration-300"
           style={{ width: `${(step / totalSteps) * 100}%` }}
         ></div>
-      </div>
+      </div> */}
 
       {/* Icon + Titles */}
       {/* <div className="flex flex-col items-center mb-6 sm:mb-8">
@@ -60,7 +63,7 @@ const QuestionCard = ({
       {/* </div> */}
 
       {/* Question */}
-      <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-4 sm:mb-6 text-center sm:text-left leading-relaxed">{question}</h3>
+      <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-4 sm:mb-6 text-center sm:text-left leading-relaxed">{questionOrder}. {question}</h3>
 
       {/* Render based on question type */}
       {questionType === "text" ? (

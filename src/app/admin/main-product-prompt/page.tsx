@@ -497,7 +497,7 @@ const MainProductPromptPage = () => {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-4 z-50">
+        <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center p-3 sm:p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm sm:max-w-md lg:max-w-2xl max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="border-b border-gray-200 p-4 sm:p-6">

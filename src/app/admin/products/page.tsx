@@ -608,7 +608,7 @@ const ProductsPage = () => {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md sm:max-w-lg lg:max-w-2xl xl:max-w-4xl max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="border-b border-gray-200 p-4 sm:p-6">
@@ -677,6 +677,12 @@ const ProductsPage = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Product Prompt</label>
                       <div className="text-gray-900 bg-gray-50 rounded-lg p-3 text-sm">
                         {selectedProduct?.aiSettings?.find(ai => ai.isActive)?.prompt || selectedProduct?.aiSettings?.[0]?.prompt || '—'}
+                      </div>
+                    </div>
+                     <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">First Message</label>
+                      <div className="text-gray-900 bg-gray-50 rounded-lg p-3 text-sm">
+                        {selectedProduct?.aiSettings?.find(ai => ai.isActive)?.firstMessage || selectedProduct?.aiSettings?.[0]?.firstMessage || '—'}
                       </div>
                     </div>
                     <div>

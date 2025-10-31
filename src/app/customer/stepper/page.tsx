@@ -1610,6 +1610,7 @@ export default function Stepper() {
                         }))
                         : undefined
                     }
+                    questionOrder={currentQ?.questionOrder}
                     selected={answers[currentQ?.id]}
                     onSelect={async (opt) => {
                       setAnswers({ ...answers, [currentQ?.id]: opt });
@@ -1645,6 +1646,7 @@ export default function Stepper() {
                         }))
                         : undefined
                     }
+                    questionOrder={currentQ2?.questionOrder}
                     selected={answers[currentQ2?.id]}
                     onSelect={async (opt) => {
                       setAnswers({ ...answers, [currentQ2?.id]: opt });

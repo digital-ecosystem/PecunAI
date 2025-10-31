@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
         redirect_success_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/customer/success`,
         redirect_error_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/customer/error`
       },
+      // Meta information can be added here if needed - Right Check
       // ...((signDSessionData.session_token && signDSessionData.id) && {
       //   meta: {
       //     session_token: signDSessionData.session_token,
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
         name: recipientName,
         do_not_notify: true,
         language: "en",
+        // QES - Right Check
         // qes: true
       }]
     };

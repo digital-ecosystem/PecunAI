@@ -123,7 +123,7 @@ async function main() {
       questionOrder: 2,
     },
     {
-      text: "Wurden Ihnen Informationen zur Nachhaltigkeit zur Kenntnis gebracht?",
+      text: "Mir uns wurden die Informationen zur Nachhaltigkeit zur Kenntnis gebracht?",
       options: [
         { label: "Ja", value: "yes" },
         { label: "Nein", value: "no" },
@@ -131,7 +131,7 @@ async function main() {
       questionOrder: 3,
     },
     {
-      text: "Möchten Sie Nachhaltigkeit bei Ihrer Investition berücksichtigen?",
+      text: 'Möchten Sie "Nachhaltigkeit" bei Ihrer Investition im Rahmen der Anlageberatung berücksichtigen?',
       options: [
         { label: "Ja", value: "yes" },
         { label: "Nein", value: "no" },
@@ -140,7 +140,7 @@ async function main() {
       questionOrder: 4,
     },
     {
-      text: "Risikoneigung",
+      text: "Angaben über die Risikoneigung",
       options: [
         { label: "Konservativ", value: "conservative" },
         { label: "Chancenorientiert", value: "opportunity_oriented" },
@@ -149,7 +149,7 @@ async function main() {
       questionOrder: 5,
     },
     {
-      text: "Monatliches Nettoeinkommen",
+      text: "Finanzielle Verhältnisse / Monatliches Nettoeinkommen",
       options: [
         { label: "< €1.000,-", value: "below_1000" },
         { label: "€1.000,- bis €2.000,-", value: "1000_2000" },
@@ -159,7 +159,7 @@ async function main() {
       questionOrder: 6,
     },
     {
-      text: "Monatliche Ausgaben",
+      text: "Finanzielle Verhältnisse / Monatliche Ausgaben",
       options: [
         { label: "< €1.000,-", value: "below_1000" },
         { label: "€1.000,- bis €2.000,-", value: "1000_2000" },
@@ -169,7 +169,7 @@ async function main() {
       questionOrder: 7,
     },
     {
-      text: "Aktuelles Nettogesamtvermögen",
+      text: "Aktuelles Nettogesamtvemögen",
       options: [
         { label: "< €5.000,-", value: "below_5000" },
         { label: "€5.000,- bis €20.000,-", value: "5000_20000" },
@@ -179,7 +179,7 @@ async function main() {
       questionOrder: 8,
     },
     {
-      text: "Erfahrung mit Aktien / Aktienfonds / Aktien ETFs",
+      text: "Bisherige Erfahrungen und Kenntnisse in Bezug auf Aktien / Aktienfonds / Aktien ETFs",
       options: [
         { label: "Gute", value: "good" },
         { label: "Durchschnittliche", value: "average" },
@@ -188,7 +188,7 @@ async function main() {
       questionOrder: 9,
     },
     {
-      text: "Erfahrung mit Anleihen / Anleihenfonds / Anleihen ETFs",
+      text: "Bisherige Erfahrungen und Kenntnisse in Bezug auf Anleihen/ Anleihenfonds/ Aktien ETFs",
       options: [
         { label: "Gute", value: "good" },
         { label: "Durchschnittliche", value: "average" },
@@ -197,7 +197,7 @@ async function main() {
       questionOrder: 10,
     },
     {
-      text: "Erfahrung mit Edelmetallen",
+      text: "Bisherige Erfahrungen und Kenntnisse in Bezug auf Edelmetalle",
       options: [
         { label: "Gute", value: "good" },
         { label: "Durchschnittliche", value: "average" },
@@ -206,7 +206,7 @@ async function main() {
       questionOrder: 11,
     },
     {
-      text: "Erfahrung mit Vermögensverwaltung",
+      text: "Bisherige Erfahrungen und Kenntnisse in Bezug auf Vermögensverwaltung",
       options: [
         { label: "Gute", value: "good" },
         { label: "Durchschnittliche", value: "average" },
@@ -215,7 +215,7 @@ async function main() {
       questionOrder: 12,
     },
     {
-      text: "Art und Herkunft der Vermögenswerte",
+      text: "Art und Herkunft der Vermögenswerte für die Veranlagung",
       options: [
         { label: "Berufliche Tätigkeit", value: "employment_income" },
         { label: "Ersparnisse", value: "savings" },
@@ -226,7 +226,7 @@ async function main() {
       questionOrder: 13,
     },
     {
-      text: "Beabsichtigte einmalige Veranlagung",
+      text: "Beabsichtigte Einmalige Veranlagung",
       options: [],
       input: true,
       questionOrder: 14,
