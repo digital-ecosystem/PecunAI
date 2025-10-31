@@ -1,10 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { getChatMessages, saveChatMessage } from '@/lib/chat';
-import { getMainProductPrompt, getProductAISettings, getSessionProductId, getWelcomeMessage } from '@/lib/ai-settings';
+import { getProductAISettings, getSessionProductId } from '@/lib/ai-settings';
 import { Role } from '@/types';
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { Tool } from 'openai/resources/responses/responses.mjs';
 // import type { AssistantTool } from 'openai/resources/beta/assistants';
 
 
@@ -57,10 +55,10 @@ export async function POST(req: Request) {
     // Get product-specific AI settings
     const productSettings = await getProductAISettings(finalProductId);
 
-    if (!productSettings || !productSettings.first_message) {
+    if (!productSettings || !productSettings.firstMessage) {
       return NextResponse.json({ message: 'No AI settings found for product' }, { status: 404 });
     }
-    const welcomeMessage = productSettings.first_message;
+    const welcomeMessage = productSettings.firstMessage;
     try {
 
       // Save the itial AI message to our database
@@ -72,13 +70,13 @@ export async function POST(req: Request) {
       );
 
       // Update session status to indicate chat is active
-      await prisma.qASession.update({
-        where: { id: sessionId },
-        data: { 
-          phase: 'CONSULTATION',
-          status: 'CHAT_ACTIVE'
-        }
-      });
+      // await prisma.qASession.update({
+      //   where: { id: sessionId },
+      //   data: { 
+      //     phase: 'CONSULTATION',
+      //     status: 'CHAT_ACTIVE'
+      //   }
+      // });
 
       return NextResponse.json({
         success: true,

@@ -36,6 +36,7 @@ export enum SessionStatus {
 export interface Question {
     id: string
     text: string
+    questionType?: string // "choice" or "text"
     created_at: string
     options: Option[]
 }
@@ -106,6 +107,7 @@ export interface PersonalInfoFormData {
   houseNumber: string;
   postalCode: string;
   city: string;
+  countryCode: string;
   phone: string;
   email: string;
   education: string;

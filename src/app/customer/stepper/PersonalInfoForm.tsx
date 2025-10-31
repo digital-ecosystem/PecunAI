@@ -181,7 +181,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-2 lg:px-8">
       <form className="space-y-6 personal-info-form">
         {/* Personal Information Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-2">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {renderField("firstName", "First Name")}
@@ -262,7 +262,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
         </div>
 
         {/* Address Information Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Address Information</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {renderField("street", "Street")}
@@ -273,16 +273,57 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
         </div>
 
         {/* Contact Information Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            {renderField("phone", "Phone")}
+            {/* Country Code dropdown */}
+            <div className="w-full">
+              <label htmlFor="countryCode" className="block text-sm font-medium text-gray-700 mb-1">
+                Country Code
+              </label>
+              <select
+                id="countryCode"
+                name="countryCode"
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.countryCode || "+43"}
+                className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-colors duration-200 ease-in-out
+                           disabled:bg-gray-50 disabled:text-gray-500"
+              >
+                <option value="+43">🇦🇹 +43 (Austria)</option>
+                <option value="+49">🇩🇪 +49 (Germany)</option>
+                <option value="+41">🇨🇭 +41 (Switzerland)</option>
+                <option value="+39">🇮🇹 +39 (Italy)</option>
+                <option value="+33">🇫🇷 +33 (France)</option>
+                <option value="+34">🇪🇸 +34 (Spain)</option>
+                <option value="+31">🇳🇱 +31 (Netherlands)</option>
+                <option value="+32">🇧🇪 +32 (Belgium)</option>
+                <option value="+48">🇵🇱 +48 (Poland)</option>
+                <option value="+420">🇨🇿 +420 (Czech Republic)</option>
+                <option value="+36">🇭🇺 +36 (Hungary)</option>
+                <option value="+421">🇸🇰 +421 (Slovakia)</option>
+                <option value="+386">🇸🇮 +386 (Slovenia)</option>
+                <option value="+385">🇭🇷 +385 (Croatia)</option>
+                <option value="+44">🇬🇧 +44 (United Kingdom)</option>
+                <option value="+1">🇺🇸 +1 (United States)</option>
+                <option value="+1">🇨🇦 +1 (Canada)</option>
+                <option value="+61">🇦🇺 +61 (Australia)</option>
+                <option value="+91">🇮🇳 +91 (India)</option>
+              </select>
+              {formik.touched.countryCode && formik.errors.countryCode && (
+                <p className="text-red-500 text-xs mt-1">{formik.errors.countryCode}</p>
+              )}
+            </div>
+            
+            {renderField("phone", "Phone Number")}
             {renderField("email", "Email", "email")}
           </div>
         </div>
 
         {/* Professional Information Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Professional Information</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {renderField("education", "Education")}
@@ -293,7 +334,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
         </div>
 
         {/* Document Information Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Document Information</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {/* Document Type dropdown */}
@@ -330,7 +371,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
         </div>
 
         {/* Additional Options Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Options</h3>
           <div className="space-y-4">
             <div className="flex items-start space-x-3">

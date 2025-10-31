@@ -53,11 +53,11 @@ model Session {
 
 model QASession {
   id                 String                    @id @default(uuid())
-  status             SessionStatus             @default(DRAFT)
-  phase              SessionPhase              @default(DISCOVERY)
+  phase              SessionPhase              @default(TERMS1)
   createdAt          DateTime                  @default(now())
   updatedAt          DateTime                  @updatedAt
   userId             String
+  status             SessionStatus?            @default(DRAFT)
   answers            Answer[]
   personalInfo       PersonalInfo?
   user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -107,6 +107,7 @@ model Question {
   isRequired    Boolean          @default(true)
   questionOrder Int?             @default(1)
   questionPhase QuestionPhase?
+  questionType  String?          @default("choice")
   answers       Answer[]
   options       QuestionOption[]
 
@@ -133,6 +134,7 @@ model Answer {
   questionId      String
   questionOptions Json?
   questionText    String?
+  questionType    String?
   qaSession       QASession @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
   question        Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
@@ -240,6 +242,7 @@ model PersonalInfo {
   updatedAt              DateTime         @updatedAt
   id                     Int              @id @default(autoincrement())
   dateOfBirth            DateTime         @db.Date
+  countryCode            String?          @default("+43")
   documents              Document[]
   qaSession              QASession        @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
   previousJobsRel        PreviousJob[]
@@ -292,16 +295,16 @@ model SignedDocument {
 }
 
 model AISettings {
-  id        String   @id @default(uuid())
-  prompt    String
-  first_message    String   @default("")
-  model     String   @default("gpt-4")
-  vectorId  String?
-  productId String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  product   Product? @relation(fields: [productId], references: [id])
+  id           String   @id @default(uuid())
+  prompt       String
+  model        String   @default("gpt-4")
+  vectorId     String?
+  productId    String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  firstMessage String   @default("")
+  product      Product? @relation(fields: [productId], references: [id])
 
   @@map("ai_settings")
 }
@@ -333,28 +336,21 @@ model MainProductPrompt {
 
 enum SessionStatus {
   DRAFT
-  TERMS_1_PENDING
-  TERMS_1_ACCEPTED
-  QUESTIONS_1_COMPLETE
-  TERMS_2_PENDING
-  TERMS_2_ACCEPTED
-  QUESTIONS_2_COMPLETE
-  PRODUCT_SUGGESTED
-  PRODUCT_CONFIRMED
-  CHAT_ACTIVE
-  PERSONAL_INFO_COMPLETE
   PENDING
-  COMPLETED
-  ABANDONED
+  APPROVED
+  REJECTED
 }
 
 enum SessionPhase {
-  DISCOVERY
-  QUALIFICATION
-  PRODUCT_SELECTION
-  CONSULTATION
-  ONBOARDING
-  COMPLETED
+  TERMS1
+  QUESTIONS1
+  TERMS2
+  QUESTIONS2
+  SUGGESTIONS
+  CHAT
+  PERSONAL_INFO
+  SIGN_DOCUMENT
+  RESULT_PDF
 }
 
 enum Role {
@@ -363,8 +359,8 @@ enum Role {
 }
 
 enum QuestionPhase {
-  DISCOVERY
-  QUALIFICATION
+  QUESTIONS1
+  QUESTIONS2
 }
 
 enum TermsType {

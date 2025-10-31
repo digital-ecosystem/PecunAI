@@ -40,7 +40,7 @@ interface Product {
     id: string;
     model: string;
     prompt: string;
-    first_message: string;
+    firstMessage: string;
     vectorId: string | null;
     isActive: boolean;
   }[];
@@ -180,7 +180,7 @@ const ProductsPage = () => {
       riskType: product.riskType,
       aiModel: activeAiSetting?.model || 'gpt-5',
       aiPrompt: activeAiSetting?.prompt || '',
-      firstMessage: activeAiSetting?.first_message || '',
+      firstMessage: activeAiSetting?.firstMessage || '',
       vectorId: activeAiSetting?.vectorId || '',
     });
     setUploadedFile(product.fileName);

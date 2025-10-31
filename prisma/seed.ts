@@ -57,6 +57,50 @@ async function main() {
   await prisma.question.deleteMany();
 
 
+  // const questions = [
+  //   {
+  //     text: "Anlageziele",
+  //     options: [
+  //       { label: "Allgemeiner Vermögensaufbau", value: "general_wealth_building" },
+  //       { label: "Altersvorsorge", value: "retirement_planning" },
+  //       { label: "Diversifikation des Gesamtvermögens", value: "diversification_total_assets" },
+  //       { label: "Sonstiges", value: "other" },
+  //     ],
+  //   },
+  //   {
+  //     text: "Angedachte Anlagedauer",
+  //     options: [
+  //       { label: "Kurzfristig (< 3 Jahre)", value: "short_term" },
+  //       { label: "Mittelfristig (3–7 Jahre)", value: "medium_term" },
+  //       { label: "Langfristig (7–10 Jahre)", value: "long_term" },
+  //       { label: "Sehr langfristig (> 10 Jahre)", value: "very_long_term" },
+  //     ],
+  //   },
+  //   {
+  //     text: "Mir uns wurden die Informationen zur Nachhaltigkeit zur Kenntnis gebracht?",
+  //     options: [
+  //       { label: "Ja", value: "yes" },
+  //       { label: "Nein", value: "no" },
+  //     ],
+  //   },
+  //   {
+  //     text: "Möchten Sie \"Nachhaltigkeit\" bei Ihrer Investition im Rahmen der Anlageberatung berücksichtigen?",
+  //     options: [
+  //       { label: "Ja", value: "yes" },
+  //       { label: "Nein", value: "no" },
+  //       { label: "Ich bin nachhaltigkeitsneutral", value: "neutral" },
+  //     ],
+  //   },
+  //   {
+  //     text: "Angaben über die Risikoneigung",
+  //     options: [
+  //       { label: "Konservativ", value: "conservative" },
+  //       { label: "Chancenorientiert", value: "opportunity_oriented" },
+  //       { label: "Risikobewusst", value: "risk_aware" },
+  //     ],
+  //   },
+  // ];
+
   const questions = [
     {
       text: "Anlageziele",
@@ -66,38 +110,132 @@ async function main() {
         { label: "Diversifikation des Gesamtvermögens", value: "diversification_total_assets" },
         { label: "Sonstiges", value: "other" },
       ],
+      questionOrder: 1,
     },
     {
       text: "Angedachte Anlagedauer",
       options: [
-        { label: "Kurzfristig (< 3 Jahre)", value: "short_term" },
-        { label: "Mittelfristig (3–7 Jahre)", value: "medium_term" },
+        { label: "Kurzfristig (<3 Jahre)", value: "short_term" },
+        { label: "Mittelfristig (3–7 Jahre)", value: "mid_term" },
         { label: "Langfristig (7–10 Jahre)", value: "long_term" },
-        { label: "Sehr langfristig (> 10 Jahre)", value: "very_long_term" },
+        { label: "Sehr langfristig (>10 Jahre)", value: "very_long_term" },
       ],
+      questionOrder: 2,
     },
     {
-      text: "Mir uns wurden die Informationen zur Nachhaltigkeit zur Kenntnis gebracht?",
+      text: "Wurden Ihnen Informationen zur Nachhaltigkeit zur Kenntnis gebracht?",
       options: [
         { label: "Ja", value: "yes" },
         { label: "Nein", value: "no" },
       ],
+      questionOrder: 3,
     },
     {
-      text: "Möchten Sie \"Nachhaltigkeit\" bei Ihrer Investition im Rahmen der Anlageberatung berücksichtigen?",
+      text: "Möchten Sie Nachhaltigkeit bei Ihrer Investition berücksichtigen?",
       options: [
         { label: "Ja", value: "yes" },
         { label: "Nein", value: "no" },
         { label: "Ich bin nachhaltigkeitsneutral", value: "neutral" },
       ],
+      questionOrder: 4,
     },
     {
-      text: "Angaben über die Risikoneigung",
+      text: "Risikoneigung",
       options: [
         { label: "Konservativ", value: "conservative" },
         { label: "Chancenorientiert", value: "opportunity_oriented" },
         { label: "Risikobewusst", value: "risk_aware" },
       ],
+      questionOrder: 5,
+    },
+    {
+      text: "Monatliches Nettoeinkommen",
+      options: [
+        { label: "< €1.000,-", value: "below_1000" },
+        { label: "€1.000,- bis €2.000,-", value: "1000_2000" },
+        { label: "€2.000,- bis €3.000,-", value: "2000_3000" },
+        { label: "> €3.000,-", value: "above_3000" },
+      ],
+      questionOrder: 6,
+    },
+    {
+      text: "Monatliche Ausgaben",
+      options: [
+        { label: "< €1.000,-", value: "below_1000" },
+        { label: "€1.000,- bis €2.000,-", value: "1000_2000" },
+        { label: "€2.000,- bis €3.000,-", value: "2000_3000" },
+        { label: "> €3.000,-", value: "above_3000" },
+      ],
+      questionOrder: 7,
+    },
+    {
+      text: "Aktuelles Nettogesamtvermögen",
+      options: [
+        { label: "< €5.000,-", value: "below_5000" },
+        { label: "€5.000,- bis €20.000,-", value: "5000_20000" },
+        { label: "€20.000,- bis €50.000,-", value: "20000_50000" },
+        { label: "> €50.000,-", value: "above_50000" },
+      ],
+      questionOrder: 8,
+    },
+    {
+      text: "Erfahrung mit Aktien / Aktienfonds / Aktien ETFs",
+      options: [
+        { label: "Gute", value: "good" },
+        { label: "Durchschnittliche", value: "average" },
+        { label: "Keine", value: "none" },
+      ],
+      questionOrder: 9,
+    },
+    {
+      text: "Erfahrung mit Anleihen / Anleihenfonds / Anleihen ETFs",
+      options: [
+        { label: "Gute", value: "good" },
+        { label: "Durchschnittliche", value: "average" },
+        { label: "Keine", value: "none" },
+      ],
+      questionOrder: 10,
+    },
+    {
+      text: "Erfahrung mit Edelmetallen",
+      options: [
+        { label: "Gute", value: "good" },
+        { label: "Durchschnittliche", value: "average" },
+        { label: "Keine", value: "none" },
+      ],
+      questionOrder: 11,
+    },
+    {
+      text: "Erfahrung mit Vermögensverwaltung",
+      options: [
+        { label: "Gute", value: "good" },
+        { label: "Durchschnittliche", value: "average" },
+        { label: "Keine", value: "none" },
+      ],
+      questionOrder: 12,
+    },
+    {
+      text: "Art und Herkunft der Vermögenswerte",
+      options: [
+        { label: "Berufliche Tätigkeit", value: "employment_income" },
+        { label: "Ersparnisse", value: "savings" },
+        { label: "Erbschaft", value: "inheritance" },
+        { label: "Miete / Pacht", value: "rental_income" },
+        { label: "Sonstiges", value: "other" },
+      ],
+      questionOrder: 13,
+    },
+    {
+      text: "Beabsichtigte einmalige Veranlagung",
+      options: [],
+      input: true,
+      questionOrder: 14,
+    },
+    {
+      text: "Beabsichtigte monatliche Veranlagung",
+      options: [],
+      input: true,
+      questionOrder: 15,
     },
   ];
 
@@ -106,6 +244,8 @@ async function main() {
     await prisma.question.create({
       data: {
         text: q.text,
+        questionOrder: q.questionOrder,
+        questionType: q?.input ? 'text' : 'choice',
         options: {
           create: q.options
         }
@@ -540,7 +680,7 @@ async function main() {
       data: {
         model: item.ai.model,
         prompt: item.ai.prompt,
-        first_message: item.ai.firstMessage,
+        firstMessage: item.ai.firstMessage,
         vectorId: item.ai.vectorId,
         productId: createdProduct.id,
         isActive: true,

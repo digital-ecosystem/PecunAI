@@ -15,6 +15,7 @@ export async function PATCH(req: Request) {
   try {
     const body = await req.json();
     const { sessionId, status } = body;
+    console.log("🚀 ~ PATCH ~ sessionId, status:", sessionId, status)
 
     // Validate input
     if (!sessionId || !status) {

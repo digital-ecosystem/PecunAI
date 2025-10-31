@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       data: {
         userId: userId,
         status: 'DRAFT', // or 'PENDING' if needed
-        phase: 'DISCOVERY', // initial phase
+        phase: 'TERMS1', // initial phase
       },
     });
 

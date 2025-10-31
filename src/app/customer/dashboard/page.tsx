@@ -329,7 +329,11 @@ const Dashboard = () => {
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {filteredSessions.map((session) => (
-                                                <tr key={session.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => router.push(`/customer/stepper?session_id=${session.id}`)}>
+                                                <tr key={session.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
+                                                    if (session.status === SessionStatus.DRAFT) {
+                                                        router.push(`/customer/stepper?session_id=${session.id}`);
+                                                    }
+                                                }}>
                                                     <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                                                         <div className="flex items-center">
                                                             <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
@@ -366,7 +370,11 @@ const Dashboard = () => {
                                 {/* Mobile Card View */}
                                 <div className="sm:hidden divide-y divide-gray-200">
                                     {filteredSessions.map((session) => (
-                                        <div key={session.id} className="p-4 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => router.push(`/customer/stepper?session_id=${session.id}`)}>
+                                        <div key={session.id} className="p-4 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
+                                            if (session.status === SessionStatus.DRAFT) {
+                                                router.push(`/customer/stepper?session_id=${session.id}`);
+                                            }
+                                        }}>
                                             <div className="flex items-start space-x-3">
                                                 <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
                                                     <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

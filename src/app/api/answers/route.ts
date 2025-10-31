@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
     }
 
-    const { questionId, answer, question, options } = await request.json();
+    const { questionId, answer, question, options, questionType } = await request.json();
     if (!questionId || !answer ) {
       return NextResponse.json({ message: 'Missing questionId, or answer' }, { status: 400 });
     }
@@ -51,6 +51,7 @@ export async function POST(request: Request) {
       update: {
         value: answer,
         questionText: question,
+        questionType,
         questionOptions: options,
         // updatedAt will be set automatically if using @updatedAt
       },
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
         questionId,
         value: answer,
         questionText: question,
+        questionType,
         questionOptions: options,
         // createdAt will be set automatically if using @default(now())
       }

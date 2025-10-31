@@ -7,6 +7,7 @@ type QuestionCardProps = {
   // subtitle: string;
   question: string;
   questionText?: string; // To identify specific questions
+  questionType?: string; // "choice" or "text"
   options: Array<{ label: string; value: string }> | undefined;
   selected: string | null;
   onSelect: (option: string) => void;
@@ -21,6 +22,7 @@ const QuestionCard = ({
   // subtitle,
   question,
   questionText,
+  questionType = "choice", // Default to choice type
   options,
   selected,
   onSelect,
@@ -28,7 +30,10 @@ const QuestionCard = ({
   onBack,
 }: QuestionCardProps) => {
   // Check if this is Question 4 about sustainability and "neutral" is selected
-  const isSustainabilityQuestion = questionText?.includes("sustainability") && questionText?.includes("considered in your investment advice");
+  const isSustainabilityQuestion = 
+  (questionText?.includes("sustainability") || questionText?.includes("Nachhaltigkeit")) &&
+  (questionText?.includes("considered in your investment advice") || questionText?.includes("Investition berücksichtigen"));
+
   const isNeutralSelected = isSustainabilityQuestion && selected === "neutral";
 
   return (
@@ -57,31 +62,45 @@ const QuestionCard = ({
       {/* Question */}
       <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-4 sm:mb-6 text-center sm:text-left leading-relaxed">{question}</h3>
 
-      {/* Options */}
-      <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-        {options?.map((opt, idx) => (
-          <label
-            key={idx}
-            className={`flex items-start sm:items-center gap-3 p-3 sm:p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md
-              ${selected === opt.value
-                ? isNeutralSelected 
-                  ? "border-yellow-500 bg-yellow-50 shadow-sm" 
-                  : "border-blue-500 bg-blue-50 shadow-sm"
-                : "border-gray-300 hover:bg-gray-50 hover:border-gray-400"
-              }`}
-          >
-            <input
-              type="radio"
-              name="answer"
-              value={opt.value}
-              checked={selected === opt.value}
-              onChange={() => onSelect(opt.value)}
-              className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 border-gray-300 focus:ring-blue-500 mt-0.5 sm:mt-0 flex-shrink-0"
-            />
-            <span className="text-sm sm:text-base text-gray-700 leading-relaxed">{opt.label}</span>
-          </label>
-        ))}
-      </div>
+      {/* Render based on question type */}
+      {questionType === "text" ? (
+        /* Text Input */
+        <div className="mb-6 sm:mb-8">
+          <input
+            type="text"
+            value={selected || ""}
+            onChange={(e) => onSelect(e.target.value)}
+            placeholder="Please enter your answer..."
+            className="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
+          />
+        </div>
+      ) : (
+        /* Multiple Choice Options */
+        <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
+          {options?.map((opt, idx) => (
+            <label
+              key={idx}
+              className={`flex items-start sm:items-center gap-3 p-3 sm:p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md
+                ${selected === opt.value
+                  ? isNeutralSelected 
+                    ? "border-yellow-500 bg-yellow-50 shadow-sm" 
+                    : "border-blue-500 bg-blue-50 shadow-sm"
+                  : "border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                }`}
+            >
+              <input
+                type="radio"
+                name="answer"
+                value={opt.value}
+                checked={selected === opt.value}
+                onChange={() => onSelect(opt.value)}
+                className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 border-gray-300 focus:ring-blue-500 mt-0.5 sm:mt-0 flex-shrink-0"
+              />
+              <span className="text-sm sm:text-base text-gray-700 leading-relaxed">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+      )}
 
       {/* Special message for neutral sustainability selection */}
       {isNeutralSelected && (
@@ -120,7 +139,7 @@ const QuestionCard = ({
         {onNext && (
           <button
             onClick={onNext}
-            disabled={!selected}
+            disabled={!selected || (questionType === "text" && selected?.trim() === "")}
             className="order-1 sm:order-2 px-6 sm:px-8 py-2 sm:py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-40 transition-colors text-sm sm:text-base"
           >
             <span className="hidden sm:inline">Next →</span>

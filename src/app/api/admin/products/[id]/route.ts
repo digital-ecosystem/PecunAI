@@ -48,7 +48,7 @@ export async function GET(
             id: true,
             prompt: true,
             model: true,
-            first_message: true,
+            firstMessage: true,
             vectorId: true,
             isActive: true,
             createdAt: true,
@@ -127,7 +127,7 @@ export async function PUT(
             data: {
               ...(aiModel !== undefined && { model: aiModel }),
               ...(aiPrompt !== undefined && { prompt: aiPrompt }),
-              ...(firstMessage !== undefined && { first_message: firstMessage }),
+              ...(firstMessage !== undefined && { firstMessage: firstMessage }),
               ...(vectorId !== undefined && { vectorId: vectorId || null }),
             },
           });
@@ -137,7 +137,7 @@ export async function PUT(
             data: {
               model: aiModel,
               prompt: aiPrompt,
-              first_message: firstMessage,
+              firstMessage: firstMessage,
               vectorId: vectorId || null,
               productId: id,
               isActive: true,
@@ -161,7 +161,7 @@ export async function PUT(
               id: true,
               model: true,
               prompt: true,
-              first_message: true,
+              firstMessage: true,
               vectorId: true,
               isActive: true,
             },

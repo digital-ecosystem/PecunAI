@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
               id: true,
               model: true,
               prompt: true,
-              first_message: true,
+              firstMessage: true,
               vectorId: true,
               isActive: true,
             },

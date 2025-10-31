@@ -5,7 +5,8 @@ import {
   PersonalInfoFormData,
   Question,
   Role,
-  TermsAndConditions,
+  SessionStatus,
+  // TermsAndConditions,
 } from "@/types";
 import { CheckCircle } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -133,6 +134,10 @@ const validationSchema = Yup.object({
     .min(2, "City must be at least 2 characters")
     .required("City is required"),
 
+  countryCode: Yup.string()
+    .matches(/^\+\d{1,4}$/, "Country code must start with + followed by 1-4 digits")
+    .required("Country code is required"),
+
   phone: Yup.string()
     .matches(
       /^\+?\d{7,15}$/,
@@ -201,9 +206,9 @@ export default function Stepper() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [questionIndex, setQuestionIndex] = useState(1);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [termsAndConditions, setTermsAndConditions] = useState<
-    TermsAndConditions[]
-  >([]);
+  // const [termsAndConditions, setTermsAndConditions] = useState<
+  //   TermsAndConditions[]
+  // >([]);
   const [suggestedProduct, setSuggestedProduct] = useState<Portfolio | null>(
     null
   );
@@ -222,10 +227,12 @@ export default function Stepper() {
   const session_id = searchParams.get('session_id')
 
   // For PHASES.QUESTIONS1
-  const questions1 = questions.slice(0, 3);
+  const questions1 = questions.slice(0, 2);
+  // console.log("🚀 ~ Stepper ~ questions1:", questions1)
   const currentQ = questions1[questionIndex - 1];
   // For PHASES.QUESTIONS2
-  const questions2 = questions.slice(3, 5);
+  const questions2 = questions.slice(2, questions.length);
+  // console.log("🚀 ~ Stepper ~ questions2:", questions2)
   const currentQ2 = questions2[questionIndex - 1];
 
   const {
@@ -239,7 +246,7 @@ export default function Stepper() {
     getIframeUrl,
     setError,
   } = useSignD(TEST_CREDENTIALS);
-    console.log("🚀 ~ Stepper ~ signDSessionData:", signDSessionData)
+    // console.log("🚀 ~ Stepper ~ signDSessionData:", signDSessionData)
 
   const formik = useFormik({
     initialValues: {
@@ -253,6 +260,7 @@ export default function Stepper() {
       houseNumber: "",
       postalCode: "",
       city: "",
+      countryCode: "+43",
       phone: "",
       email: "",
       education: "",
@@ -277,22 +285,48 @@ export default function Stepper() {
 
   const handleConfirm = async () => {
     setConfirmed(true);
-    await saveUpdatedTermsStatus(); // Call API to save acceptance
+    // await saveUpdatedTermsStatus(); // Call API to save acceptance
     setTimeout(() => {
       setConfirmed(false);
       nextStep();
     }, 2000);
   };
 
-  const nextStep = () => setStep((prev) => Math.min(prev + 1, 9));
+  // Helper function to save the current phase to the database
+  const savePhase = async (newStep: number) => {
+    try {
+      // Convert step number back to phase name
+      const phaseName = Object.keys(PHASES).find(key => PHASES[key as keyof typeof PHASES] === newStep);
+      if (phaseName && session_id) {
+        await fetch("/api/phase", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            sessionId: session_id, 
+            phase: phaseName 
+          }),
+        });
+      }
+    } catch (error) {
+      console.error("Failed to save phase:", error);
+    }
+  };
+
+  const nextStep = () => {
+    const newStep = Math.min(step + 1, 9);
+    setStep(newStep);
+    savePhase(newStep);
+  };
   const prevStep = () => {
     if (step === PHASES.SUGGESTIONS) {
-      setQuestionIndex(2);
+      setQuestionIndex(13);
     }
     if (step === PHASES.TERMS2) {
-      setQuestionIndex(3);
+      setQuestionIndex(2);
     }
-    setStep((prev) => Math.max(prev - 1, 1));
+    const newStep = Math.max(step - 1, 1);
+    setStep(newStep);
+    savePhase(newStep);
   };
 
   const backDashboard = async () => {
@@ -319,11 +353,11 @@ export default function Stepper() {
 
   const sendMessage = useCallback(
     async (messageOverride: string = "", shouldAppend: boolean = true) => {
-      console.log("🚀 ~ sendMessage ~ messageOverride:", messageOverride);
+      // console.log("🚀 ~ sendMessage ~ messageOverride:", messageOverride);
       const messageToSend =
         messageOverride.length > 0 ? messageOverride : input.trim();
-      console.log("🚀 ~ Stepper ~ messageToSend:", messageToSend);
-      console.log("🚀 ~ sendMessage ~ messageToSend:", messageToSend);
+      // console.log("🚀 ~ Stepper ~ messageToSend:", messageToSend);
+      // console.log("🚀 ~ sendMessage ~ messageToSend:", messageToSend);
       if (!messageToSend || loading) return;
 
       const userMessage: Message = {
@@ -420,27 +454,27 @@ export default function Stepper() {
     [loading, session_id, threadId, input]
   );
 
-  const fetchTermsAndConditions = useCallback(async () => {
-    setLoading(true);
-    try {
-      // URL should be like /api/terms-conditions?id=1
+  // const fetchTermsAndConditions = useCallback(async () => {
+  //   setLoading(true);
+  //   try {
+  //     // URL should be like /api/terms-conditions?id=1
 
-      const fetchUrl = "/api/terms-conditions?session_id=" + session_id;
-      const response = await fetch(fetchUrl, {
-        method: "GET",
-      });
-      const data = await response.json();
-      if (data?.success) {
-        setTermsAndConditions(data.data);
-      } else {
-        router.push("/customer/signin");
-      }
-    } catch (error) {
-      console.error("Error fetching questions:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [session_id, router]);
+  //     const fetchUrl = "/api/terms-conditions?session_id=" + session_id;
+  //     const response = await fetch(fetchUrl, {
+  //       method: "GET",
+  //     });
+  //     const data = await response.json();
+  //     if (data?.success) {
+  //       setTermsAndConditions(data.data);
+  //     } else {
+  //       router.push("/customer/signin");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching questions:", error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, [session_id, router]);
 
   // // Helper function to analyze questions and find relevant ones
   // const findQuestionByKeywords = (questions: Question[], keywords: string[]) => {
@@ -482,7 +516,7 @@ export default function Stepper() {
     risk: string
   ): Promise<Portfolio | null> => {
     try {
-      console.log("🔍 Requesting product suggestion:", { duration, risk });
+      // console.log("🔍 Requesting product suggestion:", { duration, risk });
 
       const response = await fetch(
         `/api/phase/product?duration=${duration}&risk=${risk}`,
@@ -492,7 +526,7 @@ export default function Stepper() {
       );
 
       const data = await response.json();
-      console.log("🎯 Product suggestion response:", data);
+      // console.log("🎯 Product suggestion response:", data);
 
       if (data.success && data.data) {
         return data.data;
@@ -510,7 +544,7 @@ export default function Stepper() {
   const initializeChatWithProduct = useCallback(
     async (productId: string) => {
       try {
-        console.log("🤖 Initializing chat for product:", productId);
+        // console.log("🤖 Initializing chat for product:", productId);
 
         const response = await fetch("/api/phase/chat/init", {
           method: "POST",
@@ -526,7 +560,7 @@ export default function Stepper() {
         const data = await response.json();
 
         if (data.success) {
-          console.log("✅ Chat initialized successfully:", data.message);
+          // console.log("✅ Chat initialized successfully:", data.message);
 
           // Update thread ID if provided
           if (data.threadId && !threadId) {
@@ -654,10 +688,10 @@ export default function Stepper() {
                 });
 
                 // Automatically initialize chat with the selected product
-                console.log(
-                  "🤖 Auto-initializing chat for selected product:",
-                  product.name
-                );
+                // console.log(
+                //   "🤖 Auto-initializing chat for selected product:",
+                //   product.name
+                // );
                 await initializeChatWithProduct(product.id);
               } catch (saveError) {
                 console.error("Failed to save product suggestion:", saveError);
@@ -735,9 +769,9 @@ export default function Stepper() {
     initializeChatWithProduct,
   ]);
 
-  useEffect(() => {
-    fetchTermsAndConditions();
-  }, [fetchTermsAndConditions, session_id]);
+  // useEffect(() => {
+  //   fetchTermsAndConditions();
+  // }, [fetchTermsAndConditions, session_id]);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -747,9 +781,18 @@ export default function Stepper() {
           method: "GET",
         });
         const data = await res.json();
+        console.log("🚀 ~ fetchQuestions ~ data:", data)
         if (data.success) {
           setQuestions(data.questions);
           setAnswers(data.answers || {});
+          // Set the step to the saved phase from the session
+          if (data.currentPhase && PHASES[data.currentPhase as keyof typeof PHASES] && data.sessionStatus == SessionStatus.DRAFT) {
+            setStep(PHASES[data.currentPhase as keyof typeof PHASES]);
+          } else {
+            setStep(PHASES.TERMS1);
+          }
+        } else {
+          router.push("/customer/signin");
         }
       } catch (error) {
         console.error("Fetch questions error:", error);
@@ -804,6 +847,7 @@ export default function Stepper() {
               houseNumber: user.houseNumber || "",
               postalCode: user.postalCode || "",
               city: user.city || "",
+              countryCode: user.countryCode || "+43",
               phone: user.phone || "",
               email: user.email || "",
               education: user.education || "",
@@ -834,6 +878,33 @@ export default function Stepper() {
 
   const onPersonalInfoSubmit = async (data: PersonalInfoFormData) => {
     setLoading(true);
+    
+    // Helper function to convert phone country code to ISO country code
+    const getISOCountryCode = (phoneCountryCode: string): string => {
+      const countryCodeMap: Record<string, string> = {
+        "+43": "AT", // Austria
+        "+49": "DE", // Germany
+        "+41": "CH", // Switzerland
+        "+39": "IT", // Italy
+        "+33": "FR", // France
+        "+34": "ES", // Spain
+        "+31": "NL", // Netherlands
+        "+32": "BE", // Belgium
+        "+48": "PL", // Poland
+        "+420": "CZ", // Czech Republic
+        "+36": "HU", // Hungary
+        "+421": "SK", // Slovakia
+        "+386": "SI", // Slovenia
+        "+385": "HR", // Croatia
+        "+44": "GB", // United Kingdom
+        "+1": "US", // United States/Canada (defaulting to US)
+        "+61": "AU", // Australia
+        "+91": "IN", // India
+      };
+      
+      return countryCodeMap[phoneCountryCode] || "AT"; // Default to Austria if not found
+    };
+
     try {
       const response = await fetch(`/api/user/update?id=${session_id}`, {
         method: "PATCH",
@@ -858,6 +929,7 @@ export default function Stepper() {
           lastName: data.lastName,
           maritalStatus: data.maritalStatus,
           nationality: data.nationality,
+          countryCode: data.countryCode,
           phone: data.phone,
           placeOfBirth: data.birthPlace,
           postalCode: data.postalCode,
@@ -893,7 +965,7 @@ export default function Stepper() {
           dob: data.birthDate,
           // birth_place: data.birthPlace,
           // nationality: data.nationality,
-          phone_number: data.phone,
+          phone_number: `${data.countryCode}${data.phone}`,
           email: data.email,
           // education: data.education,
           // current_job: data.currentJob,
@@ -907,7 +979,7 @@ export default function Stepper() {
           number: data.houseNumber,
           zip: data.postalCode,
           city: data.city,
-          country_code: "AT", // or a field from form if it's dynamic
+          country_code: getISOCountryCode(data.countryCode),
         },
         // ye
       },
@@ -915,58 +987,59 @@ export default function Stepper() {
         redirect_success_url: "http://localhost:3000/success",
         redirect_error_url: "http://localhost:3000/error",
       },
-      magic_flow: true,
+      magic_flow: data.magicFlow,
     };
     await createSession(payload);
     setLoading(false);
     nextStep();
   };
 
-  const saveUpdatedTermsStatus = async () => {
-    // Get the current terms and session info
-    const termsIndex =
-      step === PHASES.TERMS1 ? 0 : termsAndConditions.length > 1 ? 1 : 0;
-    const terms = termsAndConditions[termsIndex];
+  // const saveUpdatedTermsStatus = async () => {
+  //   // Get the current terms and session info
+  //   const termsIndex =
+  //     step === PHASES.TERMS1 ? 0 : termsAndConditions.length > 1 ? 1 : 0;
+  //   const terms = termsAndConditions[termsIndex];
 
-    // You may want to get user agent and IP from the client or server
-    const payload = {
-      qaSessionId: session_id,
-      termsId: terms?.id,
-      termsType: terms?.termsType,
-      title: terms?.title,
-      content: terms?.content,
-      version: terms?.version,
-      acceptedAt: new Date().toISOString(),
-      ipAddress: "", // Optionally set client IP if available
-      userAgent:
-        typeof window !== "undefined" ? window.navigator.userAgent : "",
-    };
+  //   // You may want to get user agent and IP from the client or server
+  //   const payload = {
+  //     qaSessionId: session_id,
+  //     termsId: terms?.id,
+  //     termsType: terms?.termsType,
+  //     title: terms?.title,
+  //     content: terms?.content,
+  //     version: terms?.version,
+  //     acceptedAt: new Date().toISOString(),
+  //     ipAddress: "", // Optionally set client IP if available
+  //     userAgent:
+  //       typeof window !== "undefined" ? window.navigator.userAgent : "",
+  //   };
 
-    try {
-      const response = await fetch("/api/terms-conditions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      const data = await response.json();
-      if (data.success) {
-        // Handle success (e.g., show a message or update state)
-        console.log("Terms acceptance saved:");
-      } else {
-        // Handle error
-        console.error("Failed to save terms acceptance:", data.error);
-      }
-    } catch (error) {
-      console.error("API error:", error);
-    }
-  };
+  //   try {
+  //     const response = await fetch("/api/terms-conditions", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify(payload),
+  //     });
+  //     const data = await response.json();
+  //     if (data.success) {
+  //       // Handle success (e.g., show a message or update state)
+  //       console.log("Terms acceptance saved:");
+  //     } else {
+  //       // Handle error
+  //       console.error("Failed to save terms acceptance:", data.error);
+  //     }
+  //   } catch (error) {
+  //     console.error("API error:", error);
+  //   }
+  // };
 
   const saveAnswer = async (
     questionId: string,
     answer: string,
     question: string,
+    questionType?: string,
     options?: Option[]
   ) => {
     try {
@@ -979,6 +1052,7 @@ export default function Stepper() {
           questionId,
           answer,
           question,
+          questionType,
           options,
         }),
       });
@@ -1043,6 +1117,27 @@ export default function Stepper() {
     setLoading(true);
 
     try {
+      // Helper function to read static PDF file and convert to base64
+      const readStaticPDFToBase64 = async (pdfPath: string): Promise<string> => {
+        try {
+          // For files in public folder, use absolute path from public root
+          const response = await fetch(pdfPath);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch PDF: ${response.statusText}`);
+          }
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          return buffer.toString('base64');
+        } catch (error) {
+          console.error('Error reading static PDF:', error);
+          throw error;
+        }
+      };
+
+      // Example usage:
+      // Option 1: Read from public folder
+      // const publicPdfBase64 = await readStaticPDFToBase64('/documents/template.pdf');
+
       // fetch existing product PDF (if one exists) and pass its bytes to generator
       // let existingPdfBytes: ArrayBuffer | undefined = undefined;
       // if (suggestedProduct?.fileName) {
@@ -1069,6 +1164,8 @@ export default function Stepper() {
       const base64 = await pdfBlobToBase64(pdfBlob);
       console.log("🚀 ~ generatePDF ~ base64:", base64)
 
+      const publicPdfBase64 = await readStaticPDFToBase64('/static-pdf/4money_protokoll_PecunAI_v1.pdf');
+
       // const arrayBuffer = await pdfBlob.arrayBuffer();
       // const buffer = Buffer.from(arrayBuffer);
 
@@ -1080,7 +1177,7 @@ export default function Stepper() {
         body: JSON.stringify({
           subject: 'Test Document Signature',
           documentName: 'test_document.pdf',
-          documentBase64: base64, // Remove data:application/pdf;base64, prefix
+          documentBase64: publicPdfBase64, // Remove data:application/pdf;base64, prefix
           recipientEmail: formik.values.email,
           recipientName: `${formik.values.firstName} ${formik.values.lastName}`,
           sessionId: session_id,
@@ -1097,11 +1194,11 @@ export default function Stepper() {
         if (data.data && data.data.documents && data.data.documents[0]) {
           setSignTeqDocumentId(data.data.documents[0].id);
         }
-        console.log('✅ SignTeq session created:', {
-          requestId: data.id,
-          documentId: data.data?.documents?.[0]?.id,
-          signingUrl: data.signing_url
-        });
+        // console.log('✅ SignTeq session created:', {
+        //   requestId: data.id,
+        //   documentId: data.data?.documents?.[0]?.id,
+        //   signingUrl: data.signing_url
+        // });
       } else {
         throw new Error(data.error || 'Failed to create SignTeq session');
       }
@@ -1209,7 +1306,7 @@ export default function Stepper() {
     try {
       // Download the signed document if we have the document ID
       if (signTeqDocumentId) {
-        console.log('📄 Downloading signed document...', signTeqDocumentId);
+        // console.log('📄 Downloading signed document...', signTeqDocumentId);
 
         const downloadResponse = await fetch(
           `/api/signteq/documents/${signTeqDocumentId}/download?type=completed`
@@ -1499,11 +1596,12 @@ export default function Stepper() {
                 <div className="w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
                   <QuestionCard
                     step={questionIndex}
-                    totalSteps={3}
+                    totalSteps={2}
                     // title={currentQ?.title}
                     // subtitle={currentQ?.subtitle}
                     question={currentQ?.text}
                     questionText={currentQ?.text}
+                    questionType={currentQ?.questionType}
                     options={
                       currentQ?.options?.length
                         ? currentQ.options.map((opt) => ({
@@ -1519,6 +1617,7 @@ export default function Stepper() {
                         currentQ?.id,
                         opt,
                         currentQ?.text,
+                        currentQ?.questionType,
                         currentQ?.options
                       );
                     }}
@@ -1532,11 +1631,12 @@ export default function Stepper() {
                 <div className="w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
                   <QuestionCard
                     step={questionIndex}
-                    totalSteps={2}
+                    totalSteps={13}
                     // title={currentQ2?.title}
                     // subtitle={currentQ2?.subtitle}
                     question={currentQ2?.text}
                     questionText={currentQ2?.text}
+                    questionType={currentQ2?.questionType}
                     options={
                       currentQ2?.options?.length
                         ? currentQ2.options.map((opt) => ({
@@ -1552,6 +1652,7 @@ export default function Stepper() {
                         currentQ2?.id,
                         opt,
                         currentQ2?.text,
+                        currentQ2?.questionType,
                         currentQ2?.options
                       );
                     }}
@@ -1563,8 +1664,8 @@ export default function Stepper() {
 
               {step === PHASES.SUGGESTIONS && (
                 <div className="w-full h-full flex flex-col">
-                  <div className="flex-1 p-4 sm:p-6 md:p-8 flex flex-col">
-                    <div className="max-w-4xl mx-auto w-full flex flex-col h-full">
+                  <div className="flex-1 p-0 sm:p-0 md:p-0 flex flex-col">
+                    <div className="max-w-full mx-auto w-full flex flex-col h-full">
                       {/* <div className="text-center mb-4 sm:mb-6 flex-shrink-0">
                         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4">Suggested Product</h2>
                         <p className="text-sm sm:text-base text-gray-600">
@@ -1634,7 +1735,7 @@ export default function Stepper() {
               {step === PHASES.PERSONAL_INFO && (
                 <div className="w-full h-full flex flex-col">
                   <div className="flex-1 overflow-y-auto">
-                    <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl">
+                    <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-6xl">
                       {/* <h1 className="text-xl font-bold text-center mb-6">Personal Information Form</h1> */}
                       <PersonalInfoForm formik={formik} />
                     </div>
@@ -1645,7 +1746,7 @@ export default function Stepper() {
               {step === PHASES.SIGN_DOCUMENT && (
                 <div className="w-full h-full flex flex-col">
                   <div className="flex-1 p-4 sm:p-6 md:p-8 flex flex-col">
-                    <div className="max-w-4xl mx-auto w-full flex flex-col h-full">
+                    <div className="max-w-6xl mx-auto w-full flex flex-col h-full">
                       {/* <div className="text-center mb-4 sm:mb-6 flex-shrink-0">
                         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4">Identity Verification</h2>
                         <p className="text-sm sm:text-base text-gray-600">
@@ -1730,7 +1831,7 @@ export default function Stepper() {
               {step === PHASES.RESULT_PDF && (
                 <div className="w-full h-full flex flex-col">
                   <div className="flex-1 p-0 sm:p-0 md:p-0 flex flex-col">
-                    <div className="max-w-4xl mx-auto w-full flex flex-col h-full">
+                    <div className="max-w-6xl mx-auto w-full flex flex-col h-full">
                       {/* <div className="text-center mb-4 sm:mb-6 flex-shrink-0">
                         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4">Document Ready for Signature</h2>
                         <p className="text-sm sm:text-base text-gray-600">
@@ -1831,44 +1932,6 @@ export default function Stepper() {
               )}
             </div>
 
-            {/* Navigation */}
-            {/* <div className="flex justify-center my-3">
-              <p className="text-gray-600">Step {step} of 9</p>
-            </div> */}
-            {/* <div className="flex justify-between mt-3">
-              <button
-                onClick={prevStep}
-                disabled={step === PHASES.TERMS1}
-                className={buttonBackClass}
-              >
-                Back
-              </button>
-              <div className="flex justify-end">
-                {step === PHASES.TERMS1 || step === PHASES.TERMS2 ? (
-                  <button
-                    onClick={handleConfirm}
-                    disabled={confirmed}
-                    className={`${buttonBaseClass} ${confirmed ? buttonConfirmedClass : buttonConfirmClass} disabled:cursor-not-allowed`}
-                  >
-                    {confirmed ? (
-                      <>
-                        <CheckCircle className="w-5 h-5" />
-                        Confirmed!
-                      </>
-                    ) : (
-                      'I Confirm'
-                    )}
-                  </button>
-                ) : (step === PHASES.QUESTIONS1 || step === PHASES.QUESTIONS2 || step === PHASES.PERSONAL_INFO) ? null : (
-                  <button
-                    onClick={step < PHASES.RESULT_PDF ? nextStep : backDashboard}
-                    className={`${buttonBaseClass} ${buttonNextClass}`}
-                  >
-                    {step === PHASES.RESULT_PDF ? 'Finish' : 'Next'}
-                  </button>
-                )}
-              </div>
-            </div> */}
             <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 mt-4 sm:mt-6 p-4 sm:p-6 bg-gray-50 border-t border-gray-200 flex-shrink-0">
               <button
                 onClick={() => {
@@ -1911,16 +1974,16 @@ export default function Stepper() {
                   <button
                     onClick={() => {
                       if (step === PHASES.QUESTIONS1) {
-                        if (questionIndex === 3) {
-                          lastQuestionNext();
-                        } else {
-                          setQuestionIndex((s) => Math.min(s + 1, 3));
-                        }
-                      } else if (step === PHASES.QUESTIONS2) {
                         if (questionIndex === 2) {
                           lastQuestionNext();
                         } else {
                           setQuestionIndex((s) => Math.min(s + 1, 2));
+                        }
+                      } else if (step === PHASES.QUESTIONS2) {
+                        if (questionIndex === 13) {
+                          lastQuestionNext();
+                        } else {
+                          setQuestionIndex((s) => Math.min(s + 1, 13));
                         }
                       } else {
                         formik.handleSubmit();

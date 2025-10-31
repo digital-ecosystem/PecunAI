@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
       //   sessionId 
       signDSessionData,
     } = body;
+    console.log("🚀 ~ POST ~ signDSessionData:", signDSessionData)
 
     if (!SIGNTEQ_API_TOKEN) {
       return NextResponse.json(
@@ -58,27 +59,52 @@ export async function POST(request: NextRequest) {
         redirect_success_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/customer/success`,
         redirect_error_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/customer/error`
       },
-      ...((signDSessionData.session_token && signDSessionData.id) && {
-        meta: {
-          session_token: signDSessionData.session_token,
-          session_id: signDSessionData.id,
-        },
-      }),
-      documents: [{
-        name: documentName || "document.pdf",
-        base64: cleanBase64,
-        fields: [{
-          page: 3,
-          type: "signature",
-          width: 200,
-          height: 50,
-          x: 300,
-          y: 500,
-          required: true,
-          read_only: false,
-          recipient_id: "1"
-        }]
-      }],
+      // ...((signDSessionData.session_token && signDSessionData.id) && {
+      //   meta: {
+      //     session_token: signDSessionData.session_token,
+      //     session_id: signDSessionData.id,
+      //   },
+      // }),
+      documents: [
+        {
+          name: documentName || "document.pdf",
+          base64: cleanBase64,
+          fields: [
+            {
+              page: 21,
+              type: "signature",
+              width: 250,
+              height: 100,
+              x: 75,
+              y: 1400,
+              required: true,
+              read_only: false,
+              recipient_id: "1"
+            },
+            {
+              page: 24,
+              type: "signature",
+              width: 250,
+              height: 100,
+              x: 75,
+              y: 725,
+              required: true,
+              read_only: false,
+              recipient_id: "1"
+            },
+            {
+              page: 25,
+              type: "signature",
+              width: 250,
+              height: 100,
+              x: 75,
+              y: 1275,
+              required: true,
+              read_only: false,
+              recipient_id: "1"
+            }]
+        }
+      ],
       recipients: [{
         id: "1",
         type: "signatory",
@@ -86,7 +112,7 @@ export async function POST(request: NextRequest) {
         name: recipientName,
         do_not_notify: true,
         language: "en",
-        qes: false
+        // qes: true
       }]
     };
     // Log the exact payload structure for debugging
