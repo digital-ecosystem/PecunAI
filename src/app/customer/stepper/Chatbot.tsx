@@ -253,7 +253,7 @@ export default function Chatbot({
               <div className="bg-gray-200 text-gray-800 max-w-[85%] sm:max-w-xs lg:max-w-md px-3 sm:px-4 py-2 sm:py-3 rounded-lg rounded-bl-none">
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-gray-600"></div>
-                  <span className="text-xs sm:text-sm">Analyzing your request...</span>
+                  <span className="text-xs sm:text-sm">Nachdenken</span>
                 </div>
               </div>
             </div>

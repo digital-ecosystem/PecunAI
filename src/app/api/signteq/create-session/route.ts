@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
           fields: [
             {
               page: 21,
-              type: "signature",
+              type: "custom-stamp",
               width: 250,
               height: 100,
               x: 75,
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
             },
             {
               page: 24,
-              type: "signature",
+              type: "custom-stamp",
               width: 250,
               height: 100,
               x: 75,
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
             },
             {
               page: 25,
-              type: "signature",
+              type: "custom-stamp",
               width: 250,
               height: 100,
               x: 75,
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         do_not_notify: true,
         language: "en",
         // QES - Right Check
-        // qes: true
+        qes: true
       }]
     };
     // Log the exact payload structure for debugging

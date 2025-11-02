@@ -136,7 +136,7 @@ const QuestionCard = ({
             disabled={step === 1}
             className="order-2 sm:order-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg border text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-40 transition-colors text-sm sm:text-base font-medium"
           >
-            Back
+            Zurück
           </button>
         )}
         {onNext && (
@@ -146,7 +146,7 @@ const QuestionCard = ({
             className="order-1 sm:order-2 px-6 sm:px-8 py-2 sm:py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-40 transition-colors text-sm sm:text-base"
           >
             <span className="hidden sm:inline">Next →</span>
-            <span className="sm:hidden">Continue</span>
+            <span className="sm:hidden">Weiter</span>
           </button>
         )}
       </div>

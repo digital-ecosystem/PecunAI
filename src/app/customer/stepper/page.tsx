@@ -402,6 +402,7 @@ export default function Stepper() {
         let buffer = "";
 
         if (reader) {
+          setChatBtnLanding(false);
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -1395,7 +1396,7 @@ export default function Stepper() {
       </div>
       {loading ? (
         <div className="flex items-center justify-center w-full h-32 sm:h-48 lg:h-64">
-          <div className="text-gray-500 animate-pulse text-sm sm:text-base">Loading...</div>
+          <div className="text-gray-500 animate-pulse text-sm sm:text-base">Wird geladen...</div>
         </div>
       ) : (
         <React.Fragment>
@@ -1406,10 +1407,10 @@ export default function Stepper() {
                   {/* Header */}
                   <div className="mb-4 sm:mb-6 flex-shrink-0">
                     <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-                      Terms and Conditions
+                      4MONEY
                     </h1>
                     <p className="text-sm sm:text-base text-gray-600">
-                      Please read carefully before confirming
+                      Information über das Wertpapierdienstleistungsunternehmen
                     </p>
                   </div>
 
@@ -1455,7 +1456,7 @@ export default function Stepper() {
                   {/* Status Message */}
                   {confirmed && (
                     <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-center animate-pulse flex-shrink-0">
-                      <p className="text-sm sm:text-base">Thank you for confirming!</p>
+                      <p className="text-sm sm:text-base">Vielen Dank für die Bestätigung!</p>
                     </div>
                   )}
                 </div>
@@ -1469,7 +1470,7 @@ export default function Stepper() {
                       Nachhaltigkeitsrisiken
                     </h1>
                     <p className="text-sm sm:text-base text-gray-600">
-                      Please read carefully before confirming
+                      Bitte lesen Sie sorgfältig, bevor Sie bestätigen
                     </p>
                   </div>
 
@@ -1586,7 +1587,7 @@ export default function Stepper() {
                   {/* Status Message */}
                   {confirmed && (
                     <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-center animate-pulse flex-shrink-0">
-                      <p className="text-sm sm:text-base">Thank you for confirming!</p>
+                      <p className="text-sm sm:text-base">Vielen Dank für die Bestätigung!</p>
                     </div>
                   )}
                 </div>
@@ -1708,8 +1709,8 @@ export default function Stepper() {
                                 <svg className="w-12 h-12 sm:w-16 sm:h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
-                                <p className="text-sm sm:text-base font-medium mb-2">No product document available</p>
-                                <p className="text-xs sm:text-sm text-gray-400">Product information will be provided separately</p>
+                                <p className="text-sm sm:text-base font-medium mb-2">Kein Produktdokument verfügbar</p>
+                                <p className="text-xs sm:text-sm text-gray-400">Produktinformationen werden separat bereitgestellt</p>
                               </div>
                             )}
                           </div>
@@ -1783,7 +1784,7 @@ export default function Stepper() {
                               </div>
                               <div>
                                 <h4 className="text-sm sm:text-base font-semibold text-red-800 mb-1">
-                                  Verification Error
+                                  Verifizierungsfehler
                                 </h4>
                                 <p className="text-sm text-red-700">
                                   {error}
@@ -1866,11 +1867,11 @@ export default function Stepper() {
                             </div>
 
                             <h3 className="text-xl sm:text-2xl font-bold text-green-600 mb-3 sm:mb-4">
-                              Document Signed Successfully!
+                              Dokument erfolgreich signiert!
                             </h3>
 
                             <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
-                              Your document has been signed and processed successfully.
+                              Ihr Dokument wurde erfolgreich signiert und verarbeitet.
                             </p>
 
                             {loading && (
@@ -1878,7 +1879,7 @@ export default function Stepper() {
                                 <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-500 mx-auto mb-3">
                                 </div>
                                 <p className="text-xs sm:text-sm text-gray-500">
-                                  Downloading and saving signed document...
+                                  Signiertes Dokument wird heruntergeladen und gespeichert...
                                 </p>
                               </div>
                             )}
@@ -1893,7 +1894,7 @@ export default function Stepper() {
                                   </div>
                                   <div>
                                     <p className="text-sm sm:text-base text-blue-800 font-medium mb-2">
-                                      ✅ Signed document saved successfully!
+                                      ✅ Signiertes Dokument erfolgreich gespeichert!
                                     </p>
                                     <a
                                       href={downloadedDocumentPath}
@@ -1904,7 +1905,7 @@ export default function Stepper() {
                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                       </svg>
-                                      View Signed Document
+                                      
                                     </a>
                                   </div>
                                 </div>
@@ -1912,7 +1913,7 @@ export default function Stepper() {
                             )}
 
                             <p className="text-xs sm:text-sm text-gray-500 mb-6 sm:mb-8">
-                              Redirecting to success page...
+                              Weiterleitung zur Erfolgsseite...
                             </p>
 
                             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
@@ -1920,7 +1921,7 @@ export default function Stepper() {
                                 onClick={() => router.push('/customer/success')}
                                 className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium text-sm sm:text-base"
                               >
-                                Go to Success Page
+                                Zur Erfolgsseite
                               </button>
                             </div>
                           </div>
@@ -1950,7 +1951,7 @@ export default function Stepper() {
                 disabled={step === PHASES.TERMS1}
                 className={`${buttonBaseClass} ${buttonBackClass} order-2 sm:order-1 w-full sm:w-auto`}
               >
-                <span>Back</span>
+                <span>Zurück</span>
               </button>
               <div className="flex justify-end order-1 sm:order-2">
                 {step === PHASES.TERMS1 || step === PHASES.TERMS2 ? (
@@ -1963,11 +1964,11 @@ export default function Stepper() {
                     {confirmed ? (
                       <>
                         <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="hidden sm:inline">Confirmed!</span>
+                        <span className="hidden sm:inline">Bestätigt!</span>
                         <span className="sm:hidden">✓</span>
                       </>
                     ) : (
-                      <span>I Confirm</span>
+                      <span>Ich bestätige</span>
                     )}
                   </button>
                 ) : step === PHASES.QUESTIONS1 ||
@@ -1998,14 +1999,14 @@ export default function Stepper() {
                     className={`${buttonBaseClass} ${buttonNextClass} disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto`}
                     type={step === PHASES.PERSONAL_INFO ? "submit" : "button"}
                   >
-                    <span>Next</span>
+                    <span>Nächste</span>
                   </button>
                 ) : step === PHASES.RESULT_PDF ? null : (
                   <button
                     onClick={step < PHASES.RESULT_PDF ? nextStep : backDashboard}
                     className={`${buttonBaseClass} ${buttonNextClass} w-full sm:w-auto`}
                   >
-                    <span>{step === PHASES.RESULT_PDF ? 'Finish' : 'Next'}</span>
+                    <span>{step === PHASES.RESULT_PDF ? 'Abschließen' : 'Nächste'}</span>
                   </button>
                 )}
               </div>

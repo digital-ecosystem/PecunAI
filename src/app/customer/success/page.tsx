@@ -24,29 +24,29 @@ export default function SignatureSuccess() {
 
         {/* Success Message */}
         <h1 className="text-3xl font-bold text-green-600 mb-4">
-          Document Signed Successfully!
+          Dokument erfolgreich signiert!
         </h1>
         
         <p className="text-gray-700 text-lg mb-6">
-          Thank you! Your signature has been received and the document has been processed.
+          Vielen Dank! Ihre Unterschrift wurde empfangen und das Dokument wurde verarbeitet.
         </p>
 
         {/* Session Info */}
         {sessionId && (
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <p className="text-sm text-gray-600">
-              <span className="font-medium">Session ID:</span> {sessionId}
+              <span className="font-medium">Sitzungs-ID:</span> {sessionId}
             </p>
           </div>
         )}
 
         {/* Next Steps */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <h3 className="font-semibold text-blue-800 mb-2">What happens next?</h3>
+          <h3 className="font-semibold text-blue-800 mb-2">Wie geht es weiter?</h3>
           <ul className="text-sm text-blue-700 space-y-1 text-left">
-            <li>• Your signed document has been saved securely</li>
-            <li>• You will receive a confirmation email shortly</li>
-            <li>• The document is now legally binding</li>
+            <li>• Ihr signiertes Dokument wurde sicher gespeichert</li>
+            <li>• Sie erhalten in Kürze eine Bestätigungs-E-Mail</li>
+            <li>• Das Dokument ist nun rechtsverbindlich</li>
           </ul>
         </div>
 
@@ -56,7 +56,7 @@ export default function SignatureSuccess() {
             onClick={() => router.push('/customer/dashboard')}
             className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
           >
-            Return to Dashboard
+            Zurück zum Dashboard
           </button>
           
           {/* <button 
@@ -71,8 +71,8 @@ export default function SignatureSuccess() {
       {/* Additional Info */}
       <div className="mt-8 text-sm text-gray-600 max-w-md">
         <p>
-          If you have any questions about this process or need support, 
-          please contact our customer service team.
+          Wenn Sie Fragen zu diesem Prozess haben oder Unterstützung benötigen, 
+          wenden Sie sich bitte an unser Kundenservice-Team.
         </p>
       </div>
     </div>

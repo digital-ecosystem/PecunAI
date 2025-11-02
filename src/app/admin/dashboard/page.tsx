@@ -379,13 +379,13 @@ const Dashboard = () => {
                                                 <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                                                     <a href={`/documents/signed/${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
                                                         <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
-                                                        <span className="truncate">Download PDF</span>
+                                                        <span className="truncate">Download signed PDF</span>
                                                     </a>
                                                 </button>
                                                 <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                                                     <a href={`/documents/signD-identity-verification-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
                                                         <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
-                                                        <span className="truncate">Download SignD PDF</span>
+                                                        <span className="truncate">identity-verification</span>
                                                     </a>
                                                 </button>
                                             </div>
