@@ -9,7 +9,8 @@ export async function POST(request: NextRequest) {
       userInfo, 
       additionalData = {}, 
       pdfPath,
-      options = { flattenForm: true, debugMode: false }
+      options = { flattenForm: true, debugMode: false },
+      sessionId,
     } = body;
 
     if (!userInfo) {
@@ -27,12 +28,17 @@ export async function POST(request: NextRequest) {
     // Load and fill the PDF
     const filler = await PDFFormFiller.loadFromFile(finalPdfPath, options);
     
+    // Log loaded field names if in debug mode
+    if (options.debugMode) {
+      const fieldNames = filler?.getFieldNames();
+      console.log('📝 Loaded form fields:', fieldNames);
+    }
+    
     // Create form data from user info
     const formData = createFormDataFromUser(userInfo, additionalData as FormFieldData);
     
     // Fill the form
     filler.fillForm(formData);
-    
     // Flatten if requested
     if (options.flattenForm !== false) {
       filler.flattenForm();
@@ -41,9 +47,23 @@ export async function POST(request: NextRequest) {
     // Get the filled PDF as base64
     const filledPdfBase64 = await filler.toBase64();
 
+    // Validate the PDF base64 is not empty and has reasonable length
+    if (!filledPdfBase64 || filledPdfBase64.length < 100) {
+      throw new Error('Generated PDF appears to be invalid or empty');
+    }
+
+    // save PDF for debugging if in debug mode
+    // if (options.debugMode) {
+      const finalPath = path.join(process.cwd(), `/public/documents/signed/${sessionId}.pdf`);
+      console.log("🚀 ~ POST ~ sessionId:", sessionId)
+      await filler.saveToFile(finalPath);
+      console.log('💾 Filled PDF saved for debugging at:', finalPath);
+    // }
+
     return NextResponse.json({
       success: true,
-      pdfBase64: filledPdfBase64,
+      // pdfBase64: filledPdfBase64,
+      finalPath: sessionId ? `/documents/signed/${sessionId}.pdf` : null,
       message: 'PDF form filled successfully'
     });
 

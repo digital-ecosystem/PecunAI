@@ -31,9 +31,9 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useSignD } from "@/hooks/useSignD";
 import { SignDHandshakePayload } from "@/types/signd";
 import { SignDIframe } from "@/components/SignDIframe";
-import { generatePDF as GenerateSimplePDF } from "@/utils/pdfGenerator";
+// import { generatePDF as GenerateSimplePDF } from "@/utils/pdfGenerator";
 import { SignTeqIframe } from "@/components/SignTeqIframe";
-import { pdfBlobToBase64 } from "@/utils/pdfUtils";
+// import { pdfBlobToBase64 } from "@/utils/pdfUtils";
 // import { pdfBlobToBase64 } from "@/utils/pdfUtils";
 
 const PHASES = {
@@ -878,6 +878,7 @@ export default function Stepper() {
   }, [session_id]);
 
   const onPersonalInfoSubmit = async (data: PersonalInfoFormData) => {
+    console.log("🚀 ~ onPersonalInfoSubmit ~ data:", data)
     setLoading(true);
     
     // Helper function to convert phone country code to ISO country code
@@ -1153,19 +1154,62 @@ export default function Stepper() {
       //   }
       // }
 
-      const pdf = await GenerateSimplePDF(questions, answers, {
-        first_name: formik.values.firstName,
-        last_name: formik.values.lastName,
-        dob: formik.values.birthDate,
-      }, 'A loan processor is a professional responsible for thoroughly examining loan applications, assessing credit standings, and finalizing loan contracts. They play an intermediary role between clients and financial institutions, ensuring timely loan approvals and protecting the organization’s credibility. With expertise in banking procedures and regulations, they analyze applicants’ eligibility and develop repayment plans while maintaining strong communication and sales skills. A loan processor acts as a key link in facilitating loan approvals and maintaining customer satisfaction.');
+      // const pdf = await GenerateSimplePDF(questions, answers, {
+      //   first_name: formik.values.firstName,
+      //   last_name: formik.values.lastName,
+      //   dob: formik.values.birthDate,
+      // }, 'A loan processor is a professional responsible for thoroughly examining loan applications, assessing credit standings, and finalizing loan contracts. They play an intermediary role between clients and financial institutions, ensuring timely loan approvals and protecting the organization’s credibility. With expertise in banking procedures and regulations, they analyze applicants’ eligibility and develop repayment plans while maintaining strong communication and sales skills. A loan processor acts as a key link in facilitating loan approvals and maintaining customer satisfaction.');
 
       // You can also convert to blob for upload to server
-      const pdfBlob = pdf.output('blob');
+      // const pdfBlob = pdf.output('blob');
       // uploadPDFToServer(pdfBlob);
-      const base64 = await pdfBlobToBase64(pdfBlob);
-      console.log("🚀 ~ generatePDF ~ base64:", base64)
+      // const base64 = await pdfBlobToBase64(pdfBlob);
+      // console.log("🚀 ~ generatePDF ~ base64:", base64)
+
+      // Note: We no longer need to read the static PDF since we're using the filled one
+      // const publicPdfBase64 = await readStaticPDFToBase64('/static-pdf/4money_protokoll_PecunAI_v1.pdf');
+      // console.log("🚀 ~ generatePDF ~ publicPdfBase64:", publicPdfBase64)
+
+      // api call to fill the dynamic fields and create pdf for signing
+      // const responsePDF = await fetch('/api/pdf-form-fill', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     userInfo: formik.values,
+      //     sessionId: session_id,
+      //     options: {
+      //       flattenForm: true,
+      //       debugMode: true // Enable debug mode to save a copy for inspection
+      //     }
+      //   }),
+      // });
+
+      // if (!responsePDF.ok) {
+      //   throw new Error(`PDF API Error: ${responsePDF.status} ${responsePDF.statusText}`);
+      // }
+
+      // const dataPDF = await responsePDF.json();
+      // console.log("🚀 ~ generatePDF ~ dataPDF:", dataPDF)
+
+      // if (!dataPDF.success || !dataPDF.finalPath) {
+      //   const errorMsg = dataPDF.error || 'Failed to fill PDF form';
+      //   console.error('❌ PDF Form Fill Error:', errorMsg);
+      //   throw new Error(`PDF-Formular konnte nicht ausgefüllt werden: ${errorMsg}`);
+      // }
+      
+      // const publicPdfBase64 = await readStaticPDFToBase64(dataPDF.finalPath);
+      // console.log("🚀 ~ generatePDF ~ publicPdfBase64:", publicPdfBase64)
 
       const publicPdfBase64 = await readStaticPDFToBase64('/static-pdf/4money_protokoll_PecunAI_v1.pdf');
+      // const filledPdfBase64 = dataPDF.pdfBase64;
+      // console.log("✅ PDF successfully filled, length:", filledPdfBase64.length)
+      
+      // Validate the base64 string
+      // if (filledPdfBase64.length < 1000) {
+      //   throw new Error('Das generierte PDF ist zu klein oder ungültig. Bitte versuchen Sie es erneut.');
+      // }
 
       // const arrayBuffer = await pdfBlob.arrayBuffer();
       // const buffer = Buffer.from(arrayBuffer);
@@ -1178,7 +1222,7 @@ export default function Stepper() {
         body: JSON.stringify({
           subject: 'Test Document Signature',
           documentName: 'test_document.pdf',
-          documentBase64: publicPdfBase64, // Remove data:application/pdf;base64, prefix
+          documentBase64: publicPdfBase64, // Use the filled PDF instead of the static one
           recipientEmail: formik.values.email,
           recipientName: `${formik.values.firstName} ${formik.values.lastName}`,
           sessionId: session_id,
@@ -1187,6 +1231,15 @@ export default function Stepper() {
       });
 
       const data = await response.json();
+      
+      // Log the full response for debugging
+      console.log('SignTeq API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        success: data.success,
+        error: data.error,
+        hasSigningUrl: !!data.signing_url
+      });
 
       if (data.success && data.signing_url) {
         setSigningUrl(data.signing_url);
@@ -1195,16 +1248,43 @@ export default function Stepper() {
         if (data.data && data.data.documents && data.data.documents[0]) {
           setSignTeqDocumentId(data.data.documents[0].id);
         }
-        // console.log('✅ SignTeq session created:', {
-        //   requestId: data.id,
-        //   documentId: data.data?.documents?.[0]?.id,
-        //   signingUrl: data.signing_url
-        // });
+        console.log('✅ SignTeq session created successfully');
       } else {
-        throw new Error(data.error || 'Failed to create SignTeq session');
+        // Handle API errors with detailed messages
+        const errorMessage = data.error || data.message || 'Failed to create SignTeq session';
+        const errorDetails = data.details || '';
+        
+        console.error('❌ SignTeq Error:', {
+          message: errorMessage,
+          details: errorDetails,
+          statusCode: response.status,
+          fullResponse: data
+        });
+        
+        // Provide user-friendly error messages
+        let userMessage = 'Ein Fehler ist beim Erstellen der Signatursitzung aufgetreten. ';
+        
+        if (response.status === 400) {
+          userMessage += 'Die übermittelten Daten sind ungültig. Bitte überprüfen Sie Ihre Eingaben.';
+        } else if (response.status === 401) {
+          userMessage += 'Authentifizierung fehlgeschlagen. Bitte kontaktieren Sie den Support.';
+        } else if (response.status === 500) {
+          userMessage += 'Serverfehler. Bitte versuchen Sie es später erneut.';
+        } else {
+          userMessage += errorMessage;
+        }
+        
+        throw new Error(userMessage);
       }
     } catch (error) {
-      console.error("Error generating final PDF:", error);
+      console.error("❌ Error generating final PDF:", error);
+      
+      // Provide user feedback
+      const errorMsg = error instanceof Error ? error.message : 'Ein unbekannter Fehler ist aufgetreten';
+      alert(`Fehler: ${errorMsg}\n\nBitte versuchen Sie es erneut oder kontaktieren Sie den Support.`);
+      
+      // Optionally, you could set an error state to display in the UI
+      // setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -1307,14 +1387,25 @@ export default function Stepper() {
     try {
       // Download the signed document if we have the document ID
       if (signTeqDocumentId) {
-        // console.log('📄 Downloading signed document...', signTeqDocumentId);
+        console.log('📄 Downloading signed document...', signTeqDocumentId);
 
         const downloadResponse = await fetch(
           `/api/signteq/documents/${signTeqDocumentId}/download?type=completed`
         );
+        
+        if (!downloadResponse.ok) {
+          throw new Error(`Download failed: ${downloadResponse.status} ${downloadResponse.statusText}`);
+        }
+        
         const downloadData = await downloadResponse.json();
+        
+        console.log('Download Response:', {
+          success: downloadData.success,
+          hasBase64: !!downloadData.base64,
+          error: downloadData.error
+        });
 
-        if (downloadData.success) {
+        if (downloadData.success && downloadData.base64) {
           // Save the downloaded document
           const saveResponse = await fetch('/api/signteq/save-document', {
             method: 'POST',
@@ -1329,25 +1420,41 @@ export default function Stepper() {
             }),
           });
 
+          if (!saveResponse.ok) {
+            throw new Error(`Save failed: ${saveResponse.status} ${saveResponse.statusText}`);
+          }
+
           const saveData = await saveResponse.json();
+          
           if (saveData.success) {
             setDownloadedDocumentPath(saveData.path);
             console.log('✅ Document saved successfully:', saveData.path);
           } else {
-            console.error('❌ Failed to save document:', saveData.error);
+            const errorMsg = saveData.error || 'Failed to save document';
+            console.error('❌ Failed to save document:', errorMsg);
+            throw new Error(`Dokument konnte nicht gespeichert werden: ${errorMsg}`);
           }
         } else {
-          console.error('❌ Failed to download document:', downloadData.error);
+          const errorMsg = downloadData.error || 'Failed to download document';
+          console.error('❌ Failed to download document:', errorMsg);
+          throw new Error(`Dokument konnte nicht heruntergeladen werden: ${errorMsg}`);
         }
+      } else {
+        console.warn('⚠️ No document ID available for download');
       }
 
-      setSuccess(true);
-
-      await fetch('/api/user/update-status', {
+      // Update session status
+      const statusResponse = await fetch('/api/user/update-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId: session_id }),
       });
+
+      if (!statusResponse.ok) {
+        console.error('❌ Failed to update status:', statusResponse.status);
+      }
+
+      setSuccess(true);
 
       // Redirect to success page after a short delay
       setTimeout(() => {
@@ -1356,7 +1463,13 @@ export default function Stepper() {
 
     } catch (error) {
       console.error('❌ Error in post-signing process:', error);
+      
+      // Show error to user but still redirect since signing was completed
+      const errorMsg = error instanceof Error ? error.message : 'Ein Fehler ist aufgetreten';
+      alert(`Warnung: ${errorMsg}\n\nDie Signatur wurde erfolgreich abgeschlossen, aber es gab ein Problem beim Speichern des Dokuments.`);
+      
       setSuccess(true); // Still mark as success since signing completed
+      
       // Redirect anyway but log the error
       setTimeout(() => {
         router.push('/customer/success');

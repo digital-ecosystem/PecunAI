@@ -187,20 +187,55 @@ export async function POST(request: NextRequest) {
     // Handle axios errors specifically
     if (axios.isAxiosError(error)) {
       const axiosError = error;
-      console.error('❌ SignTeq API error:', axiosError.response?.data);
+      const responseData = axiosError.response?.data;
+      const statusCode = axiosError.response?.status || 500;
+      
+      console.error('❌ SignTeq API error details:', {
+        status: statusCode,
+        statusText: axiosError.response?.statusText,
+        data: responseData,
+        message: axiosError.message
+      });
+
+      // Extract meaningful error message
+      let errorMessage = 'SignTeq API error';
+      let errorDetails = '';
+
+      if (responseData) {
+        if (typeof responseData === 'string') {
+          errorMessage = responseData;
+        } else if (responseData.message) {
+          errorMessage = responseData.message;
+          errorDetails = responseData.details || responseData.error || '';
+        } else if (responseData.error) {
+          errorMessage = responseData.error;
+        } else if (responseData.errors) {
+          // Handle validation errors
+          errorMessage = 'Validation error';
+          errorDetails = JSON.stringify(responseData.errors);
+        }
+      }
+
       return NextResponse.json(
         {
           success: false,
-          error: axiosError.response?.data?.message || axiosError.message || 'SignTeq API error'
+          error: errorMessage,
+          details: errorDetails,
+          statusCode: statusCode
         },
-        { status: axiosError.response?.status || 500 }
+        { status: statusCode }
       );
     }
 
+    // Handle other types of errors
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    console.error('❌ Unexpected error:', errorMessage);
+    
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'An unknown error occurred'
+        error: errorMessage,
+        details: 'An unexpected error occurred while creating the SignTeq session'
       },
       { status: 500 }
     );
