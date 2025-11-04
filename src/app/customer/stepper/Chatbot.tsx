@@ -1,5 +1,34 @@
 import { Message, Role } from '@/types'
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
+
+// Speech Recognition types
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList
+  resultIndex: number
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string
+  message: string
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  start: () => void
+  stop: () => void
+  onresult: ((event: SpeechRecognitionEvent) => void) | null
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null
+  onend: (() => void) | null
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition
+    webkitSpeechRecognition: new () => SpeechRecognition
+  }
+}
 
 // interface Message {
 //   id?: string
@@ -57,6 +86,11 @@ export default function Chatbot({
   // const [sessionId, setSessionId] = useState<string | null>(initialSessionId || null)
   // const [threadId, setThreadId] = useState<string | null>(initialThreadId || null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -64,6 +98,95 @@ export default function Chatbot({
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  useEffect(() => {
+    // Initialize speech recognition if available
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition()
+        recognitionRef.current.continuous = true
+        recognitionRef.current.interimResults = false
+        recognitionRef.current.lang = 'de-DE' // German language, change to 'en-US' if needed
+        
+        recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+          const transcript = event.results[event.results.length - 1][0].transcript
+          if (setInput) {
+            setInput(transcript)
+          }
+        }
+        
+        recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
+          console.error('Speech recognition error:', event.error)
+          setIsRecording(false)
+        }
+        
+        recognitionRef.current.onend = () => {
+          setIsRecording(false)
+        }
+      }
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop()
+      }
+    }
+  }, [setInput])
+
+  const copyToClipboard = async (text: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(messageId)
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch (err) {
+      console.error('Failed to copy text: ', err)
+    }
+  }
+
+  const toggleRecording = async () => {
+    if (isRecording) {
+      // Stop recording
+      if (recognitionRef.current) {
+        recognitionRef.current.stop()
+      }
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop()
+      }
+      setIsRecording(false)
+    } else {
+      // Start recording
+      try {
+        if (recognitionRef.current) {
+          recognitionRef.current.start()
+          setIsRecording(true)
+        } else {
+          // Fallback to MediaRecorder if Speech Recognition is not available
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+          const recorder = new MediaRecorder(stream)
+          const audioChunks: BlobPart[] = []
+          
+          recorder.ondataavailable = (event) => {
+            audioChunks.push(event.data)
+          }
+          
+          recorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' })
+            // Here you would typically send the audio to a transcription service
+            console.log('Audio recorded:', audioBlob)
+            stream.getTracks().forEach(track => track.stop())
+          }
+          
+          recorder.start()
+          setMediaRecorder(recorder)
+          setIsRecording(true)
+        }
+      } catch (error) {
+        console.error('Error accessing microphone:', error)
+        alert('Unable to access microphone. Please grant permission.')
+      }
+    }
+  }
 
   // Load chat history on component mount
   // useEffect(() => {
@@ -192,38 +315,32 @@ export default function Chatbot({
 
 
   return (
-    <div className="h-full w-full flex flex-col">
-      <div className="flex flex-col h-full w-full max-w-4xl mx-auto border border-gray-300 rounded-lg sm:rounded-xl bg-white shadow-lg">
-        {/* Header */}
-        <div className="bg-blue-600 text-white p-3 sm:p-4 rounded-t-lg sm:rounded-t-xl flex-shrink-0 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
-          <h2 className="text-base sm:text-lg font-semibold">AI Investment Assistant</h2>
-          <div className="flex items-center space-x-2">
+    <div className="h-full w-full flex flex-col bg-gray-50">
+      <div className="flex flex-col h-full w-full mx-auto bg-white">
+        {/* Header - ChatGPT Style */}
+        <div className="border-b border-gray-200 bg-white/95 backdrop-blur-sm sticky top-0 z-10 flex-shrink-0">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-800">AI Investment Assistant</h2>
             {threadId && (
-              <span className="text-xs opacity-75 truncate max-w-32 sm:max-w-none">
-                <span className="hidden sm:inline">Thread: </span>{threadId}
+              <span className="text-xs text-gray-400 truncate max-w-32 sm:max-w-none font-mono">
+                {threadId.slice(0, 8)}...
               </span>
             )}
-            {/* <button
-              onClick={clearChat}
-              className="text-xs bg-blue-700 hover:bg-blue-800 px-2 py-1 rounded"
-            >
-              New Chat
-            </button> */}
           </div>
         </div>
 
-        {/* Messages Container */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 min-h-0 max-h-full">
+        {/* Messages Container - ChatGPT Style */}
+        <div className="flex-1 overflow-y-auto min-h-0 max-h-full">
           {messages.length === 0 && (
-            <div className="text-gray-500 text-center py-8 sm:py-12">
-              <div className="mb-4">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <div className="flex items-center justify-center h-full px-4">
+              <div className="text-center max-w-2xl">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-md">
+                  <svg className="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <p className="text-sm sm:text-base font-medium mb-2">Start a conversation!</p>
-                <p className="text-xs sm:text-sm text-gray-400">Ask me about investment options, risks, or any questions you have.</p>
+                <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-2">How can I help you today?</h3>
+                <p className="text-sm text-gray-500">Ask me about investment options, risk analysis, or financial advice.</p>
               </div>
             </div>
           )}
@@ -231,29 +348,92 @@ export default function Chatbot({
           {messages.map((message, index) => (
             <div
               key={message.id || index}
-              className={`flex ${message.role === Role.customer ? 'justify-end' : 'justify-start'
-                }`}
+              className={`group border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
+                message.role === Role.customer ? 'bg-white' : 'bg-gray-50'
+              }`}
             >
-              <div
-                className={`max-w-[85%] sm:max-w-xs lg:max-w-md xl:max-w-lg px-3 sm:px-4 py-2 sm:py-3 rounded-lg ${message.role === Role.customer
-                  ? 'bg-blue-600 text-white rounded-br-none'
-                  : 'bg-gray-200 text-gray-800 rounded-bl-none'
-                  }`}
-              >
-                <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
-                <span className="text-xs opacity-75 block mt-1 sm:mt-2">
-                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+              <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
+                <div className="flex gap-3 sm:gap-4">
+                  {/* Avatar */}
+                  <div className="flex-shrink-0">
+                    {message.role === Role.customer ? (
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-sm">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Message Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {message.role === Role.customer ? 'You' : 'AI Assistant'}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      
+                      {/* Message Actions - Visible on hover */}
+                      <button
+                        onClick={() => copyToClipboard(message.content, message.id || `${index}`)}
+                        className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+                        title="Copy message"
+                      >
+                        {copiedId === (message.id || `${index}`) ? (
+                          <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                    
+                    <div className="text-sm sm:text-base text-gray-800 whitespace-pre-wrap leading-relaxed">
+                      {message.content}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
 
           {loading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-200 text-gray-800 max-w-[85%] sm:max-w-xs lg:max-w-md px-3 sm:px-4 py-2 sm:py-3 rounded-lg rounded-bl-none">
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-gray-600"></div>
-                  <span className="text-xs sm:text-sm">Nachdenken</span>
+            <div className="group border-b border-gray-100 bg-gray-50">
+              <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
+                <div className="flex gap-3 sm:gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-sm">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-sm font-semibold text-gray-900">AI Assistant</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                      <span className="text-sm text-gray-500">Thinking...</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -261,32 +441,73 @@ export default function Chatbot({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Form */}
-        <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-t border-gray-200 flex-shrink-0">
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput && setInput(e.target.value)}
-              placeholder="Ask about investment options, risks, or advice..."
-              className="flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              disabled={loading}
-            />
-            <button
-              type="submit"
-              disabled={loading || !input.trim()}
-              className="px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base font-medium whitespace-nowrap"
-              // ref={buttonRef}
-            >
-              <span className="">Send</span>
-              {/* <span className="sm:hidden">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-              </span> */}
-            </button>
+        {/* Input Form - ChatGPT Style */}
+        <div className="border-t border-gray-200 bg-white sticky bottom-0 flex-shrink-0">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+            <form onSubmit={handleSubmit} className="relative">
+              <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-xl shadow-sm hover:shadow-md focus-within:border-blue-400 focus-within:shadow-md transition-all">
+                {!isRecording && (
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput && setInput(e.target.value)}
+                    placeholder="Message AI Assistant..."
+                    className="flex-1 px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-transparent focus:outline-none"
+                    disabled={loading}
+                  />
+                )}
+                
+                {isRecording && (
+                  <div className="flex-1 px-4 py-2.5 sm:py-3 flex items-center gap-2">
+                    <div className="flex items-center gap-2 text-red-600">
+                      <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                      <span className="text-sm sm:text-base font-medium">Recording...</span>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-1 pr-1.5">
+                  <button
+                    type="button"
+                    onClick={toggleRecording}
+                    className={`p-2 rounded-lg transition-all ${
+                      isRecording
+                        ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                    }`}
+                    disabled={loading}
+                    title={isRecording ? 'Stop recording' : 'Start voice input'}
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  
+                  {!isRecording && (
+                    <button
+                      type="submit"
+                      disabled={loading || !input.trim()}
+                      className={`p-2 rounded-lg transition-all ${
+                        input.trim() && !loading
+                          ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                      title="Send message"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              <p className="text-xs text-gray-400 text-center mt-2">
+                AI can make mistakes. Please verify important information.
+              </p>
+            </form>
           </div>
-        </form>
+        </div>
 
         {/* Navigation Buttons */}
         {/* <div className="flex justify-between items-center px-4 py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg flex-shrink-0">
