@@ -20,6 +20,12 @@ async function fillPecunAIPdf() {
   form.getTextField("nachname").setText("HI");
   form.getTextField("Name, Gebdatum").setText("Bassem Mahdi , 15.05.1985");
   //form.getCheckBox("Kontrollkästchen 478").check();
+  //form.getCheckBox("Kontrollkästchen 25").check();
+  fields.forEach(element => {
+    if (!element.startsWith("Kontrollkästchen")) return;
+    form.getCheckBox(element).check();
+  });
+  form.getCheckBox("Kontrollkästchen 26").check();
 
   
 
