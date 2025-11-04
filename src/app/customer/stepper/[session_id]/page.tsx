@@ -12,22 +12,22 @@ import { CheckCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 import React, { useCallback, useEffect, useState } from "react";
 // import HTMLRenderer from '@/components/HTMLRenderer';
-import './index.css';
-const QuestionCard = dynamic(() => import("./QuestionCard"), {
+import '../index.css';
+const QuestionCard = dynamic(() => import("../QuestionCard"), {
   ssr: false,
   loading: () => <div className="animate-pulse">Loading questions...</div>,
 });
-const PersonalInfoForm = dynamic(() => import("./PersonalInfoForm"), {
+const PersonalInfoForm = dynamic(() => import("../PersonalInfoForm"), {
   ssr: false,
   loading: () => <div className="animate-pulse">Loading personal info...</div>,
 });
-const Chatbot = dynamic(() => import("./Chatbot"), {
+const Chatbot = dynamic(() => import("../Chatbot"), {
   ssr: false,
   loading: () => <div className="animate-pulse">Loading personal info...</div>,
 });
 import * as Yup from "yup";
 import { useFormik } from "formik";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useSignD } from "@/hooks/useSignD";
 import { SignDHandshakePayload } from "@/types/signd";
 import { SignDIframe } from "@/components/SignDIframe";
@@ -194,8 +194,8 @@ const validationSchema = Yup.object({
 
 // Test credentials from the documentation
 const TEST_CREDENTIALS = {
-  login: "83212e3b-6ff3-4cfe-afe3-80f107d8ae20",
-  token: "TD5QZ22FAmh3IMd8ozeuwG9kVCkwcmsbPhy1KPWaMaAaGKiMmOHPsRm7MGaeRbQ8",
+  login: process.env.SIGND_LOGIN_ID || "83212e3b-6ff3-4cfe-afe3-80f107d8ae20",
+  token: process.env.SIGND_LOGIN_TOKEN || "TD5QZ22FAmh3IMd8ozeuwG9kVCkwcmsbPhy1KPWaMaAaGKiMmOHPsRm7MGaeRbQ8",
 };
 
 export default function Stepper() {
@@ -212,7 +212,7 @@ export default function Stepper() {
   const [suggestedProduct, setSuggestedProduct] = useState<Portfolio | null>(
     null
   );
-  const searchParams = useSearchParams();
+  const params = useParams();
   const router = useRouter();
   const [threadId, setThreadId] = useState(null);
   const [messages, setMessages] = useState<Message[]>([])
@@ -224,7 +224,7 @@ export default function Stepper() {
   const [signTeqDocumentId, setSignTeqDocumentId] = useState<string | null>(null);
   const [downloadedDocumentPath, setDownloadedDocumentPath] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const session_id = searchParams.get('session_id')
+  const session_id = params.session_id as string;
 
   // For PHASES.QUESTIONS1
   const questions1 = questions.slice(0, 2);
@@ -246,7 +246,7 @@ export default function Stepper() {
     getIframeUrl,
     setError,
   } = useSignD(TEST_CREDENTIALS);
-    // console.log("🚀 ~ Stepper ~ signDSessionData:", signDSessionData)
+  // console.log("🚀 ~ Stepper ~ signDSessionData:", signDSessionData)
 
   const formik = useFormik({
     initialValues: {
@@ -301,9 +301,9 @@ export default function Stepper() {
         await fetch("/api/phase", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            sessionId: session_id, 
-            phase: phaseName 
+          body: JSON.stringify({
+            sessionId: session_id,
+            phase: phaseName
           }),
         });
       }
@@ -415,7 +415,7 @@ export default function Stepper() {
               if (line.startsWith('data: ')) {
                 try {
                   const data = JSON.parse(line.slice(6));
-                  
+
                   if (data.done) {
                     // Final response with metadata
                     if (data.threadId && !threadId) {
@@ -880,7 +880,7 @@ export default function Stepper() {
   const onPersonalInfoSubmit = async (data: PersonalInfoFormData) => {
     console.log("🚀 ~ onPersonalInfoSubmit ~ data:", data)
     setLoading(true);
-    
+
     // Helper function to convert phone country code to ISO country code
     const getISOCountryCode = (phoneCountryCode: string): string => {
       const countryCodeMap: Record<string, string> = {
@@ -903,7 +903,7 @@ export default function Stepper() {
         "+61": "AU", // Australia
         "+91": "IN", // India
       };
-      
+
       return countryCodeMap[phoneCountryCode] || "AT"; // Default to Austria if not found
     };
 
@@ -1198,14 +1198,14 @@ export default function Stepper() {
       //   console.error('❌ PDF Form Fill Error:', errorMsg);
       //   throw new Error(`PDF-Formular konnte nicht ausgefüllt werden: ${errorMsg}`);
       // }
-      
+
       // const publicPdfBase64 = await readStaticPDFToBase64(dataPDF.finalPath);
       // console.log("🚀 ~ generatePDF ~ publicPdfBase64:", publicPdfBase64)
 
       const publicPdfBase64 = await readStaticPDFToBase64('/static-pdf/4money_protokoll_PecunAI_v1.pdf');
       // const filledPdfBase64 = dataPDF.pdfBase64;
       // console.log("✅ PDF successfully filled, length:", filledPdfBase64.length)
-      
+
       // Validate the base64 string
       // if (filledPdfBase64.length < 1000) {
       //   throw new Error('Das generierte PDF ist zu klein oder ungültig. Bitte versuchen Sie es erneut.');
@@ -1231,7 +1231,7 @@ export default function Stepper() {
       });
 
       const data = await response.json();
-      
+
       // Log the full response for debugging
       console.log('SignTeq API Response:', {
         status: response.status,
@@ -1253,17 +1253,17 @@ export default function Stepper() {
         // Handle API errors with detailed messages
         const errorMessage = data.error || data.message || 'Failed to create SignTeq session';
         const errorDetails = data.details || '';
-        
+
         console.error('❌ SignTeq Error:', {
           message: errorMessage,
           details: errorDetails,
           statusCode: response.status,
           fullResponse: data
         });
-        
+
         // Provide user-friendly error messages
         let userMessage = 'Ein Fehler ist beim Erstellen der Signatursitzung aufgetreten. ';
-        
+
         if (response.status === 400) {
           userMessage += 'Die übermittelten Daten sind ungültig. Bitte überprüfen Sie Ihre Eingaben.';
         } else if (response.status === 401) {
@@ -1273,16 +1273,16 @@ export default function Stepper() {
         } else {
           userMessage += errorMessage;
         }
-        
+
         throw new Error(userMessage);
       }
     } catch (error) {
       console.error("❌ Error generating final PDF:", error);
-      
+
       // Provide user feedback
       const errorMsg = error instanceof Error ? error.message : 'Ein unbekannter Fehler ist aufgetreten';
       alert(`Fehler: ${errorMsg}\n\nBitte versuchen Sie es erneut oder kontaktieren Sie den Support.`);
-      
+
       // Optionally, you could set an error state to display in the UI
       // setError(errorMsg);
     } finally {
@@ -1392,13 +1392,13 @@ export default function Stepper() {
         const downloadResponse = await fetch(
           `/api/signteq/documents/${signTeqDocumentId}/download?type=completed`
         );
-        
+
         if (!downloadResponse.ok) {
           throw new Error(`Download failed: ${downloadResponse.status} ${downloadResponse.statusText}`);
         }
-        
+
         const downloadData = await downloadResponse.json();
-        
+
         console.log('Download Response:', {
           success: downloadData.success,
           hasBase64: !!downloadData.base64,
@@ -1425,7 +1425,7 @@ export default function Stepper() {
           }
 
           const saveData = await saveResponse.json();
-          
+
           if (saveData.success) {
             setDownloadedDocumentPath(saveData.path);
             console.log('✅ Document saved successfully:', saveData.path);
@@ -1463,13 +1463,13 @@ export default function Stepper() {
 
     } catch (error) {
       console.error('❌ Error in post-signing process:', error);
-      
+
       // Show error to user but still redirect since signing was completed
       const errorMsg = error instanceof Error ? error.message : 'Ein Fehler ist aufgetreten';
       alert(`Warnung: ${errorMsg}\n\nDie Signatur wurde erfolgreich abgeschlossen, aber es gab ein Problem beim Speichern des Dokuments.`);
-      
+
       setSuccess(true); // Still mark as success since signing completed
-      
+
       // Redirect anyway but log the error
       setTimeout(() => {
         router.push('/customer/success');
@@ -1488,12 +1488,6 @@ export default function Stepper() {
     console.log('ℹ️ Signing cancelled by user');
     setSigningUrl(null);
   };
-
-  // const resetTest = () => {
-  //   setSigningUrl(null);
-  //   setError(null);
-  //   setSuccess(false);
-  // };
 
   return (
     <div className={stepperContainerClass}>
@@ -1514,9 +1508,9 @@ export default function Stepper() {
       ) : (
         <React.Fragment>
           <div className={cardClass}>
-            <div className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 overflow-hidden">
+            <div className="flex-1 flex flex-col p-2 sm:p-2 lg:p-2 overflow-hidden">
               {step === PHASES.TERMS1 && (
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full p-4 sm:p-6 lg:p-6 ">
                   {/* Header */}
                   <div className="mb-4 sm:mb-6 flex-shrink-0">
                     <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
@@ -1576,7 +1570,7 @@ export default function Stepper() {
               )}
 
               {step === PHASES.TERMS2 && (
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full p-4 sm:p-6 lg:p-6">
                   {/* Header */}
                   <div className="mb-4 sm:mb-6 flex-shrink-0">
                     <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
@@ -1693,7 +1687,7 @@ export default function Stepper() {
 
                       <p>Als Anlageberater:in beziehen wir die Informationen über die Nachhaltigkeit in Finanzinstrumenten aus den offengelegten Informationen der jeweiligen Produkthersteller, z.B. aus den regelmäßigen Berichten zu den Finanzinstrumenten. Diese sind auch für Sie, z.B. auf den jeweiligen Internetseiten der Produktanbieter, einsehbar. Dort finden Sie unter anderem eine Beschreibung der ökologischen oder sozialen Merkmale oder des nachhaltigen Investitionsziels, Angaben zu den Methoden, die angewandt werden, um die ökologischen oder sozialen Merkmale der für das Finanzprodukt ausgewählten nachhaltigen Investitionen zu bewerten, zu messen und zu überwachen sowie Informationen über die wichtigsten nachteiligen Auswirkungen auf die Nachhaltigkeitsfaktoren von Finanzinstrumenten. Bedenken Sie, dass es sich dabei um Informationen handeln kann, die sich auf Zeiträume beziehen, die in der Vergangenheit liegen.</p>
 
-                      <hr/>
+                      {/* <hr /> */}
                     </div>
                   </div>
 
@@ -1871,78 +1865,46 @@ export default function Stepper() {
                       </div> */}
 
                       {/* <div className="bg-white border border-gray-200 rounded-lg sm:rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col min-h-0"> */}
-                        <SignDIframe
-                          src={getIframeUrl(
-                            signDSessionData?.session_token ?? "",
-                            "en",
-                            formik.values.magicFlow
-                          )}
-                          onSuccess={handleSignDSuccess}
-                          onError={(error) => setError(error?.description)}
-                          onUserCanceled={prevStep}
-                          // onSignatureToken={(token) => handleDownloadIDV(token)}
-                          className="w-full flex-1 min-h-[400px] h-full rounded-lg border border-gray-200"
-                          onEvent={(e) => {
-                            console.log("Event : ", JSON.stringify(e));
-                          }}
-                        />
+                      <SignDIframe
+                        src={getIframeUrl(
+                          signDSessionData?.session_token ?? "",
+                          "en",
+                          formik.values.magicFlow
+                        )}
+                        onSuccess={handleSignDSuccess}
+                        onError={(error) => setError(error?.description)}
+                        onUserCanceled={prevStep}
+                        // onSignatureToken={(token) => handleDownloadIDV(token)}
+                        className="w-full flex-1 min-h-[400px] h-full rounded-lg border border-gray-200"
+                        onEvent={(e) => {
+                          console.log("Event : ", JSON.stringify(e));
+                        }}
+                      />
 
-                        {error && (
-                          <div className="m-4 sm:m-6 p-4 sm:p-6 bg-red-50 border border-red-200 rounded-lg">
-                            <div className="flex items-start gap-3">
-                              <div className="w-5 h-5 mt-0.5 flex-shrink-0">
-                                <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                              <div>
-                                <h4 className="text-sm sm:text-base font-semibold text-red-800 mb-1">
-                                  Verifizierungsfehler
-                                </h4>
-                                <p className="text-sm text-red-700">
-                                  {error}
-                                </p>
-                              </div>
+                      {error && (
+                        <div className="m-4 sm:m-6 p-4 sm:p-6 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <div className="w-5 h-5 mt-0.5 flex-shrink-0">
+                              <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h4 className="text-sm sm:text-base font-semibold text-red-800 mb-1">
+                                Verifizierungsfehler
+                              </h4>
+                              <p className="text-sm text-red-700">
+                                {error}
+                              </p>
                             </div>
                           </div>
-                        )}
+                        </div>
+                      )}
                       {/* </div> */}
                     </div>
                   </div>
                 </div>
               )}
-
-              {/* {step === PHASES.RESULT_PDF && (
-              <div className="w-full h-full">
-                <h2 className="text-xl font-bold mb-4">Final Result</h2>
-                <p className="text-gray-600 mb-6">
-                  Thank you for completing the process. You can download your
-                  final document below.
-                </p>
-                <div
-                  className="border p-4 rounded shadow"
-                  style={{ height: "85%" }}
-                >
-                  {finalPDFUrl ? (
-                    <iframe
-                      src={finalPDFUrl}
-                      className="w-full rounded"
-                      style={{ height: "85%" }}
-                    />
-                  ) : (
-                    <div
-                      className="w-full rounded bg-gray-100 flex items-center justify-center"
-                      style={{ height: "90%" }}
-                    >
-                      <p className="text-gray-500">
-                        Final PDF is not available at the moment.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div> */}
 
               {step === PHASES.RESULT_PDF && (
                 <div className="w-full h-full flex flex-col">
@@ -2018,7 +1980,7 @@ export default function Stepper() {
                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                       </svg>
-                                      
+
                                     </a>
                                   </div>
                                 </div>

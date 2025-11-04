@@ -113,7 +113,7 @@ const Dashboard = () => {
             const res = await response.json();
             if (res?.success) {
                 console.log("🚀 ~ handleStartNow ~ res:", res.session.id)
-                router.push('/customer/stepper?session_id=' + res.session.id);
+                router.push('/customer/stepper/' + res.session.id);
                 // router.push('/customer/phase/' + res.session.id);
                 // customer/stepper
             } else {
@@ -332,7 +332,7 @@ const Dashboard = () => {
                                                         {filteredSessions.map((session) => (
                                                             <tr key={session.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
                                                                 if (session.status === SessionStatus.DRAFT) {
-                                                                    router.push(`/customer/stepper?session_id=${session.id}`);
+                                                                    router.push(`/customer/stepper/${session.id}`);
                                                                 }
                                                             }}>
                                                                 <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
@@ -373,7 +373,7 @@ const Dashboard = () => {
                                                 {filteredSessions.map((session) => (
                                                     <div key={session.id} className="p-4 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
                                                         if (session.status === SessionStatus.DRAFT) {
-                                                            router.push(`/customer/stepper?session_id=${session.id}`);
+                                                            router.push(`/customer/stepper/${session.id}`);
                                                         }
                                                     }}>
                                                         <div className="flex items-start space-x-3">

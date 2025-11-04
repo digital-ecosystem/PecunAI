@@ -46,12 +46,12 @@ const QuestionCard = ({
         <p className="text-sm sm:text-base text-gray-500 mb-2 sm:mb-0">Question {step} of {totalSteps}</p>
         <p className="text-sm sm:text-base text-gray-500">{Math.round((step / totalSteps) * 100)}%</p>
       </div> */}
-      {/* <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 mb-6 sm:mb-8">
+      <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 mb-4 sm:mb-4">
         <div
           className="bg-blue-600 h-2 sm:h-3 rounded-full transition-all duration-300"
           style={{ width: `${(step / totalSteps) * 100}%` }}
         ></div>
-      </div> */}
+      </div>
 
       {/* Icon + Titles */}
       {/* <div className="flex flex-col items-center mb-6 sm:mb-8">
