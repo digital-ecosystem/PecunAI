@@ -67,6 +67,12 @@ type Portfolio = {
   score?: number;
 };
 
+// Interface for answer with options
+interface AnswerWithOptions {
+  selectedOption: string;
+  options: (Option | string)[];
+}
+
 const stepperBarClass = "flex-1 h-2 mx-1 rounded";
 const stepperContainerClass =
   "w-full h-screen px-4 sm:px-6 lg:px-8 py-4 sm:py-6 bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col overflow-hidden";
@@ -204,6 +210,8 @@ export default function Stepper() {
   const [step, setStep] = useState(PHASES.TERMS1);
   const [confirmed, setConfirmed] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answersByIndex, setAnswersByIndex] = useState<Record<number, AnswerWithOptions>>({});
+  console.log("🚀 ~ Stepper ~ answersByIndex:", answersByIndex)
   const [questionIndex, setQuestionIndex] = useState(1);
   const [questions, setQuestions] = useState<Question[]>([]);
   // const [termsAndConditions, setTermsAndConditions] = useState<
@@ -349,6 +357,18 @@ export default function Stepper() {
   const lastQuestionNext = () => {
     setQuestionIndex(1);
     nextStep();
+  };
+
+  // Helper function to sync answers by ID and by index
+  const syncAnswers = (questionId: string, selectedOption: string, index: number, options: (Option | string)[]) => {
+    setAnswers(prev => ({ ...prev, [questionId]: selectedOption }));
+    setAnswersByIndex(prev => ({ 
+      ...prev, 
+      [index]: { 
+        selectedOption, 
+        options 
+      } 
+    }));
   };
 
   const sendMessage = useCallback(
@@ -786,6 +806,21 @@ export default function Stepper() {
         if (data.success) {
           setQuestions(data.questions);
           setAnswers(data.answers || {});
+          
+          // Build answersByIndex from answers and questions
+          if (data.answers && data.questions) {
+            const indexedAnswers: Record<number, AnswerWithOptions> = {};
+            data.questions.forEach((question: Question) => {
+              if (data.answers[question.id]) {
+                indexedAnswers[question.questionOrder] = {
+                  selectedOption: data.answers[question.id],
+                  options: question.options || [],
+                };
+              }
+            });
+            setAnswersByIndex(indexedAnswers);
+          }
+          
           // Set the step to the saved phase from the session
           if (data.currentPhase && PHASES[data.currentPhase as keyof typeof PHASES] && data.sessionStatus == SessionStatus.DRAFT) {
             setStep(PHASES[data.currentPhase as keyof typeof PHASES]);
@@ -1171,38 +1206,43 @@ export default function Stepper() {
       // console.log("🚀 ~ generatePDF ~ publicPdfBase64:", publicPdfBase64)
 
       // api call to fill the dynamic fields and create pdf for signing
-      // const responsePDF = await fetch('/api/pdf-form-fill', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     userInfo: formik.values,
-      //     sessionId: session_id,
-      //     options: {
-      //       flattenForm: true,
-      //       debugMode: true // Enable debug mode to save a copy for inspection
-      //     }
-      //   }),
-      // });
+      const responsePDF = await fetch('/api/pdf-form-fill', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userInfo: formik.values,
+          sessionId: session_id,
+          options: {
+            flattenForm: true,
+            debugMode: true // Enable debug mode to save a copy for inspection
+          },
+          questionAnswers: answersByIndex,
+          additionalData: {
+            "vorname 69": suggestedProduct?.fullName || '',
+            "vorname 97": suggestedProduct?.fullName || '',
+          }
+        }),
+      });
 
-      // if (!responsePDF.ok) {
-      //   throw new Error(`PDF API Error: ${responsePDF.status} ${responsePDF.statusText}`);
-      // }
+      if (!responsePDF.ok) {
+        throw new Error(`PDF API Error: ${responsePDF.status} ${responsePDF.statusText}`);
+      }
 
-      // const dataPDF = await responsePDF.json();
-      // console.log("🚀 ~ generatePDF ~ dataPDF:", dataPDF)
+      const dataPDF = await responsePDF.json();
+      console.log("🚀 ~ generatePDF ~ dataPDF:", dataPDF)
 
-      // if (!dataPDF.success || !dataPDF.finalPath) {
-      //   const errorMsg = dataPDF.error || 'Failed to fill PDF form';
-      //   console.error('❌ PDF Form Fill Error:', errorMsg);
-      //   throw new Error(`PDF-Formular konnte nicht ausgefüllt werden: ${errorMsg}`);
-      // }
+      if (!dataPDF.success || !dataPDF.finalPath) {
+        const errorMsg = dataPDF.error || 'Failed to fill PDF form';
+        console.error('❌ PDF Form Fill Error:', errorMsg);
+        throw new Error(`PDF-Formular konnte nicht ausgefüllt werden: ${errorMsg}`);
+      }
 
-      // const publicPdfBase64 = await readStaticPDFToBase64(dataPDF.finalPath);
+      const publicPdfBase64 = await readStaticPDFToBase64(dataPDF.finalPath);
       // console.log("🚀 ~ generatePDF ~ publicPdfBase64:", publicPdfBase64)
 
-      const publicPdfBase64 = await readStaticPDFToBase64('/static-pdf/4money_protokoll_PecunAI_v1.pdf');
+      // const publicPdfBase64 = await readStaticPDFToBase64('/static-pdf/4money_protokoll_PecunAI_v1.pdf');
       // const filledPdfBase64 = dataPDF.pdfBase64;
       // console.log("✅ PDF successfully filled, length:", filledPdfBase64.length)
 
@@ -1722,6 +1762,12 @@ export default function Stepper() {
                     selected={answers[currentQ?.id]}
                     onSelect={async (opt) => {
                       setAnswers({ ...answers, [currentQ?.id]: opt });
+                      syncAnswers(
+                        currentQ?.id, 
+                        opt, 
+                        currentQ?.questionOrder,
+                        currentQ.options
+                      );
                       await saveAnswer(
                         currentQ?.id,
                         opt,
@@ -1758,6 +1804,12 @@ export default function Stepper() {
                     selected={answers[currentQ2?.id]}
                     onSelect={async (opt) => {
                       setAnswers({ ...answers, [currentQ2?.id]: opt });
+                      syncAnswers(
+                        currentQ2?.id, 
+                        opt, 
+                        currentQ2?.questionOrder,
+                        currentQ2.options
+                      );
                       await saveAnswer(
                         currentQ2?.id,
                         opt,
@@ -2076,7 +2128,7 @@ export default function Stepper() {
                   >
                     <span>Nächste</span>
                   </button>
-                ) : step === PHASES.RESULT_PDF ? null : (
+                ) : (step === PHASES.RESULT_PDF || step === PHASES.SIGN_DOCUMENT) ? null : (
                   <button
                     onClick={step < PHASES.RESULT_PDF ? nextStep : backDashboard}
                     className={`${buttonBaseClass} ${buttonNextClass} w-full sm:w-auto`}

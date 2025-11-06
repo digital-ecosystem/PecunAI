@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
       pdfPath,
       options = { flattenForm: true, debugMode: false },
       sessionId,
+      questionAnswers = {}
     } = body;
 
     if (!userInfo) {
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Use provided path or default to the static PDF
-    const finalPdfPath = pdfPath || path.join(process.cwd(), 'public/static-pdf/4money_protokoll_PecunAI_v1.pdf');
+    const finalPdfPath = pdfPath || path.join(process.cwd(), 'public/static-pdf/4money_protokoll_PecunAI_v2.pdf');
 
     console.log('📄 Filling PDF form:', finalPdfPath);
 
@@ -31,18 +32,18 @@ export async function POST(request: NextRequest) {
     // Log loaded field names if in debug mode
     if (options.debugMode) {
       const fieldNames = filler?.getFieldNames();
-      console.log('📝 Loaded form fields:', fieldNames);
+      console.log('📝 Loaded form fields:', JSON.stringify(fieldNames));
     }
     
     // Create form data from user info
-    const formData = createFormDataFromUser(userInfo, additionalData as FormFieldData);
+    const formData = createFormDataFromUser(userInfo, questionAnswers, additionalData as FormFieldData);
     
     // Fill the form
     filler.fillForm(formData);
     // Flatten if requested
-    if (options.flattenForm !== false) {
+    // if (options.flattenForm !== false) {
       filler.flattenForm();
-    }
+    // }
     
     // Get the filled PDF as base64
     const filledPdfBase64 = await filler.toBase64();
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest) {
     if (action === 'fields') {
       // Get form field information
       const pdfPath = searchParams.get('pdfPath') || 
-        path.join(process.cwd(), 'public/static-pdf/4money_protokoll_PecunAI_v1.pdf');
+        path.join(process.cwd(), 'public/static-pdf/4money_protokoll_PecunAI_v2.pdf');
       
       const filler = await PDFFormFiller.loadFromFile(pdfPath, { debugMode: true });
       const fieldNames = filler.getFieldNames();
