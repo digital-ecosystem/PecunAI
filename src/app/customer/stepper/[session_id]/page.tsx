@@ -36,16 +36,34 @@ import { SignTeqIframe } from "@/components/SignTeqIframe";
 // import { pdfBlobToBase64 } from "@/utils/pdfUtils";
 // import { pdfBlobToBase64 } from "@/utils/pdfUtils";
 
+/**
+ * PHASE STRUCTURE (5 Main Phases):
+ * 
+ * Phase 1: Combined intro and initial questions
+ *   - Sub-step: TERMS1 (4Money Information)
+ *   - Sub-step: QUESTIONS1 (2 questions)
+ *   - Sub-step: TERMS2 (Sustainability Risks)
+ *   - Sub-step: QUESTIONS2 (13 questions)
+ * 
+ * Phase 2: SUGGESTIONS (Product recommendations)
+ * Phase 3: CHAT (AI chatbot conversation)
+ * Phase 4: PERSONAL_INFO (User details form)
+ * 
+ * Phase 5: Document signing and results
+ *   - Sub-step: SIGN_DOCUMENT (SignD identity verification iframe)
+ *   - Sub-step: RESULT_PDF (SignTeq document signing and final result)
+ */
+
 const PHASES = {
   TERMS1: 1,
-  QUESTIONS1: 2,
-  TERMS2: 3,
-  QUESTIONS2: 4,
-  SUGGESTIONS: 5,
-  CHAT: 6,
-  PERSONAL_INFO: 7,
-  SIGN_DOCUMENT: 8,
-  RESULT_PDF: 9,
+  QUESTIONS1: 1,
+  TERMS2: 1,
+  QUESTIONS2: 1,
+  SUGGESTIONS: 2,
+  CHAT: 3,
+  PERSONAL_INFO: 4,
+  SIGN_DOCUMENT: 5,
+  RESULT_PDF: 5,
 };
 
 type Portfolio = {
@@ -208,6 +226,7 @@ export default function Stepper() {
   const [loading, setLoading] = useState(true);
   const [chatBtnLading, setChatBtnLanding] = useState(false);
   const [step, setStep] = useState(PHASES.TERMS1);
+  const [currentSubStep, setCurrentSubStep] = useState<string>('TERMS1'); // Track sub-steps within Phase 1 and Phase 5
   const [confirmed, setConfirmed] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [answersByIndex, setAnswersByIndex] = useState<Record<number, AnswerWithOptions>>({});
@@ -296,15 +315,36 @@ export default function Stepper() {
     // await saveUpdatedTermsStatus(); // Call API to save acceptance
     setTimeout(() => {
       setConfirmed(false);
-      nextStep();
+      
+      // Navigate within Phase 1 sub-steps
+      if (currentSubStep === 'TERMS1') {
+        setCurrentSubStep('QUESTIONS1');
+        setQuestionIndex(1);
+      } else if (currentSubStep === 'TERMS2') {
+        setCurrentSubStep('QUESTIONS2');
+        setQuestionIndex(1);
+      }
     }, 2000);
   };
 
   // Helper function to save the current phase to the database
-  const savePhase = async (newStep: number) => {
+  const savePhase = async (newStep: number, subStep?: string) => {
     try {
-      // Convert step number back to phase name
-      const phaseName = Object.keys(PHASES).find(key => PHASES[key as keyof typeof PHASES] === newStep);
+      // For Phase 1 and Phase 5, save the actual sub-step name
+      let phaseName: string | undefined;
+      
+      if ((newStep === 1 || newStep === 5) && subStep) {
+        phaseName = subStep;
+      } else {
+        // Convert step number back to phase name for other phases
+        phaseName = Object.keys(PHASES).find(key => {
+          const phaseValue = PHASES[key as keyof typeof PHASES];
+          return phaseValue === newStep && 
+                 key !== 'TERMS1' && key !== 'QUESTIONS1' && key !== 'TERMS2' && key !== 'QUESTIONS2' &&
+                 key !== 'SIGN_DOCUMENT' && key !== 'RESULT_PDF';
+        });
+      }
+      
       if (phaseName && session_id) {
         await fetch("/api/phase", {
           method: "POST",
@@ -321,20 +361,99 @@ export default function Stepper() {
   };
 
   const nextStep = () => {
-    const newStep = Math.min(step + 1, 9);
+    // Handle Phase 1 sub-steps navigation
+    if (step === 1) {
+      if (currentSubStep === 'QUESTIONS1' && questionIndex === 2) {
+        setCurrentSubStep('TERMS2');
+        setQuestionIndex(1);
+        savePhase(1, 'TERMS2');
+        return;
+      } else if (currentSubStep === 'QUESTIONS2' && questionIndex === 13) {
+        // Move to Phase 2
+        const newStep = 2;
+        setStep(newStep);
+        setCurrentSubStep('');
+        savePhase(newStep);
+        return;
+      }
+    }
+    
+    // Handle Phase 5 sub-steps navigation
+    if (step === 4) {
+      // Moving from Phase 4 (PERSONAL_INFO) to Phase 5 (SIGN_DOCUMENT)
+      setStep(5);
+      setCurrentSubStep('SIGN_DOCUMENT');
+      savePhase(5, 'SIGN_DOCUMENT');
+      return;
+    }
+    
+    if (step === 5 && currentSubStep === 'SIGN_DOCUMENT') {
+      // Moving from SIGN_DOCUMENT to RESULT_PDF within Phase 5
+      setCurrentSubStep('RESULT_PDF');
+      savePhase(5, 'RESULT_PDF');
+      return;
+    }
+    
+    const newStep = Math.min(step + 1, 5);
     setStep(newStep);
+    setCurrentSubStep('');
     savePhase(newStep);
   };
+  
   const prevStep = () => {
+    // Handle Phase 1 sub-steps navigation
+    if (step === 1) {
+      if (currentSubStep === 'QUESTIONS1' && questionIndex === 1) {
+        setCurrentSubStep('TERMS1');
+        savePhase(1, 'TERMS1');
+        return;
+      } else if (currentSubStep === 'TERMS2') {
+        setCurrentSubStep('QUESTIONS1');
+        setQuestionIndex(2);
+        savePhase(1, 'QUESTIONS1');
+        return;
+      } else if (currentSubStep === 'QUESTIONS2' && questionIndex === 1) {
+        setCurrentSubStep('TERMS2');
+        savePhase(1, 'TERMS2');
+        return;
+      }
+    }
+    
+    // Handle Phase 5 sub-steps navigation
+    if (step === 5) {
+      if (currentSubStep === 'RESULT_PDF') {
+        setCurrentSubStep('SIGN_DOCUMENT');
+        savePhase(5, 'SIGN_DOCUMENT');
+        return;
+      } else if (currentSubStep === 'SIGN_DOCUMENT') {
+        // Going back from Phase 5 to Phase 4
+        setStep(4);
+        setCurrentSubStep('');
+        savePhase(4);
+        return;
+      }
+    }
+    
     if (step === PHASES.SUGGESTIONS) {
+      // Going back from Phase 2 to Phase 1
+      setStep(1);
+      setCurrentSubStep('QUESTIONS2');
       setQuestionIndex(13);
+      savePhase(1, 'QUESTIONS2');
+      return;
     }
-    if (step === PHASES.TERMS2) {
-      setQuestionIndex(2);
-    }
+    
     const newStep = Math.max(step - 1, 1);
     setStep(newStep);
-    savePhase(newStep);
+    
+    // Reset to beginning of Phase 1 if going back to it
+    if (newStep === 1) {
+      setCurrentSubStep('TERMS1');
+      savePhase(1, 'TERMS1');
+    } else {
+      setCurrentSubStep('');
+      savePhase(newStep);
+    }
   };
 
   const backDashboard = async () => {
@@ -355,8 +474,18 @@ export default function Stepper() {
   };
 
   const lastQuestionNext = () => {
-    setQuestionIndex(1);
-    nextStep();
+    // This function is called when finishing questions in a sub-step
+    if (currentSubStep === 'QUESTIONS1') {
+      setCurrentSubStep('TERMS2');
+      setQuestionIndex(1);
+      savePhase(1, 'TERMS2');
+    } else if (currentSubStep === 'QUESTIONS2') {
+      // Move to Phase 2 (SUGGESTIONS)
+      setStep(PHASES.SUGGESTIONS);
+      setCurrentSubStep('');
+      setQuestionIndex(1);
+      savePhase(PHASES.SUGGESTIONS);
+    }
   };
 
   // Helper function to sync answers by ID and by index
@@ -823,9 +952,28 @@ export default function Stepper() {
           
           // Set the step to the saved phase from the session
           if (data.currentPhase && PHASES[data.currentPhase as keyof typeof PHASES] && data.sessionStatus == SessionStatus.DRAFT) {
-            setStep(PHASES[data.currentPhase as keyof typeof PHASES]);
+            const phaseStep = PHASES[data.currentPhase as keyof typeof PHASES];
+            setStep(phaseStep);
+            
+            // Set the appropriate sub-step for Phase 1
+            if (phaseStep === 1) {
+              if (data.currentPhase === 'TERMS1' || data.currentPhase === 'QUESTIONS1' || data.currentPhase === 'TERMS2' || data.currentPhase === 'QUESTIONS2') {
+                setCurrentSubStep(data.currentPhase);
+              } else {
+                setCurrentSubStep('TERMS1'); // Default to first sub-step
+              }
+            }
+            // Set the appropriate sub-step for Phase 5
+            else if (phaseStep === 5) {
+              if (data.currentPhase === 'SIGN_DOCUMENT' || data.currentPhase === 'RESULT_PDF') {
+                setCurrentSubStep(data.currentPhase);
+              } else {
+                setCurrentSubStep('SIGN_DOCUMENT'); // Default to first sub-step
+              }
+            }
           } else {
             setStep(PHASES.TERMS1);
+            setCurrentSubStep('TERMS1');
           }
         } else {
           router.push("/customer/signin");
@@ -859,6 +1007,7 @@ export default function Stepper() {
     };
     fetchQuestions();
     threadCreate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session_id]);
 
   useEffect(() => {
@@ -910,6 +1059,7 @@ export default function Stepper() {
     };
 
     fetchUserInfo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session_id]);
 
   const onPersonalInfoSubmit = async (data: PersonalInfoFormData) => {
@@ -1140,11 +1290,10 @@ export default function Stepper() {
         body: JSON.stringify({ fileName, pdfBase64: buffer }),
       });
       const pdfSaveResponse = await pdfSave.json();
-      if (pdfSaveResponse?.success) {
-        nextStep();
-      } else {
+      if (!pdfSaveResponse?.success) {
         alert("Error saving PDF");
       }
+      // Note: nextStep() is called in handleSignDSuccess after this function completes
     } catch (err) {
       console.error("Failed to download IDV:", err);
     }
@@ -1533,10 +1682,10 @@ export default function Stepper() {
     <div className={stepperContainerClass}>
       {/* Stepper Progress */}
       <div className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8">
-        {[...Array(9)].map((_, i) => (
+        {[...Array(5)].map((_, i) => (
           <div
             key={i}
-            className={`${stepperBarClass} ${step > i ? "bg-blue-600" : "bg-gray-300"
+            className={`${stepperBarClass} ${step > i + 1 ? "bg-blue-600" : "bg-gray-300"
               }`}
           ></div>
         ))}
@@ -1549,7 +1698,7 @@ export default function Stepper() {
         <React.Fragment>
           <div className={cardClass}>
             <div className="flex-1 flex flex-col p-2 sm:p-2 lg:p-2 overflow-hidden">
-              {step === PHASES.TERMS1 && (
+              {step === PHASES.TERMS1 && currentSubStep === 'TERMS1' && (
                 <div className="flex flex-col h-full p-4 sm:p-6 lg:p-6 ">
                   {/* Header */}
                   <div className="mb-4 sm:mb-6 flex-shrink-0">
@@ -1609,7 +1758,7 @@ export default function Stepper() {
                 </div>
               )}
 
-              {step === PHASES.TERMS2 && (
+              {step === PHASES.TERMS2 && currentSubStep === 'TERMS2' && (
                 <div className="flex flex-col h-full p-4 sm:p-6 lg:p-6">
                   {/* Header */}
                   <div className="mb-4 sm:mb-6 flex-shrink-0">
@@ -1740,7 +1889,7 @@ export default function Stepper() {
                 </div>
               )}
 
-              {step === PHASES.QUESTIONS1 && (
+              {step === PHASES.QUESTIONS1 && currentSubStep === 'QUESTIONS1' && (
                 <div className="w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
                   <QuestionCard
                     step={questionIndex}
@@ -1782,7 +1931,7 @@ export default function Stepper() {
                 </div>
               )}
 
-              {step === PHASES.QUESTIONS2 && (
+              {step === PHASES.QUESTIONS2 && currentSubStep === 'QUESTIONS2' && (
                 <div className="w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
                   <QuestionCard
                     step={questionIndex}
@@ -1905,7 +2054,7 @@ export default function Stepper() {
                 </div>
               )}
 
-              {step === PHASES.SIGN_DOCUMENT && (
+              {step === PHASES.SIGN_DOCUMENT && currentSubStep === 'SIGN_DOCUMENT' && (
                 <div className="w-full h-full flex flex-col">
                   <div className="flex-1 p-4 sm:p-6 md:p-8 flex flex-col">
                     <div className="max-w-6xl mx-auto w-full flex flex-col h-full">
@@ -1958,7 +2107,7 @@ export default function Stepper() {
                 </div>
               )}
 
-              {step === PHASES.RESULT_PDF && (
+              {step === PHASES.RESULT_PDF && currentSubStep === 'RESULT_PDF' && (
                 <div className="w-full h-full flex flex-col">
                   <div className="flex-1 p-0 sm:p-0 md:p-0 flex flex-col">
                     <div className="max-w-6xl mx-auto w-full flex flex-col h-full">
@@ -2065,9 +2214,17 @@ export default function Stepper() {
             <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 mt-4 sm:mt-6 p-4 sm:p-6 bg-gray-50 border-t border-gray-200 flex-shrink-0">
               <button
                 onClick={() => {
-                  if (step === PHASES.QUESTIONS1 || step === PHASES.QUESTIONS2) {
+                  if (step === 1 && currentSubStep === 'QUESTIONS1') {
                     if (questionIndex === 1) {
-                      prevStep(); // Go to previous phase
+                      setCurrentSubStep('TERMS1');
+                      savePhase(1, 'TERMS1');
+                    } else {
+                      setQuestionIndex((s) => s - 1);
+                    }
+                  } else if (step === 1 && currentSubStep === 'QUESTIONS2') {
+                    if (questionIndex === 1) {
+                      setCurrentSubStep('TERMS2');
+                      savePhase(1, 'TERMS2');
                     } else {
                       setQuestionIndex((s) => s - 1);
                     }
@@ -2075,13 +2232,13 @@ export default function Stepper() {
                     prevStep();
                   }
                 }}
-                disabled={step === PHASES.TERMS1}
+                disabled={step === 1 && currentSubStep === 'TERMS1'}
                 className={`${buttonBaseClass} ${buttonBackClass} order-2 sm:order-1 w-full sm:w-auto`}
               >
                 <span>Zurück</span>
               </button>
               <div className="flex justify-end order-1 sm:order-2">
-                {step === PHASES.TERMS1 || step === PHASES.TERMS2 ? (
+                {(step === 1 && (currentSubStep === 'TERMS1' || currentSubStep === 'TERMS2')) ? (
                   <button
                     onClick={handleConfirm}
                     disabled={confirmed}
@@ -2098,18 +2255,17 @@ export default function Stepper() {
                       <span>Ich bestätige</span>
                     )}
                   </button>
-                ) : step === PHASES.QUESTIONS1 ||
-                  step === PHASES.QUESTIONS2 ||
+                ) : (step === 1 && (currentSubStep === 'QUESTIONS1' || currentSubStep === 'QUESTIONS2')) ||
                   step === PHASES.PERSONAL_INFO ? (
                   <button
                     onClick={() => {
-                      if (step === PHASES.QUESTIONS1) {
+                      if (step === 1 && currentSubStep === 'QUESTIONS1') {
                         if (questionIndex === 2) {
                           lastQuestionNext();
                         } else {
                           setQuestionIndex((s) => Math.min(s + 1, 2));
                         }
-                      } else if (step === PHASES.QUESTIONS2) {
+                      } else if (step === 1 && currentSubStep === 'QUESTIONS2') {
                         if (questionIndex === 13) {
                           lastQuestionNext();
                         } else {
@@ -2120,20 +2276,20 @@ export default function Stepper() {
                       }
                     }}
                     disabled={
-                      (step === PHASES.QUESTIONS1 && !answers[currentQ?.id]) ||
-                      (step === PHASES.QUESTIONS2 && !answers[currentQ2?.id])
+                      (step === 1 && currentSubStep === 'QUESTIONS1' && !answers[currentQ?.id]) ||
+                      (step === 1 && currentSubStep === 'QUESTIONS2' && !answers[currentQ2?.id])
                     }
                     className={`${buttonBaseClass} ${buttonNextClass} disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto`}
                     type={step === PHASES.PERSONAL_INFO ? "submit" : "button"}
                   >
                     <span>Nächste</span>
                   </button>
-                ) : (step === PHASES.RESULT_PDF || step === PHASES.SIGN_DOCUMENT) ? null : (
+                ) : (step === 5 && (currentSubStep === 'RESULT_PDF' || currentSubStep === 'SIGN_DOCUMENT')) ? null : (
                   <button
-                    onClick={step < PHASES.RESULT_PDF ? nextStep : backDashboard}
+                    onClick={step < 5 ? nextStep : backDashboard}
                     className={`${buttonBaseClass} ${buttonNextClass} w-full sm:w-auto`}
                   >
-                    <span>{step === PHASES.RESULT_PDF ? 'Abschließen' : 'Nächste'}</span>
+                    <span>{step === 5 && currentSubStep === 'RESULT_PDF' ? 'Abschließen' : 'Nächste'}</span>
                   </button>
                 )}
               </div>
