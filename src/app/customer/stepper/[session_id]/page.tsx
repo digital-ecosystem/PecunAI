@@ -1982,7 +1982,7 @@ export default function Stepper() {
                         <div className="p-4 sm:p-6 flex-1 flex flex-col h-full">
                           <div className="w-full border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex-1 min-h-[300px] flex flex-col">
                             {suggestedProduct?.fileName ? (
-                              <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+                              <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
                                 <Viewer fileUrl={
                                   suggestedProduct.fileName.startsWith("http")
                                   ? suggestedProduct.fileName
