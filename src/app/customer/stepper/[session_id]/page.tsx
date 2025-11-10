@@ -11,6 +11,8 @@ import {
 import { CheckCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 import React, { useCallback, useEffect, useState } from "react";
+import { Viewer, Worker } from "@react-pdf-viewer/core";
+import "@react-pdf-viewer/core/lib/styles/index.css";
 // import HTMLRenderer from '@/components/HTMLRenderer';
 import '../index.css';
 const QuestionCard = dynamic(() => import("../QuestionCard"), {
@@ -315,7 +317,7 @@ export default function Stepper() {
     // await saveUpdatedTermsStatus(); // Call API to save acceptance
     setTimeout(() => {
       setConfirmed(false);
-      
+
       // Navigate within Phase 1 sub-steps
       if (currentSubStep === 'TERMS1') {
         setCurrentSubStep('QUESTIONS1');
@@ -332,19 +334,19 @@ export default function Stepper() {
     try {
       // For Phase 1 and Phase 5, save the actual sub-step name
       let phaseName: string | undefined;
-      
+
       if ((newStep === 1 || newStep === 5) && subStep) {
         phaseName = subStep;
       } else {
         // Convert step number back to phase name for other phases
         phaseName = Object.keys(PHASES).find(key => {
           const phaseValue = PHASES[key as keyof typeof PHASES];
-          return phaseValue === newStep && 
-                 key !== 'TERMS1' && key !== 'QUESTIONS1' && key !== 'TERMS2' && key !== 'QUESTIONS2' &&
-                 key !== 'SIGN_DOCUMENT' && key !== 'RESULT_PDF';
+          return phaseValue === newStep &&
+            key !== 'TERMS1' && key !== 'QUESTIONS1' && key !== 'TERMS2' && key !== 'QUESTIONS2' &&
+            key !== 'SIGN_DOCUMENT' && key !== 'RESULT_PDF';
         });
       }
-      
+
       if (phaseName && session_id) {
         await fetch("/api/phase", {
           method: "POST",
@@ -377,7 +379,7 @@ export default function Stepper() {
         return;
       }
     }
-    
+
     // Handle Phase 5 sub-steps navigation
     if (step === 4) {
       // Moving from Phase 4 (PERSONAL_INFO) to Phase 5 (SIGN_DOCUMENT)
@@ -386,20 +388,20 @@ export default function Stepper() {
       savePhase(5, 'SIGN_DOCUMENT');
       return;
     }
-    
+
     if (step === 5 && currentSubStep === 'SIGN_DOCUMENT') {
       // Moving from SIGN_DOCUMENT to RESULT_PDF within Phase 5
       setCurrentSubStep('RESULT_PDF');
       savePhase(5, 'RESULT_PDF');
       return;
     }
-    
+
     const newStep = Math.min(step + 1, 5);
     setStep(newStep);
     setCurrentSubStep('');
     savePhase(newStep);
   };
-  
+
   const prevStep = () => {
     // Handle Phase 1 sub-steps navigation
     if (step === 1) {
@@ -418,7 +420,7 @@ export default function Stepper() {
         return;
       }
     }
-    
+
     // Handle Phase 5 sub-steps navigation
     if (step === 5) {
       if (currentSubStep === 'RESULT_PDF') {
@@ -433,7 +435,7 @@ export default function Stepper() {
         return;
       }
     }
-    
+
     if (step === PHASES.SUGGESTIONS) {
       // Going back from Phase 2 to Phase 1
       setStep(1);
@@ -442,10 +444,10 @@ export default function Stepper() {
       savePhase(1, 'QUESTIONS2');
       return;
     }
-    
+
     const newStep = Math.max(step - 1, 1);
     setStep(newStep);
-    
+
     // Reset to beginning of Phase 1 if going back to it
     if (newStep === 1) {
       setCurrentSubStep('TERMS1');
@@ -491,12 +493,12 @@ export default function Stepper() {
   // Helper function to sync answers by ID and by index
   const syncAnswers = (questionId: string, selectedOption: string, index: number, options: (Option | string)[]) => {
     setAnswers(prev => ({ ...prev, [questionId]: selectedOption }));
-    setAnswersByIndex(prev => ({ 
-      ...prev, 
-      [index]: { 
-        selectedOption, 
-        options 
-      } 
+    setAnswersByIndex(prev => ({
+      ...prev,
+      [index]: {
+        selectedOption,
+        options
+      }
     }));
   };
 
@@ -935,7 +937,7 @@ export default function Stepper() {
         if (data.success) {
           setQuestions(data.questions);
           setAnswers(data.answers || {});
-          
+
           // Build answersByIndex from answers and questions
           if (data.answers && data.questions) {
             const indexedAnswers: Record<number, AnswerWithOptions> = {};
@@ -949,12 +951,12 @@ export default function Stepper() {
             });
             setAnswersByIndex(indexedAnswers);
           }
-          
+
           // Set the step to the saved phase from the session
           if (data.currentPhase && PHASES[data.currentPhase as keyof typeof PHASES] && data.sessionStatus == SessionStatus.DRAFT) {
             const phaseStep = PHASES[data.currentPhase as keyof typeof PHASES];
             setStep(phaseStep);
-            
+
             // Set the appropriate sub-step for Phase 1
             if (phaseStep === 1) {
               if (data.currentPhase === 'TERMS1' || data.currentPhase === 'QUESTIONS1' || data.currentPhase === 'TERMS2' || data.currentPhase === 'QUESTIONS2') {
@@ -1912,8 +1914,8 @@ export default function Stepper() {
                     onSelect={async (opt) => {
                       setAnswers({ ...answers, [currentQ?.id]: opt });
                       syncAnswers(
-                        currentQ?.id, 
-                        opt, 
+                        currentQ?.id,
+                        opt,
                         currentQ?.questionOrder,
                         currentQ.options
                       );
@@ -1954,8 +1956,8 @@ export default function Stepper() {
                     onSelect={async (opt) => {
                       setAnswers({ ...answers, [currentQ2?.id]: opt });
                       syncAnswers(
-                        currentQ2?.id, 
-                        opt, 
+                        currentQ2?.id,
+                        opt,
                         currentQ2?.questionOrder,
                         currentQ2.options
                       );
@@ -1975,43 +1977,18 @@ export default function Stepper() {
 
               {step === PHASES.SUGGESTIONS && (
                 <div className="w-full h-full flex flex-col">
-                  <div className="flex-1 p-0 sm:p-0 md:p-0 flex flex-col">
-                    <div className="max-w-full mx-auto w-full flex flex-col h-full">
-                      {/* <div className="text-center mb-4 sm:mb-6 flex-shrink-0">
-                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4">Suggested Product</h2>
-                        <p className="text-sm sm:text-base text-gray-600">
-                          Based on your answers, we recommend the following investment product:
-                        </p>
-                      </div> */}
-
-                      <div className="bg-white border border-gray-200 rounded-lg sm:rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
-                        {/* Product Header */}
-                        {/* <div className="p-4 sm:p-6 border-b border-gray-100">
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
-                          {suggestedProduct?.fullName ||
-                            suggestedProduct?.name ||
-                            "Recommended Investment Product"}
-                        </h3>
-                        {suggestedProduct?.description && (
-                          <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                            {suggestedProduct.description}
-                          </p>
-                        )}
-                      </div> */}
 
                         {/* Product Document */}
-                        <div className="p-4 sm:p-6 flex-1 flex flex-col">
+                        <div className="p-4 sm:p-6 flex-1 flex flex-col h-full">
                           <div className="w-full border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex-1 min-h-[300px] flex flex-col">
                             {suggestedProduct?.fileName ? (
-                              <iframe
-                                src={
+                              <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+                                <Viewer fileUrl={
                                   suggestedProduct.fileName.startsWith("http")
-                                    ? suggestedProduct.fileName
-                                    : `${process.env.NEXT_PUBLIC_FRONTEND_URL}${suggestedProduct.fileName}`
-                                }
-                                className="w-full flex-1 h-full"
-                                title="Product Information Document"
-                              />
+                                  ? suggestedProduct.fileName
+                                  : `${process.env.NEXT_PUBLIC_FRONTEND_URL}${suggestedProduct.fileName}`
+                                } />
+                              </Worker>
                             ) : (
                               <div className="w-full flex-1 flex flex-col items-center justify-center text-gray-500 p-6">
                                 <svg className="w-12 h-12 sm:w-16 sm:h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2021,9 +1998,6 @@ export default function Stepper() {
                                 <p className="text-xs sm:text-sm text-gray-400">Produktinformationen werden separat bereitgestellt</p>
                               </div>
                             )}
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
