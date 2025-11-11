@@ -65,15 +65,16 @@ export class AuthService {
     }
 
     // ❌ If still blocked
-    if (existingOTP?.blockedUntil && existingOTP.blockedUntil > now) {
+    /*if (existingOTP?.blockedUntil && existingOTP.blockedUntil > now) {
       throw new CustomError('Too many OTP requests. Try again after 5 minutes.', 429);
-    }
+    }*/
 
     const resendCount = existingOTP?.resendCount ?? 0;
     console.log("🚀 ~ AuthService ~ createOTP ~ resendCount:", resendCount)
 
+    //TODO: the logic of the block of the user is wrong, it should block the user if resend the email fife times wihtin five minutes
     // 🚫 If resend limit reached, block
-    if (resendCount >= 3) {
+    /*if (resendCount >= 3) {
       const blockedUntil = new Date(Date.now() + 5 * 60 * 1000);
 
       return await prisma.oTP.upsert({
@@ -96,7 +97,7 @@ export class AuthService {
           createdAt: now,
         },
       });
-    }
+    }*/
 
     // ✅ Generate new OTP
     const code = this.generateOTP();
