@@ -9,16 +9,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Email and OTP are required' }, { status: 400 });
   }
 
+  const normalizedEmail = email.toLowerCase();
+
   try {
     // Verify OTP
-    const result = await AuthService.verifyOTP(email, otp);
+    const result = await AuthService.verifyOTP(normalizedEmail, otp);
 
     if (!result.success) {
       return NextResponse.json({ message: result.message }, { status: 400 });
     }
 
     // Get user
-    const user = await AuthService.createOrUpdateUser(email);
+    const user = await AuthService.createOrUpdateUser(normalizedEmail);
 
     // Create session
     const {token, sessionId} = await AuthService.createSession(user.id);

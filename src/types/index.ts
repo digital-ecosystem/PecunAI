@@ -133,3 +133,19 @@ export interface Message {
   timestamp: Date
   index?: number
 }
+
+export interface Answer {
+  id: string;
+  value?: string;
+  answeredAt?: Date;
+  createdAt?: Date;
+  qaSessionId?: string;
+  questionId?: string;
+  questionOptions?: Record<string, string> | null;
+  questionText?: string | null;
+  questionType?: string | null;
+
+  // Relations
+  // qaSession?: ;
+  // question?: Question;
+}

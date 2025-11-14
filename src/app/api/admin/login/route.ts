@@ -3,8 +3,10 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   const { email, password } = await request.json();
 
+  const normalizedEmail = email?.toLowerCase();
+
   // Replace with your real admin check
-  if (email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
+  if (normalizedEmail === process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase() && password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
     const session = { userId: 'admin-id', role: 'admin', email: process.env.NEXT_PUBLIC_ADMIN_EMAIL };
     const sessionString = Buffer.from(JSON.stringify(session)).toString('base64');
 

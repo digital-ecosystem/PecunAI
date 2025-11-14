@@ -9,6 +9,7 @@ export function useSignD(credentials: { login: string; token: string }) {
   const [sessionData, setSessionData] = useState<SignDHandshakeResponse | null>(null);
   const [result, setResult] = useState<SignDResult | null>(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const api = new SignDAPI(credentials);
 
   const createSession = useCallback(async (payload: Omit<SignDHandshakePayload, 'login' | 'token'>) => {
@@ -53,14 +54,14 @@ export function useSignD(credentials: { login: string; token: string }) {
       const blob = await api.downloadIDV(sessionToken);
       
       // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'identity-verification.pdf';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // const url = window.URL.createObjectURL(blob);
+      // const a = document.createElement('a');
+      // a.href = url;
+      // a.download = 'identity-verification.pdf';
+      // document.body.appendChild(a);
+      // a.click();
+      // window.URL.revokeObjectURL(url);
+      // document.body.removeChild(a);
       
       return blob;
     } catch (err) {

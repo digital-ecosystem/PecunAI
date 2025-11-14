@@ -1,8 +1,8 @@
 'use client';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 
-export default function SignatureSuccess() {
+function SuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -76,5 +76,17 @@ export default function SignatureSuccess() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignatureSuccess() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-green-500"></div>
+      </div>
+    }>
+      <SuccessContent />
+    </Suspense>
   );
 }

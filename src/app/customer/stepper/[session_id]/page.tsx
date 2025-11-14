@@ -11,7 +11,7 @@ import {
 import { CheckCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 import React, { useCallback, useEffect, useState } from "react";
-import { Viewer, Worker } from "@react-pdf-viewer/core";
+import { Viewer, Worker, SpecialZoomLevel } from "@react-pdf-viewer/core";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 // import HTMLRenderer from '@/components/HTMLRenderer';
 import '../index.css';
@@ -95,9 +95,9 @@ interface AnswerWithOptions {
 
 const stepperBarClass = "flex-1 h-2 mx-1 rounded";
 const stepperContainerClass =
-  "w-full h-screen px-4 sm:px-6 lg:px-8 py-4 sm:py-6 bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col overflow-hidden";
+  "w-full h-[100dvh] px-4 sm:px-6 lg:px-8 py-4 sm:py-6 bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col";
 const cardClass =
-  "flex-1 w-full max-w-7xl mx-auto bg-white rounded-lg sm:rounded-2xl shadow-lg sm:shadow-xl overflow-hidden flex flex-col";
+  "flex-1 w-full max-w-7xl mx-auto bg-white rounded-lg sm:rounded-2xl shadow-lg sm:shadow-xl flex flex-col min-h-0";
 const buttonBaseClass =
   "flex items-center justify-center gap-2 px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 rounded-lg font-medium sm:font-semibold text-sm sm:text-base transition-all duration-300 transform shadow-md hover:shadow-lg";
 const buttonConfirmClass =
@@ -253,6 +253,8 @@ export default function Stepper() {
   const [signTeqDocumentId, setSignTeqDocumentId] = useState<string | null>(null);
   const [downloadedDocumentPath, setDownloadedDocumentPath] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showDownloadPopup, setShowDownloadPopup] = useState(false);
+  const [idvPdfBlob, setIdvPdfBlob] = useState<Blob | null>(null);
   const session_id = params.session_id as string;
 
   // For PHASES.QUESTIONS1
@@ -504,11 +506,8 @@ export default function Stepper() {
 
   const sendMessage = useCallback(
     async (messageOverride: string = "", shouldAppend: boolean = true) => {
-      // console.log("🚀 ~ sendMessage ~ messageOverride:", messageOverride);
       const messageToSend =
         messageOverride.length > 0 ? messageOverride : input.trim();
-      // console.log("🚀 ~ Stepper ~ messageToSend:", messageToSend);
-      // console.log("🚀 ~ sendMessage ~ messageToSend:", messageToSend);
       if (!messageToSend || loading) return;
 
       const userMessage: Message = {
@@ -606,64 +605,7 @@ export default function Stepper() {
     [loading, session_id, threadId, input]
   );
 
-  // const fetchTermsAndConditions = useCallback(async () => {
-  //   setLoading(true);
-  //   try {
-  //     // URL should be like /api/terms-conditions?id=1
-
-  //     const fetchUrl = "/api/terms-conditions?session_id=" + session_id;
-  //     const response = await fetch(fetchUrl, {
-  //       method: "GET",
-  //     });
-  //     const data = await response.json();
-  //     if (data?.success) {
-  //       setTermsAndConditions(data.data);
-  //     } else {
-  //       router.push("/customer/signin");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching questions:", error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }, [session_id, router]);
-
-  // // Helper function to analyze questions and find relevant ones
-  // const findQuestionByKeywords = (questions: Question[], keywords: string[]) => {
-  //   return questions.find(q =>
-  //     keywords.some(keyword => q.text.toLowerCase().includes(keyword.toLowerCase()))
-  //   );
-  // };
-
-  // // Enhanced function to find questions with scoring
-  // const findBestMatchingQuestion = (questions: Question[], keywords: string[]) => {
-  //   console.log("🚀 ~ findBestMatchingQuestion ~ keywords:", keywords)
-  //   console.log("🚀 ~ findBestMatchingQuestion ~ questions:", questions)
-  //   let bestMatch = null;
-  //   let highestScore = 0;
-
-  //   for (const question of questions) {
-  //     const questionText = question.text.toLowerCase();
-  //     let score = 0;
-
-  //     // Count how many keywords match
-  //     for (const keyword of keywords) {
-  //       if (questionText.includes(keyword.toLowerCase())) {
-  //         score++;
-  //       }
-  //     }
-
-  //     // Boost score if multiple keywords match
-  //     if (score > highestScore) {
-  //       highestScore = score;
-  //       bestMatch = question;
-  //     }
-  //   }
-
-  //   return bestMatch;
-  // };
-
-  const suggestProduct = async (
+   const suggestProduct = async (
     duration: string,
     risk: string
   ): Promise<Portfolio | null> => {
@@ -746,9 +688,6 @@ export default function Stepper() {
       if (step === PHASES.SUGGESTIONS && questions.length > 0) {
         try {
           setLoading(true);
-
-          // Enhanced question matching with multiple strategies
-          // console.log('📊 All questions available:', questions.map(q => ({ id: q.id, text: q.text })));
 
           const durationKeywords = [
             "short_term",
@@ -921,10 +860,6 @@ export default function Stepper() {
     initializeChatWithProduct,
   ]);
 
-  // useEffect(() => {
-  //   fetchTermsAndConditions();
-  // }, [fetchTermsAndConditions, session_id]);
-
   useEffect(() => {
     const fetchQuestions = async () => {
       setLoading(true);
@@ -960,18 +895,21 @@ export default function Stepper() {
             // Set the appropriate sub-step for Phase 1
             if (phaseStep === 1) {
               if (data.currentPhase === 'TERMS1' || data.currentPhase === 'QUESTIONS1' || data.currentPhase === 'TERMS2' || data.currentPhase === 'QUESTIONS2') {
-                setCurrentSubStep(data.currentPhase);
+                // setCurrentSubStep(data.currentPhase);
+                setCurrentSubStep('TERMS1'); // Default to first sub-step
               } else {
                 setCurrentSubStep('TERMS1'); // Default to first sub-step
               }
             }
             // Set the appropriate sub-step for Phase 5
             else if (phaseStep === 5) {
-              if (data.currentPhase === 'SIGN_DOCUMENT' || data.currentPhase === 'RESULT_PDF') {
-                setCurrentSubStep(data.currentPhase);
-              } else {
-                setCurrentSubStep('SIGN_DOCUMENT'); // Default to first sub-step
-              }
+              // if (data.currentPhase === 'SIGN_DOCUMENT' || data.currentPhase === 'RESULT_PDF') {
+              //   setCurrentSubStep(data.currentPhase);
+              // } else {
+              //   setCurrentSubStep('SIGN_DOCUMENT'); // Default to first sub-step
+              // }
+              setStep(PHASES.PERSONAL_INFO);
+              setCurrentSubStep('');
             }
           } else {
             setStep(PHASES.TERMS1);
@@ -1183,47 +1121,6 @@ export default function Stepper() {
     nextStep();
   };
 
-  // const saveUpdatedTermsStatus = async () => {
-  //   // Get the current terms and session info
-  //   const termsIndex =
-  //     step === PHASES.TERMS1 ? 0 : termsAndConditions.length > 1 ? 1 : 0;
-  //   const terms = termsAndConditions[termsIndex];
-
-  //   // You may want to get user agent and IP from the client or server
-  //   const payload = {
-  //     qaSessionId: session_id,
-  //     termsId: terms?.id,
-  //     termsType: terms?.termsType,
-  //     title: terms?.title,
-  //     content: terms?.content,
-  //     version: terms?.version,
-  //     acceptedAt: new Date().toISOString(),
-  //     ipAddress: "", // Optionally set client IP if available
-  //     userAgent:
-  //       typeof window !== "undefined" ? window.navigator.userAgent : "",
-  //   };
-
-  //   try {
-  //     const response = await fetch("/api/terms-conditions", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify(payload),
-  //     });
-  //     const data = await response.json();
-  //     if (data.success) {
-  //       // Handle success (e.g., show a message or update state)
-  //       console.log("Terms acceptance saved:");
-  //     } else {
-  //       // Handle error
-  //       console.error("Failed to save terms acceptance:", data.error);
-  //     }
-  //   } catch (error) {
-  //     console.error("API error:", error);
-  //   }
-  // };
-
   const saveAnswer = async (
     questionId: string,
     answer: string,
@@ -1267,38 +1164,115 @@ export default function Stepper() {
     if (signDSessionData?.session_token) {
       try {
         await getResult(signDSessionData.session_token);
-        await handleDownloadIDV(signDSessionData.session_token);
-        // Proceed to next step after successfully getting result and downloading IDV
-        //
-        await generatePDF();
-        nextStep();
+
+        // Fetch the PDF but don't download it yet
+        const pdfBlob = await downloadIDV(signDSessionData.session_token);
+        console.log("🚀 ~ handleSignDSuccess ~ pdfBlob:", pdfBlob)
+        setIdvPdfBlob(pdfBlob);
+
+        // Save PDF to server
+        const fileName = `signD-identity-verification-${session_id}.pdf`;
+        const arrayBuffer = await pdfBlob.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const pdfSave = await fetch("/api/phase/save-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileName, pdfBase64: buffer }),
+        });
+        console.log("🚀 ~ handleSignDSuccess ~ pdfSave:", pdfSave)
+        const pdfSaveResponse = await pdfSave.json();
+        if (!pdfSaveResponse?.success) {
+          alert("Error saving PDF");
+        }
+        console.log("PDF saved to server successfully");
+
+        // Show download popup instead of auto-downloading
+        setShowDownloadPopup(true);
+        setLoading(false);
       } catch (err) {
         console.error("Failed to get result:", err);
-      } finally {
         setLoading(false);
       }
     }
   };
 
-  const handleDownloadIDV = async (token: string) => {
-    try {
-      const pdfBlob = await downloadIDV(token);
-      const fileName = `signD-identity-verification-${session_id}.pdf`;
-      const arrayBuffer = await pdfBlob.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const pdfSave = await fetch("/api/phase/save-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName, pdfBase64: buffer }),
-      });
-      const pdfSaveResponse = await pdfSave.json();
-      if (!pdfSaveResponse?.success) {
-        alert("Error saving PDF");
-      }
-      // Note: nextStep() is called in handleSignDSuccess after this function completes
-    } catch (err) {
-      console.error("Failed to download IDV:", err);
+  const handleUserDownloadPDF = async () => {
+    if (!idvPdfBlob) {
+      alert("PDF not available. Please try again.");
+      return;
     }
+
+    try {
+      // iOS Safari-specific download approach
+      // Check if we're on iOS Safari
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      // alert("🚀 ~ handleUserDownloadPDF ~ navigator.userAgent: " + navigator.userAgent)
+
+      if (isIOS) {
+        // Create object URL from blob
+        const url = URL.createObjectURL(idvPdfBlob);
+
+        // Open in new tab (must be synchronous with user action)
+        const newWindow = window.open(url, '_blank');
+
+        if (!newWindow) {
+          alert('Bitte erlauben Sie Pop-ups für diese Seite, um die PDF anzuzeigen.');
+          // Fallback: try direct download in current tab
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'identity-verification.pdf';
+          link.click();
+        }
+
+        // Clean up after a delay (giving time for the new window to load)
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+        console.log("PDF opened in new tab for iOS");
+      }
+      else {
+        // For other browsers: Use standard download approach
+        const url = window.URL.createObjectURL(idvPdfBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `signD-identity-verification-${session_id}.pdf`;
+        link.style.display = 'none';
+
+        document.body.appendChild(link);
+        link.click();
+
+        // Cleanup
+        setTimeout(() => {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+
+        console.log("PDF download initiated");
+      }
+    } catch (err) {
+      console.error("Failed to download PDF:", err);
+      alert("Fehler beim Herunterladen der PDF. Bitte versuchen Sie es erneut.");
+    }
+  };
+
+  const handleContinueWithoutDownload = async () => {
+    setShowDownloadPopup(false);
+    setLoading(true);
+    try {
+      await generatePDF();
+      nextStep();
+    } catch (err) {
+      console.error("Failed to generate PDF:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadAndContinue = async () => {
+    await handleUserDownloadPDF();
+    // Small delay to ensure download starts before continuing
+    setTimeout(async () => {
+      await handleContinueWithoutDownload();
+    }, 500);
   };
 
   const generatePDF = async () => {
@@ -1321,40 +1295,6 @@ export default function Stepper() {
           throw error;
         }
       };
-
-      // Example usage:
-      // Option 1: Read from public folder
-      // const publicPdfBase64 = await readStaticPDFToBase64('/documents/template.pdf');
-
-      // fetch existing product PDF (if one exists) and pass its bytes to generator
-      // let existingPdfBytes: ArrayBuffer | undefined = undefined;
-      // if (suggestedProduct?.fileName) {
-      //   const existingPdfUrl = suggestedProduct.fileName.startsWith('http')
-      //     ? suggestedProduct.fileName
-      //     : `${process.env.NEXT_PUBLIC_FRONTEND_URL}${suggestedProduct.fileName}`;
-      //   try {
-      //     const resp = await fetch(existingPdfUrl);
-      //     if (resp.ok) existingPdfBytes = await resp.arrayBuffer();
-      //   } catch (err) {
-      //     console.warn('Could not fetch existing product PDF:', err);
-      //   }
-      // }
-
-      // const pdf = await GenerateSimplePDF(questions, answers, {
-      //   first_name: formik.values.firstName,
-      //   last_name: formik.values.lastName,
-      //   dob: formik.values.birthDate,
-      // }, 'A loan processor is a professional responsible for thoroughly examining loan applications, assessing credit standings, and finalizing loan contracts. They play an intermediary role between clients and financial institutions, ensuring timely loan approvals and protecting the organization’s credibility. With expertise in banking procedures and regulations, they analyze applicants’ eligibility and develop repayment plans while maintaining strong communication and sales skills. A loan processor acts as a key link in facilitating loan approvals and maintaining customer satisfaction.');
-
-      // You can also convert to blob for upload to server
-      // const pdfBlob = pdf.output('blob');
-      // uploadPDFToServer(pdfBlob);
-      // const base64 = await pdfBlobToBase64(pdfBlob);
-      // console.log("🚀 ~ generatePDF ~ base64:", base64)
-
-      // Note: We no longer need to read the static PDF since we're using the filled one
-      // const publicPdfBase64 = await readStaticPDFToBase64('/static-pdf/4money_protokoll_PecunAI_v1.pdf');
-      // console.log("🚀 ~ generatePDF ~ publicPdfBase64:", publicPdfBase64)
 
       // api call to fill the dynamic fields and create pdf for signing
       const responsePDF = await fetch('/api/pdf-form-fill', {
@@ -1391,20 +1331,7 @@ export default function Stepper() {
       }
 
       const publicPdfBase64 = await readStaticPDFToBase64(dataPDF.finalPath);
-      // console.log("🚀 ~ generatePDF ~ publicPdfBase64:", publicPdfBase64)
-
-      // const publicPdfBase64 = await readStaticPDFToBase64('/static-pdf/4money_protokoll_PecunAI_v1.pdf');
-      // const filledPdfBase64 = dataPDF.pdfBase64;
-      // console.log("✅ PDF successfully filled, length:", filledPdfBase64.length)
-
-      // Validate the base64 string
-      // if (filledPdfBase64.length < 1000) {
-      //   throw new Error('Das generierte PDF ist zu klein oder ungültig. Bitte versuchen Sie es erneut.');
-      // }
-
-      // const arrayBuffer = await pdfBlob.arrayBuffer();
-      // const buffer = Buffer.from(arrayBuffer);
-
+      
       const response = await fetch('/api/signteq/create-session', {
         method: 'POST',
         headers: {
@@ -1479,97 +1406,7 @@ export default function Stepper() {
     } finally {
       setLoading(false);
     }
-
-    // Generate final PDF based on all collected data like confirm terms, Q&A, suggested product, personal info, and last signature section add
-    // setLoading(true);
-    // const pdf = await generateFinalPDF(
-    //   termsAndConditions[0].content,
-    //   termsAndConditions.length > 1 ? termsAndConditions[1].content : '',
-    //   questions,
-    //   answers,
-    //   formik.values,
-    //   suggestedProduct?.name || '',
-    // )
-
-    // // Existing PDF URL
-    // const existingPdfUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL + 'products/' + suggestedProduct?.name + '.pdf'}`
-    // console.log("🚀 ~ generatePDF ~ existingPdfUrl:", existingPdfUrl)
-
-    // // Save the PDF
-    // const fileName = `final_session_pdf_${session_id}.pdf`;
-
-    // // pdf.save(fileName);
-
-    // // You can also convert to blob for upload to server
-    // const pdfBlob = pdf.output('blob');
-    // // uploadPDFToServer(pdfBlob);
-
-    // const arrayBuffer = await pdfBlob.arrayBuffer();
-    // const buffer = Buffer.from(arrayBuffer);
-    // const pdfSave = await fetch('/api/phase/save-pdf', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ fileName, pdfBase64: buffer })
-    // });
-    // const pdfSaveResponse = await pdfSave.json();
-    // if (pdfSaveResponse?.success) {
-    //   console.log("FInal PDF Path : ", process.env.NEXT_PUBLIC_FRONTEND_URL + pdfSaveResponse.fileUrl);
-    // } else {
-    //   alert('Error saving PDF');
-    // }
-    // try {
-    //   const response = await fetch('/api/phase/generate-final-pdf', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ sessionId: session_id })
-    //   });
-    //   const data = await response.json();
-    //   if (data?.success) {
-    //     nextStep();
-    //   } else {
-    //     alert('Error generating final PDF');
-    //   }
-    // } catch (error) {
-    //   console.error('Error generating final PDF:', error);
-    // } finally {
-    //   setLoading(false);
-    // }
   };
-
-  // const saveSuggestionProduct = async () => {
-  //   if (!suggestedProduct || !session_id) return;
-
-  //   const payload = {
-  //     qaSessionId: session_id,
-  //     productId: suggestedProduct.name, // Use the actual product ID if available
-  //     name: suggestedProduct.name,
-  //     shortName: suggestedProduct.name,
-  //     description: '', // Fill if available
-  //     fileName: '', // Fill if available
-  //     suggestionReason: '', // Fill if available
-  //     confidenceScore: null, // Fill if available
-  //     isConfirmed: false,
-  //     confirmedAt: null
-  //   };
-
-  //   try {
-  //     const response = await fetch('/api/phase/suggest-product', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify(payload),
-  //     });
-  //     const data = await response.json();
-  //     if (data.success) {
-  //       console.log('Suggested product saved:', data.data);
-  //     } else {
-  //       console.error('Failed to save suggested product:', data.error);
-  //     }
-  //   } catch (error) {
-  //     console.error('API error:', error);
-  //   }
-  // };
 
   const handleSigningSuccess = async () => {
     console.log('✅ Document signed successfully!');
@@ -1699,7 +1536,7 @@ export default function Stepper() {
       ) : (
         <React.Fragment>
           <div className={cardClass}>
-            <div className="flex-1 flex flex-col p-2 sm:p-2 lg:p-2 overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
               {step === PHASES.TERMS1 && currentSubStep === 'TERMS1' && (
                 <div className="flex flex-col h-full p-4 sm:p-6 lg:p-6 ">
                   {/* Header */}
@@ -1895,7 +1732,7 @@ export default function Stepper() {
                 <div className="w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
                   <QuestionCard
                     step={questionIndex}
-                    totalSteps={2}
+                    totalSteps={15}
                     // title={currentQ?.title}
                     // subtitle={currentQ?.subtitle}
                     question={currentQ?.text}
@@ -1936,8 +1773,8 @@ export default function Stepper() {
               {step === PHASES.QUESTIONS2 && currentSubStep === 'QUESTIONS2' && (
                 <div className="w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
                   <QuestionCard
-                    step={questionIndex}
-                    totalSteps={13}
+                    step={questionIndex + 2}
+                    totalSteps={15}
                     // title={currentQ2?.title}
                     // subtitle={currentQ2?.subtitle}
                     question={currentQ2?.text}
@@ -1976,28 +1813,34 @@ export default function Stepper() {
               )}
 
               {step === PHASES.SUGGESTIONS && (
-                <div className="w-full h-full flex flex-col">
-
-                        {/* Product Document */}
-                        <div className="p-4 sm:p-6 flex-1 flex flex-col h-full">
-                          <div className="w-full border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex-1 min-h-[300px] flex flex-col">
-                            {suggestedProduct?.fileName ? (
-                              <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
-                                <Viewer fileUrl={
+                <div className="w-full h-full flex flex-col overflow-hidden">
+                  {/* Product Document */}
+                  <div className="p-2 sm:p-4 md:p-6 flex-1 flex flex-col min-h-0">
+                    <div className="w-full border border-gray-200 rounded-lg overflow-hidden bg-white flex-1 flex flex-col shadow-sm">
+                      {suggestedProduct?.fileName ? (
+                        <div className="w-full h-full relative">
+                          <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
+                            <div className="h-full w-full [&_.rpv-core\_\_viewer]:!h-full [&_.rpv-core\_\_inner-pages]:!p-2 sm:[&_.rpv-core\_\_inner-pages]:!p-4">
+                              <Viewer
+                                fileUrl={
                                   suggestedProduct.fileName.startsWith("http")
-                                  ? suggestedProduct.fileName
-                                  : `${process.env.NEXT_PUBLIC_FRONTEND_URL}${suggestedProduct.fileName}`
-                                } />
-                              </Worker>
-                            ) : (
-                              <div className="w-full flex-1 flex flex-col items-center justify-center text-gray-500 p-6">
-                                <svg className="w-12 h-12 sm:w-16 sm:h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                <p className="text-sm sm:text-base font-medium mb-2">Kein Produktdokument verfügbar</p>
-                                <p className="text-xs sm:text-sm text-gray-400">Produktinformationen werden separat bereitgestellt</p>
-                              </div>
-                            )}
+                                    ? suggestedProduct.fileName
+                                    : `${process.env.NEXT_PUBLIC_FRONTEND_URL}${suggestedProduct.fileName}`
+                                }
+                                defaultScale={SpecialZoomLevel.PageWidth}
+                              />
+                            </div>
+                          </Worker>
+                        </div>
+                      ) : (
+                        <div className="w-full flex-1 flex flex-col items-center justify-center text-gray-500 p-6">
+                          <svg className="w-12 h-12 sm:w-16 sm:h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <p className="text-sm sm:text-base font-medium mb-2">Kein Produktdokument verfügbar</p>
+                          <p className="text-xs sm:text-sm text-gray-400">Produktinformationen werden separat bereitgestellt</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2032,14 +1875,8 @@ export default function Stepper() {
                 <div className="w-full h-full flex flex-col">
                   <div className="flex-1 p-4 sm:p-6 md:p-8 flex flex-col">
                     <div className="max-w-6xl mx-auto w-full flex flex-col h-full">
-                      {/* <div className="text-center mb-4 sm:mb-6 flex-shrink-0">
-                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4">Identity Verification</h2>
-                        <p className="text-sm sm:text-base text-gray-600">
-                          Please complete the identity verification process to continue
-                        </p>
-                      </div> */}
 
-                      {/* <div className="bg-white border border-gray-200 rounded-lg sm:rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col min-h-0"> */}
+
                       <SignDIframe
                         src={getIframeUrl(
                           signDSessionData?.session_token ?? "",
@@ -2047,7 +1884,7 @@ export default function Stepper() {
                           formik.values.magicFlow
                         )}
                         onSuccess={handleSignDSuccess}
-                        onError={(error) => setError(error?.description)}
+                        onError={(error) => setError(error?.description || "Ein unbekannter Fehler ist aufgetreten.")}
                         onUserCanceled={prevStep}
                         // onSignatureToken={(token) => handleDownloadIDV(token)}
                         className="w-full flex-1 min-h-[400px] h-full rounded-lg border border-gray-200"
@@ -2075,7 +1912,50 @@ export default function Stepper() {
                           </div>
                         </div>
                       )}
-                      {/* </div> */}
+
+                      {/* Download Popup Modal */}
+                      {showDownloadPopup && (
+                        <div className="fixed inset-0 flex items-center justify-center bg-black/40 bg-opacity-50 p-4">
+                          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 transform transition-all">
+                            <div className="text-center mb-6">
+                              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                                Verifizierung erfolgreich!
+                              </h3>
+                              <p className="text-sm sm:text-base text-gray-600">
+                                Ihre Identitätsprüfung wurde erfolgreich abgeschlossen.
+                              </p>
+                            </div>
+
+                            <div className="space-y-3 mb-6">
+                              <button
+                                onClick={handleDownloadAndContinue}
+                                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span>PDF herunterladen & fortfahren</span>
+                              </button>
+
+                              <button
+                                onClick={handleContinueWithoutDownload}
+                                className="w-full px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                              >
+                                Ohne Download fortfahren
+                              </button>
+                            </div>
+
+                            <p className="text-xs text-gray-500 text-center">
+                              Das PDF wurde auf dem Server gespeichert und Sie können es jederzeit später herunterladen.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2085,14 +1965,6 @@ export default function Stepper() {
                 <div className="w-full h-full flex flex-col">
                   <div className="flex-1 p-0 sm:p-0 md:p-0 flex flex-col">
                     <div className="max-w-6xl mx-auto w-full flex flex-col h-full">
-                      {/* <div className="text-center mb-4 sm:mb-6 flex-shrink-0">
-                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4">Document Ready for Signature</h2>
-                        <p className="text-sm sm:text-base text-gray-600">
-                          Thank you for completing the process. You can sign the document below.
-                        </p>
-                      </div> */}
-
-                      {/* <div className="bg-white border border-gray-200 rounded-lg sm:rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col min-h-0"> */}
                       {signingUrl && !success && (
                         <React.Fragment>
                           <div className="p-0 sm:p-0 flex-1 flex flex-col">
@@ -2177,15 +2049,13 @@ export default function Stepper() {
                           </div>
                         </div>
                       )}
-                      {/* </div> */}
                     </div>
                   </div>
                 </div>
-                // </div>
               )}
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 mt-4 sm:mt-6 p-4 sm:p-6 bg-gray-50 border-t border-gray-200 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 p-4 sm:p-6 bg-gray-50 border-t border-gray-200 flex-shrink-0">
               <button
                 onClick={() => {
                   if (step === 1 && currentSubStep === 'QUESTIONS1') {

@@ -9,6 +9,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       userInfo,
+      questionAnswers = {},
       additionalData = {},
       pdfPath,
       options = { flattenForm: true, debugMode: false }
@@ -32,8 +33,8 @@ export async function POST(request: NextRequest) {
 
     // 3️⃣ Get the form inside
     const form = pdfDoc.getForm();
-
-    const formData = createFormDataFromUser(userInfo, additionalData as FormFieldData);
+    const formData = createFormDataFromUser(userInfo, questionAnswers, additionalData as FormFieldData);
+    // const formData = createFormDataFromUser(userInfo, additionalData as FormFieldData);
 
     // 4️⃣ Fill the form fields
     // 🔹 4. Iterate through all fields and fill dynamically

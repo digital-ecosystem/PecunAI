@@ -79,6 +79,7 @@ export default function Chatbot({
     }
 
     loadChatHistory()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, threadId])
 
 

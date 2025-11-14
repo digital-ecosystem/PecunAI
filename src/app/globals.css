@@ -25,6 +25,22 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Prevent mobile zoom on input focus */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+/* Prevent zoom on iOS devices */
+@supports (-webkit-touch-callout: none) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Utility class to hide scrollbars while maintaining scroll functionality */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
@@ -61,4 +77,45 @@ body {
 
 .animate-slideUp {
   animation: slideUp 0.3s ease-out;
+}
+
+/* PDF Viewer Responsive Styles */
+.rpv-core__viewer {
+  height: 100% !important;
+}
+
+.rpv-core__inner-pages {
+  padding: 0.5rem !important;
+}
+
+.rpv-core__inner-page {
+  margin-bottom: 1rem !important;
+}
+
+/* Improve PDF canvas rendering on mobile */
+.rpv-core__canvas-layer {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Better scrolling for PDF viewer on mobile */
+.rpv-core__inner-container {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Responsive PDF page sizing */
+@media (max-width: 640px) {
+  .rpv-core__inner-pages {
+    padding: 0.5rem !important;
+  }
+  
+  .rpv-core__inner-page {
+    margin-bottom: 0.75rem !important;
+  }
+}
+
+@media (min-width: 641px) {
+  .rpv-core__inner-pages {
+    padding: 1rem !important;
+  }
 }

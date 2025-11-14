@@ -5,7 +5,8 @@ import { getMainProductPrompt, getProductAISettings, getSessionProductId } from 
 import { Role } from '@/types'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import type {ResponseInputItem} from 'openai/resources/beta/responses'
+import { ResponseInputItem } from 'openai/resources/responses/responses.mjs'
+// import type {ResponseInputItem} from 'openai/resources/beta/responses'
 
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
@@ -53,13 +54,15 @@ export async function POST(req: Request) {
     conversationHistory.push({ role: 'user', content: message })
 
     // Build tools array if vector_id is available
-    const tools: any[] = [];
+    const tools: OpenAI.Responses.Tool[] = [];
     
     if (mainPrompt?.vectorId) {
       tools.push({
         type: 'file_search',
-        vector_store_ids: [mainPrompt.vectorId]
-      });
+        file_search: {
+          vector_store_ids: [mainPrompt.vectorId]
+        }
+      } as unknown as OpenAI.Responses.FileSearchTool);
     }
 
     /*if (mainPrompt?.mcpUrl) {

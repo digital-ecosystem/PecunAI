@@ -73,7 +73,7 @@ const Phase = () => {
         };
 
         fetchQuestions();
-    }, [sessionId]);
+    }, [router, sessionId]);
 
     // Fetch user info
     useEffect(() => {
@@ -102,7 +102,7 @@ const Phase = () => {
         };
 
         fetchUserInfo();
-    }, []);
+    }, [sessionId]);
 
     useEffect(() => {
         const fetchTermsAndConditions = async () => {

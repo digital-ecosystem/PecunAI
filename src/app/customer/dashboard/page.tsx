@@ -8,13 +8,18 @@ import { Session, SessionStatus, User } from '@/types';
 import { Ban, CheckCircle, Clock, FileText, Hourglass, LogOut } from 'lucide-react';
 
 const Dashboard = () => {
-    // const [loading, setLoading] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [user, setUser] = useState<User | null>(null);
     const [sessions, setSessions] = useState<Session[]>([]);
     const router = useRouter();
     const [loading, setLoading] = useState<boolean>(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalCount, setTotalCount] = useState(0);
+    const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+    const [allSessionsForStats, setAllSessionsForStats] = useState<Session[]>([]);
     useEffect(() => {
         // Fetch login user
         const fetchUser = async () => {
@@ -30,23 +35,61 @@ const Dashboard = () => {
         fetchUser();
     }, [router]);
 
+    // Fetch all sessions for statistics (without pagination)
     useEffect(() => {
-        const fetchSession = async () => {
-            // setLoading('fetching');
-            const response = await fetch('/api/dashboard', {
-                method: 'GET',
-            });
-            const data = await response.json();
-            // console.log("🚀 ~ fetchSession ~ data:", data)
-            // setLoading(null);
-            if (data?.success) {
-                setSessions(data.sessions);
-            } else {
-                setSessions([]);
+        const fetchAllSessions = async () => {
+            try {
+                const response = await fetch('/api/dashboard?limit=1000');
+                const data = await response.json();
+                if (data?.success) {
+                    setAllSessionsForStats(data.sessions);
+                }
+            } catch (error) {
+                console.error('Error fetching all sessions:', error);
             }
-        }
-        fetchSession();
-    }, [])
+        };
+        fetchAllSessions();
+    }, []);
+
+    // Fetch paginated sessions based on filters
+    useEffect(() => {
+        const fetchSessions = async () => {
+            setIsLoadingSessions(true);
+            try {
+                const params = new URLSearchParams({
+                    page: currentPage.toString(),
+                    limit: itemsPerPage.toString(),
+                    search: searchTerm,
+                    status: statusFilter
+                });
+
+                const response = await fetch(`/api/dashboard?${params}`);
+                const data = await response.json();
+                
+                if (data?.success) {
+                    setSessions(data.sessions);
+                    setTotalPages(data.pagination.totalPages);
+                    setTotalCount(data.pagination.totalCount);
+                } else {
+                    setSessions([]);
+                    setTotalPages(0);
+                    setTotalCount(0);
+                }
+            } catch (error) {
+                console.error('Error fetching sessions:', error);
+                setSessions([]);
+            } finally {
+                setIsLoadingSessions(false);
+            }
+        };
+
+        // Debounce search to avoid too many API calls
+        const timeoutId = setTimeout(() => {
+            fetchSessions();
+        }, searchTerm ? 500 : 0);
+
+        return () => clearTimeout(timeoutId);
+    }, [currentPage, itemsPerPage, searchTerm, statusFilter]);
 
     const getStatusBadge = (status: string) => {
         const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
@@ -70,12 +113,19 @@ const Dashboard = () => {
         });
     };
 
-    const filteredSessions = sessions.filter(session => {
-        const matchesSearch = session.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            session.user?.email?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || session.status === statusFilter;
-        return matchesSearch && matchesStatus;
-    });
+    // Calculate display indices for pagination info
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+
+    // Reset to first page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, statusFilter]);
+
+    const handlePageChange = (pageNumber: number) => {
+        setCurrentPage(pageNumber);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     const handleLogout = async () => {
         try {
@@ -207,7 +257,7 @@ const Dashboard = () => {
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-xs sm:text-sm text-gray-600 truncate">Total Sessions</p>
-                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{sessions.length}</p>
+                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.length}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -219,7 +269,7 @@ const Dashboard = () => {
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-xs sm:text-sm text-gray-600 truncate">Approved</p>
-                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{sessions.filter(s => s.status === SessionStatus.APPROVED).length}</p>
+                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.filter(s => s.status === SessionStatus.APPROVED).length}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -231,7 +281,7 @@ const Dashboard = () => {
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-xs sm:text-sm text-gray-600 truncate">Rejected</p>
-                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{sessions.filter(s => s.status === SessionStatus.REJECTED).length}</p>
+                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.filter(s => s.status === SessionStatus.REJECTED).length}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -243,7 +293,7 @@ const Dashboard = () => {
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-xs sm:text-sm text-gray-600 truncate">Pending</p>
-                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{sessions.filter(s => s.status === SessionStatus.PENDING).length}</p>
+                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.filter(s => s.status === SessionStatus.PENDING).length}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -255,7 +305,7 @@ const Dashboard = () => {
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-xs sm:text-sm text-gray-600 truncate">Draft</p>
-                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{sessions.filter(s => s.status === SessionStatus.DRAFT).length}</p>
+                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.filter(s => s.status === SessionStatus.DRAFT).length}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -291,20 +341,25 @@ const Dashboard = () => {
                                         </select>
                                     </div>
                                     <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-right">
-                                        <span className="font-medium">{filteredSessions.length}</span> of <span className="font-medium">{sessions.length}</span> sessions
+                                        <span className="font-medium">{totalCount}</span> of <span className="font-medium">{allSessionsForStats.length}</span> sessions
                                     </div>
                                 </div>
 
                                 {/* Sessions Table */}
                                 <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-                                    {filteredSessions.length === 0 ? (
+                                    {isLoadingSessions ? (
+                                        <div className="text-center py-12 px-4">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-blue-500 mx-auto mb-4"></div>
+                                            <p className="text-sm text-gray-600">Loading sessions...</p>
+                                        </div>
+                                    ) : sessions.length === 0 ? (
                                         <div className="text-center py-12 px-4">
                                             <div className="text-4xl sm:text-6xl mb-4">📚</div>
                                             <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                                {sessions.length === 0 ? 'No sessions yet' : 'No sessions found'}
+                                                {allSessionsForStats.length === 0 ? 'No sessions yet' : 'No sessions found'}
                                             </h3>
                                             <p className="text-sm sm:text-base text-gray-600 max-w-md mx-auto">
-                                                {sessions.length === 0
+                                                {allSessionsForStats.length === 0
                                                     ? 'Your sessions will appear here once they\'re created.'
                                                     : 'Try adjusting your search or filter criteria.'
                                                 }
@@ -329,7 +384,7 @@ const Dashboard = () => {
                                                         </tr>
                                                     </thead>
                                                     <tbody className="bg-white divide-y divide-gray-200">
-                                                        {filteredSessions.map((session) => (
+                                                        {sessions.map((session) => (
                                                             <tr key={session.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
                                                                 if (session.status === SessionStatus.DRAFT) {
                                                                     router.push(`/customer/stepper/${session.id}`);
@@ -370,7 +425,7 @@ const Dashboard = () => {
 
                                             {/* Mobile Card View */}
                                             <div className="sm:hidden divide-y divide-gray-200">
-                                                {filteredSessions.map((session) => (
+                                                {sessions.map((session) => (
                                                     <div key={session.id} className="p-4 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
                                                         if (session.status === SessionStatus.DRAFT) {
                                                             router.push(`/customer/stepper/${session.id}`);
@@ -405,12 +460,99 @@ const Dashboard = () => {
                                                         </div>
                                                     </div>
                                                 ))}
-                                            </div>
-                                        </>
-                                    )}
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* Pagination Controls */}
+                {!isLoadingSessions && totalPages > 1 && (
+                    <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden mt-4">
+                        <div className="px-4 py-3 sm:px-6 bg-gray-50">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                {/* Page Info */}
+                                <div className="text-sm text-gray-700">
+                                    Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
+                                    <span className="font-medium">{Math.min(indexOfLastItem, totalCount)}</span> of{' '}
+                                    <span className="font-medium">{totalCount}</span> results
                                 </div>
 
+                                {/* Pagination Buttons */}
+                                <div className="flex items-center space-x-2">
+                                    {/* Previous Button */}
+                                    <button
+                                        onClick={() => handlePageChange(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                            currentPage === 1
+                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                                        }`}
+                                    >
+                                        Previous
+                                    </button>
+
+                                    {/* Page Numbers */}
+                                    <div className="hidden sm:flex items-center space-x-1">
+                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => {
+                                            // Show first, last, current, and adjacent pages
+                                            if (
+                                                pageNumber === 1 ||
+                                                pageNumber === totalPages ||
+                                                (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                                            ) {
+                                                return (
+                                                    <button
+                                                        key={pageNumber}
+                                                        onClick={() => handlePageChange(pageNumber)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                                            pageNumber === currentPage
+                                                                ? 'bg-blue-600 text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                                                        }`}
+                                                    >
+                                                        {pageNumber}
+                                                    </button>
+                                                );
+                                            } else if (
+                                                pageNumber === currentPage - 2 ||
+                                                pageNumber === currentPage + 2
+                                            ) {
+                                                return (
+                                                    <span key={pageNumber} className="px-2 text-gray-500">
+                                                        ...
+                                                    </span>
+                                                );
+                                            }
+                                            return null;
+                                        })}
+                                    </div>
+
+                                    {/* Mobile Page Indicator */}
+                                    <div className="sm:hidden px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700">
+                                        {currentPage} / {totalPages}
+                                    </div>
+
+                                    {/* Next Button */}
+                                    <button
+                                        onClick={() => handlePageChange(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                            currentPage === totalPages
+                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                                        }`}
+                                    >
+                                        Next
+                                    </button>
+                                </div>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+            </div>                            {/* Spacing for mobile to prevent content overlap with FAB */}
+                            <div className="h-24 sm:h-0"></div>
                             
                             {/* Floating Action Button */}
                             <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
@@ -418,11 +560,11 @@ const Dashboard = () => {
                                     onClick={handleStartNow}
                                     className={
                                         'px-4 py-3 sm:px-6 sm:py-3 rounded-full shadow-lg transition-all duration-200 text-sm sm:text-base font-medium ' +
-                                        (sessions.filter(s => s.status === SessionStatus.DRAFT).length === 0
+                                        (allSessionsForStats.filter(s => s.status === SessionStatus.DRAFT).length === 0
                                             ? 'cursor-pointer bg-blue-600 text-white hover:bg-blue-700 hover:shadow-xl transform hover:scale-105'
                                             : 'bg-blue-300 text-white cursor-not-allowed opacity-60')
                                     }
-                                    disabled={sessions.filter(s => s.status === SessionStatus.DRAFT).length !== 0}
+                                    disabled={allSessionsForStats.filter(s => s.status === SessionStatus.DRAFT).length !== 0}
                                 >
                                     <span className="flex items-center space-x-2">
                                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

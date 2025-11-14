@@ -6,7 +6,10 @@ interface SignDIframeProps {
   src: string;
   onEvent?: (event: SignDIframeEvent) => void;
   onSuccess?: () => void;
-  onError?: (error: any) => void;
+  onError?: (error: {
+    // data: {
+      description?: string;
+  }) => void;
   onUserCanceled?: () => void;
   onSignatureToken?: (token: string) => void;
   className?: string;
@@ -65,7 +68,7 @@ export function SignDIframe({
         
       case 'ERROR':
         console.error('SignD process error:', messageData.data);
-        onError?.(messageData.data);
+        onError?.({ description: messageData.data?.description as string | undefined });
         break;
     }
   }, [onEvent, onSuccess, onError, onUserCanceled, onSignatureToken]);

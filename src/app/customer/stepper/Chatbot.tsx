@@ -89,7 +89,9 @@ export default function Chatbot({
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [isRecording, setIsRecording] = useState(false)
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+  const [permissionDenied, setPermissionDenied] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const audioStreamRef = useRef<MediaStream | null>(null)
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -117,7 +119,7 @@ export default function Chatbot({
         }
         
         recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
-          console.error('Speech recognition error:', event.error)
+          console.log('Speech recognition error:', event.error)
           setIsRecording(false)
         }
         
@@ -129,7 +131,14 @@ export default function Chatbot({
     
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.stop()
+        try {
+          recognitionRef.current.stop()
+        } catch (error) {
+          console.log('Error stopping recognition on cleanup:', error)
+        }
+      }
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach(track => track.stop())
       }
     }
   }, [setInput])
@@ -140,7 +149,7 @@ export default function Chatbot({
       setCopiedId(messageId)
       setTimeout(() => setCopiedId(null), 2000)
     } catch (err) {
-      console.error('Failed to copy text: ', err)
+      console.log('Failed to copy text: ', err)
     }
   }
 
@@ -148,42 +157,145 @@ export default function Chatbot({
     if (isRecording) {
       // Stop recording
       if (recognitionRef.current) {
-        recognitionRef.current.stop()
+        try {
+          recognitionRef.current.stop()
+        } catch (error) {
+          console.log('Error stopping speech recognition:', error)
+        }
       }
       if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop()
+        try {
+          mediaRecorder.stop()
+        } catch (error) {
+          console.log('Error stopping media recorder:', error)
+        }
+      }
+      // Stop all audio tracks
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach(track => {
+          track.stop()
+        })
+        audioStreamRef.current = null
       }
       setIsRecording(false)
     } else {
       // Start recording
       try {
+        // Check if microphone permission was previously denied
+        if (navigator.permissions && navigator.permissions.query) {
+          try {
+            const permissionResult = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+            console.log("🚀 ~ toggleRecording ~ permissionResult:", permissionResult)
+            
+            if (permissionResult.state === 'denied' || permissionResult.state !== 'prompt') {
+              setPermissionDenied(true)
+              alert(
+                'Mikrofonzugriff verweigert.\n\n' +
+                'Bitte erlauben Sie den Mikrofonzugriff in Ihren Browser-Einstellungen:\n\n' +
+                'iOS Safari:\n' +
+                '1. Öffnen Sie Einstellungen > Safari\n' +
+                '2. Scrollen Sie zu "Einstellungen für Websites"\n' +
+                '3. Tippen Sie auf "Mikrofon"\n' +
+                '4. Wählen Sie "Erlauben"\n\n' +
+                'Chrome/Firefox:\n' +
+                '1. Tippen Sie auf das Schloss-Symbol in der Adressleiste\n' +
+                '2. Aktivieren Sie "Mikrofon"\n' +
+                '3. Laden Sie die Seite neu'
+              )
+              return
+            } 
+          } catch {
+            // Permissions API not supported, continue with getUserMedia
+            console.log('Permissions API not supported, attempting direct access')
+          }
+        } 
+        
+        // Try Speech Recognition first (better for voice-to-text on supported browsers)
         if (recognitionRef.current) {
-          recognitionRef.current.start()
-          setIsRecording(true)
-        } else {
-          // Fallback to MediaRecorder if Speech Recognition is not available
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+          // Speech Recognition works poorly on iOS, skip it for iOS devices
+          try {
+            recognitionRef.current.start()
+            setIsRecording(true)
+            setPermissionDenied(false)
+            return
+          } catch (speechError) {
+            console.log('Speech Recognition failed, falling back to MediaRecorder:', speechError)
+          }
+        }
+        
+        // Fallback to MediaRecorder (works better on iOS)
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            } 
+          })
+          
+          audioStreamRef.current = stream
+          setPermissionDenied(false)
+          
           const recorder = new MediaRecorder(stream)
           const audioChunks: BlobPart[] = []
           
           recorder.ondataavailable = (event) => {
-            audioChunks.push(event.data)
+            if (event.data.size > 0) {
+              audioChunks.push(event.data)
+            }
           }
           
-          recorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' })
-            // Here you would typically send the audio to a transcription service
-            console.log('Audio recorded:', audioBlob)
+          recorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
+            
+            // Stop all tracks
             stream.getTracks().forEach(track => track.stop())
+            
+            // Here you would typically send the audio to a transcription service
+            // For now, we'll just show a message
+            console.log('Audio recorded:', audioBlob)
+            
+            // You can add transcription service here
+            // For example, send to OpenAI Whisper API or Google Speech-to-Text
+            // if (setInput) {
+            //   setInput('[Audio recorded - transcription not yet implemented]')
+            // }
+          }
+          
+          recorder.onerror = (event) => {
+            console.log('MediaRecorder error:', event)
+            alert('Fehler beim Aufnehmen. Bitte versuchen Sie es erneut.')
+            stream.getTracks().forEach(track => track.stop())
+            setIsRecording(false)
           }
           
           recorder.start()
           setMediaRecorder(recorder)
           setIsRecording(true)
+        } catch (error) {
+          setPermissionDenied(true)
+          console.log('Error accessing microphone:', error)
+          
+          // Provide specific error messages
+          const err = error as { name?: string; message?: string }
+          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            alert(
+              'Mikrofonzugriff verweigert.\n\n' +
+              'Um Sprachaufnahmen zu nutzen, müssen Sie den Mikrofonzugriff erlauben.\n\n' +
+              'Bitte aktualisieren Sie die Berechtigung in Ihren Browser-Einstellungen und laden Sie die Seite neu.'
+            )
+          } else if (err.name === 'NotFoundError') {
+            alert('Kein Mikrofon gefunden. Bitte überprüfen Sie, ob ein Mikrofon angeschlossen ist.')
+          } else if (err.name === 'NotReadableError') {
+            alert('Mikrofon wird bereits von einer anderen Anwendung verwendet.')
+          } else {
+            alert('Fehler beim Zugriff auf das Mikrofon. Bitte versuchen Sie es erneut.')
+          }
         }
       } catch (error) {
-        console.error('Error accessing microphone:', error)
-        alert('Unable to access microphone. Please grant permission.')
+        setIsRecording(false)
+        console.log('Unexpected error in toggleRecording:', error)
+        alert('Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.')
       }
     }
   }
@@ -213,7 +325,7 @@ export default function Chatbot({
   //         }
   //       }
   //     } catch (error) {
-  //       console.error('Error loading chat history:', error)
+  //       console.log('Error loading chat history:', error)
   //     }
   //   }
 
@@ -282,7 +394,7 @@ export default function Chatbot({
 
   //     setMessages(prev => [...prev, botMessage])
   //   } catch (error) {
-  //     console.error('Error:', error)
+  //     console.log('Error:', error)
   //     const errorMessage: Message = {
   //       role: Role.assistant,
   //       content: 'Sorry, I encountered an error. Please try again.',
@@ -444,6 +556,23 @@ export default function Chatbot({
         {/* Input Form - ChatGPT Style */}
         <div className="border-t border-gray-200 bg-white sticky bottom-0 flex-shrink-0">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+            {/* Permission denied warning */}
+            {permissionDenied && (
+              <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="text-sm text-yellow-800 font-medium">Mikrofonzugriff erforderlich</p>
+                    <p className="text-xs text-yellow-700 mt-1">
+                      Bitte erlauben Sie den Mikrofonzugriff in Ihren Browser-Einstellungen und laden Sie die Seite neu.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="relative">
               <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-xl shadow-sm hover:shadow-md focus-within:border-blue-400 focus-within:shadow-md transition-all">
                 {!isRecording && (
@@ -470,14 +599,25 @@ export default function Chatbot({
                   <button
                     type="button"
                     onClick={toggleRecording}
-                    className={`p-2 rounded-lg transition-all ${
+                    className={`p-2 rounded-lg transition-all relative ${
                       isRecording
                         ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                        : permissionDenied
+                        ? 'text-yellow-600 hover:bg-yellow-50'
                         : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                     }`}
                     disabled={loading}
-                    title={isRecording ? 'Stop recording' : 'Start voice input'}
+                    title={
+                      isRecording 
+                        ? 'Aufnahme stoppen' 
+                        : permissionDenied
+                        ? 'Mikrofonzugriff verweigert - Klicken für Hilfe'
+                        : 'Sprachaufnahme starten'
+                    }
                   >
+                    {permissionDenied && !isRecording && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-white"></div>
+                    )}
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
                     </svg>

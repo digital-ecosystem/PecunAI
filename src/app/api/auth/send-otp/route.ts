@@ -20,9 +20,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Valid email is required' }, { status: 400 });
   }
 
+  const normalizedEmail = email.toLowerCase();
+
   try {
     // Create or update user
-    await AuthService.createOrUpdateUser(email, name);
+    await AuthService.createOrUpdateUser(normalizedEmail, name);
 
     // Step 2: Check for existing DRAFT session
     // const existingDraftSession = await AuthService.findDraftSessionByEmail(email);
@@ -61,13 +63,13 @@ export async function POST(request: Request) {
     //   return response;
     // } else {
       // Create OTP
-      const otp = await AuthService.createOTP(email);
+      const otp = await AuthService.createOTP(normalizedEmail);
       console.log("🚀 ~ POST ~ otp:", otp)
 
       // Send email
       await transporter.sendMail({
         from: process.env.EMAIL_FROM,
-        to: email,
+        to: normalizedEmail,
         subject: 'Your Sign-in Code',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

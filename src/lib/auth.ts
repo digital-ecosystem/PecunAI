@@ -1,7 +1,9 @@
 import { prisma } from './prisma';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import { CustomError } from './customError';
+// import { CustomError } from './customError';
+// import { create } from 'domain';
+// import { string } from 'zod';
 
 export class AuthService {
   static generateOTP() {
@@ -9,14 +11,15 @@ export class AuthService {
   }
 
   static async createOrUpdateUser(email: string, name = null) {
+    const normalizedEmail = email.toLowerCase();
     return await prisma.user.upsert({
-      where: { email },
+      where: { email: normalizedEmail },
       update: {
         updatedAt: new Date(),
         isActive: true
       },
       create: {
-        email,
+        email: normalizedEmail,
         name,
         isActive: true
       },
@@ -54,8 +57,9 @@ export class AuthService {
 
   static async createOTP(email: string) {
     const now = new Date();
+    const normalizedEmail = email.toLowerCase();
 
-    const existingOTP = await prisma.oTP.findUnique({ where: { email } });
+    const existingOTP = await prisma.oTP.findUnique({ where: { email: normalizedEmail } });
     console.log("🚀 ~ AuthService ~ createOTP ~ existingOTP:", existingOTP)
 
     // ✅ If user is blocked, but block has expired → reset the fields
@@ -104,7 +108,7 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     return await prisma.oTP.upsert({
-      where: { email },
+      where: { email: normalizedEmail },
       update: {
         code,
         expiresAt,
@@ -115,7 +119,7 @@ export class AuthService {
         createdAt: now,
       },
       create: {
-        email,
+        email: normalizedEmail,
         code,
         expiresAt,
         used: false,
@@ -128,9 +132,10 @@ export class AuthService {
   }
 
   static async verifyOTP(email: string, code: string) {
+    const normalizedEmail = email.toLowerCase();
     const otp = await prisma.oTP.findFirst({
       where: {
-        email,
+        email: normalizedEmail,
         code,
         used: false,
         // expiresAt: { gt: new Date() }
@@ -142,7 +147,7 @@ export class AuthService {
       // Check if there's an OTP for this email to increment attempts
       const existingOTP = await prisma.oTP.findFirst({
         where: {
-          email,
+          email: normalizedEmail,
           used: false,
           expiresAt: { gt: new Date() }
         }

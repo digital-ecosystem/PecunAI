@@ -4,7 +4,7 @@
 import { SignDIframe } from '@/components/SignDIframe';
 import { useSignD } from '@/hooks/useSignD';
 import { SignDHandshakePayload } from '@/types/signd';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 
 // Test credentials from the documentation
@@ -101,7 +101,7 @@ const SignDPage = ({
     }
   };
 
-  const handleDownloadIDV = async () => {
+  const handleDownloadIDV = useCallback(async () => {
     if (sessionData?.session_token) {
       try {
        const pdfBlob = await downloadIDV(sessionData.session_token);
@@ -127,14 +127,14 @@ const SignDPage = ({
         console.error('Failed to download IDV:', err);
       }
     }
-  };
+  }, [downloadIDV, redirectDashboard, sessionData?.session_token, sessionId]);
 
 
   useEffect(() => {
     if (result && sessionData?.session_token) {
       handleDownloadIDV();
     }
-  }, [result, sessionData?.session_token])
+  }, [handleDownloadIDV, result, sessionData?.session_token])
 
   // const inputField = `mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500`;
 
@@ -382,7 +382,7 @@ const SignDPage = ({
           <SignDIframe
             src={getIframeUrl(sessionData.session_token, 'en', formData.magicFlow)}
             onSuccess={handleSuccess}
-            onError={(error) => setError(error?.description)}
+            onError={(error) => setError(error?.description ?? null)}
             onUserCanceled={() => setShowIframe(false)}
             onSignatureToken={(token) => downloadIDV(token)}
             className="rounded-md border border-gray-200"
