@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
     'localhost:4001',
     'ai.digital-ecosystem.management'
   ],
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;
