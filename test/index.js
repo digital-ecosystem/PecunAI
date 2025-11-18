@@ -1,5 +1,5 @@
 import fs from "fs";
-import { PDFDocument, StandardFonts } from "pdf-lib";
+import { PDFDocument } from "pdf-lib";
 
 async function fillPecunAIPdf() {
   // 1️⃣ Load the original PDF
