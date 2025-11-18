@@ -25,16 +25,17 @@ model User {
 }
 
 model OTP {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  code         String
-  attempts     Int       @default(0)
-  used         Boolean   @default(false)
-  blockedUntil DateTime?
-  createdAt    DateTime  @default(now())
-  expiresAt    DateTime
-  resendCount  Int       @default(0)
-  user         User      @relation(fields: [email], references: [email], onDelete: Cascade)
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  code                String
+  attempts            Int       @default(0)
+  used                Boolean   @default(false)
+  blockedUntil        DateTime?
+  createdAt           DateTime  @default(now())
+  expiresAt           DateTime
+  resendCount         Int       @default(0)
+  resendWindowStart   DateTime  // Explicit window start for resend rate limit
+  user                User      @relation(fields: [email], references: [email], onDelete: Cascade)
 
   @@map("otps")
 }
@@ -213,9 +214,26 @@ model Message {
   messageIndex Int
   threadId     String
   updatedAt    DateTime @updatedAt
+  audioFileId  String?
+  audioFile    AudioFile? @relation(fields: [audioFileId], references: [id], onDelete: SetNull)
   thread       Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
   @@map("messages")
+}
+
+model AudioFile {
+  id           String   @id @default(uuid())
+  fileName     String
+  filePath     String
+  mimeType     String   @default("audio/webm")
+  duration     Float?
+  size         Int
+  transcript   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  messages     Message[]
+
+  @@map("audio_files")
 }
 
 model PersonalInfo {

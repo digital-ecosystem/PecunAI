@@ -46,3 +46,5 @@ next-env.d.ts
 /prisma/src/generated/prisma
 
 /public/documents
+
+/public/audio

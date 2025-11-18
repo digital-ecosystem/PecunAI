@@ -132,6 +132,15 @@ export interface Message {
   content: string
   timestamp: Date
   index?: number
+  audioFileId?: string
+  audioFile?: {
+    id: string
+    fileName: string
+    filePath: string
+    mimeType: string
+    transcript?: string
+    createdAt: Date
+  }
 }
 
 export interface Answer {

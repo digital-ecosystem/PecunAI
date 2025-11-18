@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     }
 
     const user = await AuthService.getUserFromToken(token);
-    console.log("🚀 ~ GET ~ user:", user)
+    // console.log("🚀 ~ GET ~ user:", user)
     if (!user) {
       return NextResponse.json({ message: "Invalid token" }, { status: 401 });
     }
@@ -71,7 +71,7 @@ export async function GET(request: Request) {
       take: limit
     });
 
-    console.log("🚀 ~ GET ~ sessions:", sessions)
+    // console.log("🚀 ~ GET ~ sessions:", sessions)
 
     return NextResponse.json({ 
       success: true, 

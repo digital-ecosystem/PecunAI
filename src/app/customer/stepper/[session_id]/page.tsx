@@ -232,7 +232,7 @@ export default function Stepper() {
   const [confirmed, setConfirmed] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [answersByIndex, setAnswersByIndex] = useState<Record<number, AnswerWithOptions>>({});
-  console.log("🚀 ~ Stepper ~ answersByIndex:", answersByIndex)
+  // console.log("🚀 ~ Stepper ~ answersByIndex:", answersByIndex)
   const [questionIndex, setQuestionIndex] = useState(1);
   const [questions, setQuestions] = useState<Question[]>([]);
   // const [termsAndConditions, setTermsAndConditions] = useState<
@@ -248,8 +248,8 @@ export default function Stepper() {
   const [input, setInput] = useState('')
   // const [finalPDFUrl, setFinalPDFUrl] = useState<string | null>(null);
   const [signingUrl, setSigningUrl] = useState<string | null>(null);
-  const [signTeqRequestId, setSignTeqRequestId] = useState<string | null>(null);
-  console.log("🚀 ~ Stepper ~ signTeqRequestId:", signTeqRequestId)
+  // const [signTeqRequestId, setSignTeqRequestId] = useState<string | null>(null);
+  // console.log("🚀 ~ Stepper ~ signTeqRequestId:", signTeqRequestId)
   const [signTeqDocumentId, setSignTeqDocumentId] = useState<string | null>(null);
   const [downloadedDocumentPath, setDownloadedDocumentPath] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -605,6 +605,28 @@ export default function Stepper() {
     [loading, session_id, threadId, input]
   );
 
+  // Callback to refresh messages after audio is processed on the server
+  const handleAudioProcessed = useCallback(async () => {
+    try {
+      // Fetch the latest messages from the server
+      const response = await fetch(`/api/phase/chat?threadId=${threadId}&sessionId=${session_id}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.messages && Array.isArray(data.messages)) {
+          // Update messages with proper timestamps
+          const updatedMessages = data.messages.map((msg: Message) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          }));
+          setMessages(updatedMessages);
+          console.log('✅ Messages refreshed after audio processing:', updatedMessages.length);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing messages after audio processing:', error);
+    }
+  }, [threadId, session_id]);
+
    const suggestProduct = async (
     duration: string,
     risk: string
@@ -868,7 +890,7 @@ export default function Stepper() {
           method: "GET",
         });
         const data = await res.json();
-        console.log("🚀 ~ fetchQuestions ~ data:", data)
+        // console.log("🚀 ~ fetchQuestions ~ data:", data)
         if (data.success) {
           setQuestions(data.questions);
           setAnswers(data.answers || {});
@@ -1003,7 +1025,7 @@ export default function Stepper() {
   }, [session_id]);
 
   const onPersonalInfoSubmit = async (data: PersonalInfoFormData) => {
-    console.log("🚀 ~ onPersonalInfoSubmit ~ data:", data)
+    // console.log("🚀 ~ onPersonalInfoSubmit ~ data:", data)
     setLoading(true);
 
     // Helper function to convert phone country code to ISO country code
@@ -1167,7 +1189,7 @@ export default function Stepper() {
 
         // Fetch the PDF but don't download it yet
         const pdfBlob = await downloadIDV(signDSessionData.session_token);
-        console.log("🚀 ~ handleSignDSuccess ~ pdfBlob:", pdfBlob)
+        // console.log("🚀 ~ handleSignDSuccess ~ pdfBlob:", pdfBlob)
         setIdvPdfBlob(pdfBlob);
 
         // Save PDF to server
@@ -1179,7 +1201,7 @@ export default function Stepper() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fileName, pdfBase64: buffer }),
         });
-        console.log("🚀 ~ handleSignDSuccess ~ pdfSave:", pdfSave)
+        // console.log("🚀 ~ handleSignDSuccess ~ pdfSave:", pdfSave)
         const pdfSaveResponse = await pdfSave.json();
         if (!pdfSaveResponse?.success) {
           alert("Error saving PDF");
@@ -1322,7 +1344,7 @@ export default function Stepper() {
       }
 
       const dataPDF = await responsePDF.json();
-      console.log("🚀 ~ generatePDF ~ dataPDF:", dataPDF)
+      // console.log("🚀 ~ generatePDF ~ dataPDF:", dataPDF)
 
       if (!dataPDF.success || !dataPDF.finalPath) {
         const errorMsg = dataPDF.error || 'Failed to fill PDF form';
@@ -1351,17 +1373,17 @@ export default function Stepper() {
       const data = await response.json();
 
       // Log the full response for debugging
-      console.log('SignTeq API Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        success: data.success,
-        error: data.error,
-        hasSigningUrl: !!data.signing_url
-      });
+      // console.log('SignTeq API Response:', {
+      //   status: response.status,
+      //   statusText: response.statusText,
+      //   success: data.success,
+      //   error: data.error,
+      //   hasSigningUrl: !!data.signing_url
+      // });
 
       if (data.success && data.signing_url) {
         setSigningUrl(data.signing_url);
-        setSignTeqRequestId(data.id);
+        // setSignTeqRequestId(data.id);
         // Extract document ID from the response data
         if (data.data && data.data.documents && data.data.documents[0]) {
           setSignTeqDocumentId(data.data.documents[0].id);
@@ -1415,11 +1437,12 @@ export default function Stepper() {
     try {
       // Download the signed document if we have the document ID
       if (signTeqDocumentId) {
-        console.log('📄 Downloading signed document...', signTeqDocumentId);
+        // console.log('📄 Downloading signed document...', signTeqDocumentId);
 
         const downloadResponse = await fetch(
           `/api/signteq/documents/${signTeqDocumentId}/download?type=completed`
         );
+        // console.log("🚀 ~ handleSigningSuccess ~ downloadResponse:", downloadResponse)
 
         if (!downloadResponse.ok) {
           throw new Error(`Download failed: ${downloadResponse.status} ${downloadResponse.statusText}`);
@@ -1427,11 +1450,11 @@ export default function Stepper() {
 
         const downloadData = await downloadResponse.json();
 
-        console.log('Download Response:', {
-          success: downloadData.success,
-          hasBase64: !!downloadData.base64,
-          error: downloadData.error
-        });
+        // console.log('Download Response:', {
+        //   success: downloadData.success,
+        //   hasBase64: !!downloadData.base64,
+        //   error: downloadData.error
+        // });
 
         if (downloadData.success && downloadData.base64) {
           // Save the downloaded document
@@ -1456,7 +1479,7 @@ export default function Stepper() {
 
           if (saveData.success) {
             setDownloadedDocumentPath(saveData.path);
-            console.log('✅ Document saved successfully:', saveData.path);
+            // console.log('✅ Document saved successfully:', saveData.path);
           } else {
             const errorMsg = saveData.error || 'Failed to save document';
             console.error('❌ Failed to save document:', errorMsg);
@@ -1856,6 +1879,7 @@ export default function Stepper() {
                     setInput={setInput}
                     handleSubmit={handleChatbotSubmit}
                     loading={chatBtnLading}
+                    onAudioProcessed={handleAudioProcessed}
                   />
                 </div>
               )}

@@ -46,6 +46,7 @@ interface ChatbotProps {
   handleSubmit?: (e: React.FormEvent) => void
   loading?: boolean
   input?: string
+  onAudioProcessed?: () => void
   // setMessages?: (messages: Message[]) => void
   // setLoading?: (loading: boolean) => void
   // setSessionId?: (sessionId: string) => void
@@ -65,13 +66,14 @@ interface ChatbotProps {
 }
 
 export default function Chatbot({
-  // sessionId,
+  sessionId,
   threadId,
   setInput,
   messages = [],
   handleSubmit,
   loading = false,
   input = '',
+  onAudioProcessed,
   // onBackToChat,
   // onNext,
   // backButtonText = "Back",
@@ -90,7 +92,12 @@ export default function Chatbot({
   const [isRecording, setIsRecording] = useState(false)
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const [permissionDenied, setPermissionDenied] = useState(false)
+  const [audioUploading, setAudioUploading] = useState(false)
+  const [audioUploadProgress, setAudioUploadProgress] = useState<number | null>(null)
+  const [audioTranscribing, setAudioTranscribing] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionTranscriptRef = useRef<string>('')
+  const [liveTranscript, setLiveTranscript] = useState<string>('')
   const audioStreamRef = useRef<MediaStream | null>(null)
   
   const scrollToBottom = () => {
@@ -113,9 +120,10 @@ export default function Chatbot({
         
         recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
           const transcript = event.results[event.results.length - 1][0].transcript
-          if (setInput) {
-            setInput(transcript)
-          }
+          // Store transcript for debugging and update live captions in UI.
+          recognitionTranscriptRef.current = transcript
+          setLiveTranscript(transcript)
+          console.log('SpeechRecognition transcript (live):', transcript)
         }
         
         recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -124,7 +132,12 @@ export default function Chatbot({
         }
         
         recognitionRef.current.onend = () => {
+          // When speech recognition ends, stop visual recording state.
           setIsRecording(false)
+          // If we have an active media stream, stop its tracks so MediaRecorder.onstop fires
+          if (audioStreamRef.current) {
+            audioStreamRef.current.getTracks().forEach((t) => t.stop())
+          }
         }
       }
     }
@@ -187,7 +200,8 @@ export default function Chatbot({
             const permissionResult = await navigator.permissions.query({ name: 'microphone' as PermissionName })
             console.log("🚀 ~ toggleRecording ~ permissionResult:", permissionResult)
             
-            if (permissionResult.state === 'denied' || permissionResult.state !== 'prompt') {
+            // Only block if permission is explicitly denied
+            if (permissionResult.state === 'denied') {
               setPermissionDenied(true)
               alert(
                 'Mikrofonzugriff verweigert.\n\n' +
@@ -203,7 +217,8 @@ export default function Chatbot({
                 '3. Laden Sie die Seite neu'
               )
               return
-            } 
+            }
+            // If state is 'granted' or 'prompt', continue to getUserMedia
           } catch {
             // Permissions API not supported, continue with getUserMedia
             console.log('Permissions API not supported, attempting direct access')
@@ -212,14 +227,15 @@ export default function Chatbot({
         
         // Try Speech Recognition first (better for voice-to-text on supported browsers)
         if (recognitionRef.current) {
-          // Speech Recognition works poorly on iOS, skip it for iOS devices
+          // Try to start SpeechRecognition and keep going to also start MediaRecorder
           try {
             recognitionRef.current.start()
-            setIsRecording(true)
             setPermissionDenied(false)
-            return
+            // keep isRecording true only after MediaRecorder starts or immediately for UI feedback
+            setIsRecording(true)
+            // Continue to start MediaRecorder as well so we capture audio for upload
           } catch (speechError) {
-            console.log('Speech Recognition failed, falling back to MediaRecorder:', speechError)
+            console.log('Speech Recognition failed, will try MediaRecorder only:', speechError)
           }
         }
         
@@ -251,15 +267,8 @@ export default function Chatbot({
             // Stop all tracks
             stream.getTracks().forEach(track => track.stop())
             
-            // Here you would typically send the audio to a transcription service
-            // For now, we'll just show a message
-            console.log('Audio recorded:', audioBlob)
-            
-            // You can add transcription service here
-            // For example, send to OpenAI Whisper API or Google Speech-to-Text
-            // if (setInput) {
-            //   setInput('[Audio recorded - transcription not yet implemented]')
-            // }
+            // Upload audio file and transcribe
+            await uploadAndTranscribeAudio(audioBlob)
           }
           
           recorder.onerror = (event) => {
@@ -271,6 +280,7 @@ export default function Chatbot({
           
           recorder.start()
           setMediaRecorder(recorder)
+          // Ensure recording UI is active (keeps or sets it)
           setIsRecording(true)
         } catch (error) {
           setPermissionDenied(true)
@@ -300,130 +310,129 @@ export default function Chatbot({
     }
   }
 
-  // Load chat history on component mount
-  // useEffect(() => {
-  //   const loadChatHistory = async () => {
-  //     if (!sessionId && !threadId) return
+  const uploadAndTranscribeAudio = async (audioBlob: Blob) => {
+    setAudioUploading(true)
+    setAudioUploadProgress(0)
+    try {
+      const formData = new FormData()
+      formData.append('audio', audioBlob)
+      formData.append('threadId', threadId || 'default')
 
-  //     try {
-  //       const response = await fetch(`/api/phase/chat?threadId=${threadId}&sessionId=${sessionId}`)
-  //       if (response.ok) {
-  //         const data = await response.json()
-  //         console.log("🚀 ~ loadChatHistory ~ data.messages?.length:", data.messages?.length)
-  //         if (data.messages?.length > 0) {
-  //           setMessages(data.messages.map((msg: Message) => ({
-  //             ...msg,
-  //             timestamp: new Date(msg.timestamp)
-  //           })))
-  //         } else {
-  //           // if (product?.name && product?.description) {
-  //             // console.log("🚀 ~ loadChatHistory ~ product:", product)
-  //             // const productMsg: string = await generateProductPrompt({ name: product?.name, description: product?.description })
-  //             const productMsg = 'Create a professional one-page investment product factsheet (like VVKN-1) in PDF style. Include: product overview, investment goal, key performance table, strategy details, risk indicators (SRI, Sharpe Ratio, Max Drawdown), fees & costs, asset allocation chart, and risk disclaimer. Design it clean, corporate, and data-driven with sections and tables clearly structured.';
-  //             await sendMessage(productMsg)
-  //           // }
-  //         }
-  //       }
-  //     } catch (error) {
-  //       console.log('Error loading chat history:', error)
-  //     }
-  //   }
+      // include sessionId so server stores audio under session folder
+      if (sessionId) {
+        formData.append('sessionId', sessionId)
+      }
 
-  //   loadChatHistory()
-  // }, [sessionId, threadId])
+      // Upload audio file via XHR to track progress
+      const uploadData = await new Promise<{ audioFileId: string }>((resolve, reject) => {
+        try {
+          const xhr = new XMLHttpRequest()
+          xhr.open('POST', '/api/audio/upload')
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const json = JSON.parse(xhr.responseText)
+                resolve(json as { audioFileId: string })
+              } catch (parseErr) {
+                reject(parseErr)
+              }
+            } else {
+              reject(new Error(`Upload failed with status ${xhr.status}`))
+            }
+          }
+          xhr.onerror = () => reject(new Error('Network error during upload'))
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100)
+              setAudioUploadProgress(percent)
+            }
+          }
+          xhr.send(formData)
+        } catch (err) {
+          reject(err)
+        }
+      })
 
+      const audioFileId = uploadData.audioFileId
+      // mark upload complete
+      setAudioUploadProgress(100)
+      setAudioTranscribing(true)
 
-  // const handleFormSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (!input.trim() || loading) return
-  //   await sendMessage();
-  // };
+      // Call the unified /api/phase/chat endpoint with audioFileId
+      // This endpoint will handle transcription and AI response generation
+      const chatResponse = await fetch('/api/phase/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          audioFileId,
+          sessionId,
+          threadId: threadId || 'default'
+        })
+      })
 
-  // const sendMessage = async (messageOverride: string = '') => {
-  //   // e.preventDefault()
-  //   // if (!input.trim() || loading) return
+      if (!chatResponse.ok) {
+        throw new Error('Failed to process audio with chat API')
+      }
 
-  //   const messageToSend = messageOverride.length > 0 ? messageOverride : input.trim();
-  //   const messageNotAppended = messageOverride.length > 0;
-  //   console.log("🚀 ~ sendMessage ~ messageToSend:", messageToSend)
-  //   if (!messageToSend || loading) return;
+      // The response is a stream; read it to consume the full response
+      const reader = chatResponse.body?.getReader()
+      const decoder = new TextDecoder()
+      let transcript = ''
+      
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          
+          const text = decoder.decode(value, { stream: true })
+          const lines = text.split('\n')
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const json = JSON.parse(line.slice(6))
+                if (json.transcript) {
+                  transcript = json.transcript
+                }
+                if (json.done) {
+                  // Final message received
+                  break
+                }
+              } catch {
+                // Ignore parse errors for non-JSON lines
+              }
+            }
+          }
+        }
+      }
 
-  //   const userMessage: Message = {
-  //     role: Role.customer,
-  //     content: messageToSend,
-  //     timestamp: new Date()
-  //   }
-  //   if (!messageNotAppended) {
-  //     setMessages(prev => [...prev, userMessage])
-  //   }
-  //   setInput('')
-  //   setLoading(true)
+      // Audio file has been uploaded, transcribed, and AI response generated server-side.
+      // Clear input field since we don't need to send manually anymore.
+      if (setInput) {
+        setInput('')
+      }
 
-  //   try {
-  //     const response = await fetch('/api/phase/chat', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({
-  //         message: userMessage.content,
-  //         sessionId,
-  //         threadId
-  //       }),
-  //     })
+      // Trigger parent component to refresh messages
+      if (onAudioProcessed) {
+        onAudioProcessed()
+      }
 
-  //     if (!response.ok) {
-  //       throw new Error('Failed to get response')
-  //     }
+      // Clear live transcript after processing
+      setLiveTranscript('')
 
-  //     const data = await response.json()
-
-  //     // Update session and thread IDs from response
-  //     if (data.sessionId && !sessionId) {
-  //       setSessionId(data.sessionId)
-  //     }
-  //     if (data.threadId && !threadId) {
-  //       setThreadId(data.threadId)
-  //     }
-
-  //     const botMessage: Message = {
-  //       role: Role.assistant,
-  //       content: data.message,
-  //       timestamp: new Date()
-  //     }
-
-  //     setMessages(prev => [...prev, botMessage])
-  //   } catch (error) {
-  //     console.log('Error:', error)
-  //     const errorMessage: Message = {
-  //       role: Role.assistant,
-  //       content: 'Sorry, I encountered an error. Please try again.',
-  //       timestamp: new Date()
-  //     }
-  //     setMessages(prev => [...prev, errorMessage])
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
-
-  // const generateProductPrompt = (product: { name: string, description: string }): string => {
-  //   return `
-  //     You are a professional copywriter and legal tech expert.
-
-  //     Here is a product:
-  //     ---
-  //     Name: ${product.name}
-  //     Description: ${product.description}
-
-  //     Your task:
-  //     1. Write a short, engaging marketing description for this product (2–3 sentences).
-  //     2. Suggest an ideal customer persona who would benefit most.
-  //     3. List three short bullet points highlighting key benefits (not repeating the features verbatim).
-  //     4. Suggest a catchy tagline or headline.
-
-  //     Format your output clearly with headers for each section.
-  //   `;
-  // }
+      // Log success for debugging
+      console.log('Audio processed successfully. Transcript:', transcript)
+    } catch (error) {
+      console.error('Error uploading/transcribing audio:', error)
+      alert('Fehler beim Verarbeiten der Audioaufnahme. Bitte versuchen Sie es erneut.')
+    } finally {
+      setAudioUploading(false)
+      setAudioTranscribing(false)
+      setAudioUploadProgress(null)
+    }
+  }
 
 
   return (
@@ -457,8 +466,8 @@ export default function Chatbot({
             </div>
           )}
 
-          {messages.map((message, index) => (
-            <div
+          {messages.map((message, index) => {
+            return <div
               key={message.id || index}
               className={`group border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
                 message.role === Role.customer ? 'bg-white' : 'bg-gray-50'
@@ -516,11 +525,28 @@ export default function Chatbot({
                     <div className="text-sm sm:text-base text-gray-800 whitespace-pre-wrap leading-relaxed">
                       {message.content}
                     </div>
+
+                    {/* Audio Player */}
+                    {message.audioFile && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <audio
+                          controls
+                          className="w-full h-10"
+                          src={message.audioFile.filePath}
+                          controlsList="nodownload"
+                        >
+                          Your browser does not support the audio element.
+                        </audio>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {message.audioFile.fileName}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            </div>;
+          })}
 
           {loading && (
             <div className="group border-b border-gray-100 bg-gray-50">
@@ -575,7 +601,7 @@ export default function Chatbot({
             
             <form onSubmit={handleSubmit} className="relative">
               <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-xl shadow-sm hover:shadow-md focus-within:border-blue-400 focus-within:shadow-md transition-all">
-                {!isRecording && (
+                {!isRecording && !audioUploading && (
                   <input
                     type="text"
                     value={input}
@@ -585,12 +611,45 @@ export default function Chatbot({
                     disabled={loading}
                   />
                 )}
+
+                {/* Uploading indicator (WhatsApp-style) */}
+                {!isRecording && audioUploading && (
+                  <div className="flex-1 px-4 py-2.5 sm:py-3 flex items-center gap-2">
+                    <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-md px-3 py-2 w-full">
+                      <div className="flex gap-1 items-center">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '120ms' }}></div>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '240ms' }}></div>
+                      </div>
+                      <div className="flex-1">
+                        {audioTranscribing ? (
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-blue-600 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.2"/><path d="M22 12a10 10 0 10-10 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/></svg>
+                            <span className="text-sm text-blue-700">Transcribing…</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between w-full">
+                            <div className="text-sm text-blue-700">Uploading audio{audioUploadProgress !== null ? ` — ${audioUploadProgress}%` : '…'}</div>
+                            <div className="w-24 bg-white/30 rounded-full h-2 overflow-hidden ml-3">
+                              <div className="h-2 bg-blue-500" style={{ width: `${audioUploadProgress ?? 0}%` }} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 {isRecording && (
                   <div className="flex-1 px-4 py-2.5 sm:py-3 flex items-center gap-2">
-                    <div className="flex items-center gap-2 text-red-600">
-                      <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
-                      <span className="text-sm sm:text-base font-medium">Recording...</span>
+                    <div className="flex items-center gap-2 text-red-600 flex-col sm:flex-row sm:items-center w-full">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                        <span className="text-sm sm:text-base font-medium">Recording...</span>
+                      </div>
+                      {liveTranscript ? (
+                        <div className="text-xs text-gray-600 truncate sm:ml-3">{liveTranscript}</div>
+                      ) : null}
                     </div>
                   </div>
                 )}
@@ -606,7 +665,7 @@ export default function Chatbot({
                         ? 'text-yellow-600 hover:bg-yellow-50'
                         : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                     }`}
-                    disabled={loading}
+                    disabled={loading || audioUploading}
                     title={
                       isRecording 
                         ? 'Aufnahme stoppen' 

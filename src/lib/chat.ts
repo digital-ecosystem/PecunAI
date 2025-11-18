@@ -7,7 +7,8 @@ export async function saveChatMessage(
   role: Role,
   content: string,
   threadId: string,
-  index: number = 0
+  index: number = 0,
+  audioFileId?: string
 ) {
   try {
     // Find session first (to get session's primary key ID)
@@ -17,6 +18,10 @@ export async function saveChatMessage(
         role,
         content,
         messageIndex: index,
+        audioFileId
+      },
+      include: {
+        audioFile: true
       }
     })
 
@@ -33,9 +38,54 @@ export async function getChatMessages(threadId: string) {
     return await prisma.message.findMany({
       where: { threadId: threadId },
       orderBy: [{ messageIndex: 'asc' }, { createdAt: 'asc' }],
+      include: {
+        audioFile: true
+      }
     })
   } catch (error) {
     console.error('Error fetching messages:', error)
     throw error
   }
 }
+
+// ✅ Save audio file and create audio message
+export async function saveAudioMessage(
+  role: Role,
+  audioFileId: string,
+  transcript: string,
+  threadId: string,
+  index: number = 0
+) {
+  try {
+    const message = await prisma.message.create({
+      data: {
+        threadId: threadId,
+        role,
+        content: transcript,
+        messageIndex: index,
+        audioFileId
+      },
+      include: {
+        audioFile: true
+      }
+    })
+
+    return message
+  } catch (error) {
+    console.error('Error saving audio message:', error)
+    throw error
+  }
+}
+
+// ✅ Get audio file by ID
+export async function getAudioFile(audioFileId: string) {
+  try {
+    return await prisma.audioFile.findUnique({
+      where: { id: audioFileId }
+    })
+  } catch (error) {
+    console.error('Error fetching audio file:', error)
+    throw error
+  }
+}
+

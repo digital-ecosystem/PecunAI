@@ -5,6 +5,22 @@ import jwt from 'jsonwebtoken';
 // import { create } from 'domain';
 // import { string } from 'zod';
 
+/**
+ * Helper to extract client IP from request (for IP-based throttling)
+ */
+export function getClientIP(req?: Request | null): string {
+  if (!req) return 'unknown'
+  try {
+    const forwardedFor = req.headers.get('x-forwarded-for')
+    if (forwardedFor) return forwardedFor.split(',')[0].trim()
+    const clientIP = req.headers.get('x-client-ip')
+    if (clientIP) return clientIP
+    return 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
+
 export class AuthService {
   static generateOTP() {
     return crypto.randomInt(100000, 999999).toString();
@@ -56,69 +72,73 @@ export class AuthService {
   // }
 
   static async createOTP(email: string) {
-    const now = new Date();
-    const normalizedEmail = email.toLowerCase();
+    const now = new Date()
+    const normalizedEmail = email.toLowerCase()
 
-    const existingOTP = await prisma.oTP.findUnique({ where: { email: normalizedEmail } });
-    console.log("🚀 ~ AuthService ~ createOTP ~ existingOTP:", existingOTP)
+    const LIMIT = parseInt(process.env.OTP_RESEND_LIMIT || '3', 10)
+    const WINDOW_MINUTES = parseInt(process.env.OTP_WINDOW_MINUTES || '5', 10)
+    const windowMs = WINDOW_MINUTES * 60 * 1000
 
-    // ✅ If user is blocked, but block has expired → reset the fields
-    if (existingOTP?.blockedUntil && existingOTP.blockedUntil <= now) {
-      existingOTP.resendCount = 0;
-      existingOTP.blockedUntil = null;
+    const existingOTP = await prisma.oTP.findUnique({ where: { email: normalizedEmail } })
+
+    // If there is an existing blockedUntil and it's still in the future, return that row (caller will handle)
+    if (existingOTP?.blockedUntil && existingOTP.blockedUntil > now) {
+      return existingOTP
     }
 
-    // ❌ If still blocked
-    /*if (existingOTP?.blockedUntil && existingOTP.blockedUntil > now) {
-      throw new CustomError('Too many OTP requests. Try again after 5 minutes.', 429);
-    }*/
-
-    const resendCount = existingOTP?.resendCount ?? 0;
+    // Determine window start using resendWindowStart (explicit field)
+    let windowStart = existingOTP?.resendWindowStart ?? now
+    let resendCount = existingOTP?.resendCount ?? 0
     console.log("🚀 ~ AuthService ~ createOTP ~ resendCount:", resendCount)
 
-    //TODO: the logic of the block of the user is wrong, it should block the user if resend the email fife times wihtin five minutes
-    // 🚫 If resend limit reached, block
-    /*if (resendCount >= 3) {
-      const blockedUntil = new Date(Date.now() + 5 * 60 * 1000);
+    // If window has passed, reset counter and windowStart
+    if (now.getTime() - windowStart.getTime() > windowMs) {
+      resendCount = 0
+      windowStart = now
+    }
 
-      return await prisma.oTP.upsert({
-        where: { email },
-        update: {
+    // If user already reached limit within window, set blockedUntil and return
+    if (resendCount >= LIMIT) {
+      const blockedUntil = new Date(now.getTime() + windowMs)
+      // update record to reflect block
+      const blockedRow = await prisma.oTP.update({
+        where: { email: normalizedEmail },
+        data: {
           code: 'BLOCKED',
           expiresAt: blockedUntil,
           used: true,
           resendCount,
           blockedUntil,
-          createdAt: now,
-        },
-        create: {
-          email,
-          code: 'BLOCKED',
-          expiresAt: blockedUntil,
-          used: true,
-          resendCount,
-          blockedUntil,
-          createdAt: now,
-        },
-      });
-    }*/
+          resendWindowStart: windowStart,
+        }
+      })
+      return blockedRow
+    }
 
-    // ✅ Generate new OTP
-    const code = this.generateOTP();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    // Generate new OTP
+    const code = this.generateOTP()
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000)
 
-    return await prisma.oTP.upsert({
-      where: { email: normalizedEmail },
-      update: {
-        code,
-        expiresAt,
-        used: false,
-        attempts: 0,
-        resendCount: resendCount + 1,
-        blockedUntil: null,
-        createdAt: now,
-      },
-      create: {
+    if (existingOTP) {
+      // update existing row: increment resendCount and update code/expires
+      const updated = await prisma.oTP.update({
+        where: { email: normalizedEmail },
+        data: {
+          code,
+          expiresAt,
+          used: false,
+          attempts: 0,
+          resendCount: resendCount + 1,
+          blockedUntil: null,
+          resendWindowStart: windowStart,
+        }
+      })
+      return updated
+    }
+
+    // Create new OTP row
+    const created = await prisma.oTP.create({
+      data: {
         email: normalizedEmail,
         code,
         expiresAt,
@@ -126,9 +146,10 @@ export class AuthService {
         attempts: 0,
         resendCount: 1,
         blockedUntil: null,
-        createdAt: now,
-      },
-    });
+        resendWindowStart: now,
+      }
+    })
+    return created
   }
 
   static async verifyOTP(email: string, code: string) {

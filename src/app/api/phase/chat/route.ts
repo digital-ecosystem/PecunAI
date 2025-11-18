@@ -6,18 +6,65 @@ import { Role } from '@/types'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { ResponseInputItem } from 'openai/resources/responses/responses.mjs'
+import { prisma } from '@/lib/prisma'
+import { createReadStream } from 'fs'
+import { join } from 'path'
 // import type {ResponseInputItem} from 'openai/resources/beta/responses'
 
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
 
-// POST: Chat with OpenAI and save messages
+// POST: Chat with OpenAI and save messages (handles both text and audio)
 export async function POST(req: Request) {
   try {
-    const { message, sessionId, threadId = 'default' } = await req.json()
+    const { message, audioFileId, sessionId, threadId = 'default' } = await req.json()
+    console.log("🚀 ~ POST ~ message, audioFileId, sessionId, threadId:", message, audioFileId, sessionId, threadId)
 
-    if (!message) {
-      return NextResponse.json({ message: 'Message is required' }, { status: 400 })
+    let userMessage = message
+    const audioFileIdToUse = audioFileId
+
+    // If audioFileId is provided, transcribe it first
+    if (audioFileId && !message) {
+      const audioFile = await prisma.audioFile.findUnique({
+        where: { id: audioFileId }
+      })
+
+      if (!audioFile) {
+        return NextResponse.json(
+          { error: 'Audio file not found' },
+          { status: 404 }
+        )
+      }
+
+      // Read file from disk and transcribe
+      const filePath = join(process.cwd(), 'public', audioFile.filePath)
+      const fileStream = createReadStream(filePath)
+
+      try {
+        const transcription = await openai.audio.transcriptions.create({
+          file: fileStream as unknown as Parameters<typeof openai.audio.transcriptions.create>[0]['file'],
+          model: 'whisper-1',
+          language: 'de' // German language
+        })
+
+        userMessage = transcription.text
+
+        // Update audio file with transcript
+        await prisma.audioFile.update({
+          where: { id: audioFileId },
+          data: { transcript: userMessage }
+        })
+      } catch (transcribeError) {
+        console.error('Transcription error:', transcribeError)
+        return NextResponse.json(
+          { error: 'Failed to transcribe audio' },
+          { status: 500 }
+        )
+      }
+    }
+
+    if (!userMessage) {
+      return NextResponse.json({ message: 'Message or audioFileId is required' }, { status: 400 })
     }
 
     const currentSessionId = sessionId
@@ -26,11 +73,13 @@ export async function POST(req: Request) {
     const messagesSoFar = await getChatMessages(threadId || currentSessionId)
     messageIndex = messagesSoFar.length
 
+    // Save user message (with audioFileId if it exists)
     await saveChatMessage(
       Role.customer,
-      message,
+      userMessage,
       threadId || currentSessionId,
-      messageIndex
+      messageIndex,
+      audioFileIdToUse
     )
 
     // Get AI settings for the session
@@ -51,7 +100,7 @@ export async function POST(req: Request) {
       content: msg.content
     }))
 
-    conversationHistory.push({ role: 'user', content: message })
+    conversationHistory.push({ role: 'user', content: userMessage })
 
     // Build tools array if vector_id is available
     const tools: OpenAI.Responses.Tool[] = [];
@@ -75,6 +124,7 @@ export async function POST(req: Request) {
     });
     }*/
 
+   console.log("🚀 ~ POST ~ conversationHistory:", JSON.stringify(conversationHistory, null, 2))
     const response = await openai.responses.create({
       model: model,
       stream: true,
@@ -117,7 +167,8 @@ export async function POST(req: Request) {
                 sessionId: currentSessionId,
                 threadId: threadId || currentSessionId,
                 model: model,
-                usedAssistant: tools.length > 0
+                usedAssistant: tools.length > 0,
+                transcript: userMessage
               })}\n\n`));
               
               controller.close();
@@ -166,7 +217,16 @@ export async function GET(req: Request) {
         role: msg.role,
         content: msg.content,
         timestamp: msg.createdAt,
-        index: msg.messageIndex
+        index: msg.messageIndex,
+        audioFileId: msg.audioFileId,
+        audioFile: msg.audioFile ? {
+          id: msg.audioFile.id,
+          fileName: msg.audioFile.fileName,
+          filePath: msg.audioFile.filePath,
+          mimeType: msg.audioFile.mimeType,
+          transcript: msg.audioFile.transcript,
+          createdAt: msg.audioFile.createdAt
+        } : undefined
       }))
     })
   } catch (error) {

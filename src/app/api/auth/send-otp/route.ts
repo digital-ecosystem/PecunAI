@@ -62,16 +62,32 @@ export async function POST(request: Request) {
     //   });
     //   return response;
     // } else {
-      // Create OTP
-      const otp = await AuthService.createOTP(normalizedEmail);
-      console.log("🚀 ~ POST ~ otp:", otp)
+      // Create OTP (this enforces resend limits)
+        const otp = await AuthService.createOTP(normalizedEmail);
+        // console.log("🚀 ~ POST ~ otp:", otp)
 
-      // Send email
-      await transporter.sendMail({
-        from: process.env.EMAIL_FROM,
-        to: normalizedEmail,
-        subject: 'Your Sign-in Code',
-        html: `
+        const LIMIT = parseInt(process.env.OTP_RESEND_LIMIT || '3', 10)
+        const WINDOW_MINUTES = parseInt(process.env.OTP_WINDOW_MINUTES || '5', 10)
+
+        // If account is blocked due to too many resends, inform client with remaining cooldown
+        if (otp.blockedUntil && new Date(otp.blockedUntil) > new Date()) {
+          const msLeft = new Date(otp.blockedUntil).getTime() - Date.now()
+          return NextResponse.json({
+            message: `You've requested the code too many times. Try again in ${Math.ceil(msLeft/1000)} seconds.`,
+            success: false,
+            blockedUntil: otp.blockedUntil,
+            resendCount: otp.resendCount,
+            resendLimit: LIMIT,
+            windowMinutes: WINDOW_MINUTES
+          }, { status: 429 })
+        }
+
+        // Send email
+        await transporter.sendMail({
+          from: process.env.EMAIL_FROM,
+          to: normalizedEmail,
+          subject: 'Your Sign-in Code',
+          html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #2563eb; margin-bottom: 10px;">Your Sign-in Code</h1>
@@ -103,7 +119,10 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         message: 'OTP sent successfully',
-        success: true
+        success: true,
+        resendCount: otp.resendCount,
+        resendLimit: LIMIT,
+        windowMinutes: WINDOW_MINUTES
       });
     // }
 
