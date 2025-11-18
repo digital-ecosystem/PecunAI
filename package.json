@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack -p 4001",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 4001",
     "lint": "next lint",
     "seed": "prisma db seed"
   },
@@ -20,6 +20,7 @@
     "@react-pdf-viewer/core": "3.12.0",
     "@types/dompurify": "^3.0.5",
     "axios": "^1.10.0",
+    "canvas": "^3.2.0",
     "dompurify": "^3.3.0",
     "formik": "^2.4.6",
     "fs": "^0.0.1-security",

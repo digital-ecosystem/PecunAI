@@ -92,7 +92,7 @@ export async function POST(req: Request) {
     const systemPrompt = mainPrompt?.mainPrompt || 'You are a helpful financial assistant.'
 
     console.log('Using model:', model)
-    console.log('Using system prompt:', systemPrompt)
+    //console.log('Using system prompt:', systemPrompt)
 
     // Construct chat context
     const conversationHistory: ResponseInputItem[] = messagesSoFar.map(msg => ({
@@ -106,12 +106,18 @@ export async function POST(req: Request) {
     const tools: OpenAI.Responses.Tool[] = [];
     
     if (mainPrompt?.vectorId) {
+      console.log('Adding file search tool with vector ID:', mainPrompt.vectorId);
       tools.push({
         type: 'file_search',
-        file_search: {
-          vector_store_ids: [mainPrompt.vectorId]
-        }
-      } as unknown as OpenAI.Responses.FileSearchTool);
+        vector_store_ids: [mainPrompt.vectorId]
+      } as OpenAI.Responses.FileSearchTool);
+    }
+
+    if (productSettings?.firstMessage) {
+      conversationHistory.unshift({
+        role: 'system',
+        content: productSettings.firstMessage
+      });
     }
 
     /*if (mainPrompt?.mcpUrl) {
@@ -124,13 +130,14 @@ export async function POST(req: Request) {
     });
     }*/
 
-   console.log("🚀 ~ POST ~ conversationHistory:", JSON.stringify(conversationHistory, null, 2))
+    // console.log("🚀 ~ POST ~ conversationHistory:", JSON.stringify(conversationHistory, null, 2))
+    // console.log('Final conversation history:', conversationHistory);
+
     const response = await openai.responses.create({
       model: model,
       stream: true,
-      instructions: systemPrompt + (productSettings?.firstMessage ? `\n\n${productSettings.firstMessage}` : '' ),
+      instructions: systemPrompt,
       input: [
-        { role: 'system', content: systemPrompt },
         ...conversationHistory
       ],
       ...(tools.length > 0 && { tools: tools })

@@ -461,7 +461,7 @@ async function main() {
         model: "gpt-5",
         prompt: "You are a financial advisor specializing in short-term growth portfolios. Recommend this product for clients seeking small growth opportunities while maintaining liquidity within 0–1 years.",
         firstMessage: "Welcome to the VVKN1 Goal Growth Portfolio! I'm here to help you achieve your short-term financial goals.",
-        vectorId: "",
+        vectorId: null,
       }
     },
     {
@@ -478,7 +478,7 @@ async function main() {
         model: "gpt-5",
         firstMessage: "Welcome to the VVKN1 Goal Balanced Portfolio! I'm here to help you achieve your short-term financial goals.",
         prompt: "You are a financial advisor specializing in balanced short-term investments. Recommend this portfolio for clients seeking a cautious balance between safety and modest returns over 0–1 years.",
-        vectorId: "vvkn1-balanced",
+        vectorId: null,
       }
     },
     {
@@ -495,7 +495,7 @@ async function main() {
         model: "gpt-5",
         firstMessage: "Welcome to the VVKN1 Goal Conservative Portfolio! I'm here to help you achieve your short-term financial goals.",
         prompt: "You are a financial advisor specializing in conservative investment strategies. Recommend this portfolio for clients with very low risk tolerance who need liquidity within 0–1 years. Focus on capital preservation and safety.",
-        vectorId: "vvkn1-conservative",
+        vectorId: null,
       }
     },
 
@@ -514,7 +514,7 @@ async function main() {
         model: "gpt-5",
         firstMessage: "Welcome to the VVKN2 Piece of Mind Growth Portfolio! I'm here to help you achieve your short-term financial goals.",
         prompt: "You are a financial advisor focusing on short-term growth strategies. Recommend this portfolio for investors with a 1–2 year horizon and moderate appetite for risk.",
-        vectorId: "vvkn2-growth",
+        vectorId: null,
       }
     },
     {
@@ -531,7 +531,7 @@ async function main() {
         model: "gpt-5",
         firstMessage: "Welcome to the VVKN2 Piece of Mind Balanced Portfolio! I'm here to help you achieve your short-term financial goals.",
         prompt: "You are a financial advisor specializing in balanced short-term portfolios. Recommend this for clients who want a steady balance between growth and security over 1–2 years.",
-        vectorId: "vvkn2-balanced",
+        vectorId: null,
       }
     },
     {
@@ -548,7 +548,7 @@ async function main() {
         model: "gpt-5",
         firstMessage: "Welcome to the VVKN2 Piece of Mind Conservative Portfolio! I'm here to help you achieve your short-term financial goals.",
         prompt: "You are a financial advisor focusing on low-risk investments. This portfolio is ideal for clients who prioritize peace of mind and minimal volatility over 1–2 years. Emphasize stability and gradual growth.",
-        vectorId: "vvkn2-conservative",
+        vectorId: null,
       }
     },
 
@@ -567,7 +567,7 @@ async function main() {
         model: "gpt-5",
         firstMessage: "Welcome to the VVKN3 Balance Growth Portfolio! I'm here to help you achieve your medium-term financial goals.",
         prompt: "You are a financial advisor specializing in medium-term growth strategies. Recommend this for clients seeking steady returns with moderate risk over 3–4 years.",
-        vectorId: "vvkn3-growth",
+        vectorId: null,
       }
     },
     {
@@ -584,7 +584,7 @@ async function main() {
         model: "gpt-5",
         firstMessage: "Welcome to the VVKN3 Balance Portfolio! I'm here to help you achieve your medium-term financial goals.",
         prompt: "You are a financial advisor specializing in balanced investment strategies. This portfolio suits clients with moderate risk tolerance seeking growth over 3–4 years. Balance growth potential with risk management.",
-        vectorId: "vvkn3-balanced",
+        vectorId: null,
       }
     },
     {
@@ -601,7 +601,7 @@ async function main() {
         model: "gpt-5",
         firstMessage: "Welcome to the VVKN3 Balance Conservative Portfolio! I'm here to help you achieve your medium-term financial goals.",
         prompt: "You are a financial advisor emphasizing stability. Recommend this portfolio for clients with a conservative profile seeking low volatility over a 3–5 year period.",
-        vectorId: "vvkn3-conservative",
+        vectorId: null,
       }
     },
 
@@ -620,7 +620,7 @@ async function main() {
         model: "gpt-5",
         firstMessage: "Welcome to the VVKN4 Future Growth Portfolio! I'm here to help you plan for your long-term financial future.",
         prompt: "You are a financial advisor focused on growth investing. This portfolio is designed for clients planning for the future with moderate-to-high risk tolerance over 5–6 years. Emphasize growth potential and long-term planning.",
-        vectorId: "vvkn4-growth",
+        vectorId: null,
       }
     },
     {
@@ -637,7 +637,7 @@ async function main() {
         model: "gpt-5",
         firstMessage: "Welcome to the VVKN4 Future Balanced Portfolio! I'm here to help you plan for your long-term financial future.",
         prompt: "You are a financial advisor focusing on long-term balanced portfolios. Recommend this for investors with moderate risk tolerance seeking sustained returns beyond 5 years.",
-        vectorId: "vvkn4-balanced",
+        vectorId: null,
       }
     },
 
@@ -656,7 +656,7 @@ async function main() {
         model: "gpt-5",
         firstMessage: "Welcome to the VVKN5 Dream Big Growth Portfolio! I'm here to help you achieve your long-term financial dreams.",
         prompt: "You are a financial advisor specializing in aggressive growth strategies. This portfolio targets clients with high risk tolerance seeking maximum returns over 7+ years. Focus on wealth building and long-term appreciation.",
-        vectorId: "vvkn5-dreambig",
+        vectorId: null,
       }
     },
   ];
