@@ -95,6 +95,7 @@ export default function Chatbot({
   const [audioUploading, setAudioUploading] = useState(false)
   const [audioUploadProgress, setAudioUploadProgress] = useState<number | null>(null)
   const [audioTranscribing, setAudioTranscribing] = useState(false)
+  const [placeholderId, setPlaceholderId] = useState<string | null>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const recognitionTranscriptRef = useRef<string>('')
   const [liveTranscript, setLiveTranscript] = useState<string>('')
@@ -356,7 +357,46 @@ export default function Chatbot({
       const audioFileId = uploadData.audioFileId
       // mark upload complete
       setAudioUploadProgress(100)
+
+      // Audio file has been uploaded and message appears in chat immediately
+      // Clear input field and loading state so user sees message appeared
+      if (setInput) {
+        setInput('')
+      }
+
+      // Clear live transcript
+      setLiveTranscript('')
+
+      // Trigger parent component to refresh messages - this makes the audio message appear
+      if (onAudioProcessed) {
+        onAudioProcessed()
+      }
+
+      // Clear loading UI state immediately after message appears
+      setAudioUploading(false)
+      setAudioUploadProgress(null)
+
+      // Now handle transcription and AI response in the background
+      // Start background processing without blocking the UI
+      processAudioInBackground(audioFileId)
+
+      // Log success for debugging
+      console.log('Audio uploaded successfully. Processing in background...')
+    } catch (error) {
+      console.error('Error uploading audio:', error)
+      alert('Fehler beim Verarbeiten der Audioaufnahme. Bitte versuchen Sie es erneut.')
+      setAudioUploading(false)
+      setAudioUploadProgress(null)
+    }
+  }
+
+  const processAudioInBackground = async (audioFileId: string) => {
+    try {
       setAudioTranscribing(true)
+
+      // Create a unique ID for the placeholder message
+      const currentPlaceholderId = `placeholder-${Date.now()}-${Math.random()}`
+      setPlaceholderId(currentPlaceholderId)
 
       // Call the unified /api/phase/chat endpoint with audioFileId
       // This endpoint will handle transcription and AI response generation
@@ -380,6 +420,7 @@ export default function Chatbot({
       const reader = chatResponse.body?.getReader()
       const decoder = new TextDecoder()
       let transcript = ''
+      let fullResponse = ''
       
       if (reader) {
         while (true) {
@@ -396,8 +437,14 @@ export default function Chatbot({
                 if (json.transcript) {
                   transcript = json.transcript
                 }
+                if (json.content) {
+                  fullResponse = json.content
+                }
                 if (json.done) {
-                  // Final message received
+                  // Final message received - trigger refresh to replace placeholder
+                  if (onAudioProcessed) {
+                    onAudioProcessed()
+                  }
                   break
                 }
               } catch {
@@ -408,29 +455,17 @@ export default function Chatbot({
         }
       }
 
-      // Audio file has been uploaded, transcribed, and AI response generated server-side.
-      // Clear input field since we don't need to send manually anymore.
-      if (setInput) {
-        setInput('')
-      }
-
-      // Trigger parent component to refresh messages
+      // Log success for debugging
+      console.log('Audio processed successfully. Transcript:', transcript, 'Response:', fullResponse)
+    } catch (error) {
+      console.error('Error processing audio in background:', error)
+      // On error, trigger refresh to remove placeholder
       if (onAudioProcessed) {
         onAudioProcessed()
       }
-
-      // Clear live transcript after processing
-      setLiveTranscript('')
-
-      // Log success for debugging
-      console.log('Audio processed successfully. Transcript:', transcript)
-    } catch (error) {
-      console.error('Error uploading/transcribing audio:', error)
-      alert('Fehler beim Verarbeiten der Audioaufnahme. Bitte versuchen Sie es erneut.')
     } finally {
-      setAudioUploading(false)
       setAudioTranscribing(false)
-      setAudioUploadProgress(null)
+      setPlaceholderId(null)
     }
   }
 
@@ -549,6 +584,35 @@ export default function Chatbot({
           })}
 
           {loading && (
+            <div className="group border-b border-gray-100 bg-gray-50">
+              <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
+                <div className="flex gap-3 sm:gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-sm">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-sm font-semibold text-gray-900">AI Assistant</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                      <span className="text-sm text-gray-500">Thinking...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {placeholderId && !loading && (
             <div className="group border-b border-gray-100 bg-gray-50">
               <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
                 <div className="flex gap-3 sm:gap-4">

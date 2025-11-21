@@ -70,17 +70,50 @@ export async function POST(req: Request) {
     const currentSessionId = sessionId
     let messageIndex = 0
 
-    const messagesSoFar = await getChatMessages(threadId || currentSessionId)
-    messageIndex = messagesSoFar.length
-
     // Save user message (with audioFileId if it exists)
-    await saveChatMessage(
-      Role.customer,
-      userMessage,
-      threadId || currentSessionId,
-      messageIndex,
-      audioFileIdToUse
-    )
+    // await saveChatMessage(
+    //   Role.customer,
+    //   userMessage,
+    //   threadId || currentSessionId,
+    //   messageIndex,
+    //   audioFileIdToUse
+    // )
+
+    if (audioFileIdToUse) {
+      // Update existing placeholder message
+      const existingMessage = await prisma.message.findFirst({
+        where: { audioFileId: audioFileIdToUse }
+      })
+
+      if (existingMessage) {
+        await prisma.message.update({
+          where: { id: existingMessage.id },
+          data: { content: userMessage }
+        })
+      } else {
+        // Fallback if for some reason placeholder doesn't exist
+        const messagesSoFar = await getChatMessages(threadId || currentSessionId)
+        messageIndex = messagesSoFar.length
+        await saveChatMessage(
+          Role.customer,
+          userMessage,
+          threadId || currentSessionId,
+          messageIndex,
+          audioFileIdToUse
+        )
+      }
+    } else {
+      // Text message - create new
+      const messagesSoFar = await getChatMessages(threadId || currentSessionId)
+      messageIndex = messagesSoFar.length
+
+      await saveChatMessage(
+        Role.customer,
+        userMessage,
+        threadId || currentSessionId,
+        messageIndex
+      )
+    }
 
     // Get AI settings for the session
     const productId = await getSessionProductId(sessionId)
@@ -94,17 +127,25 @@ export async function POST(req: Request) {
     console.log('Using model:', model)
     //console.log('Using system prompt:', systemPrompt)
 
+    // Fetch latest messages for context (includes the one we just updated/created)
+    const allMessages = await getChatMessages(threadId || currentSessionId)
+
+    // Update messageIndex to ensure the assistant response is saved after the last message
+    if (allMessages.length > 0) {
+      messageIndex = allMessages[allMessages.length - 1].messageIndex
+    }
+
     // Construct chat context
-    const conversationHistory: ResponseInputItem[] = messagesSoFar.map(msg => ({
+    const conversationHistory: ResponseInputItem[] = allMessages.map(msg => ({
       role: msg.role === Role.customer ? 'user' : 'assistant',
       content: msg.content
     }))
 
-    conversationHistory.push({ role: 'user', content: userMessage })
+    // conversationHistory.push({ role: 'user', content: userMessage })
 
     // Build tools array if vector_id is available
     const tools: OpenAI.Responses.Tool[] = [];
-    
+
     if (mainPrompt?.vectorId) {
       console.log('Adding file search tool with vector ID:', mainPrompt.vectorId);
       tools.push({
@@ -166,18 +207,18 @@ export async function POST(req: Request) {
                 threadId || currentSessionId,
                 messageIndex + 1
               );
-              
+
               // Send final chunk
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                content: '', 
-                done: true, 
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                content: '',
+                done: true,
                 sessionId: currentSessionId,
                 threadId: threadId || currentSessionId,
                 model: model,
                 usedAssistant: tools.length > 0,
                 transcript: userMessage
               })}\n\n`));
-              
+
               controller.close();
             }
           }
@@ -185,9 +226,10 @@ export async function POST(req: Request) {
           console.error('Streaming error:', error);
           controller.error(error);
         }
+        // console.log("fullResponse : ", fullResponse)
       }
     });
-
+    // console.log("stream : ", stream)
     return new Response(stream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',

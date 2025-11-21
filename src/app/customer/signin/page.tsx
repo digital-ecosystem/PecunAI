@@ -14,6 +14,9 @@ export default function OTPAuthPostgres() {
   const [resendLimit, setResendLimit] = useState<number | null>(null)
   const [blockedUntil, setBlockedUntil] = useState<string | null>(null)
   const [countdown, setCountdown] = useState<string | null>(null)
+  // const [windowMinutes, setWindowMinutes] = useState<number | null>(null)
+  const [resendCooldownUntil, setResendCooldownUntil] = useState<string | null>(null)
+  const [resendCooldownCountdown, setResendCooldownCountdown] = useState<string | null>(null)
 
   // If the user is already authenticated, redirect to dashboard.
   useEffect(() => {
@@ -86,6 +89,14 @@ export default function OTPAuthPostgres() {
           // update resend metadata if provided
           if (typeof data.resendCount === 'number') setResendCount(data.resendCount)
           if (typeof data.resendLimit === 'number') setResendLimit(data.resendLimit)
+          // if (typeof data.windowMinutes === 'number') setWindowMinutes(data.windowMinutes)
+
+          // If we've hit the resend limit, set a cooldown until the window expires
+          if (data.resendCount >= data.resendLimit) {
+            const windowMs = (data.windowMinutes || 5) * 60 * 1000
+            const cooldownUntil = new Date(Date.now() + windowMs).toISOString()
+            setResendCooldownUntil(cooldownUntil)
+          }
         }
       } else {
         setMessage(data.message || 'Failed to send OTP');
@@ -96,6 +107,7 @@ export default function OTPAuthPostgres() {
           setBlockedUntil(data.blockedUntil)
           if (typeof data.resendCount === 'number') setResendCount(data.resendCount)
           if (typeof data.resendLimit === 'number') setResendLimit(data.resendLimit)
+          // if (typeof data.windowMinutes === 'number') setWindowMinutes(data.windowMinutes)
         }
       }
     } catch (error) {
@@ -170,6 +182,29 @@ export default function OTPAuthPostgres() {
 
     return () => clearInterval(interval)
   }, [blockedUntil])
+
+  // Countdown timer for resend cooldown when limit is reached
+  useEffect(() => {
+    if (!resendCooldownUntil) {
+      setResendCooldownCountdown(null)
+      return
+    }
+
+    const interval = setInterval(() => {
+      const msLeft = new Date(resendCooldownUntil).getTime() - Date.now()
+      if (msLeft <= 0) {
+        setResendCooldownUntil(null)
+        setResendCooldownCountdown(null)
+        clearInterval(interval)
+        return
+      }
+      const mm = Math.floor(msLeft / 60000)
+      const ss = Math.floor((msLeft % 60000) / 1000)
+      setResendCooldownCountdown(`${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [resendCooldownUntil])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -301,17 +336,24 @@ export default function OTPAuthPostgres() {
                     setStep('email');
                     handleSendOTP(e);
                   }}
-                  disabled={loading || !!blockedUntil}
-                  className={`text-blue-600 transition-colors cursor-pointer ${blockedUntil ? 'opacity-50 cursor-not-allowed' : 'hover:text-blue-800'}`}
+                  disabled={loading || !!blockedUntil || !!resendCooldownUntil}
+                  className={`text-blue-600 transition-colors cursor-pointer ${(blockedUntil || resendCooldownUntil) ? 'opacity-50 cursor-not-allowed' : 'hover:text-blue-800'}`}
                 >
-                  {blockedUntil ? `Resend locked (${countdown ?? '00:00'})` : 'Resend code'}
+                  {blockedUntil 
+                    ? `Resend locked (${countdown ?? '00:00'})` 
+                    : resendCooldownUntil
+                    ? `Resend locked (${resendCooldownCountdown ?? '00:00'})`
+                    : 'Resend code'}
                 </button>
               </div>
               {resendLimit !== null && resendCount !== null && (
                 <div className="text-xs text-gray-500 mt-2">{`${resendCount}/${resendLimit} sends used`}</div>
               )}
               {blockedUntil && (
-                <div className="text-xs text-red-600 mt-2">You’ve requested the code too many times. Try again in {countdown ?? '00:00'}.</div>
+                <div className="text-xs text-red-600 mt-2">You&apos;ve requested the code too many times. Try again in {countdown ?? '00:00'}.</div>
+              )}
+              {resendCooldownUntil && !blockedUntil && (
+                <div className="text-xs text-orange-600 mt-2">You&apos;ve reached the resend limit. Try again in {resendCooldownCountdown ?? '00:00'}.</div>
               )}
             </div>
           )}
