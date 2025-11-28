@@ -866,7 +866,7 @@ export default function Stepper() {
     };
 
     fetchSuggestedProduct();
-  }, [step, answers, session_id, questions, initializeChatWithProduct]);
+  }, [step, answers, session_id, questions, initializeChatWithProduct, questions1, questions2]);
 
   useEffect(() => {
     const loadChatHistory = async () => {
