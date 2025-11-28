@@ -188,6 +188,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
             {renderField("lastName", "Last Name")}
             {renderField("birthPlace", "Place of Birth")}
             {renderField("birthDate", "Birth Date", "date")}
+                        {renderField("iban", "IBAN")}
             
             {/* Nationality dropdown */}
             <div className="w-full">
@@ -318,7 +319,27 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
             </div>
             
             {renderField("phone", "Phone Number")}
-            {renderField("email", "Email", "email")}
+            {/* Email field, pre-filled but editable */}
+            <div className="w-full">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.email}
+                className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm 
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-colors duration-200 ease-in-out
+                           disabled:bg-gray-50 disabled:text-gray-500"
+              />
+              {formik.touched.email && formik.errors.email && (
+                <p className="text-red-500 text-xs mt-1">{formik.errors.email}</p>
+              )}
+            </div>
           </div>
         </div>
 

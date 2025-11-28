@@ -666,13 +666,25 @@ export default function Chatbot({
             <form onSubmit={handleSubmit} className="relative">
               <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-xl shadow-sm hover:shadow-md focus-within:border-blue-400 focus-within:shadow-md transition-all">
                 {!isRecording && !audioUploading && (
-                  <input
-                    type="text"
+                  <textarea
                     value={input}
-                    onChange={(e) => setInput && setInput(e.target.value)}
+                    onChange={e => {
+                      if (setInput) setInput(e.target.value);
+                      const textarea = e.target;
+                      textarea.style.height = 'auto';
+                      textarea.style.height = textarea.scrollHeight + 'px';
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (handleSubmit && input.trim()) handleSubmit(e);
+                      }
+                    }}
                     placeholder="Message AI Assistant..."
-                    className="flex-1 px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-transparent focus:outline-none"
+                    className="flex-1 px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-transparent focus:outline-none resize-none max-h-40 overflow-y-auto"
                     disabled={loading}
+                    rows={1}
+                    style={{ minHeight: '40px', maxHeight: '160px', lineHeight: '1.5', overflowY: 'auto' }}
                   />
                 )}
 

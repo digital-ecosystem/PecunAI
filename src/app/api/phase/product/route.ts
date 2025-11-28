@@ -25,23 +25,37 @@ export async function GET(request: NextRequest) {
 
     // Map duration to years
     let minYear = 0, maxYear = 100;
-    switch (duration) {
-      case 'short_term':
-        minYear = 0;
-        maxYear = 2;
-        break;
-      case 'medium_term':
-        minYear = 3;
-        maxYear = 6;
-        break;
-      case 'long_term':
-        minYear = 7;
-        maxYear = 10;
-        break;
-      case 'very_long_term':
-        minYear = 11;
-        maxYear = 100;
-        break;
+    // switch (duration) {
+    //   case duration:
+    //     minYear = 0;
+    //     maxYear = 2;
+    //     break;
+    //   case 'medium_term':
+    //     minYear = 3;
+    //     maxYear = 6;
+    //     break;
+    //   case 'long_term':
+    //     minYear = 7;
+    //     maxYear = 10;
+    //     break;
+    //   case 'very_long_term':
+    //     minYear = 11;
+    //     maxYear = 100;
+    //     break;
+    // }
+
+    if (0 < Number(duration) && Number(duration) <= 3) {
+      minYear = 0;
+      maxYear = 3;
+    } else if (3 < Number(duration) && Number(duration) <= 6) {
+      minYear = 4;
+      maxYear = 6;
+    } else if (6 < Number(duration) && Number(duration) <= 10) {
+      minYear = 7;
+      maxYear = 10;
+    } else if (Number(duration) > 10) {
+      minYear = 11;
+      maxYear = 100;
     }
 
     // Map risk to database enum values

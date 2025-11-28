@@ -136,6 +136,7 @@ export default function OTPAuthPostgres() {
       if (data.success) {
         setMessage('Authentication successful! Welcome back!');
         setMessageType('success');
+        localStorage.setItem("userEmail", email);
         
         // Redirect to dashboard
         setTimeout(() => {

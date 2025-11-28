@@ -34,6 +34,8 @@ export enum SessionStatus {
 }
 
 export interface Question {
+    maxValue: undefined
+    minValue: undefined
     id: string
     text: string
     questionType?: string // "choice" or "text"
@@ -124,6 +126,7 @@ export interface PersonalInfoFormData {
   actingFor: string;
   isPEP: boolean;
   magicFlow: boolean;
+  iban: string;
 }
 
 export interface Message {

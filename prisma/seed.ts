@@ -114,13 +114,9 @@ async function main() {
     },
     {
       text: "Angedachte Anlagedauer",
-      options: [
-        { label: "Kurzfristig (<3 Jahre)", value: "short_term" },
-        { label: "Mittelfristig (3–7 Jahre)", value: "mid_term" },
-        { label: "Langfristig (7–10 Jahre)", value: "long_term" },
-        { label: "Sehr langfristig (>10 Jahre)", value: "very_long_term" },
-      ],
+      questionType: "number",
       questionOrder: 2,
+      minValue: 3,
     },
     {
       text: "Mir uns wurden die Informationen zur Nachhaltigkeit zur Kenntnis gebracht?",
@@ -150,32 +146,17 @@ async function main() {
     },
     {
       text: "Finanzielle Verhältnisse / Monatliches Nettoeinkommen",
-      options: [
-        { label: "< €1.000,-", value: "below_1000" },
-        { label: "€1.000,- bis €2.000,-", value: "1000_2000" },
-        { label: "€2.000,- bis €3.000,-", value: "2000_3000" },
-        { label: "> €3.000,-", value: "above_3000" },
-      ],
+      questionType: "number",
       questionOrder: 6,
     },
     {
       text: "Finanzielle Verhältnisse / Monatliche Ausgaben",
-      options: [
-        { label: "< €1.000,-", value: "below_1000" },
-        { label: "€1.000,- bis €2.000,-", value: "1000_2000" },
-        { label: "€2.000,- bis €3.000,-", value: "2000_3000" },
-        { label: "> €3.000,-", value: "above_3000" },
-      ],
+      questionType: "number",
       questionOrder: 7,
     },
     {
       text: "Aktuelles Nettogesamtvemögen",
-      options: [
-        { label: "< €5.000,-", value: "below_5000" },
-        { label: "€5.000,- bis €20.000,-", value: "5000_20000" },
-        { label: "€20.000,- bis €50.000,-", value: "20000_50000" },
-        { label: "> €50.000,-", value: "above_50000" },
-      ],
+      questionType: "number",
       questionOrder: 8,
     },
     {
@@ -227,14 +208,14 @@ async function main() {
     },
     {
       text: "Beabsichtigte Einmalige Veranlagung",
-      options: [],
-      input: true,
+      questionType: "number",
+      maxValue: 5000,
       questionOrder: 14,
     },
     {
       text: "Beabsichtigte monatliche Veranlagung",
-      options: [],
-      input: true,
+      questionType: "number",
+      maxValue: 500,
       questionOrder: 15,
     },
   ];
@@ -245,9 +226,11 @@ async function main() {
       data: {
         text: q.text,
         questionOrder: q.questionOrder,
-        questionType: q?.input ? 'text' : 'choice',
+        questionType: q.questionType || 'choice',
+        maxValue: q.maxValue || null,
+        minValue: q.minValue || null,
         options: {
-          create: q.options
+          create: q.options || []
         }
       }
     });
@@ -295,6 +278,7 @@ async function main() {
   console.log("🚀 ~ main ~ productTerms:", productTerms)
 
   // Delete all existing products and AI settings before seeding
+  await prisma.sessionProductSuggestion.deleteMany();
   await prisma.aISettings.deleteMany();
   await prisma.product.deleteMany();
 

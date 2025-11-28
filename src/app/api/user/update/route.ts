@@ -54,6 +54,7 @@ export async function PATCH(request: Request) {
       validUntil,
       filename,
       occupation,
+      iban,
     } = body;
 
     // Ensure dateOfBirth is ISO string
@@ -81,6 +82,7 @@ export async function PATCH(request: Request) {
         postalCode,
         residenceAbroad,
         street,
+        iban,
         ...(dateOfBirthISO ? { dateOfBirth: dateOfBirthISO } : {})
       },
       create: {
@@ -104,6 +106,7 @@ export async function PATCH(request: Request) {
         postalCode,
         residenceAbroad,
         street,
+        iban,
         dateOfBirth: dateOfBirthISO ? dateOfBirthISO : new Date().toISOString() // Default to now if not provided
       }
     });

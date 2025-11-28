@@ -109,6 +109,8 @@ model Question {
   questionOrder Int?             @default(1)
   questionPhase QuestionPhase?
   questionType  String?          @default("choice")
+  maxValue      Int?
+  minValue      Int?
   answers       Answer[]
   options       QuestionOption[]
 
@@ -254,6 +256,7 @@ model PersonalInfo {
   phone                  String
   placeOfBirth           String
   postalCode             String
+  iban                   String?
   qaSessionId            String           @unique
   residenceAbroad        Boolean          @default(false)
   street                 String

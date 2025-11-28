@@ -7,13 +7,18 @@ type QuestionCardProps = {
   // subtitle: string;
   question: string;
   questionText?: string; // To identify specific questions
-  questionType?: string; // "choice" or "text"
+  questionType?: string; // "choice", "text", "number"
   options: Array<{ label: string; value: string }> | undefined;
   selected: string | null;
   onSelect: (option: string) => void;
   onNext?: () => void;
   onBack?: () => void;
   questionOrder?: number;
+  maxValue?: number; // Maximum value for number inputs
+  minValue?: number; // Minimum value for number inputs
+  errorMessage?: string; // Error message for validation
+  forbiddenValues?: string[]; // Values that cannot be selected (e.g., ["none", "keine"])
+  forbiddenErrorMessage?: string; // Error message for forbidden values
 };
 
 const QuestionCard = ({
@@ -30,14 +35,32 @@ const QuestionCard = ({
   onNext,
   onBack,
   questionOrder,
+  maxValue,
+  minValue,
+  errorMessage,
+  forbiddenValues,
+  forbiddenErrorMessage,
 }: QuestionCardProps) => {
   console.log("🚀 ~ QuestionCard ~ totalSteps:", totalSteps)
+  
   // Check if this is Question 4 about sustainability and "neutral" is selected
   const isSustainabilityQuestion = 
   (questionText?.includes("sustainability") || questionText?.includes("Nachhaltigkeit")) &&
   (questionText?.includes("considered in your investment advice") || questionText?.includes("berücksichtigen"));
 
   const isNeutralSelected = isSustainabilityQuestion && selected === "neutral";
+
+  // Validation state for number inputs
+  const isNumberInput = questionType === "number";
+  const selectedNum = selected ? parseInt(selected, 10) : null;
+  const hasMinValidationError = isNumberInput && selected && minValue !== undefined && selectedNum !== null && selectedNum < minValue;
+  const hasMaxValidationError = isNumberInput && selected && maxValue !== undefined && selectedNum !== null && selectedNum > maxValue;
+  const hasValidationError = hasMinValidationError || hasMaxValidationError;
+  
+  // Check for forbidden values (e.g., "none" or "keine")
+  const hasForbiddenValueError = selected && forbiddenValues && forbiddenValues.includes(selected);
+  
+  const isNextDisabled = !selected || (questionType === "text" && selected?.trim() === "") || hasValidationError || hasForbiddenValueError || false;
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 md:p-8 bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 h-full overflow-y-auto">
@@ -76,6 +99,44 @@ const QuestionCard = ({
             placeholder="Please enter your answer..."
             className="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
           />
+        </div>
+      ) : questionType === "number" ? (
+        /* Number Input */
+        <div className="mb-6 sm:mb-8">
+          <div className="space-y-2">
+            <input
+              type="number"
+              value={selected || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Allow empty input
+                if (value === "") {
+                  onSelect("");
+                  return;
+                }
+                const numValue = parseInt(value, 10);
+                // Don't allow negative numbers
+                if (numValue < 0) {
+                  return;
+                }
+                // Allow any input, validation happens in parent
+                onSelect(value);
+              }}
+              placeholder="Enter a number..."
+              min="0"
+              className="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
+            />
+            {maxValue !== undefined && (
+              <p className="text-xs sm:text-sm text-gray-500">Maximum value: {maxValue}</p>
+            )}
+          </div>
+          {hasValidationError && (
+            <div className="mt-3 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm sm:text-base text-red-700 font-medium">
+                {hasMaxValidationError ? `Maximum value is ${maxValue}` : errorMessage || "Invalid input"}
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         /* Multiple Choice Options */
@@ -128,6 +189,13 @@ const QuestionCard = ({
         </div>
       )}
 
+      {/* Error message for forbidden values */}
+      {hasForbiddenValueError && forbiddenErrorMessage && (
+        <div className="mb-4 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm sm:text-base text-red-700 font-medium">{forbiddenErrorMessage}</p>
+        </div>
+      )}
+
       {/* Navigation buttons */}
       <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
         {onBack && (
@@ -142,7 +210,7 @@ const QuestionCard = ({
         {onNext && (
           <button
             onClick={onNext}
-            disabled={!selected || (questionType === "text" && selected?.trim() === "")}
+            disabled={isNextDisabled}
             className="order-1 sm:order-2 px-6 sm:px-8 py-2 sm:py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-40 transition-colors text-sm sm:text-base"
           >
             <span className="hidden sm:inline">Next →</span>

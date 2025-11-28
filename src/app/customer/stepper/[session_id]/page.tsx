@@ -115,6 +115,9 @@ const buttonBackClass =
 // };
 
 const validationSchema = Yup.object({
+    iban: Yup.string()
+      .matches(/^([A-Z]{2}[0-9]{2}[A-Z0-9]{1,30})$/, "Invalid IBAN format")
+      .required("IBAN is required"),
   firstName: Yup.string()
     .min(2, "First name must be at least 2 characters")
     .max(50, "First name must be at most 50 characters")
@@ -293,7 +296,8 @@ export default function Stepper() {
       city: "",
       countryCode: "+43",
       phone: "",
-      email: "",
+      email: (typeof window !== "undefined" && window.localStorage.getItem("userEmail")) || "",
+      iban: "",
       education: "",
       currentJob: "",
       industry: "",
@@ -504,6 +508,31 @@ export default function Stepper() {
     }));
   };
 
+  // Helper function to check if a number input violates min/max constraints
+  const hasValidationError = (q: Question | undefined, answerValue: string | undefined): boolean => {
+    console.log("🚀 ~ hasValidationError ~ q, answerValue:", q, answerValue);
+    if (!q || !answerValue || q.questionType !== 'number') return false;
+    
+    const numValue = parseInt(answerValue, 10);
+    if (isNaN(numValue)) return false;
+    
+    if (q.minValue !== null && q.minValue !== undefined && numValue < q.minValue) return true;
+    if (q.maxValue !== null && q.maxValue !== undefined && numValue > q.maxValue) return true;
+    
+    return false;
+  };
+
+  // Helper to check forbidden values for specific questions (e.g., Q9 & Q10)
+  const hasForbiddenSelection = (q: Question | undefined, answerValue: string | undefined): boolean => {
+    if (!q || !answerValue) return false;
+    // For questions 9 and 10, forbid 'none' or 'keine'
+    if (q.questionOrder === 9 || q.questionOrder === 10) {
+      const val = answerValue.toLowerCase();
+      return val === 'none' || val === 'keine';
+    }
+    return false;
+  };
+
   const sendMessage = useCallback(
     async (messageOverride: string = "", shouldAppend: boolean = true) => {
       const messageToSend =
@@ -711,59 +740,65 @@ export default function Stepper() {
         try {
           setLoading(true);
 
-          const durationKeywords = [
-            "short_term",
-            "medium_term",
-            "long_term",
-            "very_long_term",
-          ]; // 'time', 'year', 'duration', 'horizon', 'long', 'period', 'when', 'invest', 'plan', 'month'
-          const riskKeywords = [
-            "conservative",
-            "opportunity_oriented",
-            "risk_aware",
-          ]; // 'risk', 'comfortable', 'volatility', 'tolerance', 'fluctuation', 'loss', 'willing', 'safe'
+          console.log("🔍 Fetching product suggestion based on answers...", answers);
 
-          const durationEntry = Object.entries(answers).find(([, value]) =>
-            durationKeywords.includes(value)
-          );
-          const riskEntry = Object.entries(answers).find(([, value]) =>
-            riskKeywords.includes(value)
-          );
+          // const durationKeywords = [
+          //   "short_term",
+          //   "medium_term",
+          //   "long_term",
+          //   "very_long_term",
+          // ]; // 'time', 'year', 'duration', 'horizon', 'long', 'period', 'when', 'invest', 'plan', 'month'
+          // const riskKeywords = [
+          //   "conservative",
+          //   "opportunity_oriented",
+          //   "risk_aware",
+          // ]; // 'risk', 'comfortable', 'volatility', 'tolerance', 'fluctuation', 'loss', 'willing', 'safe'
+          // const durationEntry = Object.entries(answers).find(([, value]) =>
+          //   durationKeywords.includes(value)
+          // );
+          // const riskEntry = Object.entries(answers).find(([, value]) =>
+          //   riskKeywords.includes(value)
+          // );
+          // const durationEntry = questions[1] ? answers[questions[1].id] : undefined;
+          // const riskEntry = questions[4] ? answers[questions[4].id] : undefined;
 
-          const durationKey = durationEntry?.[0]; // question id for duration
-          // const durationValue = durationEntry?.[1]; // actual selected value
+          // const durationKey = durationEntry?.[0]; // question id for duration
+          // // const durationValue = durationEntry?.[1]; // actual selected value
 
-          const riskKey = riskEntry?.[0]; // question id for risk
-          // const riskValue = riskEntry?.[1]; // actual selected value
+          // const riskKey = riskEntry?.[0]; // question id for risk
+          // // const riskValue = riskEntry?.[1]; // actual selected value
 
-          let durationQuestionId = durationKey;
-          let riskQuestionId = riskKey;
+          // let durationQuestionId = durationKey;
+          // let riskQuestionId = riskKey;
 
-          // Strategy 3: If keyword matching fails, use positional fallback
-          if (!durationQuestionId && questions.length > 0) {
-            // Assume duration is typically asked early (first 3 questions)
-            durationQuestionId = questions[0]?.id;
-            for (let i = 0; i < Math.min(3, questions.length); i++) {
-              if (answers[questions[i].id]) {
-                durationQuestionId = questions[i].id;
-                break;
-              }
-            }
-          }
+          // // Strategy 3: If keyword matching fails, use positional fallback
+          // if (!durationQuestionId && questions.length > 0) {
+          //   // Assume duration is typically asked early (first 3 questions)
+          //   durationQuestionId = questions[0]?.id;
+          //   for (let i = 0; i < Math.min(3, questions.length); i++) {
+          //     if (answers[questions[i].id]) {
+          //       durationQuestionId = questions[i].id;
+          //       break;
+          //     }
+          //   }
+          // }
 
-          if (!riskQuestionId && questions.length > 1) {
-            // Assume risk is typically asked later (questions 2-5)
-            riskQuestionId = questions[Math.min(3, questions.length - 1)]?.id;
-            for (let i = 1; i < questions.length; i++) {
-              if (
-                answers[questions[i].id] &&
-                questions[i].id !== durationQuestionId
-              ) {
-                riskQuestionId = questions[i].id;
-                break;
-              }
-            }
-          }
+          // if (!riskQuestionId && questions.length > 1) {
+          //   // Assume risk is typically asked later (questions 2-5)
+          //   riskQuestionId = questions[Math.min(3, questions.length - 1)]?.id;
+          //   for (let i = 1; i < questions.length; i++) {
+          //     if (
+          //       answers[questions[i].id] &&
+          //       questions[i].id !== durationQuestionId
+          //     ) {
+          //       riskQuestionId = questions[i].id;
+          //       break;
+          //     }
+          //   }
+          // }
+
+          const durationQuestionId = questions1[1]?.id;
+          const riskQuestionId = questions2[2]?.id;
 
           if (
             durationQuestionId &&
@@ -813,14 +848,14 @@ export default function Stepper() {
               }
             }
           } else {
-            console.warn("⚠️ Missing required answers for product suggestion", {
-              hasDurationId: !!durationQuestionId,
-              hasRiskId: !!riskQuestionId,
-              hasDurationAnswer: durationQuestionId
-                ? !!answers[durationQuestionId]
-                : false,
-              hasRiskAnswer: riskQuestionId ? !!answers[riskQuestionId] : false,
-            });
+            // console.warn("⚠️ Missing required answers for product suggestion", {
+            //   hasDurationId: !!durationQuestionId,
+            //   hasRiskId: !!riskQuestionId,
+            //   hasDurationAnswer: durationQuestionId
+            //     ? !!answers[durationQuestionId]
+            //     : false,
+            //   hasRiskAnswer: riskQuestionId ? !!answers[riskQuestionId] : false,
+            // });
           }
         } catch (error) {
           console.error("❌ Failed to fetch product suggestion:", error);
@@ -997,6 +1032,7 @@ export default function Stepper() {
               countryCode: user.countryCode || "+43",
               phone: user.phone || "",
               email: user.email || "",
+              iban: user.iban || "",
               education: user.education || "",
               currentJob: user.currentProfession || "",
               industry: user.industry || "",
@@ -1094,6 +1130,7 @@ export default function Stepper() {
           validUntil: data.validUntil
             ? new Date(data.validUntil).toISOString()
             : undefined,
+          iban: data.iban,
         }),
       });
       const result = await response.json();
@@ -1771,6 +1808,9 @@ export default function Stepper() {
                     }
                     questionOrder={currentQ?.questionOrder}
                     selected={answers[currentQ?.id]}
+                    maxValue={currentQ?.maxValue || undefined}
+                    minValue={currentQ?.minValue || undefined}
+                    errorMessage={currentQ?.minValue ? "Wir haben derzeit kein Produkt für diese Laufzeit." : undefined}
                     onSelect={async (opt) => {
                       setAnswers({ ...answers, [currentQ?.id]: opt });
                       syncAnswers(
@@ -1813,6 +1853,11 @@ export default function Stepper() {
                     }
                     questionOrder={currentQ2?.questionOrder}
                     selected={answers[currentQ2?.id]}
+                    maxValue={currentQ2?.maxValue || undefined}
+                    minValue={currentQ2?.minValue || undefined}
+                    errorMessage={currentQ2?.minValue ? "Wir haben derzeit kein Produkt für diese Laufzeit." : undefined}
+                     forbiddenValues={currentQ2?.questionOrder === 9 || currentQ2?.questionOrder === 10 ? ["none"] : undefined}
+                     forbiddenErrorMessage={currentQ2?.questionOrder === 9 || currentQ2?.questionOrder === 10 ? "Mit dieser Auswahl können Sie nicht fortfahren." : undefined}
                     onSelect={async (opt) => {
                       setAnswers({ ...answers, [currentQ2?.id]: opt });
                       syncAnswers(
@@ -2144,8 +2189,8 @@ export default function Stepper() {
                       }
                     }}
                     disabled={
-                      (step === 1 && currentSubStep === 'QUESTIONS1' && !answers[currentQ?.id]) ||
-                      (step === 1 && currentSubStep === 'QUESTIONS2' && !answers[currentQ2?.id])
+                      (step === 1 && currentSubStep === 'QUESTIONS1' && (!answers[currentQ?.id] || hasValidationError(currentQ, answers[currentQ?.id]))) ||
+                      (step === 1 && currentSubStep === 'QUESTIONS2' && (!answers[currentQ2?.id] || hasValidationError(currentQ2, answers[currentQ2?.id]) || hasForbiddenSelection(currentQ2, answers[currentQ2?.id])))
                     }
                     className={`${buttonBaseClass} ${buttonNextClass} disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto`}
                     type={step === PHASES.PERSONAL_INFO ? "submit" : "button"}
