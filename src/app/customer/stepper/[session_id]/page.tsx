@@ -27,6 +27,14 @@ const Chatbot = dynamic(() => import("../Chatbot"), {
   ssr: false,
   loading: () => <div className="animate-pulse">Loading personal info...</div>,
 });
+const InvestmentForm = dynamic(() => import("../InvestmentForm"), {
+  ssr: false,
+  loading: () => <div className="animate-pulse">Loading investment form...</div>,
+});
+const ContractDocument = dynamic(() => import("../ContractDocuments"), {
+  ssr: false,
+  loading: () => <div className="animate-pulse">Loading contract document...</div>,
+});
 import * as Yup from "yup";
 import { useFormik } from "formik";
 import { useParams, useRouter } from "next/navigation";
@@ -64,8 +72,10 @@ const PHASES = {
   SUGGESTIONS: 2,
   CHAT: 3,
   PERSONAL_INFO: 4,
-  SIGN_DOCUMENT: 5,
-  RESULT_PDF: 5,
+  INVESTMENT_FORM: 5,
+  CONTRACT_DOCUMENT: 6,
+  SIGN_DOCUMENT: 7,
+  RESULT_PDF: 7,
 };
 
 type Portfolio = {
@@ -115,9 +125,9 @@ const buttonBackClass =
 // };
 
 const validationSchema = Yup.object({
-    iban: Yup.string()
-      .matches(/^([A-Z]{2}[0-9]{2}[A-Z0-9]{1,30})$/, "Invalid IBAN format")
-      .required("IBAN is required"),
+  iban: Yup.string()
+    // .matches(/^([A-Z]{2}[0-9]{2}[A-Z0-9]{1,30})$/, "Invalid IBAN format")
+    .required("IBAN is required"),
   firstName: Yup.string()
     .min(2, "First name must be at least 2 characters")
     .max(50, "First name must be at most 50 characters")
@@ -259,6 +269,139 @@ export default function Stepper() {
   const [showDownloadPopup, setShowDownloadPopup] = useState(false);
   const [idvPdfBlob, setIdvPdfBlob] = useState<Blob | null>(null);
   const session_id = params.session_id as string;
+  const [investmentFormData, investmentSetFormData] = useState({
+    liquidationRequired: false,
+    timelyUmschichtung: false,
+    allConfirmed: false,
+    dataConsent: false,
+    confirmationDeclaration: false,
+    costsDisclosure: false,
+    liquidityNeeds: false,
+    additionalLiquidityNeeds: false
+  });
+
+  const handleCheckboxChange = (field: keyof typeof investmentFormData) => {
+    investmentSetFormData(prev => {
+      const updated = {
+        ...prev,
+        [field]: !prev[field]
+      };
+      
+      // If updating allConfirmed, toggle all other fields
+      if (field === 'allConfirmed') {
+        const newValue = !prev.allConfirmed;
+        return {
+          ...updated,
+          dataConsent: newValue,
+          confirmationDeclaration: newValue,
+          costsDisclosure: newValue,
+          liquidityNeeds: newValue,
+          additionalLiquidityNeeds: newValue,
+          // liquidationRequired: newValue,
+          // timelyUmschichtung: newValue,
+          allConfirmed: newValue
+        };
+      }
+      
+      // Check if all individual checkboxes are now checked
+      const allChecked = 
+        // updated.liquidationRequired &&
+        // updated.timelyUmschichtung &&
+        updated.dataConsent &&
+        updated.confirmationDeclaration &&
+        updated.costsDisclosure &&
+        updated.liquidityNeeds &&
+        updated.additionalLiquidityNeeds;
+      
+      // Update allConfirmed if all individual boxes are checked
+      if (allChecked) {
+        updated.allConfirmed = true;
+      } else if (updated.allConfirmed) {
+        // Uncheck allConfirmed if we're unchecking an individual box
+        updated.allConfirmed = false;
+      }
+      
+      return updated;
+    });
+  };
+
+  const [expandedSections, setExpandedSections] = useState({
+      vertraege: false,
+      gebuehren: false,
+      weitereInfo: false
+    });
+  
+    const [agreements, setAgreements] = useState({
+      acceptAll: false,
+      dataProtection: false,
+      vermoegensverwaltung: false,
+      bankenbedingungen: false,
+      widerruf: false,
+      efsaeg: false,
+      informationen: false,
+      auftraggeber: false,
+      einverstanden: false,
+      disclaimer: false
+    });
+  
+    const toggleSection = (section: keyof typeof expandedSections) => {
+      setExpandedSections(prev => {
+        const isCurrentlyOpen = prev[section];
+        return {
+          vertraege: false,
+          gebuehren: false,
+          weitereInfo: false,
+          [section]: !isCurrentlyOpen
+        };
+      });
+    };
+  
+    const handleCheckboxChangeContractDocument = (field: keyof typeof agreements) => {
+      setAgreements(prev => {
+        const updated = {
+          ...prev,
+          [field]: !prev[field]
+        };
+        
+        // Check if all individual checkboxes are now checked
+        const allChecked = 
+          updated.dataProtection &&
+          updated.vermoegensverwaltung &&
+          updated.bankenbedingungen &&
+          updated.widerruf &&
+          updated.efsaeg &&
+          updated.informationen &&
+          updated.auftraggeber &&
+          updated.einverstanden &&
+          updated.disclaimer;
+        
+        // Update acceptAll if all individual boxes are checked
+        if (allChecked) {
+          updated.acceptAll = true;
+        } else if (updated.acceptAll && field !== 'acceptAll') {
+          // Uncheck acceptAll if we're unchecking an individual box
+          updated.acceptAll = false;
+        }
+        
+        return updated;
+      });
+    };
+  
+    const handleAcceptAll = () => {
+      const newValue = !agreements.acceptAll;
+      setAgreements({
+        acceptAll: newValue,
+        dataProtection: newValue,
+        vermoegensverwaltung: newValue,
+        bankenbedingungen: newValue,
+        widerruf: newValue,
+        efsaeg: newValue,
+        informationen: newValue,
+        auftraggeber: newValue,
+        einverstanden: newValue,
+        disclaimer: newValue
+      });
+    };
 
   // For PHASES.QUESTIONS1
   const questions1 = questions.slice(0, 2);
@@ -338,10 +481,10 @@ export default function Stepper() {
   // Helper function to save the current phase to the database
   const savePhase = async (newStep: number, subStep?: string) => {
     try {
-      // For Phase 1 and Phase 5, save the actual sub-step name
+      // For Phase 1 and Phase 7, save the actual sub-step name
       let phaseName: string | undefined;
 
-      if ((newStep === 1 || newStep === 5) && subStep) {
+      if ((newStep === 1 || newStep === 7) && subStep) {
         phaseName = subStep;
       } else {
         // Convert step number back to phase name for other phases
@@ -386,23 +529,42 @@ export default function Stepper() {
       }
     }
 
-    // Handle Phase 5 sub-steps navigation
+    // Handle Phase 4 (PERSONAL_INFO) to Phase 5 (INVESTMENT_FORM) navigation
     if (step === 4) {
-      // Moving from Phase 4 (PERSONAL_INFO) to Phase 5 (SIGN_DOCUMENT)
+      // Moving from Phase 4 (PERSONAL_INFO) to Phase 5 (INVESTMENT_FORM)
       setStep(5);
+      setCurrentSubStep('');
+      savePhase(5);
+      return;
+    }
+
+    // Handle Phase 5 (INVESTMENT_FORM) to Phase 6 (CONTRACT_DOCUMENT) navigation
+    if (step === 5) {
+      // Moving from Phase 5 (INVESTMENT_FORM) to Phase 6 (CONTRACT_DOCUMENT)
+      setStep(6);
+      setCurrentSubStep('');
+      savePhase(6);
+      return;
+    }
+
+    // Handle Phase 6 (CONTRACT_DOCUMENT) to Phase 7 (SIGN_DOCUMENT) navigation
+    if (step === 6) {
+      // Moving from Phase 6 (CONTRACT_DOCUMENT) to Phase 7 (SIGN_DOCUMENT)
+      setStep(7);
       setCurrentSubStep('SIGN_DOCUMENT');
-      savePhase(5, 'SIGN_DOCUMENT');
+      savePhase(7, 'SIGN_DOCUMENT');
       return;
     }
 
-    if (step === 5 && currentSubStep === 'SIGN_DOCUMENT') {
-      // Moving from SIGN_DOCUMENT to RESULT_PDF within Phase 5
+    // Handle Phase 7 sub-steps navigation
+    if (step === 7 && currentSubStep === 'SIGN_DOCUMENT') {
+      // Moving from SIGN_DOCUMENT to RESULT_PDF within Phase 7
       setCurrentSubStep('RESULT_PDF');
-      savePhase(5, 'RESULT_PDF');
+      savePhase(7, 'RESULT_PDF');
       return;
     }
 
-    const newStep = Math.min(step + 1, 5);
+    const newStep = Math.min(step + 1, 7);
     setStep(newStep);
     setCurrentSubStep('');
     savePhase(newStep);
@@ -427,17 +589,35 @@ export default function Stepper() {
       }
     }
 
-    // Handle Phase 5 sub-steps navigation
+    // Handle Phase 5 (INVESTMENT_FORM) to Phase 4 (PERSONAL_INFO) navigation
     if (step === 5) {
+      // Going back from Phase 5 (INVESTMENT_FORM) to Phase 4 (PERSONAL_INFO)
+      setStep(4);
+      setCurrentSubStep('');
+      savePhase(4);
+      return;
+    }
+
+    // Handle Phase 6 (CONTRACT_DOCUMENT) to Phase 5 (INVESTMENT_FORM) navigation
+    if (step === 6) {
+      // Going back from Phase 6 (CONTRACT_DOCUMENT) to Phase 5 (INVESTMENT_FORM)
+      setStep(5);
+      setCurrentSubStep('');
+      savePhase(5);
+      return;
+    }
+
+    // Handle Phase 7 sub-steps navigation
+    if (step === 7) {
       if (currentSubStep === 'RESULT_PDF') {
         setCurrentSubStep('SIGN_DOCUMENT');
-        savePhase(5, 'SIGN_DOCUMENT');
+        savePhase(7, 'SIGN_DOCUMENT');
         return;
       } else if (currentSubStep === 'SIGN_DOCUMENT') {
-        // Going back from Phase 5 to Phase 4
-        setStep(4);
+        // Going back from Phase 7 to Phase 6
+        setStep(6);
         setCurrentSubStep('');
-        savePhase(4);
+        savePhase(6);
         return;
       }
     }
@@ -512,13 +692,13 @@ export default function Stepper() {
   const hasValidationError = (q: Question | undefined, answerValue: string | undefined): boolean => {
     console.log("🚀 ~ hasValidationError ~ q, answerValue:", q, answerValue);
     if (!q || !answerValue || q.questionType !== 'number') return false;
-    
+
     const numValue = parseInt(answerValue, 10);
     if (isNaN(numValue)) return false;
-    
+
     if (q.minValue !== null && q.minValue !== undefined && numValue < q.minValue) return true;
     if (q.maxValue !== null && q.maxValue !== undefined && numValue > q.maxValue) return true;
-    
+
     return false;
   };
 
@@ -656,7 +836,7 @@ export default function Stepper() {
     }
   }, [threadId, session_id]);
 
-   const suggestProduct = async (
+  const suggestProduct = async (
     duration: string,
     risk: string
   ): Promise<Portfolio | null> => {
@@ -797,8 +977,10 @@ export default function Stepper() {
           //   }
           // }
 
-          const durationQuestionId = questions1[1]?.id;
-          const riskQuestionId = questions2[2]?.id;
+          const durationQuestionId = questions[1]?.id;
+          console.log("🚀 ~ fetchSuggestedProduct ~ durationQuestionId:", durationQuestionId)
+          const riskQuestionId = questions[4]?.id;
+          console.log("🚀 ~ fetchSuggestedProduct ~ riskQuestionId:", riskQuestionId)
 
           if (
             durationQuestionId &&
@@ -866,7 +1048,7 @@ export default function Stepper() {
     };
 
     fetchSuggestedProduct();
-  }, [step, answers, session_id, questions, initializeChatWithProduct, questions1, questions2]);
+  }, [step, answers, session_id, questions, initializeChatWithProduct]);
 
   useEffect(() => {
     const loadChatHistory = async () => {
@@ -959,7 +1141,7 @@ export default function Stepper() {
               }
             }
             // Set the appropriate sub-step for Phase 5
-            else if (phaseStep === 5) {
+            else if (phaseStep === 7) {
               // if (data.currentPhase === 'SIGN_DOCUMENT' || data.currentPhase === 'RESULT_PDF') {
               //   setCurrentSubStep(data.currentPhase);
               // } else {
@@ -1390,7 +1572,7 @@ export default function Stepper() {
       }
 
       const publicPdfBase64 = await readStaticPDFToBase64(dataPDF.finalPath);
-      
+
       const response = await fetch('/api/signteq/create-session', {
         method: 'POST',
         headers: {
@@ -1581,7 +1763,7 @@ export default function Stepper() {
     <div className={stepperContainerClass}>
       {/* Stepper Progress */}
       <div className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8">
-        {[...Array(5)].map((_, i) => (
+        {[...Array(7)].map((_, i) => (
           <div
             key={i}
             className={`${stepperBarClass} ${step > i + 1 ? "bg-blue-600" : "bg-gray-300"
@@ -1856,8 +2038,8 @@ export default function Stepper() {
                     maxValue={currentQ2?.maxValue || undefined}
                     minValue={currentQ2?.minValue || undefined}
                     errorMessage={currentQ2?.minValue ? "Wir haben derzeit kein Produkt für diese Laufzeit." : undefined}
-                     forbiddenValues={currentQ2?.questionOrder === 9 || currentQ2?.questionOrder === 10 ? ["none"] : undefined}
-                     forbiddenErrorMessage={currentQ2?.questionOrder === 9 || currentQ2?.questionOrder === 10 ? "Mit dieser Auswahl können Sie nicht fortfahren." : undefined}
+                    forbiddenValues={currentQ2?.questionOrder === 9 || currentQ2?.questionOrder === 10 ? ["none"] : undefined}
+                    forbiddenErrorMessage={currentQ2?.questionOrder === 9 || currentQ2?.questionOrder === 10 ? "Mit dieser Auswahl können Sie nicht fortfahren." : undefined}
                     onSelect={async (opt) => {
                       setAnswers({ ...answers, [currentQ2?.id]: opt });
                       syncAnswers(
@@ -1939,6 +2121,39 @@ export default function Stepper() {
                   </div>
                 </div>
               )}
+
+              {step === PHASES.INVESTMENT_FORM && (
+                <div className="w-full h-full flex flex-col">
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-6xl">
+                      {/* <h1 className="text-xl font-bold text-center mb-6">Investment Form</h1> */}
+                      <InvestmentForm
+                        investmentFormData={investmentFormData}
+                        handleCheckboxChange={handleCheckboxChange}
+                        suggestedProduct={suggestedProduct}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {
+                step === PHASES.CONTRACT_DOCUMENT && (
+                  <div className="w-full h-full flex flex-col">
+                    <div className="flex-1 overflow-y-auto">
+                      <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-6xl">
+                        <ContractDocument 
+                          expandedSections={expandedSections}
+                          toggleSection={toggleSection}
+                          agreements={agreements}
+                          handleCheckboxChangeContractDocument={handleCheckboxChangeContractDocument}
+                          handleAcceptAll={handleAcceptAll}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
 
               {step === PHASES.SIGN_DOCUMENT && currentSubStep === 'SIGN_DOCUMENT' && (
                 <div className="w-full h-full flex flex-col">
@@ -2197,12 +2412,16 @@ export default function Stepper() {
                   >
                     <span>Nächste</span>
                   </button>
-                ) : (step === 5 && (currentSubStep === 'RESULT_PDF' || currentSubStep === 'SIGN_DOCUMENT')) ? null : (
+                ) : (step === 7 && (currentSubStep === 'RESULT_PDF' || currentSubStep === 'SIGN_DOCUMENT')) ? null : (
                   <button
-                    onClick={step < 5 ? nextStep : backDashboard}
-                    className={`${buttonBaseClass} ${buttonNextClass} w-full sm:w-auto`}
+                    onClick={step < 7 ? nextStep : backDashboard}
+                    className={`${buttonBaseClass} ${buttonNextClass} disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto`}
+                    disabled={
+                      (step === PHASES.INVESTMENT_FORM && !investmentFormData.allConfirmed) ||
+                      (step === PHASES.CONTRACT_DOCUMENT && !agreements.acceptAll)
+                    }
                   >
-                    <span>{step === 5 && currentSubStep === 'RESULT_PDF' ? 'Abschließen' : 'Nächste'}</span>
+                    <span>{step == 7 && currentSubStep === 'RESULT_PDF' ? 'Abschließen' : 'Nächste'}</span>
                   </button>
                 )}
               </div>

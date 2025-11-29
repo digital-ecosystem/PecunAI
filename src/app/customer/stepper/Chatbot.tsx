@@ -532,7 +532,7 @@ export default function Chatbot({
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-gray-900">
-                          {message.role === Role.customer ? 'You' : 'AI Assistant'}
+                          {message.role === Role.customer ? 'Du' : 'PecunAI Assistant'}
                         </span>
                         <span className="text-xs text-gray-400">
                           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
