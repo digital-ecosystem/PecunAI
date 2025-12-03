@@ -103,7 +103,7 @@ async function main() {
 
   const questions = [
     {
-      text: "Anlageziele",
+      text: "Anlageziele – Welches Ziel verfolgen Sie mit Ihrer geplanten Veranlagung?",
       options: [
         { label: "Allgemeiner Vermögensaufbau", value: "general_wealth_building" },
         { label: "Altersvorsorge", value: "retirement_planning" },
@@ -111,92 +111,108 @@ async function main() {
         { label: "Sonstiges", value: "other" },
       ],
       questionOrder: 1,
+      footnote: `Bitte wählen Sie aus, welches Hauptziel Sie mit Ihrer geplanten Anlage verfolgen. Dies hilft uns zu verstehen, ob Sie langfristig Vermögen aufbauen möchten, für das Alter vorsorgen wollen oder Ihr bestehendes Vermögen breiter streuen möchten`,
     },
     {
-      text: "Angedachte Anlagedauer",
+      text: "Angedachte Anlagedauer – Wie lange möchten Sie voraussichtlich investieren?",
       questionType: "number",
       questionOrder: 2,
       minValue: 3,
+      inputPlaceholder: "Bitte Anzahl in Jahren eingeben…",
+      footnote: `Geben Sie bitte an, wie viele Jahre Sie planen, Ihr Kapital investiert zu lassen. Die Anlagedauer beeinflusst maßgeblich, welche Produkte und Strategien für Sie geeignet sind.`,
     },
     {
-      text: "Mir uns wurden die Informationen zur Nachhaltigkeit zur Kenntnis gebracht?",
+      text: "Nachhaltigkeitsinformation – Wurden Ihnen die erforderlichen Informationen zum Thema Nachhaltigkeit zur Kenntnis gebracht?",
       options: [
         { label: "Ja", value: "yes" },
         { label: "Nein", value: "no" },
       ],
       questionOrder: 3,
+      footnote: `Im Rahmen der Anlageberatung müssen wir Sie über nachhaltigkeitsbezogene Informationen informieren. Bitte bestätigen Sie, ob Sie diese Informationen bereits erhalten und zur Kenntnis genommen haben.`,
     },
     {
-      text: 'Möchten Sie "Nachhaltigkeit" bei Ihrer Investition im Rahmen der Anlageberatung berücksichtigen?',
+      text: 'Nachhaltigkeitspräferenzen – Möchten Sie Nachhaltigkeitsaspekte bei Ihrer Investition berücksichtigen?',
       options: [
         { label: "Ja", value: "yes" },
         { label: "Nein", value: "no" },
         { label: "Ich bin nachhaltigkeitsneutral", value: "neutral" },
       ],
       questionOrder: 4,
+      footnote: `Hier geben Sie an, ob Nachhaltigkeitsaspekte (z. B. ökologische oder soziale Kriterien) für Ihre Anlageentscheidung relevant sind. Diese Auswahl beeinflusst, welche Produkte Ihnen empfohlen werden dürfen.`,
     },
     {
-      text: "Angaben über die Risikoneigung",
+      text: "Risikoneigung – Wie würden Sie Ihre persönliche Risikobereitschaft einschätzen?",
       options: [
         { label: "Konservativ", value: "conservative" },
         { label: "Chancenorientiert", value: "opportunity_oriented" },
         { label: "Risikobewusst", value: "risk_aware" },
       ],
       questionOrder: 5,
+      footnote: `Ihre Risikoneigung hilft uns, eine geeignete Anlagestrategie für Sie zu bestimmen. Je nach Risikoprofil können Chancen und Risiken einer möglichen Investition variieren.`
     },
     {
-      text: "Finanzielle Verhältnisse / Monatliches Nettoeinkommen",
+      text: "Finanzielle Verhältnisse – Monatliches Nettoeinkommen",
       questionType: "number",
       questionOrder: 6,
+      inputPlaceholder: "Bitte Betrag in Euro eingeben…",
+      footnote: `Bitte geben Sie Ihr durchschnittliches monatliches Nettoeinkommen an. Diese Information hilft uns, Ihre finanzielle Situation einzuschätzen und eine geeignete Empfehlung im Rahmen der Anlageberatung zu erstellen.`
     },
     {
-      text: "Finanzielle Verhältnisse / Monatliche Ausgaben",
+      text: "Finanzielle Verhältnisse – Monatliche Ausgaben",
       questionType: "number",
       questionOrder: 7,
+      inputPlaceholder: "Bitte Betrag in Euro eingeben…",
+      footnote: `Tragen Sie hier Ihre durchschnittlichen monatlichen Ausgaben ein. So können wir beurteilen, welcher Teil Ihres Einkommens tatsächlich für eine Investition zur Verfügung steht.`
     },
     {
-      text: "Aktuelles Nettogesamtvemögen",
+      text: "Aktuelles Nettogesamtvermögen – Wie hoch ist Ihr derzeitiges Vermögen?",
       questionType: "number",
       questionOrder: 8,
+      inputPlaceholder: "Bitte Betrag in Euro eingeben…",
+      footnote: `Bitte geben Sie den aktuellen Gesamtwert Ihres Vermögens abzüglich bestehender Verbindlichkeiten an. Diese Angabe ist wichtig, um Ihre finanzielle Gesamtsituation korrekt zu berücksichtigen.`
     },
     {
-      text: "Bisherige Erfahrungen und Kenntnisse in Bezug auf Aktien / Aktienfonds / Aktien ETFs",
+      text: "Erfahrungen & Kenntnisse – Aktien, Aktienfonds und Aktien-ETFs",
       options: [
         { label: "Gute", value: "good" },
         { label: "Durchschnittliche", value: "average" },
         { label: "Keine", value: "none" },
       ],
       questionOrder: 9,
+      footnote: `Bitte geben Sie an, welche Erfahrungen und Kenntnisse Sie im Umgang mit Aktien, Aktienfonds oder aktienbasierten ETFs besitzen. Diese Angaben helfen uns zu beurteilen, ob diese Anlageformen für Sie geeignet sind`
     },
     {
-      text: "Bisherige Erfahrungen und Kenntnisse in Bezug auf Anleihen/ Anleihenfonds/ Aktien ETFs",
+      text: "Erfahrungen & Kenntnisse – Anleihen, Anleihenfonds und Anleihen-ETFs",
       options: [
         { label: "Gute", value: "good" },
         { label: "Durchschnittliche", value: "average" },
         { label: "Keine", value: "none" },
       ],
       questionOrder: 10,
+      footnote: `Hier erfassen wir, wie vertraut Sie mit Anleihen und anleihenbasierten Produkten sind. Je nach Erfahrungsstand können bestimmte Produkte empfohlen oder ausgeschlossen werden.`
     },
     {
-      text: "Bisherige Erfahrungen und Kenntnisse in Bezug auf Edelmetalle",
+      text: "Erfahrungen & Kenntnisse – Edelmetalle",
       options: [
         { label: "Gute", value: "good" },
         { label: "Durchschnittliche", value: "average" },
         { label: "Keine", value: "none" },
       ],
       questionOrder: 11,
+      footnote: `Bitte teilen Sie uns mit, wie viel Erfahrung Sie im Bereich Edelmetalle besitzen. Diese Information ist wichtig, um Ihre Kenntnisse über Chancen und Risiken dieser Anlageklasse einschätzen zu können.`
     },
     {
-      text: "Bisherige Erfahrungen und Kenntnisse in Bezug auf Vermögensverwaltung",
+      text: "Erfahrungen & Kenntnisse – Vermögensverwaltung",
       options: [
         { label: "Gute", value: "good" },
         { label: "Durchschnittliche", value: "average" },
         { label: "Keine", value: "none" },
       ],
       questionOrder: 12,
+      footnote: `Bitte geben Sie an, ob Sie bereits Erfahrungen mit vermögensverwaltenden Dienstleistungen gesammelt haben. Diese Information hilft uns, Ihre Kenntnisse in Bezug auf professionell gesteuerte Anlageformen einzuschätzen.`
     },
     {
-      text: "Art und Herkunft der Vermögenswerte für die Veranlagung",
+      text: "Herkunft der Vermögenswerte – Woher stammen die Mittel für Ihre geplante Veranlagung?",
       options: [
         { label: "Berufliche Tätigkeit", value: "employment_income" },
         { label: "Ersparnisse", value: "savings" },
@@ -205,18 +221,23 @@ async function main() {
         { label: "Sonstiges", value: "other" },
       ],
       questionOrder: 13,
+      footnote: `Bitte wählen Sie aus, aus welcher Quelle die für die Veranlagung vorgesehenen Gelder stammen. Diese Angabe ist aus rechtlichen Gründen erforderlich und unterstützt die Beurteilung der finanziellen Hintergründe.`
     },
     {
-      text: "Beabsichtigte Einmalige Veranlagung",
+      text: "Beabsichtigte Einmalveranlagung – Welchen Betrag möchten Sie einmalig investieren?",
       questionType: "number",
       maxValue: 5000,
       questionOrder: 14,
+      inputPlaceholder: "Bitte Betrag in Euro eingeben…",
+      footnote:`Bitte geben Sie den Betrag an, den Sie einmalig investieren möchten. Diese Angabe hilft uns, Ihre geplante Investitionshöhe und deren Eignung im Rahmen der Anlageberatung einzuschätzen.`
     },
     {
-      text: "Beabsichtigte monatliche Veranlagung",
+      text: "Beabsichtigte monatliche Veranlagung – Welchen Betrag möchten Sie regelmäßig pro Monat investieren?",
       questionType: "number",
       maxValue: 500,
       questionOrder: 15,
+      inputPlaceholder: "Bitte Betrag in Euro eingeben…",
+      footnote: `Bitte geben Sie an, welchen Betrag Sie monatlich investieren möchten. Laufende Investitionen beeinflussen die langfristige Vermögensentwicklung und sind relevant für die geeignete Produktauswahl.`
     },
   ];
 
@@ -231,7 +252,9 @@ async function main() {
         minValue: q.minValue || null,
         options: {
           create: q.options || []
-        }
+        },
+        footnote: q.footnote || null,        
+        inputPlaceholder: q.inputPlaceholder || null,
       }
     });
   }

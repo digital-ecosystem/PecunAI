@@ -81,3 +81,57 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const qaSessionId = searchParams.get("qaSessionId");
+
+    if (!qaSessionId) {
+      return NextResponse.json(
+        { error: "Missing qaSessionId" },
+        { status: 400 }
+      );
+    }
+
+    const suggestion = await prisma.sessionProductSuggestion.findUnique({
+      where: { qaSessionId },
+      include: {
+        product: true // Include full product details if needed
+      }
+    });
+
+    if (!suggestion) {
+      return NextResponse.json({
+        success: true,
+        data: null
+      });
+    }
+
+    // Transform to match Portfolio type if needed, or just return as is
+    // The frontend expects a Portfolio-like object
+    const portfolio = {
+      // Map other fields as necessary based on what the frontend expects
+      // For now, returning the suggestion data which includes product details
+      ...suggestion,
+      id: suggestion.product.id,
+      name: suggestion.name,
+      // Ensure we pass the product ID correctly
+      productId: suggestion.productId
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: portfolio
+    });
+  } catch (error) {
+    console.error("SessionProductSuggestion GET Error:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to retrieve product suggestion",
+        message: error instanceof Error ? error.message : "Unknown error"
+      },
+      { status: 500 }
+    );
+  }
+}

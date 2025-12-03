@@ -100,7 +100,23 @@ export default function Chatbot({
   const recognitionTranscriptRef = useRef<string>('')
   const [liveTranscript, setLiveTranscript] = useState<string>('')
   const audioStreamRef = useRef<MediaStream | null>(null)
-  
+  const [isDisclaimerExpanded, setIsDisclaimerExpanded] = useState(false)
+  const [placeholder, setPlaceholder] = useState('Frage an den digitalen Assistenten…')
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 640) {
+        setPlaceholder('Frage eingeben…')
+      } else {
+        setPlaceholder('Frage an den digitalen Assistenten…')
+      }
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -118,7 +134,7 @@ export default function Chatbot({
         recognitionRef.current.continuous = true
         recognitionRef.current.interimResults = false
         recognitionRef.current.lang = 'de-DE' // German language, change to 'en-US' if needed
-        
+
         recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
           const transcript = event.results[event.results.length - 1][0].transcript
           // Store transcript for debugging and update live captions in UI.
@@ -126,12 +142,12 @@ export default function Chatbot({
           setLiveTranscript(transcript)
           console.log('SpeechRecognition transcript (live):', transcript)
         }
-        
+
         recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
           console.log('Speech recognition error:', event.error)
           setIsRecording(false)
         }
-        
+
         recognitionRef.current.onend = () => {
           // When speech recognition ends, stop visual recording state.
           setIsRecording(false)
@@ -142,7 +158,7 @@ export default function Chatbot({
         }
       }
     }
-    
+
     return () => {
       if (recognitionRef.current) {
         try {
@@ -200,7 +216,7 @@ export default function Chatbot({
           try {
             const permissionResult = await navigator.permissions.query({ name: 'microphone' as PermissionName })
             console.log("🚀 ~ toggleRecording ~ permissionResult:", permissionResult)
-            
+
             // Only block if permission is explicitly denied
             if (permissionResult.state === 'denied') {
               setPermissionDenied(true)
@@ -224,8 +240,8 @@ export default function Chatbot({
             // Permissions API not supported, continue with getUserMedia
             console.log('Permissions API not supported, attempting direct access')
           }
-        } 
-        
+        }
+
         // Try Speech Recognition first (better for voice-to-text on supported browsers)
         if (recognitionRef.current) {
           // Try to start SpeechRecognition and keep going to also start MediaRecorder
@@ -239,46 +255,46 @@ export default function Chatbot({
             console.log('Speech Recognition failed, will try MediaRecorder only:', speechError)
           }
         }
-        
+
         // Fallback to MediaRecorder (works better on iOS)
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ 
+          const stream = await navigator.mediaDevices.getUserMedia({
             audio: {
               echoCancellation: true,
               noiseSuppression: true,
               autoGainControl: true,
-            } 
+            }
           })
-          
+
           audioStreamRef.current = stream
           setPermissionDenied(false)
-          
+
           const recorder = new MediaRecorder(stream)
           const audioChunks: BlobPart[] = []
-          
+
           recorder.ondataavailable = (event) => {
             if (event.data.size > 0) {
               audioChunks.push(event.data)
             }
           }
-          
+
           recorder.onstop = async () => {
             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
-            
+
             // Stop all tracks
             stream.getTracks().forEach(track => track.stop())
-            
+
             // Upload audio file and transcribe
             await uploadAndTranscribeAudio(audioBlob)
           }
-          
+
           recorder.onerror = (event) => {
             console.log('MediaRecorder error:', event)
             alert('Fehler beim Aufnehmen. Bitte versuchen Sie es erneut.')
             stream.getTracks().forEach(track => track.stop())
             setIsRecording(false)
           }
-          
+
           recorder.start()
           setMediaRecorder(recorder)
           // Ensure recording UI is active (keeps or sets it)
@@ -286,7 +302,7 @@ export default function Chatbot({
         } catch (error) {
           setPermissionDenied(true)
           console.log('Error accessing microphone:', error)
-          
+
           // Provide specific error messages
           const err = error as { name?: string; message?: string }
           if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
@@ -405,7 +421,7 @@ export default function Chatbot({
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           audioFileId,
           sessionId,
           threadId: threadId || 'default'
@@ -421,15 +437,15 @@ export default function Chatbot({
       const decoder = new TextDecoder()
       let transcript = ''
       let fullResponse = ''
-      
+
       if (reader) {
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
-          
+
           const text = decoder.decode(value, { stream: true })
           const lines = text.split('\n')
-          
+
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               try {
@@ -476,7 +492,7 @@ export default function Chatbot({
         {/* Header - ChatGPT Style */}
         <div className="border-b border-gray-200 bg-white/95 backdrop-blur-sm sticky top-0 z-10 flex-shrink-0">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
-            <h2 className="text-base sm:text-lg font-semibold text-gray-800">AI Investment Assistant</h2>
+            <h2 className="text-base sm:text-lg font-semibold text-gray-800">PecunAI– Ihr digitaler Vermögensberater</h2>
             {threadId && (
               <span className="text-xs text-gray-400 truncate max-w-32 sm:max-w-none font-mono">
                 {threadId.slice(0, 8)}...
@@ -504,9 +520,8 @@ export default function Chatbot({
           {messages.map((message, index) => {
             return <div
               key={message.id || index}
-              className={`group border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
-                message.role === Role.customer ? 'bg-white' : 'bg-gray-50'
-              }`}
+              className={`group border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${message.role === Role.customer ? 'bg-white' : 'bg-gray-50'
+                }`}
             >
               <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
                 <div className="flex gap-3 sm:gap-4">
@@ -526,7 +541,7 @@ export default function Chatbot({
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Message Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -538,7 +553,7 @@ export default function Chatbot({
                           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      
+
                       {/* Message Actions - Visible on hover */}
                       <button
                         onClick={() => copyToClipboard(message.content, message.id || `${index}`)}
@@ -556,7 +571,7 @@ export default function Chatbot({
                         )}
                       </button>
                     </div>
-                    
+
                     <div className="text-sm sm:text-base text-gray-800 whitespace-pre-wrap leading-relaxed">
                       {message.content}
                     </div>
@@ -645,26 +660,26 @@ export default function Chatbot({
 
         {/* Input Form - ChatGPT Style */}
         <div className="border-t border-gray-200 bg-white sticky bottom-0 flex-shrink-0">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="w-full mx-auto px-3 sm:px-4 md:px-6 py-2 sm:py-3">
             {/* Permission denied warning */}
             {permissionDenied && (
-              <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="mb-2 sm:mb-3 p-2 sm:p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <div className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
-                  <div className="flex-1">
-                    <p className="text-sm text-yellow-800 font-medium">Mikrofonzugriff erforderlich</p>
-                    <p className="text-xs text-yellow-700 mt-1">
-                      Bitte erlauben Sie den Mikrofonzugriff in Ihren Browser-Einstellungen und laden Sie die Seite neu.
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm text-yellow-800 font-medium">Mikrofonzugriff erforderlich</p>
+                    <p className="text-xs text-yellow-700 mt-0.5 sm:mt-1">
+                      Bitte erlauben Sie den Mikrofonzugriff in den Browser-Einstellungen.
                     </p>
                   </div>
                 </div>
               </div>
             )}
-            
+
             <form onSubmit={handleSubmit} className="relative">
-              <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-xl shadow-sm hover:shadow-md focus-within:border-blue-400 focus-within:shadow-md transition-all">
+              <div className="flex items-center gap-1.5 sm:gap-2 bg-white border border-gray-300 rounded-xl shadow-sm hover:shadow-md focus-within:border-blue-400 focus-within:shadow-md transition-all">
                 {!isRecording && !audioUploading && (
                   <textarea
                     value={input}
@@ -680,18 +695,18 @@ export default function Chatbot({
                         if (handleSubmit && input.trim()) handleSubmit(e);
                       }
                     }}
-                    placeholder="Message AI Assistant..."
-                    className="flex-1 px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-transparent focus:outline-none resize-none max-h-40 overflow-y-auto"
+                    placeholder={placeholder}
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm bg-transparent focus:outline-none resize-none max-h-40 overflow-y-auto"
                     disabled={loading}
                     rows={1}
-                    style={{ minHeight: '40px', maxHeight: '160px', lineHeight: '1.5', overflowY: 'auto' }}
+                    style={{ minHeight: '36px', maxHeight: '140px', lineHeight: '1.5', overflowY: 'auto' }}
                   />
                 )}
 
                 {/* Uploading indicator (WhatsApp-style) */}
                 {!isRecording && audioUploading && (
-                  <div className="flex-1 px-4 py-2.5 sm:py-3 flex items-center gap-2">
-                    <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-md px-3 py-2 w-full">
+                  <div className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 flex items-center gap-1.5 sm:gap-2">
+                    <div className="inline-flex items-center gap-2 sm:gap-3 bg-blue-50 border border-blue-100 rounded-md px-2 sm:px-3 py-1.5 sm:py-2 w-full">
                       <div className="flex gap-1 items-center">
                         <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                         <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '120ms' }}></div>
@@ -700,7 +715,7 @@ export default function Chatbot({
                       <div className="flex-1">
                         {audioTranscribing ? (
                           <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4 text-blue-600 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.2"/><path d="M22 12a10 10 0 10-10 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/></svg>
+                            <svg className="w-4 h-4 text-blue-600 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.2" /><path d="M22 12a10 10 0 10-10 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round" /></svg>
                             <span className="text-sm text-blue-700">Transcribing…</span>
                           </div>
                         ) : (
@@ -715,10 +730,10 @@ export default function Chatbot({
                     </div>
                   </div>
                 )}
-                
+
                 {isRecording && (
-                  <div className="flex-1 px-4 py-2.5 sm:py-3 flex items-center gap-2">
-                    <div className="flex items-center gap-2 text-red-600 flex-col sm:flex-row sm:items-center w-full">
+                  <div className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 flex items-center gap-1.5 sm:gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-red-600 flex-col sm:flex-row sm:items-center w-full">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
                         <span className="text-sm sm:text-base font-medium">Recording...</span>
@@ -729,25 +744,24 @@ export default function Chatbot({
                     </div>
                   </div>
                 )}
-                
+
                 <div className="flex items-center gap-1 pr-1.5">
                   <button
                     type="button"
                     onClick={toggleRecording}
-                    className={`p-2 rounded-lg transition-all relative ${
-                      isRecording
-                        ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                        : permissionDenied
+                    className={`p-2 rounded-lg transition-all relative ${isRecording
+                      ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                      : permissionDenied
                         ? 'text-yellow-600 hover:bg-yellow-50'
                         : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-                    }`}
+                      }`}
                     disabled={loading || audioUploading}
                     title={
-                      isRecording 
-                        ? 'Aufnahme stoppen' 
+                      isRecording
+                        ? 'Aufnahme stoppen'
                         : permissionDenied
-                        ? 'Mikrofonzugriff verweigert - Klicken für Hilfe'
-                        : 'Sprachaufnahme starten'
+                          ? 'Mikrofonzugriff verweigert - Klicken für Hilfe'
+                          : 'Sprachaufnahme starten'
                     }
                   >
                     {permissionDenied && !isRecording && (
@@ -757,16 +771,15 @@ export default function Chatbot({
                       <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
                     </svg>
                   </button>
-                  
+
                   {!isRecording && (
                     <button
                       type="submit"
                       disabled={loading || !input.trim()}
-                      className={`p-2 rounded-lg transition-all ${
-                        input.trim() && !loading
-                          ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
-                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      }`}
+                      className={`p-2 rounded-lg transition-all ${input.trim() && !loading
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        }`}
                       title="Send message"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 512 512" fill="currentColor">
@@ -776,10 +789,20 @@ export default function Chatbot({
                   )}
                 </div>
               </div>
-              
-              <p className="text-xs text-gray-400 text-center mt-2">
-                AI can make mistakes. Please verify important information.
-              </p>
+
+              <div className="mt-2 sm:mt-2.5 px-1 sm:px-0 max-w-full">
+                <strong className="block text-gray-600 mb-1 text-xs sm:text-xs">Wichtiger Hinweis:</strong>
+                <p className={`text-xs sm:text-xs text-gray-500 text-start leading-relaxed ${!isDisclaimerExpanded ? 'line-clamp-2 sm:line-clamp-none' : ''}`}>
+                  Der digitale Assistent unterstützt Sie bei allen Fragen rund um Ihre Veranlagung und stellt Ihnen die relevanten Informationen bestmöglich zur Verfügung. Obwohl selbstverständlich alles daran gesetzt wird, Unschärfen zu vermeiden, können in Einzelfällen dennoch Ungenauigkeiten auftreten. Sämtliche Angaben und Empfehlungen werden am Ende von einem lizenzierten Vermögensberater überprüft und final bestätigt, daher werden allfällige Unklarheiten spätestens dann geklärt.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsDisclaimerExpanded(!isDisclaimerExpanded)}
+                  className="text-xs text-blue-600 hover:text-blue-800 font-medium mt-1 sm:hidden focus:outline-none"
+                >
+                  {isDisclaimerExpanded ? 'Weniger anzeigen' : 'Mehr anzeigen'}
+                </button>
+              </div>
             </form>
           </div>
         </div>

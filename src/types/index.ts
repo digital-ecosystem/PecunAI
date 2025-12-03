@@ -42,6 +42,8 @@ export interface Question {
     created_at: string
     options: Option[]
     questionOrder: number
+    footnote?: string
+    inputPlaceholder?: string
 }
 
 export interface Option {
@@ -110,6 +112,7 @@ export interface PersonalInfoFormData {
   houseNumber: string;
   postalCode: string;
   city: string;
+  country: string;
   countryCode: string;
   phone: string;
   email: string;
@@ -122,11 +125,16 @@ export interface PersonalInfoFormData {
   issuingAuthority: string;
   issuedOn: string;
   validUntil: string;
-  residenceAbroad: boolean;
-  actingFor: string;
-  isPEP: boolean;
-  magicFlow: boolean;
   iban: string;
+  bic: string;
+  bankName: string;
+  isPEP: boolean;
+  isTaxResidentAT: boolean | null;
+  isTaxResidentOther: boolean | null;
+  taxResidencyCountry: string;
+  residenceAbroad: boolean;
+  magicFlow: boolean;
+  actingFor: string;
 }
 
 export interface Message {

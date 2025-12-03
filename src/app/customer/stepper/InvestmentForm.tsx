@@ -1,3 +1,5 @@
+import { Answer, Question } from '@/types';
+import { formatEuro } from '@/utils/helper';
 import React from 'react';
 // import { ChevronLeft, ChevronRight } from 'lucide-react';
 type Portfolio = {
@@ -23,6 +25,8 @@ export default function InvestmentForm(
         investmentFormData,
         handleCheckboxChange,
         suggestedProduct,
+        questions,
+        answers,
     }: {
         investmentFormData: {
             liquidationRequired: boolean;
@@ -35,40 +39,11 @@ export default function InvestmentForm(
             additionalLiquidityNeeds: boolean;
         };
         handleCheckboxChange: (field: keyof typeof investmentFormData) => void;
-        suggestedProduct: Portfolio | null
+        suggestedProduct: Portfolio | null;
+        questions: Question[];
+        answers: Record<string, string>;
     }
 ) {
-//   const [investmentFormData, investmentSetFormData] = useState({
-//     liquidationRequired: false,
-//     timelyUmschichtung: false,
-//     allConfirmed: false,
-//     dataConsent: false,
-//     confirmationDeclaration: false,
-//     costsDisclosure: false,
-//     liquidityNeeds: false,
-//     additionalLiquidityNeeds: false
-//   });
-
-//   const handleCheckboxChange = (field: keyof typeof investmentFormData) => {
-//     if (field === 'allConfirmed') {
-//       const newValue = !investmentFormData.allConfirmed;
-//       investmentSetFormData({
-//         ...investmentFormData,
-//         allConfirmed: newValue,
-//         dataConsent: newValue,
-//         confirmationDeclaration: newValue,
-//         costsDisclosure: newValue,
-//         liquidityNeeds: newValue,
-//         additionalLiquidityNeeds: newValue
-//       });
-//       return;
-//     }
-//     investmentSetFormData(prev => ({
-//       ...prev,
-//       [field]: !prev[field]
-//     }));
-//   };
-
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 bg-gray-50 lg:min-h-screen min-h-0">
       {/* Header Section */}
@@ -79,51 +54,76 @@ export default function InvestmentForm(
             <p className="font-semibold">Anlageprofil</p>
             <p className="text-sm text-gray-600">Digitale Signatur</p>
           </div>
+        </div>
+
+        <div>
+          <p className="text-xs text-gray-500 mb-4">Allgemeine Informationen</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
           <div>
-            <p className="text-xs text-gray-500 mb-1">Allgemeine Informationen</p>
-            <p className="text-xs text-gray-500 mb-1">ERSTELLUNGSDATUM</p>
-            <p className="font-semibold">
+              <p className="text-xs text-gray-500 mb-1">ERSTELLUNGSDATUM</p>
+              <p className="font-semibold">
                 {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Initiator</p>
+            <p className="font-semibold">Vermittler</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+          <div>
+            <p className="text-xs text-gray-500 mb-1">GRUND</p>
+            {/* Show answer of 1 question */}
+            <p className="font-semibold">
+              {
+                // Show the option label using answers[questions[0].id]
+                questions[0].options.find((option) => option.value === answers[questions[0].id])?.label
+              }
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">BERATUNGSORT</p>
+            <p className="font-semibold">Online Beratung (PecunAI)</p>
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+          <div>
+            <p className="text-xs text-gray-500 mb-1">DEPOT</p>
+            <p className="font-semibold">-</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">EINFÜHRUNG IN ANLAGEKLASSEN</p>
+            <p className='flex flex-wrap gap-2 font-semibold'>
+              <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">AKTIEN / AKTIENFONDS</span>
+              <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">ANLEIHEN / ANLEIHENFONDS</span>
+              <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">EDELMETALLE</span>
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
           <div>
-            <p className="text-xs text-gray-500 mb-1">IBAN</p>
-            <p className="font-semibold">Allgemeine Vermögensbildung</p>
+            <p className="text-xs text-gray-500 mb-1">VORHERIGE FINANZDIENSTLEISTUNGEN</p>
+            {/* Question No 12 */}
+            <p className="font-semibold">
+              <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">
+                {
+                  answers[questions[11].id] == 'good' || answers[questions[11].id] == 'average' ? 'ANLAGEBERATUNG' : '-'
+                }
+              </span>
+            </p>
           </div>
-          <div>
-            <p className="text-xs text-gray-500 mb-1">INSTITUTION</p>
-            <p className="font-semibold">Berater</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-          <div>
-            <p className="text-xs text-gray-500 mb-1">VERTRAGSNUMMER</p>
-            <p className="font-semibold">Kundenämtlichkeiten</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 mb-1">DEPOT</p>
-            <p className="font-semibold">Allgemeine Vermögensbildung</p>
-          </div>
-        </div>
-
-        {/* Tags */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">ERSTELLUNG ZU ANLAGEZELEN</span>
-          <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">RETURN / AKTIENRISIKO</span>
-          <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">ANLAGEN IN GRÜNE ANLAGEN</span>
-          <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">CRYPTO ASSETS</span>
-          <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">CROWDINVESTING</span>
-          <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">EDELMETALLE</span>
         </div>
 
         {/* Portfolio Details */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
-            <p className="text-sm font-semibold mb-3 sm:mb-0">VORHERIGE TRANSAKTIONSINFORMATION</p>
+            <p className="text-sm font-semibold mb-3 sm:mb-0">VORHERIGE FINANZDIENSTLEISTUNGEN</p>
             <div className="flex flex-col sm:flex-row gap-2">
               <label className="flex items-center gap-2 text-sm">
                 <input 
@@ -132,7 +132,7 @@ export default function InvestmentForm(
                   onChange={() => handleCheckboxChange('liquidationRequired')}
                   className="w-4 h-4 text-teal-600 rounded"
                 />
-                <span className="text-gray-700">Zeitlich angemessenes Anlagezeitfenster</span>
+                <span className="text-gray-700">Zeitlich angemessenes Anlageportfolio</span>
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input 
@@ -141,15 +141,15 @@ export default function InvestmentForm(
                   onChange={() => handleCheckboxChange('timelyUmschichtung')}
                   className="w-4 h-4 text-teal-600 rounded"
                 />
-                <span className="text-gray-700">Umschichtung für das Eröffnen des Depots völlig</span>
+                <span className="text-gray-700">Umschichtung für das Eröffnen des Depots nötig</span>
               </label>
             </div>
           </div>
           <span className="inline-block px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs">KEINE AUSREIHUNG</span>
-        </div>
+        </div> */}
 
         {/* Liquiditätsplanung */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <p className="font-semibold mb-3">Liquiditätsplanung erforderlich</p>
           <label className="flex items-center gap-2 text-sm">
             <input 
@@ -160,27 +160,43 @@ export default function InvestmentForm(
             />
             <span className="text-gray-700">Liquiditätsplanung erforderlich</span>
           </label>
-        </div>
+        </div> */}
 
         {/* Horizontalmanagement */}
         <div className="mb-6">
-          <p className="font-semibold mb-3">Horizontalmanagement des Anlageportfolios</p>
+          <p className="font-semibold mb-3">Horizontmanagement des Anlegerportfolios</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <p className="text-xs text-gray-500 mb-1">BEIM KUNDENEIN</p>
-              <p className="text-sm">-</p>
+              <p className="text-xs text-gray-500 mb-1">Sehr kurzfristig</p>
+              <p className="text-sm">
+                {
+                  Number(answers[questions[1].id]) < 3 ? '100%' : '-'
+                }
+              </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-1">KURZFRISTIG</p>
-              <p className="text-sm font-semibold">-</p>
+              <p className="text-xs text-gray-500 mb-1">Kurzfristig</p>
+              <p className="text-sm">
+                {
+                  Number(answers[questions[1].id]) >= 3 && Number(answers[questions[1].id]) < 5 ? '100%' : '-'
+                }
+              </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-1">MITTELFRISTIG</p>
-              <p className="text-sm font-semibold">100 %</p>
+              <p className="text-xs text-gray-500 mb-1">Mittelfristig</p>
+              <p className="text-sm font-semibold">
+                {
+                  Number(answers[questions[1].id]) >= 5 && Number(answers[questions[1].id]) < 7 ? '100%' : '-'
+                }
+              </p>  
             </div>
-            <div className="col-start-3">
-              <p className="text-xs text-gray-500 mb-1">LANGFRISTIG</p>
-              <p className="text-sm">-</p>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Langfristig</p>
+              <p className="text-sm">
+                {
+                  Number(answers[questions[1].id]) >= 7 ? '100%' : '-'
+                }
+              </p>
             </div>
           </div>
         </div>
@@ -191,7 +207,11 @@ export default function InvestmentForm(
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-gray-500 mb-1">DISPOSITIONSBETRAG</p>
-              <p className="text-sm font-semibold">10 000 €</p>
+              <p className="text-sm font-semibold">
+                {
+                  formatEuro(Number(answers[questions[13].id])) || '0.00 €'
+                }
+              </p>
             </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">BEREITS GETÄTIGTE ZAHLUNGEN</p>

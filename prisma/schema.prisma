@@ -111,6 +111,8 @@ model Question {
   questionType  String?          @default("choice")
   maxValue      Int?
   minValue      Int?
+  footnote      String?
+  inputPlaceholder String?
   answers       Answer[]
   options       QuestionOption[]
 
@@ -257,6 +259,12 @@ model PersonalInfo {
   placeOfBirth           String
   postalCode             String
   iban                   String?
+  country                String?
+  bic                    String?
+  bankName               String?
+  isTaxResidentAT        Boolean?
+  isTaxResidentOther     Boolean?
+  taxResidencyCountry    String?
   qaSessionId            String           @unique
   residenceAbroad        Boolean          @default(false)
   street                 String

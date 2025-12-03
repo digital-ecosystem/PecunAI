@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the documents directory if it doesn't exist
-    const documentsDir = join(process.cwd(), 'public', 'documents', 'signed');
+    const documentsDir = join(process.cwd(), 'private-documents', `${sessionId}`, 'signed');
     try {
       await mkdir(documentsDir, { recursive: true });
     } catch (error) {
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     // Generate a unique filename with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const finalFilename = `${sessionId}.pdf`;
+    const finalFilename = `signature.pdf`;
     const finalFilenameX = `${sessionId}_${timestamp}_${sanitizedFilename}`;
     console.log("🚀 ~ POST ~ finalFilenameX:", finalFilenameX)
     const filePath = join(documentsDir, finalFilename);

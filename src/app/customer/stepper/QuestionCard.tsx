@@ -1,3 +1,4 @@
+import { formatEuro } from "@/utils/helper";
 import React from "react";
 
 type QuestionCardProps = {
@@ -19,11 +20,13 @@ type QuestionCardProps = {
   errorMessage?: string; // Error message for validation
   forbiddenValues?: string[]; // Values that cannot be selected (e.g., ["none", "keine"])
   forbiddenErrorMessage?: string; // Error message for forbidden values
+  questionId?: string;
+  footnote?: string; // Footnote/helper text for the question
+  inputPlaceholder?: string; // Custom placeholder for input fields
 };
 
 const QuestionCard = ({
   step,
-  totalSteps,
   // title,
   // subtitle,
   question,
@@ -40,8 +43,10 @@ const QuestionCard = ({
   errorMessage,
   forbiddenValues,
   forbiddenErrorMessage,
+  questionId,
+  footnote,
+  inputPlaceholder,
 }: QuestionCardProps) => {
-  console.log("🚀 ~ QuestionCard ~ totalSteps:", totalSteps)
   
   // Check if this is Question 4 about sustainability and "neutral" is selected
   const isSustainabilityQuestion = 
@@ -69,12 +74,12 @@ const QuestionCard = ({
         <p className="text-sm sm:text-base text-gray-500 mb-2 sm:mb-0">Question {step} of {totalSteps}</p>
         <p className="text-sm sm:text-base text-gray-500">{Math.round((step / totalSteps) * 100)}%</p>
       </div> */}
-      <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 mb-4 sm:mb-4">
+      {/* <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 mb-4 sm:mb-4">
         <div
           className="bg-blue-600 h-2 sm:h-3 rounded-full transition-all duration-300"
           style={{ width: `${(step / totalSteps) * 100}%` }}
         ></div>
-      </div>
+      </div> */}
 
       {/* Icon + Titles */}
       {/* <div className="flex flex-col items-center mb-6 sm:mb-8">
@@ -96,7 +101,7 @@ const QuestionCard = ({
             type="text"
             value={selected || ""}
             onChange={(e) => onSelect(e.target.value)}
-            placeholder="Please enter your answer..."
+            placeholder={inputPlaceholder || "Bitte geben Sie Ihre Antwort ein..."}
             className="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
           />
         </div>
@@ -122,18 +127,18 @@ const QuestionCard = ({
                 // Allow any input, validation happens in parent
                 onSelect(value);
               }}
-              placeholder="Enter a number..."
+              placeholder={inputPlaceholder || "Geben Sie eine Zahl ein..."}
               min="0"
               className="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
             />
             {maxValue !== undefined && (
-              <p className="text-xs sm:text-sm text-gray-500">Maximum value: {maxValue}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Maximaler Wert: {formatEuro(maxValue)}</p>
             )}
           </div>
           {hasValidationError && (
             <div className="mt-3 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm sm:text-base text-red-700 font-medium">
-                {hasMaxValidationError ? `Maximum value is ${maxValue}` : errorMessage || "Invalid input"}
+                {hasMaxValidationError ? `Maximaler Wert ist ${formatEuro(maxValue!)}` : errorMessage || "Invalid input"}
               </p>
             </div>
           )}
@@ -141,7 +146,7 @@ const QuestionCard = ({
       ) : (
         /* Multiple Choice Options */
         <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-          {options?.map((opt, idx) => (
+              {options?.map((opt, idx) => (
             <label
               key={idx}
               className={`flex items-start sm:items-center gap-3 p-3 sm:p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md
@@ -154,7 +159,7 @@ const QuestionCard = ({
             >
               <input
                 type="radio"
-                name="answer"
+                name={`answer-${questionId || questionOrder || step}`}
                 value={opt.value}
                 checked={selected === opt.value}
                 onChange={() => onSelect(opt.value)}
@@ -163,6 +168,13 @@ const QuestionCard = ({
               <span className="text-sm sm:text-base text-gray-700 leading-relaxed">{opt.label}</span>
             </label>
           ))}
+        </div>
+      )}
+
+      {/* Footnote/Helper Text */}
+      {footnote && (
+        <div className="mb-6 sm:mb-8 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-xs sm:text-sm text-blue-700 leading-relaxed">{footnote}</p>
         </div>
       )}
 

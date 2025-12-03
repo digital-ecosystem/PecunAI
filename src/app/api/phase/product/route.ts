@@ -8,8 +8,6 @@ export async function GET(request: NextRequest) {
     const duration = searchParams.get('duration');
     const risk = searchParams.get('risk');
 
-    console.log('🔍 Product suggestion request:', { duration, risk });
-
     // If no parameters provided, return random product (legacy behavior)
     if (!duration || !risk) {
       const count = await prisma.product.count();
@@ -44,17 +42,17 @@ export async function GET(request: NextRequest) {
     //     break;
     // }
 
-    if (0 < Number(duration) && Number(duration) <= 3) {
+    if (Number(duration) <= 3) {
       minYear = 0;
       maxYear = 3;
-    } else if (3 < Number(duration) && Number(duration) <= 6) {
-      minYear = 4;
-      maxYear = 6;
-    } else if (6 < Number(duration) && Number(duration) <= 10) {
+    } else if (Number(duration) > 3 && Number(duration) < 5) {
+      minYear = 3;
+      maxYear = 5;
+    } else if (Number(duration) >= 5 && Number(duration) < 7) {
+      minYear = 5;
+      maxYear = 7;
+    } else if (Number(duration) >= 7) {
       minYear = 7;
-      maxYear = 10;
-    } else if (Number(duration) > 10) {
-      minYear = 11;
       maxYear = 100;
     }
 

@@ -72,38 +72,39 @@ export async function POST(request: NextRequest) {
           base64: cleanBase64,
           fields: [
             {
-              page: 21,
+              page: 1,
               type: "signature", // custom-stamp
               width: 250,
               height: 100,
-              x: 75,
-              y: 1400,
+              x: 500,
+              y: 1100,
               required: true,
               read_only: false,
               recipient_id: "1"
             },
-            {
-              page: 24,
-              type: "signature", // custom-stamp
-              width: 250,
-              height: 100,
-              x: 75,
-              y: 725,
-              required: true,
-              read_only: false,
-              recipient_id: "1"
-            },
-            {
-              page: 25,
-              type: "signature", // custom-stamp
-              width: 250,
-              height: 100,
-              x: 75,
-              y: 1275,
-              required: true,
-              read_only: false,
-              recipient_id: "1"
-            }]
+            // {
+            //   page: 24,
+            //   type: "signature", // custom-stamp
+            //   width: 250,
+            //   height: 100,
+            //   x: 75,
+            //   y: 725,
+            //   required: true,
+            //   read_only: false,
+            //   recipient_id: "1"
+            // },
+            // {
+            //   page: 25,
+            //   type: "signature", // custom-stamp
+            //   width: 250,
+            //   height: 100,
+            //   x: 75,
+            //   y: 1275,
+            //   required: true,
+            //   read_only: false,
+            //   recipient_id: "1"
+            // }
+          ]
         }
       ],
       recipients: [{

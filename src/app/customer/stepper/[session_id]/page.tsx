@@ -126,109 +126,131 @@ const buttonBackClass =
 
 const validationSchema = Yup.object({
   iban: Yup.string()
-    // .matches(/^([A-Z]{2}[0-9]{2}[A-Z0-9]{1,30})$/, "Invalid IBAN format")
-    .required("IBAN is required"),
+    // .matches(/^([A-Z]{2}[0-9]{2}[A-Z0-9]{1,30})$/, "Ungültiges IBAN-Format")
+    .required("IBAN ist erforderlich"),
   firstName: Yup.string()
-    .min(2, "First name must be at least 2 characters")
-    .max(50, "First name must be at most 50 characters")
-    .required("First name is required"),
+    .min(2, "Vorname muss mindestens 2 Zeichen lang sein")
+    .max(50, "Vorname darf maximal 50 Zeichen lang sein")
+    .required("Vorname ist erforderlich"),
 
   lastName: Yup.string()
-    .min(2, "Last name must be at least 2 characters")
-    .max(50, "Last name must be at most 50 characters")
-    .required("Last name is required"),
+    .min(2, "Nachname muss mindestens 2 Zeichen lang sein")
+    .max(50, "Nachname darf maximal 50 Zeichen lang sein")
+    .required("Nachname ist erforderlich"),
 
   birthPlace: Yup.string()
-    .min(2, "Place of birth must be at least 2 characters")
-    .required("Place of birth is required"),
+    .min(2, "Geburtsort muss mindestens 2 Zeichen lang sein")
+    .required("Geburtsort ist erforderlich"),
 
   nationality: Yup.string()
-    .min(2, "Nationality must be at least 2 characters")
-    .required("Nationality is required"),
+    .min(2, "Nationalität muss mindestens 2 Zeichen lang sein")
+    .required("Nationalität ist erforderlich"),
 
   birthDate: Yup.date()
-    .max(new Date(), "Birth date cannot be in the future")
-    .required("Birth date is required"),
+    .max(new Date(), "Geburtsdatum darf nicht in der Zukunft liegen")
+    .required("Geburtsdatum ist erforderlich"),
 
   maritalStatus: Yup.string()
     .oneOf(
       ["Single", "Married", "Divorced", "Widowed"],
-      "Invalid marital status"
+      "Ungültiger Familienstand"
     )
-    .required("Marital status is required"),
+    .required("Familienstand ist erforderlich"),
 
   street: Yup.string()
-    .min(2, "Street must be at least 2 characters")
-    .required("Street is required"),
+    .min(2, "Straße muss mindestens 2 Zeichen lang sein")
+    .required("Straße ist erforderlich"),
 
   houseNumber: Yup.string()
-    .matches(/^[a-zA-Z0-9/-]{1,10}$/, "Invalid house number")
-    .required("House number is required"),
+    .matches(/^[a-zA-Z0-9/-]{1,10}$/, "Ungültige Hausnummer")
+    .required("Hausnummer ist erforderlich"),
 
   postalCode: Yup.string()
-    .matches(/^\d{4,10}$/, "Postal code must be 4 to 10 digits")
-    .required("Postal code is required"),
+    .matches(/^\d{4,10}$/, "Postleitzahl muss 4 bis 10 Ziffern haben")
+    .required("Postleitzahl ist erforderlich"),
 
   city: Yup.string()
-    .min(2, "City must be at least 2 characters")
-    .required("City is required"),
+    .min(2, "Stadt muss mindestens 2 Zeichen lang sein")
+    .required("Stadt ist erforderlich"),
 
   countryCode: Yup.string()
-    .matches(/^\+\d{1,4}$/, "Country code must start with + followed by 1-4 digits")
-    .required("Country code is required"),
+    .matches(/^\+\d{1,4}$/, "Ländervorwahl muss mit + beginnen, gefolgt von 1-4 Ziffern")
+    .required("Ländervorwahl ist erforderlich"),
 
   phone: Yup.string()
     .matches(
       /^\+?\d{7,15}$/,
-      "Phone number must be 7 to 15 digits, optionally starting with '+'"
+      "Telefonnummer muss 7 bis 15 Ziffern haben, optional beginnend mit '+'"
     )
-    .required("Phone number is required"),
+    .required("Telefonnummer ist erforderlich"),
 
   email: Yup.string()
-    .email("Invalid email format")
-    .required("Email is required"),
+    .email("Ungültiges E-Mail-Format")
+    .required("E-Mail ist erforderlich"),
 
   education: Yup.string()
-    .min(2, "Education field must be at least 2 characters")
-    .required("Education is required"),
+    .min(2, "Ausbildung muss mindestens 2 Zeichen lang sein")
+    .required("Ausbildung ist erforderlich"),
 
   currentJob: Yup.string()
-    .min(2, "Current job must be at least 2 characters")
-    .required("Current job is required"),
+    .min(2, "Aktueller Beruf muss mindestens 2 Zeichen lang sein")
+    .required("Aktueller Beruf ist erforderlich"),
 
   industry: Yup.string()
-    .min(2, "Industry must be at least 2 characters")
-    .required("Industry is required"),
+    .min(2, "Branche muss mindestens 2 Zeichen lang sein")
+    .required("Branche ist erforderlich"),
 
   occupation: Yup.string()
-    .min(2, "Occupation must be at least 2 characters")
-    .required("Occupation is required"),
+    .min(2, "Tätigkeit muss mindestens 2 Zeichen lang sein")
+    .required("Tätigkeit ist erforderlich"),
 
   documentType: Yup.string()
     .oneOf(
       ["passport", "identity_card", "drivers_license"],
-      "Invalid document type"
+      "Ungültige Dokumentenart"
     )
-    .required("Document type is required"),
+    .required("Dokumentenart ist erforderlich"),
 
   documentNumber: Yup.string()
     .matches(
       /^[a-zA-Z0-9]{4,20}$/,
-      "Document number must be 4–20 alphanumeric characters"
+      "Dokumentnummer muss 4–20 alphanumerische Zeichen enthalten"
     )
-    .required("Document number is required"),
+    .required("Dokumentnummer ist erforderlich"),
 
   issuingAuthority: Yup.string()
-    .min(2, "Issuing authority must be at least 2 characters")
-    .required("Issuing authority is required"),
+    .min(2, "Ausstellende Behörde muss mindestens 2 Zeichen lang sein")
+    .required("Ausstellende Behörde ist erforderlich"),
 
   issuedOn: Yup.date()
-    .required("Issue date is required")
-    .max(new Date(), "Issue date can't be in the future"),
+    .required("Ausstellungsdatum ist erforderlich")
+    .max(new Date(), "Ausstellungsdatum darf nicht in der Zukunft liegen"),
 
   validUntil: Yup.date()
-    .min(Yup.ref("issuedOn"), "Valid until must be after issue date")
-    .required("Valid until date is required"),
+    .min(Yup.ref("issuedOn"), "Gültig bis muss nach dem Ausstellungsdatum liegen")
+    .required("Gültigkeitsdatum ist erforderlich"),
+
+  country: Yup.string().required("Land ist erforderlich"),
+
+  bic: Yup.string()
+    .matches(/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/, "Ungültiges BIC-Format")
+    .required("BIC ist erforderlich"),
+
+  bankName: Yup.string().required("Name der Bank ist erforderlich"),
+
+  isTaxResidentAT: Yup.boolean()
+    .required("Bitte geben Sie an, ob Sie in Österreich steueransässig sind"),
+    // .nullable(),
+
+  isTaxResidentOther: Yup.boolean()
+    .required("Bitte geben Sie an, ob Sie in einem anderen Land steueransässig sind"),
+    // .nullable(),
+
+  taxResidencyCountry: Yup.string().when("isTaxResidentOther", {
+    is: true,
+    then: (schema) => schema.required("Steueransässigkeitsland ist erforderlich"),
+    otherwise: (schema) => schema.nullable(),
+  }),
 });
 
 // Test credentials from the documentation
@@ -244,7 +266,7 @@ export default function Stepper() {
   const [currentSubStep, setCurrentSubStep] = useState<string>('TERMS1'); // Track sub-steps within Phase 1 and Phase 5
   const [confirmed, setConfirmed] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [answersByIndex, setAnswersByIndex] = useState<Record<number, AnswerWithOptions>>({});
+  // const [answersByIndex, setAnswersByIndex] = useState<Record<number, AnswerWithOptions>>({});
   // console.log("🚀 ~ Stepper ~ answersByIndex:", answersByIndex)
   const [questionIndex, setQuestionIndex] = useState(1);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -403,14 +425,86 @@ export default function Stepper() {
       });
     };
 
-  // For PHASES.QUESTIONS1
+  // Pagination for question pages (show multiple questions per view)
+  const QUESTIONS_PER_PAGE = 3; // adjust this number to show more/less questions per page
+
+  // For PHASES.QUESTIONS1 (first 2 questions remain grouped)
   const questions1 = questions.slice(0, 2);
-  // console.log("🚀 ~ Stepper ~ questions1:", questions1)
-  const currentQ = questions1[questionIndex - 1];
-  // For PHASES.QUESTIONS2
-  const questions2 = questions.slice(2, questions.length);
-  // console.log("🚀 ~ Stepper ~ questions2:", questions2)
-  const currentQ2 = questions2[questionIndex - 1];
+  const totalQuestions1 = questions1.length;
+  const totalPages1 = Math.max(1, Math.ceil(totalQuestions1 / QUESTIONS_PER_PAGE));
+
+  // For PHASES.QUESTIONS2 (remaining questions)
+  const questions2 = questions.slice(2);
+  const totalQuestions2 = questions2.length;
+  const totalPages2 = Math.max(1, Math.ceil(totalQuestions2 / QUESTIONS_PER_PAGE));
+
+  // questionIndex now works as a page index within the current sub-step (1-based)
+  const currentPage = Math.max(1, questionIndex);
+
+  // Determine which questions should be visible on the current page
+  // Compute a balanced page slice so the final page doesn't contain a single orphan question.
+  const getPageSlice = (arr: Question[], page: number, perPage: number) => {
+    const N = arr.length;
+    const totalPages = Math.max(1, Math.ceil(N / perPage));
+
+    // default start/end (end exclusive)
+    let start = (page - 1) * perPage;
+    let end = page * perPage;
+
+    // If the last page would contain just 1 item (remainder === 1) and there is more than one page,
+    // rebalance so the last two pages contain at least 2 items each by shifting one item from the
+    // penultimate page to the last page.
+    if (N % perPage === 1 && totalPages > 1) {
+      if (page === totalPages - 1) {
+        // penultimate page: show one less item
+        end = end - 1;
+      } else if (page === totalPages) {
+        // last page: start one item earlier to include the shifted item
+        start = Math.max(0, start - 1);
+      }
+    }
+
+    start = Math.max(0, start);
+    end = Math.min(N, end);
+
+    return arr.slice(start, end);
+  };
+
+  const currentPageQuestions =
+    currentSubStep === 'QUESTIONS1'
+      ? getPageSlice(questions1, currentPage, QUESTIONS_PER_PAGE)
+      : getPageSlice(questions2, currentPage, QUESTIONS_PER_PAGE);
+
+  // Convenience: (legacy single-question refs removed; use currentPageQuestions)
+
+  // Helper to check if the current page is fully answered and valid
+  const isCurrentPageValid = currentPageQuestions.length > 0 && currentPageQuestions.every((q) => {
+    const answer = answers[q.id];
+    if (!answer) return false;
+    if (hasValidationError(q, answer)) return false;
+    if (hasForbiddenSelection(q, answer)) return false;
+    return true;
+  });
+
+  // Handler for selecting an option for any question on a page
+  const handleSelectQuestion = async (q: Question, opt: string) => {
+    try {
+      // Update local state immediately
+      const newAnswers = { ...answers, [q.id]: opt };
+      setAnswers(newAnswers);
+
+      // Sync index-based structure used elsewhere
+      syncAnswers(q.id, opt, q.questionOrder, q.options || []);
+
+      // Persist the answer
+      await saveAnswer(q.id, opt, q.text, q.questionType, q.options);
+
+      // Do not auto-advance — allow user to answer all visible questions and use Next
+      // Page validity is handled by `isCurrentPageValid` which controls the Next button
+    } catch (err) {
+      console.error('Error saving answer:', err);
+    }
+  };
 
   const {
     // isLoading,
@@ -430,7 +524,7 @@ export default function Stepper() {
       firstName: "",
       lastName: "",
       birthPlace: "",
-      nationality: "Austria",
+      nationality: "",
       birthDate: "",
       maritalStatus: "",
       street: "",
@@ -453,7 +547,13 @@ export default function Stepper() {
       isPEP: false,
       residenceAbroad: false,
       actingFor: "",
-      magicFlow: true,
+      magicFlow: false,
+      country: "",
+      bic: "",
+      bankName: "",
+      isTaxResidentAT: null,
+      isTaxResidentOther: null,
+      taxResidencyCountry: ""
     },
     validationSchema,
     onSubmit: (values: PersonalInfoFormData) => {
@@ -514,14 +614,17 @@ export default function Stepper() {
   const nextStep = () => {
     // Handle Phase 1 sub-steps navigation
     if (step === 1) {
-      if (currentSubStep === 'QUESTIONS1' && questionIndex === 2) {
+      // If we're at the last page of QUESTIONS1, move to TERMS2
+      if (currentSubStep === 'QUESTIONS1' && (questionIndex * QUESTIONS_PER_PAGE) >= totalQuestions1) {
         setCurrentSubStep('TERMS2');
         setQuestionIndex(1);
         savePhase(1, 'TERMS2');
         return;
-      } else if (currentSubStep === 'QUESTIONS2' && questionIndex === 13) {
-        // Move to Phase 2
-        const newStep = 2;
+      }
+
+      // If we're at the last page of QUESTIONS2, move to SUGGESTIONS (Phase 2)
+      if (currentSubStep === 'QUESTIONS2' && (questionIndex * QUESTIONS_PER_PAGE) >= totalQuestions2) {
+        const newStep = PHASES.SUGGESTIONS;
         setStep(newStep);
         setCurrentSubStep('');
         savePhase(newStep);
@@ -579,7 +682,7 @@ export default function Stepper() {
         return;
       } else if (currentSubStep === 'TERMS2') {
         setCurrentSubStep('QUESTIONS1');
-        setQuestionIndex(2);
+        setQuestionIndex(totalPages1);
         savePhase(1, 'QUESTIONS1');
         return;
       } else if (currentSubStep === 'QUESTIONS2' && questionIndex === 1) {
@@ -626,7 +729,7 @@ export default function Stepper() {
       // Going back from Phase 2 to Phase 1
       setStep(1);
       setCurrentSubStep('QUESTIONS2');
-      setQuestionIndex(13);
+      setQuestionIndex(totalPages2);
       savePhase(1, 'QUESTIONS2');
       return;
     }
@@ -678,19 +781,21 @@ export default function Stepper() {
 
   // Helper function to sync answers by ID and by index
   const syncAnswers = (questionId: string, selectedOption: string, index: number, options: (Option | string)[]) => {
+    console.log("🚀 ~ syncAnswers ~ options:", options)
+    console.log("🚀 ~ syncAnswers ~ index:", index)
     setAnswers(prev => ({ ...prev, [questionId]: selectedOption }));
-    setAnswersByIndex(prev => ({
-      ...prev,
-      [index]: {
-        selectedOption,
-        options
-      }
-    }));
+    // setAnswersByIndex(prev => ({
+    //   ...prev,
+    //   [index]: {
+    //     selectedOption,
+    //     options
+    //   }
+    // }));
   };
 
   // Helper function to check if a number input violates min/max constraints
-  const hasValidationError = (q: Question | undefined, answerValue: string | undefined): boolean => {
-    console.log("🚀 ~ hasValidationError ~ q, answerValue:", q, answerValue);
+  function hasValidationError(q: Question | undefined, answerValue: string | undefined): boolean {
+    // console.log("🚀 ~ hasValidationError ~ q, answerValue:", q, answerValue);
     if (!q || !answerValue || q.questionType !== 'number') return false;
 
     const numValue = parseInt(answerValue, 10);
@@ -700,10 +805,10 @@ export default function Stepper() {
     if (q.maxValue !== null && q.maxValue !== undefined && numValue > q.maxValue) return true;
 
     return false;
-  };
+  }
 
   // Helper to check forbidden values for specific questions (e.g., Q9 & Q10)
-  const hasForbiddenSelection = (q: Question | undefined, answerValue: string | undefined): boolean => {
+  function hasForbiddenSelection(q: Question | undefined, answerValue: string | undefined): boolean {
     if (!q || !answerValue) return false;
     // For questions 9 and 10, forbid 'none' or 'keine'
     if (q.questionOrder === 9 || q.questionOrder === 10) {
@@ -711,7 +816,7 @@ export default function Stepper() {
       return val === 'none' || val === 'keine';
     }
     return false;
-  };
+  }
 
   const sendMessage = useCallback(
     async (messageOverride: string = "", shouldAppend: boolean = true) => {
@@ -828,7 +933,6 @@ export default function Stepper() {
             timestamp: new Date(msg.timestamp)
           }));
           setMessages(updatedMessages);
-          console.log('✅ Messages refreshed after audio processing:', updatedMessages.length);
         }
       }
     } catch (error) {
@@ -914,14 +1018,36 @@ export default function Stepper() {
     [session_id, threadId]
   );
 
+
+  // Fetch saved product suggestion on load
+  useEffect(() => {
+    const fetchSavedProduct = async () => {
+      if (!session_id) return;
+
+      try {
+        const response = await fetch(`/api/phase/suggest-product?qaSessionId=${session_id}`);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          setSuggestedProduct(data.data);
+          // Also initialize chat if product is found
+          if (data.data.id) {
+             await initializeChatWithProduct(data.data.id);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch saved product suggestion:", error);
+      }
+    };
+
+    fetchSavedProduct();
+  }, [session_id, initializeChatWithProduct]);
+
   useEffect(() => {
     const fetchSuggestedProduct = async () => {
       if (step === PHASES.SUGGESTIONS && questions.length > 0) {
         try {
           setLoading(true);
-
-          console.log("🔍 Fetching product suggestion based on answers...", answers);
-
           // const durationKeywords = [
           //   "short_term",
           //   "medium_term",
@@ -978,9 +1104,7 @@ export default function Stepper() {
           // }
 
           const durationQuestionId = questions[1]?.id;
-          console.log("🚀 ~ fetchSuggestedProduct ~ durationQuestionId:", durationQuestionId)
           const riskQuestionId = questions[4]?.id;
-          console.log("🚀 ~ fetchSuggestedProduct ~ riskQuestionId:", riskQuestionId)
 
           if (
             durationQuestionId &&
@@ -1123,7 +1247,7 @@ export default function Stepper() {
                 };
               }
             });
-            setAnswersByIndex(indexedAnswers);
+            // setAnswersByIndex(indexedAnswers);
           }
 
           // Set the step to the saved phase from the session
@@ -1141,7 +1265,7 @@ export default function Stepper() {
               }
             }
             // Set the appropriate sub-step for Phase 5
-            else if (phaseStep === 7) {
+            else if (phaseStep > 4) {
               // if (data.currentPhase === 'SIGN_DOCUMENT' || data.currentPhase === 'RESULT_PDF') {
               //   setCurrentSubStep(data.currentPhase);
               // } else {
@@ -1228,6 +1352,12 @@ export default function Stepper() {
               residenceAbroad: user.residenceAbroad || false,
               actingFor: user.actsOnOwnAccount ? "own" : "other",
               magicFlow: true,
+              country: user.country || "",
+              bic: user.bic || "",
+              bankName: user.bankName || "",
+              isTaxResidentAT: user.isTaxResidentAT || null,
+              isTaxResidentOther: user.isTaxResidentOther || null,
+              taxResidencyCountry: user.taxResidencyCountry || "",
             });
           }
         } else {
@@ -1241,6 +1371,32 @@ export default function Stepper() {
     fetchUserInfo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session_id]);
+
+  useEffect(() => { 
+    if(step === PHASES.CONTRACT_DOCUMENT) {
+      const fetchContractDocument = async () => {
+        setLoading(true);
+        try {
+          const response = await fetch(`/api/phase/contract-document`, {
+            method: "POST",
+            body: JSON.stringify({ sessionId: session_id, userInfo: formik.values }),
+          });
+          const data = await response.json();
+          if (data.success && data.documentUrl) {
+            console.log("Contract document URL fetched:", data.documentUrl);
+          } else {
+            console.error("Failed to fetch contract document:", data.message);
+          }
+        } catch (error) {
+          console.error("Error fetching contract document:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchContractDocument();
+    }
+  }, [step, session_id, formik.values]);
 
   const onPersonalInfoSubmit = async (data: PersonalInfoFormData) => {
     // console.log("🚀 ~ onPersonalInfoSubmit ~ data:", data)
@@ -1313,6 +1469,12 @@ export default function Stepper() {
             ? new Date(data.validUntil).toISOString()
             : undefined,
           iban: data.iban,
+          country: data.country,
+          bic: data.bic,
+          bankName: data.bankName,
+          isTaxResidentAT: data.isTaxResidentAT,
+          isTaxResidentOther: data.isTaxResidentOther,
+          taxResidencyCountry: data.taxResidencyCountry,
         }),
       });
       const result = await response.json();
@@ -1418,7 +1580,7 @@ export default function Stepper() {
         const pdfSave = await fetch("/api/phase/save-pdf", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileName, pdfBase64: buffer }),
+          body: JSON.stringify({ fileName, pdfBase64: buffer, seessionId: session_id  }),
         });
         // console.log("🚀 ~ handleSignDSuccess ~ pdfSave:", pdfSave)
         const pdfSaveResponse = await pdfSave.json();
@@ -1521,57 +1683,73 @@ export default function Stepper() {
 
     try {
       // Helper function to read static PDF file and convert to base64
-      const readStaticPDFToBase64 = async (pdfPath: string): Promise<string> => {
-        try {
-          // For files in public folder, use absolute path from public root
-          const response = await fetch(pdfPath);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch PDF: ${response.statusText}`);
-          }
-          const arrayBuffer = await response.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          return buffer.toString('base64');
-        } catch (error) {
-          console.error('Error reading static PDF:', error);
-          throw error;
-        }
-      };
+      // const readStaticPDFToBase64 = async (pdfPath: string): Promise<string> => {
+      //   try {
+      //     // For files in public folder, use absolute path from public root
+      //     const response = await fetch(pdfPath);
+      //     if (!response.ok) {
+      //       throw new Error(`Failed to fetch PDF: ${response.statusText}`);
+      //     }
+      //     const arrayBuffer = await response.arrayBuffer();
+      //     const buffer = Buffer.from(arrayBuffer);
+      //     return buffer.toString('base64');
+      //   } catch (error) {
+      //     console.error('Error reading static PDF:', error);
+      //     throw error;
+      //   }
+      // };
 
       // api call to fill the dynamic fields and create pdf for signing
-      const responsePDF = await fetch('/api/pdf-form-fill', {
+      // const responsePDF = await fetch('/api/pdf-form-fill', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     userInfo: formik.values,
+      //     sessionId: session_id,
+      //     options: {
+      //       flattenForm: true,
+      //       debugMode: true // Enable debug mode to save a copy for inspection
+      //     },
+      //     questionAnswers: answersByIndex,
+      //     additionalData: {
+      //       "vorname 69": suggestedProduct?.fullName || '',
+      //       "vorname 97": suggestedProduct?.fullName || '',
+      //     }
+      //   }),
+      // });
+
+      // if (!responsePDF.ok) {
+      //   throw new Error(`PDF API Error: ${responsePDF.status} ${responsePDF.statusText}`);
+      // }
+
+      // const dataPDF = await responsePDF.json();
+      // console.log("🚀 ~ generatePDF ~ dataPDF:", dataPDF)
+
+      // if (!dataPDF.success || !dataPDF.finalPath) {
+      //   const errorMsg = dataPDF.error || 'Failed to fill PDF form';
+      //   console.error('❌ PDF Form Fill Error:', errorMsg);
+      //   throw new Error(`PDF-Formular konnte nicht ausgefüllt werden: ${errorMsg}`);
+      // }
+
+      // const publicPdfBase64 = await readStaticPDFToBase64(dataPDF.finalPath);
+      // console.log("🚀 ~ generatePDF ~ publicPdfBase64:", publicPdfBase64)
+
+      const finalMergeResponse = await fetch('/api/documents/merge', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          userInfo: formik.values,
-          sessionId: session_id,
-          options: {
-            flattenForm: true,
-            debugMode: true // Enable debug mode to save a copy for inspection
-          },
-          questionAnswers: answersByIndex,
-          additionalData: {
-            "vorname 69": suggestedProduct?.fullName || '',
-            "vorname 97": suggestedProduct?.fullName || '',
-          }
-        }),
+        body: JSON.stringify({ sessionId: session_id, base64Encode: true }),
       });
 
-      if (!responsePDF.ok) {
-        throw new Error(`PDF API Error: ${responsePDF.status} ${responsePDF.statusText}`);
+      if (!finalMergeResponse.ok) {
+        throw new Error('Failed to merge PDFs');
       }
 
-      const dataPDF = await responsePDF.json();
-      // console.log("🚀 ~ generatePDF ~ dataPDF:", dataPDF)
-
-      if (!dataPDF.success || !dataPDF.finalPath) {
-        const errorMsg = dataPDF.error || 'Failed to fill PDF form';
-        console.error('❌ PDF Form Fill Error:', errorMsg);
-        throw new Error(`PDF-Formular konnte nicht ausgefüllt werden: ${errorMsg}`);
-      }
-
-      const publicPdfBase64 = await readStaticPDFToBase64(dataPDF.finalPath);
+      // Get the merged PDF blob
+      const finalMergeRes = await finalMergeResponse.json();
 
       const response = await fetch('/api/signteq/create-session', {
         method: 'POST',
@@ -1581,7 +1759,7 @@ export default function Stepper() {
         body: JSON.stringify({
           subject: 'Test Document Signature',
           documentName: 'test_document.pdf',
-          documentBase64: publicPdfBase64, // Use the filled PDF instead of the static one
+          documentBase64: finalMergeRes?.mergedPdfBase64 || '', // Use the filled PDF instead of the static one
           recipientEmail: formik.values.email,
           recipientName: `${formik.values.firstName} ${formik.values.lastName}`,
           sessionId: session_id,
@@ -1611,14 +1789,7 @@ export default function Stepper() {
       } else {
         // Handle API errors with detailed messages
         const errorMessage = data.error || data.message || 'Failed to create SignTeq session';
-        const errorDetails = data.details || '';
-
-        console.error('❌ SignTeq Error:', {
-          message: errorMessage,
-          details: errorDetails,
-          statusCode: response.status,
-          fullResponse: data
-        });
+        // const errorDetails = data.details || '';
 
         // Provide user-friendly error messages
         let userMessage = 'Ein Fehler ist beim Erstellen der Signatursitzung aufgetreten. ';
@@ -1971,94 +2142,70 @@ export default function Stepper() {
               )}
 
               {step === PHASES.QUESTIONS1 && currentSubStep === 'QUESTIONS1' && (
-                <div className="w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
-                  <QuestionCard
-                    step={questionIndex}
-                    totalSteps={15}
-                    // title={currentQ?.title}
-                    // subtitle={currentQ?.subtitle}
-                    question={currentQ?.text}
-                    questionText={currentQ?.text}
-                    questionType={currentQ?.questionType}
-                    options={
-                      currentQ?.options?.length
-                        ? currentQ.options.map((opt) => ({
-                          label: opt.label,
-                          value: opt.value,
-                        }))
-                        : undefined
-                    }
-                    questionOrder={currentQ?.questionOrder}
-                    selected={answers[currentQ?.id]}
-                    maxValue={currentQ?.maxValue || undefined}
-                    minValue={currentQ?.minValue || undefined}
-                    errorMessage={currentQ?.minValue ? "Wir haben derzeit kein Produkt für diese Laufzeit." : undefined}
-                    onSelect={async (opt) => {
-                      setAnswers({ ...answers, [currentQ?.id]: opt });
-                      syncAnswers(
-                        currentQ?.id,
-                        opt,
-                        currentQ?.questionOrder,
-                        currentQ.options
-                      );
-                      await saveAnswer(
-                        currentQ?.id,
-                        opt,
-                        currentQ?.text,
-                        currentQ?.questionType,
-                        currentQ?.options
-                      );
-                    }}
-                  // onNext={() => questionIndex === 3 ? lastQuestionNext() : setQuestionIndex((s) => Math.min(s + 1, 3))}
-                  // onBack={() => setQuestionIndex((s) => Math.max(s - 1, 1))}
-                  />
+                <div className="w-full h-full flex items-start justify-center p-4 sm:p-6 md:p-8">
+                  <div className="w-full max-w-4xl grid gap-4 pb-6">
+                    {currentPageQuestions.map((q, idx) => (
+                      <QuestionCard
+                        key={q.id}
+                        step={(currentPage - 1) * QUESTIONS_PER_PAGE + idx + 1}
+                        totalSteps={questions.length}
+                        questionId={q.id}
+                        question={q.text}
+                        questionText={q.text}
+                        questionType={q.questionType}
+                        options={
+                          q?.options?.length
+                            ? q.options.map((opt) => ({ label: opt.label, value: opt.value }))
+                            : undefined
+                        }
+                        questionOrder={q?.questionOrder}
+                        selected={answers[q?.id]}
+                        maxValue={q?.maxValue || undefined}
+                        minValue={q?.minValue || undefined}
+                        errorMessage={q?.minValue ? "Wir haben derzeit kein Produkt für diese Laufzeit." : undefined}
+                        footnote={q?.footnote}
+                        inputPlaceholder={q?.inputPlaceholder}
+                        onSelect={async (opt) => {
+                          await handleSelectQuestion(q, opt);
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
 
               {step === PHASES.QUESTIONS2 && currentSubStep === 'QUESTIONS2' && (
-                <div className="w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
-                  <QuestionCard
-                    step={questionIndex + 2}
-                    totalSteps={15}
-                    // title={currentQ2?.title}
-                    // subtitle={currentQ2?.subtitle}
-                    question={currentQ2?.text}
-                    questionText={currentQ2?.text}
-                    questionType={currentQ2?.questionType}
-                    options={
-                      currentQ2?.options?.length
-                        ? currentQ2.options.map((opt) => ({
-                          label: opt.label,
-                          value: opt.value,
-                        }))
-                        : undefined
-                    }
-                    questionOrder={currentQ2?.questionOrder}
-                    selected={answers[currentQ2?.id]}
-                    maxValue={currentQ2?.maxValue || undefined}
-                    minValue={currentQ2?.minValue || undefined}
-                    errorMessage={currentQ2?.minValue ? "Wir haben derzeit kein Produkt für diese Laufzeit." : undefined}
-                    forbiddenValues={currentQ2?.questionOrder === 9 || currentQ2?.questionOrder === 10 ? ["none"] : undefined}
-                    forbiddenErrorMessage={currentQ2?.questionOrder === 9 || currentQ2?.questionOrder === 10 ? "Mit dieser Auswahl können Sie nicht fortfahren." : undefined}
-                    onSelect={async (opt) => {
-                      setAnswers({ ...answers, [currentQ2?.id]: opt });
-                      syncAnswers(
-                        currentQ2?.id,
-                        opt,
-                        currentQ2?.questionOrder,
-                        currentQ2.options
-                      );
-                      await saveAnswer(
-                        currentQ2?.id,
-                        opt,
-                        currentQ2?.text,
-                        currentQ2?.questionType,
-                        currentQ2?.options
-                      );
-                    }}
-                  // onNext={() => questionIndex === 2 ? lastQuestionNext() : setQuestionIndex((s) => Math.min(s + 1, 2))}
-                  // onBack={() => setQuestionIndex((s) => Math.max(s - 1, 1))}
-                  />
+                <div className="w-full h-full flex items-start justify-center p-4 sm:p-6 md:p-8">
+                  <div className="w-full max-w-4xl grid gap-4 pb-6">
+                    {currentPageQuestions.map((q, idx) => (
+                      <QuestionCard
+                        key={q.id}
+                        step={(currentPage - 1) * QUESTIONS_PER_PAGE + idx + 1 + 2}
+                        totalSteps={questions.length}
+                        questionId={q.id}
+                        question={q.text}
+                        questionText={q.text}
+                        questionType={q.questionType}
+                        options={
+                          q?.options?.length
+                            ? q.options.map((opt) => ({ label: opt.label, value: opt.value }))
+                            : undefined
+                        }
+                        questionOrder={q?.questionOrder}
+                        selected={answers[q?.id]}
+                        maxValue={q?.maxValue || undefined}
+                        minValue={q?.minValue || undefined}
+                        errorMessage={q?.minValue ? "Wir haben derzeit kein Produkt für diese Laufzeit." : undefined}
+                        forbiddenValues={q?.questionOrder === 9 || q?.questionOrder === 10 ? ["none"] : undefined}
+                        forbiddenErrorMessage={q?.questionOrder === 9 || q?.questionOrder === 10 ? "Mit dieser Auswahl können Sie nicht fortfahren." : undefined}
+                        footnote={q?.footnote}
+                        inputPlaceholder={q?.inputPlaceholder}
+                        onSelect={async (opt) => {
+                          await handleSelectQuestion(q, opt);
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -2131,6 +2278,8 @@ export default function Stepper() {
                         investmentFormData={investmentFormData}
                         handleCheckboxChange={handleCheckboxChange}
                         suggestedProduct={suggestedProduct}
+                        questions={questions}
+                        answers={answers}
                       />
                     </div>
                   </div>
@@ -2148,6 +2297,7 @@ export default function Stepper() {
                           agreements={agreements}
                           handleCheckboxChangeContractDocument={handleCheckboxChangeContractDocument}
                           handleAcceptAll={handleAcceptAll}
+                          sessionId={session_id || ""}
                         />
                       </div>
                     </div>
@@ -2387,26 +2537,26 @@ export default function Stepper() {
                   step === PHASES.PERSONAL_INFO ? (
                   <button
                     onClick={() => {
-                      if (step === 1 && currentSubStep === 'QUESTIONS1') {
-                        if (questionIndex === 2) {
-                          lastQuestionNext();
-                        } else {
-                          setQuestionIndex((s) => Math.min(s + 1, 2));
+                          if (step === 1 && currentSubStep === 'QUESTIONS1') {
+                            if ((questionIndex * QUESTIONS_PER_PAGE) >= totalQuestions1) {
+                              lastQuestionNext();
+                            } else {
+                              setQuestionIndex((s) => Math.min(s + 1, totalPages1));
+                            }
+                          } else if (step === 1 && currentSubStep === 'QUESTIONS2') {
+                            if ((questionIndex * QUESTIONS_PER_PAGE) >= totalQuestions2) {
+                              lastQuestionNext();
+                            } else {
+                              setQuestionIndex((s) => Math.min(s + 1, totalPages2));
+                            }
+                          } else {
+                            formik.handleSubmit();
+                          }
+                        }}
+                        disabled={
+                          (step === 1 && currentSubStep === 'QUESTIONS1' && !isCurrentPageValid) ||
+                          (step === 1 && currentSubStep === 'QUESTIONS2' && !isCurrentPageValid)
                         }
-                      } else if (step === 1 && currentSubStep === 'QUESTIONS2') {
-                        if (questionIndex === 13) {
-                          lastQuestionNext();
-                        } else {
-                          setQuestionIndex((s) => Math.min(s + 1, 13));
-                        }
-                      } else {
-                        formik.handleSubmit();
-                      }
-                    }}
-                    disabled={
-                      (step === 1 && currentSubStep === 'QUESTIONS1' && (!answers[currentQ?.id] || hasValidationError(currentQ, answers[currentQ?.id]))) ||
-                      (step === 1 && currentSubStep === 'QUESTIONS2' && (!answers[currentQ2?.id] || hasValidationError(currentQ2, answers[currentQ2?.id]) || hasForbiddenSelection(currentQ2, answers[currentQ2?.id])))
-                    }
                     className={`${buttonBaseClass} ${buttonNextClass} disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto`}
                     type={step === PHASES.PERSONAL_INFO ? "submit" : "button"}
                   >

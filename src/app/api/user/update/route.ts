@@ -55,6 +55,12 @@ export async function PATCH(request: Request) {
       filename,
       occupation,
       iban,
+      country,
+      bic,
+      bankName,
+      isTaxResidentAT,
+      isTaxResidentOther,
+      taxResidencyCountry,
     } = body;
 
     // Ensure dateOfBirth is ISO string
@@ -83,6 +89,12 @@ export async function PATCH(request: Request) {
         residenceAbroad,
         street,
         iban,
+        country,
+        bic,
+        bankName,
+        isTaxResidentAT,
+        isTaxResidentOther,
+        taxResidencyCountry,
         ...(dateOfBirthISO ? { dateOfBirth: dateOfBirthISO } : {})
       },
       create: {
@@ -107,6 +119,12 @@ export async function PATCH(request: Request) {
         residenceAbroad,
         street,
         iban,
+        country,
+        bic,
+        bankName,
+        isTaxResidentAT,
+        isTaxResidentOther,
+        taxResidencyCountry,
         dateOfBirth: dateOfBirthISO ? dateOfBirthISO : new Date().toISOString() // Default to now if not provided
       }
     });

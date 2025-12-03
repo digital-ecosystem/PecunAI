@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // save PDF for debugging if in debug mode
     // if (options.debugMode) {
-      const finalPath = path.join(process.cwd(), `/public/documents/signed/${sessionId}.pdf`);
+      const finalPath = path.join(process.cwd(), `/private-documents/${sessionId}/signed/signature.pdf`);
       console.log("🚀 ~ POST ~ sessionId:", sessionId)
       await filler.saveToFile(finalPath);
       console.log('💾 Filled PDF saved for debugging at:', finalPath);
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       // pdfBase64: filledPdfBase64,
-      finalPath: sessionId ? `/documents/signed/${sessionId}.pdf` : null,
+      finalPath: sessionId ? `/private-documents/${sessionId}/signed/signature.pdf` : null,
       message: 'PDF form filled successfully'
     });
 

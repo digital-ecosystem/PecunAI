@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   const { email, otp } = body;
 
   if (!email || !otp) {
-    return NextResponse.json({ message: 'Email and OTP are required' }, { status: 400 });
+    return NextResponse.json({ message: 'E-Mail und OTP erforderlich.' }, { status: 400 });
   }
 
   const normalizedEmail = email.toLowerCase();
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     // Set HTTP-only cookie using NextResponse
     const response = NextResponse.json({
-      message: 'Authentication successful',
+      message: 'Authentifizierung erfolgreich',
       success: true,
       user: {
         id: user.id,
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Verify OTP error:', error);
     return NextResponse.json({ 
-      message: 'Failed to verify OTP',
+      message: 'OTP-Verifizierung fehlgeschlagen',
       success: false 
     }, { status: 500 });
   }

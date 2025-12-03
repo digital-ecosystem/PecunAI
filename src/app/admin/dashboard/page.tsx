@@ -377,13 +377,13 @@ const Dashboard = () => {
                                             <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Download Session PDF</h3>
                                             <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
                                                 <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                                                    <a href={`/documents/signed/${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
+                                                    <a href={`/api/documents/${selectedSession.id}/signed/signature.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
                                                         <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
                                                         <span className="truncate">Download signed PDF</span>
                                                     </a>
                                                 </button>
                                                 <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                                                    <a href={`/documents/signD-identity-verification-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
+                                                    <a href={`/api/documents/${selectedSession.id}/signed/signD-identity-verification-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
                                                         <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
                                                         <span className="truncate">identity-verification</span>
                                                     </a>
@@ -429,55 +429,61 @@ const Dashboard = () => {
                                     <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Question & Response</h3>
 
                                     {questionAnswer?.length > 0 &&
-                                        questionAnswer.map((item, index) => (
-                                            <React.Fragment key={index}>
-                                                {/* Question */}
-                                                <div className="mb-4">
-                                                    <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Question</label>
-                                                    <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
-                                                        <p className="text-sm sm:text-base text-gray-900">{item.text}</p>
-                                                    </div>
-                                                </div>
-
-                                                {/* Available Options */}
-                                                <div className="mb-4">
-                                                    <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Available Options</label>
-                                                    <div className="space-y-2">
-                                                        {item.options.map((option, optIndex) => {
-                                                            const isSelected = option.value === item.selectedValue
-                                                            return (
-                                                                <div
-                                                                    key={optIndex}
-                                                                    className={`flex items-center p-3 rounded-lg border ${isSelected ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
-                                                                        }`}
-                                                                >
-                                                                    <div
-                                                                        className={`w-2 h-2 rounded-full mr-3 flex-shrink-0 ${isSelected ? 'bg-green-500' : 'bg-gray-300'
-                                                                            }`}
-                                                                    />
-                                                                    <span
-                                                                        className={`text-xs sm:text-sm flex-1 ${isSelected ? 'text-green-900 font-medium' : 'text-gray-700'
-                                                                            }`}
-                                                                    >
-                                                                        {option.label}
-                                                                    </span>
-                                                                    {isSelected && <ChevronRight className="w-4 h-4 text-green-600 flex-shrink-0" />}
-                                                                </div>
-                                                            )
-                                                        })}
-                                                    </div>
-                                                </div>
-
-                                                {/* Selected Answer Highlight */}
-                                                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
-                                                    <label className="block text-xs sm:text-sm font-medium text-green-800 mb-1">Selected Answer</label>
-                                                    <p className="text-sm sm:text-base text-green-900 font-semibold">
-                                                        {item.options.find(option => option.value === item.selectedValue)?.label || 'N/A'}
-                                                    </p>
-                                                </div>
-
-                                            </React.Fragment>
-                                        ))}
+                                        questionAnswer.map((item, index) => {
+                                            return (
+                                              <React.Fragment key={index}>
+                                                  {/* Question */}
+                                                  <div className="mb-4">
+                                                      <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Question</label>
+                                                      <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
+                                                          <p className="text-sm sm:text-base text-gray-900">{item.text}</p>
+                                                      </div>
+                                                  </div>
+  
+                                                  {/* Available Options - only show if there are options */}
+                                                  {item.options && item.options.length > 0 && (
+                                                      <div className="mb-4">
+                                                          <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Available Options</label>
+                                                          <div className="space-y-2">
+                                                              {item.options.map((option, optIndex) => {
+                                                                  const isSelected = option.value === item.selectedValue
+                                                                  return (
+                                                                      <div
+                                                                          key={optIndex}
+                                                                          className={`flex items-center p-3 rounded-lg border ${isSelected ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
+                                                                              }`}
+                                                                      >
+                                                                          <div
+                                                                              className={`w-2 h-2 rounded-full mr-3 flex-shrink-0 ${isSelected ? 'bg-green-500' : 'bg-gray-300'
+                                                                                  }`}
+                                                                          />
+                                                                          <span
+                                                                              className={`text-xs sm:text-sm flex-1 ${isSelected ? 'text-green-900 font-medium' : 'text-gray-700'
+                                                                                  }`}
+                                                                          >
+                                                                              {option.label}
+                                                                          </span>
+                                                                          {isSelected && <ChevronRight className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                                                                      </div>
+                                                                  )
+                                                              })}
+                                                          </div>
+                                                      </div>
+                                                  )}
+  
+                                                  {/* Selected Answer Highlight */}
+                                                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
+                                                      <label className="block text-xs sm:text-sm font-medium text-green-800 mb-1">Selected Answer</label>
+                                                      <p className="text-sm sm:text-base text-green-900 font-semibold">
+                                                          {item.options && item.options.length > 0
+                                                              ? item.options.find(option => option.value === item.selectedValue)?.label || item.selectedValue || 'N/A'
+                                                              : item.selectedValue || 'N/A'
+                                                          }
+                                                      </p>
+                                                  </div>                                            
+                                              </React.Fragment>
+                                            );
+                                        })}
                                 </div>
                             </div>
                         </div>

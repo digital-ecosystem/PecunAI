@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   const { email, name } = body;
 
   if (!email || !email.includes('@')) {
-    return NextResponse.json({ message: 'Valid email is required' }, { status: 400 });
+    return NextResponse.json({ message: 'Eine gültige E-Mail-Adresse ist erforderlich.' }, { status: 400 });
   }
 
   const normalizedEmail = email.toLowerCase();
@@ -73,7 +73,8 @@ export async function POST(request: Request) {
         if (otp.blockedUntil && new Date(otp.blockedUntil) > new Date()) {
           const msLeft = new Date(otp.blockedUntil).getTime() - Date.now()
           return NextResponse.json({
-            message: `You've requested the code too many times. Try again in ${Math.ceil(msLeft/1000)} seconds.`,
+            message: `Sie haben den Code zu oft angefordert. Versuchen Sie es in ${Math.ceil(msLeft/1000)} Sekunden erneut.`,
+            // message: `You've requested the code too many times. Try again in ${Math.ceil(msLeft/1000)} seconds.`,
             success: false,
             blockedUntil: otp.blockedUntil,
             resendCount: otp.resendCount,
@@ -86,12 +87,12 @@ export async function POST(request: Request) {
         await transporter.sendMail({
           from: process.env.EMAIL_FROM,
           to: normalizedEmail,
-          subject: 'Your Sign-in Code',
+          subject: 'Ihr Verifizierungscode für den Onboarding-Prozess',
           html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #2563eb; margin-bottom: 10px;">Your Sign-in Code</h1>
-              <p style="color: #666; font-size: 16px;">Use this code to sign in to your account</p>
+              <h1 style="color: #2563eb; margin-bottom: 10px;">Ihr Verifizierungscode</h1>
+              <p style="color: #666; font-size: 16px;">Verwenden Sie diesen Code, um Ihren Onboarding-Prozess zu starten.</p>
             </div>
             
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px; margin: 30px 0;">
@@ -102,15 +103,15 @@ export async function POST(request: Request) {
             
             <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <p style="color: #666; margin: 0; font-size: 14px;">
-                <strong>⏰ This code will expire in 5 minutes</strong><br>
-                🔒 If you didn't request this code, please ignore this email<br>
-                💡 For security, never share this code with anyone
+                <strong>⏰ Dieser Code läuft in 5 Minuten ab.</strong><br>
+                🔒 Wenn Sie diesen Code nicht angefordert haben, ignorieren Sie bitte diese E-Mail.<br>
+                💡 Aus Sicherheitsgründen dürfen Sie diesen Code niemals an andere Personen weitergeben.
               </p>
             </div>
             
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
               <p style="color: #999; font-size: 12px;">
-                This email was sent from a secure, monitored system. Please do not reply to this email.
+                Diese E-Mail wurde automatisch von einem sicheren, überwachten System gesendet. Bitte antworten Sie nicht auf diese Nachricht.
               </p>
             </div>
           </div>
@@ -118,7 +119,7 @@ export async function POST(request: Request) {
       });
 
       return NextResponse.json({
-        message: 'OTP sent successfully',
+        message: 'OTP erfolgreich gesendet',
         success: true,
         resendCount: otp.resendCount,
         resendLimit: LIMIT,
@@ -129,7 +130,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.log("🚀 ~ POST ~ error:", error)
     
-    let message = 'Failed to send OTP';
+    let message = 'OTP konnte nicht gesendet werden';
     let status = 500;
 
     if (error instanceof CustomError) {

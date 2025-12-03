@@ -38,6 +38,7 @@ export interface UserInfo {
   isPEP?: boolean;
   residenceAbroad?: boolean;
   actingFor?: string;
+  iban?: string;
 }
 
 interface AnswerWithOptions {
@@ -265,7 +266,7 @@ export class PDFFormFiller {
 /**
  * Helper function to create form data from user information
  */
-export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Record<number, AnswerWithOptions>,additionalData: FormFieldData = {}): FormFieldData {
+export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Record<number, AnswerWithOptions>, additionalData: FormFieldData = {}): FormFieldData {
   const formData: FormFieldData = {
     // Personal Information
     'vorname': userInfo.firstName || '',
@@ -295,7 +296,7 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     "vorname 49": userInfo.documentNumber || '',
     "vorname 50": userInfo.issuedOn || '',
     "vorname 51": userInfo.validUntil || '',
-    
+
     // Document type checkboxes
     "Kontrollkästchen 370": userInfo.documentType === 'passport',
     "Kontrollkästchen 371": userInfo.documentType === 'identity_card',
@@ -313,7 +314,7 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     // "Kontrollkästchen 445": true,
     // "Kontrollkästchen 446": true,
     // "Kontrollkästchen 447": true,
-    
+
     // "vorname 150": "456798",
     // "vorname 157": "123456",
 
@@ -348,7 +349,7 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     // Question 3
     "Kontrollkästchen 31": questionAnswers[3]?.selectedOption == "yes" || false,
     "Kontrollkästchen 32": questionAnswers[3]?.selectedOption == "no" || false,
-    
+
     // Question 4
     "Kontrollkästchen 33": questionAnswers[4]?.selectedOption == "yes" || false,
     "Kontrollkästchen 34": questionAnswers[4]?.selectedOption == "no" || false,
@@ -402,7 +403,7 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     // "vorname 26": "vorname 26",
     "vorname 150": manageAnswer(questionAnswers[14]) || '',
     "vorname 157": manageAnswer(questionAnswers[15]) || '',
-   
+
     // "vorname 52": "vorname 52",
     // "vorname 54": "vorname 54",
     // "vorname 55": "vorname 55",
@@ -502,7 +503,7 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     // "vorname 165": "vorname 165",
 
 
-    
+
 
     // "Kontrollkästchen 33": true,
     // "Kontrollkästchen 34": true,
@@ -600,7 +601,7 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     // "Kontrollkästchen 370": true,
     // "Kontrollkästchen 371": true,
     // "Kontrollkästchen 372": true,
-    
+
     // "Kontrollkästchen 374": true,
     // "Kontrollkästchen 462": true,
     // "Kontrollkästchen 463": true,
@@ -701,3 +702,526 @@ const manageAnswer = (answer?: AnswerWithOptions | null) => {
   // Remove the euro sign if it exists
   return ans.includes('€') ? ans.replaceAll('€ ', '') : ans;
 };
+
+// export function createFormDataForContactForm(userInfo: UserInfo, fileName: string): FormFieldData {
+//   if (fileName == "Depoteröffnungsantrag.pdf") {
+//     return {
+//       UserFirstName: userInfo.firstName || "",
+//       UserLastName: userInfo.lastName || "",
+//       UserDoB: userInfo.birthDate || "",
+//       UserNationality: userInfo.nationality || "",
+//       UserStreet: userInfo.street || "",
+//       UserHouseNr: userInfo.houseNumber || "",
+//       UserCountryOfOrigin: userInfo.nationality || "",
+//       UserCityOfOrigin: userInfo.city || "",
+//       UserZip: userInfo.postalCode || "",
+//       UserCity: userInfo.city || "",
+//       UserEmail: userInfo.email || "",
+//       UserPhone: userInfo.phone || "",
+//       UserProfession: userInfo.occupation || "",
+//       UserSector: "",
+//       GoalMonthlyPayment: "",
+//       NextMonthFromToday: "",
+//       YearOfNextMonthFromToday: "",
+//       UserFullName:
+//         userInfo.firstName && userInfo.lastName
+//           ? `${userInfo.firstName} ${userInfo.lastName}`
+//           : "",
+//       UserConsentInformationDigitalForm: "",
+//       UserNotUsTaxEligible: "",
+//       UserCountry1: userInfo.nationality || "",
+//       UserConsentfrootsPowerOfAttorny: "",
+//       UserConsentDiePlattformDepotBank: "",
+//       UserConsentDiePlattformConditions: "",
+//       UserConsentDataProcessing: "",
+//       UserConsentContractAgreement: "",
+//       UserConsentEsaeg: "",
+//       DateToday: new Date().toLocaleDateString("de-DE"),
+//       UserCity1: userInfo.city || "",
+//       UserFullName1:
+//         userInfo.firstName && userInfo.lastName
+//           ? `${userInfo.firstName} ${userInfo.lastName}`
+//           : "",
+//       UserReferenceAccountIban: userInfo.iban || "",
+//       CheckboxUserGenderMale: "",
+//       CheckboxUserGenderFemale: "",
+//       CheckboxUserSelfEmploymentStatus: "",
+//       UserPepYes: userInfo.isPEP ? "Yes" : "",
+//       UserCountry: userInfo.nationality || "",
+//       AdvisorPhone: "",
+//       AdvisorFullName: "",
+//       UserAnnualIncome: ""
+//     };
+//   } else if (fileName == "Deckblatt_Vertragspaket.pdf") {
+//     return {
+//       UserLastName: userInfo.lastName || "",
+//       UserEmail: userInfo.email || "",
+//       UserFirstName: userInfo.firstName || "",
+//       // ElectronicSignature: ""
+//     };
+//   } else if (fileName == "Serviceentgelt.pdf") {
+//     return {
+//       UserFullName:
+//         userInfo.firstName && userInfo.lastName
+//           ? `${userInfo.firstName} ${userInfo.lastName}`
+//           : "",
+//       UserCity: userInfo.city || "",
+//       DateToday: new Date().toLocaleDateString("de-DE"),
+//       AdvisorPhone: "",
+//       YesByDefault: true,
+//       AdviserFullName: ""
+//     };
+//   } else if (fileName == "Servicegebühr.pdf") {
+//     return {
+//       UserFullName:
+//         userInfo.firstName && userInfo.lastName
+//           ? `${userInfo.firstName} ${userInfo.lastName}`
+//           : "",
+//       UserReferenceAccountIban: userInfo.iban || "",
+//       UserZip: userInfo.postalCode || "",
+//       UserStreet: userInfo.street || "",
+//       UserHouseNr: userInfo.houseNumber || "",
+//       UserCity: userInfo.city || "",
+//       DateToday: new Date().toLocaleDateString("de-DE"),
+//       UserCity1: userInfo.city || ""
+//     };
+//   } else if (fileName == "Vermittlungsgebühr.pdf") {
+//     return {
+//       DepotAgencyFee: "",
+//       DepotSetupFee: "",
+//       UserFirstName: userInfo.firstName || "",
+//       UserLastName: userInfo.lastName || "",
+//       UserCity: userInfo.city || "",
+//       DateToday: new Date().toLocaleDateString("de-DE"),
+//       AdviserFullName: ""
+//     };
+//   } else if (fileName == "Vermögensverwaltungsvertrag.pdf") {
+//     return {
+//       GoalName: "",
+//       UserFirstName: userInfo.firstName || "",
+//       UserLastName: userInfo.lastName || "",
+//       UserEmail: userInfo.email || "",
+//       UserPhone: userInfo.phone || "",
+//       UserStreet: userInfo.street || "",
+//       UserHouseNr: userInfo.houseNumber || "",
+//       UserZip: userInfo.postalCode || "",
+//       UserCity: userInfo.city || "",
+//       UserCountry: userInfo.nationality || "",
+//       UserDoB: userInfo.birthDate || "",
+//       UserCityOfOrigin: userInfo.city || "",
+//       UserCountryOfOrigin: userInfo.nationality || "",
+//       UserNationality: userInfo.nationality || "",
+//       UserProfession: userInfo.occupation || "",
+//       UserSector: "",
+//       UserEducation: userInfo.education || "",
+
+//       UserSourceOfIncomeWork: "",
+//       UserPreviousFinancialActivitiesProfessional: "",
+//       UserPreviousFinancialActivitiesPrivate: "",
+//       UserPreviousFinancialActivitiesNo: "",
+
+//       GoalRiskScoreFrootsConservative: "",
+//       GoalRiskScoreFrootsBalanced: "",
+//       GoalRiskScoreFrootsProfitOrientated: "",
+
+//       UserReferenceAccountIban: userInfo.iban || "",
+
+//       // ALL financial knowledge fields remain empty unless you have exact values:
+//       UserFinancialKnowledgeEquitiesPassiveKnowledge: "",
+//       UserFinancialKnowledgeEquitiesActiveKnowledge: "",
+//       UserFinancialKnowledgeEquitiesActiveExperience: "",
+//       UserFinancialKnowledgeEquitiesPassiveExperience: "",
+//       UserFinancialKnowledgeEquitiesNoExperience: "",
+//       UserFinancialKnowledgeEquitiesZeroTrades: "",
+//       UserFinancialKnowledgeEquitiesTenTrades: "",
+//       UserFinancialKnowledgeEquitiesMoreTenTrades: "",
+//       UserFinancialKnowledgeEquitiesSavingPlanTrades: "",
+//       UserFinancialKnowledgeEquitiesZeroAmount: "",
+//       UserFinancialKnowledgeEquitiesBelow10kAmount: "",
+//       UserFinancialKnowledgeEquitiesBelow50kAmount: "",
+//       UserFinancialKnowledgeEquitiesMore50kAmount: "",
+//       UserFinancialKnowledgeBondsNoKnowledge: "",
+//       UserFinancialKnowledgeBondsPassiveKnowledge: "",
+//       UserFinancialKnowledgeBondsActiveKnowledge: "",
+//       UserFinancialKnowledgeBondsActiveExperience: "",
+//       UserFinancialKnowledgeBondsPassiveExperience: "",
+//       UserFinancialKnowledgeBondsNoExperience: "",
+//       UserFinancialKnowledgeBondsZeroTrades: "",
+//       UserFinancialKnowledgeBondsTenTrades: "",
+//       UserFinancialKnowledgeBondsMoreTenTrades: "",
+//       UserFinancialKnowledgeBondsSavingPlanTrades: "",
+//       UserFinancialKnowledgeBondsZeroAmount: "",
+//       UserFinancialKnowledgeBondsBelow10kAmount: "",
+//       UserFinancialKnowledgeBondsBelow50kAmount: "",
+//       UserFinancialKnowledgeBondsMore50kAmount: "",
+//       UserFinancialKnowledgeCommoditiesNoKnowledge: "",
+//       UserFinancialKnowledgeCommoditiesPassiveKnowledge: "",
+//       UserFinancialKnowledgeCommoditiesActiveKnowledge: "",
+//       UserFinancialKnowledgeCommoditiesActiveExperience: "",
+//       UserFinancialKnowledgeCommoditiesPassiveExperience: "",
+//       UserFinancialKnowledgeCommoditiesNoExperience: "",
+//       UserFinancialKnowledgeCommoditiesZeroTrades: "",
+//       UserFinancialKnowledgeCommoditiesTenTrades: "",
+//       UserFinancialKnowledgeCommoditiesMoreTenTrades: "",
+//       UserFinancialKnowledgeCommoditiesSavingPlanTrades: "",
+//       UserFinancialKnowledgeCommoditiesZeroAmount: "",
+//       UserFinancialKnowledgeCommoditiesBelow10kAmount: "",
+//       UserFinancialKnowledgeCommoditiesBelow50kAmount: "",
+//       UserFinancialKnowledgeCommoditiesMore50kAmount: "",
+
+//       UserMonthlyAvailableIncome: "",
+//       UserTotalNetAssets: "",
+//       UserSourceOfIncomePension: "",
+//       UserSourceOfIncomeHeritage: "",
+//       UserSourceOfIncomeRent: "",
+//       UserSourceOfIncomeAssetSale: "",
+//       UserSourceOfIncomeOther: "",
+//       UserSourceOfIncomeOtherText: "",
+
+//       UserFullName:
+//         userInfo.firstName && userInfo.lastName
+//           ? `${userInfo.firstName} ${userInfo.lastName}`
+//           : "",
+//       UserFullName1:
+//         userInfo.firstName && userInfo.lastName
+//           ? `${userInfo.firstName} ${userInfo.lastName}`
+//           : "",
+
+//       DateToday: new Date().toLocaleDateString("de-DE"),
+//       UserCity1: userInfo.city || "",
+
+//       UserMonthlyExpenditures: "",
+
+//       UserGoalRiskScoreName0: "",
+//       UserGoalRiskScoreName1: "",
+//       UserGoalRiskScoreIndex0: "",
+//       UserGoalRiskScoreIndex1: "",
+
+//       GoalTerm0: "",
+//       GoalTerm1: "",
+//       GoalTerm2: "",
+
+//       UserEsgIndex0: "",
+//       UserEsgIndex1: "",
+//       UserFinancialKnowledgeEquitiesNoKnowledge: ""
+//     };
+//   } else {
+//     return {};
+//   }
+//   // return {
+//   //   "AdviserFullName" : "",
+//   //   "AdvisorFullName" : "",
+//   //   "AdvisorPhone" : "",
+//   //   "CheckboxUserGenderFemale" : "",
+//   //   "CheckboxUserGenderMale" : "",
+//   //   "CheckboxUserSelfEmploymentStatus" : "",
+//   //   // Today Date
+//   //   "DateToday" : new Date().toLocaleDateString('de-DE'),
+//   //   "DepotAgencyFee" : "",
+//   //   "DepotSetupFee" : "",
+//   //   "ElectronicSignature" : "",
+//   //   "GoalMonthlyPayment" : "",
+//   //   "GoalName" : "",
+//   //   "GoalRiskScoreFrootsBalanced" : "",
+//   //   "GoalRiskScoreFrootsConservative" : "",
+//   //   "GoalRiskScoreFrootsProfitOrientated" : "",
+//   //   "GoalTerm0" : "",
+//   //   "GoalTerm1" : "",
+//   //   "GoalTerm2" : "",
+//   //   "NextMonthFromToday" : "",
+//   //   "UserAnnualIncome" : "",
+//   //   "UserCity" : userInfo.city || "",
+//   //   "UserCity1" : userInfo.city || "",
+//   //   "UserCityOfOrigin" : userInfo.city || "",
+//   //   "UserConsentContractAgreement" : "",
+//   //   "UserConsentDataProcessing" : "",
+//   //   "UserConsentDiePlattformConditions" : "",
+//   //   "UserConsentDiePlattformDepotBank" : "",
+//   //   "UserConsentEsaeg" : "",
+//   //   "UserConsentInformationDigitalForm" : "",
+//   //   "UserConsentfrootsPowerOfAttorny" : "",
+//   //   "UserCountry" : userInfo.nationality || "",
+//   //   "UserCountry1" : userInfo.nationality || "",
+//   //   "UserCountryOfOrigin" : userInfo.nationality || "",
+//   //   "UserDoB" : userInfo.birthDate || "",
+//   //   "UserEducation" : userInfo.education || "",
+//   //   "UserEmail" : userInfo.email || "",
+//   //   "UserEsgIndex0" : "",
+//   //   "UserEsgIndex1" : "",
+//   //   "UserFinancialKnowledgeBondsActiveExperience" : "",
+//   //   "UserFinancialKnowledgeBondsActiveKnowledge" : "",
+//   //   "UserFinancialKnowledgeBondsBelow10kAmount" : "",
+//   //   "UserFinancialKnowledgeBondsBelow50kAmount" : "",
+//   //   "UserFinancialKnowledgeBondsMore50kAmount" : "",
+//   //   "UserFinancialKnowledgeBondsMoreTenTrades" : "",
+//   //   "UserFinancialKnowledgeBondsNoExperience" : "",
+//   //   "UserFinancialKnowledgeBondsNoKnowledge" : "",
+//   //   "UserFinancialKnowledgeBondsPassiveExperience" : "",
+//   //   "UserFinancialKnowledgeBondsPassiveKnowledge" : "",
+//   //   "UserFinancialKnowledgeBondsSavingPlanTrades" : "",
+//   //   "UserFinancialKnowledgeBondsTenTrades" : "",
+//   //   "UserFinancialKnowledgeBondsZeroAmount" : "",
+//   //   "UserFinancialKnowledgeBondsZeroTrades" : "",
+//   //   "UserFinancialKnowledgeCommoditiesActiveExperience" : "",
+//   //   "UserFinancialKnowledgeCommoditiesActiveKnowledge" : "",
+//   //   "UserFinancialKnowledgeCommoditiesBelow10kAmount" : "",
+//   //   "UserFinancialKnowledgeCommoditiesBelow50kAmount" : "",
+//   //   "UserFinancialKnowledgeCommoditiesMore50kAmount" : "",
+//   //   "UserFinancialKnowledgeCommoditiesMoreTenTrades" : "",
+//   //   "UserFinancialKnowledgeCommoditiesNoExperience" : "",
+//   //   "UserFinancialKnowledgeCommoditiesNoKnowledge" : "",
+//   //   "UserFinancialKnowledgeCommoditiesPassiveExperience" : "",
+//   //   "UserFinancialKnowledgeCommoditiesPassiveKnowledge" : "",
+//   //   "UserFinancialKnowledgeCommoditiesSavingPlanTrades" : "",
+//   //   "UserFinancialKnowledgeCommoditiesTenTrades" : "",
+//   //   "UserFinancialKnowledgeCommoditiesZeroAmount" : "",
+//   //   "UserFinancialKnowledgeCommoditiesZeroTrades" : "",
+//   //   "UserFinancialKnowledgeEquitiesActiveExperience" : "",
+//   //   "UserFinancialKnowledgeEquitiesActiveKnowledge" : "",
+//   //   "UserFinancialKnowledgeEquitiesBelow10kAmount" : "",
+//   //   "UserFinancialKnowledgeEquitiesBelow50kAmount" : "",
+//   //   "UserFinancialKnowledgeEquitiesMore50kAmount" : "",
+//   //   "UserFinancialKnowledgeEquitiesMoreTenTrades" : "",
+//   //   "UserFinancialKnowledgeEquitiesNoExperience" : "",
+//   //   "UserFinancialKnowledgeEquitiesNoKnowledge" : "",
+//   //   "UserFinancialKnowledgeEquitiesPassiveExperience" : "",
+//   //   "UserFinancialKnowledgeEquitiesPassiveKnowledge" : "",
+//   //   "UserFinancialKnowledgeEquitiesSavingPlanTrades" : "",
+//   //   "UserFinancialKnowledgeEquitiesTenTrades" : "",
+//   //   "UserFinancialKnowledgeEquitiesZeroAmount" : "",
+//   //   "UserFinancialKnowledgeEquitiesZeroTrades" : "",
+//   //   "UserFirstName" : userInfo.firstName || "",
+//   //   "UserFullName" : userInfo.firstName && userInfo.lastName ? `${userInfo.firstName} ${userInfo.lastName}` : "",
+//   //   "UserFullName1" : userInfo.firstName && userInfo.lastName ? `${userInfo.firstName} ${userInfo.lastName}` : "",
+//   //   "UserGoalRiskScoreIndex0" : "",
+//   //   "UserGoalRiskScoreIndex1" : "",
+//   //   "UserGoalRiskScoreName0" : "",
+//   //   "UserGoalRiskScoreName1" : "",
+//   //   "UserHouseNr" : userInfo.houseNumber || "",
+//   //   "UserLastName" : userInfo.lastName || "",
+//   //   "UserMonthlyAvailableIncome" : "",
+//   //   "UserMonthlyExpenditures" : "",
+//   //   "UserNationality" : userInfo.nationality || "",
+//   //   "UserNotUsTaxEligible" : "",
+//   //   "UserPepYes" : userInfo.isPEP ? "Yes" : "",
+//   //   "UserPhone" : userInfo.phone || "",
+//   //   "UserPreviousFinancialActivitiesPrivate" : "",
+//   //   "UserPreviousFinancialActivitiesProfessional" : "",
+//   //   "UserPreviousFinancialActivitiesNo" : "",
+//   //   "UserProfession" : userInfo.occupation || "",
+//   //   "UserReferenceAccountIban" : userInfo.iban || "",
+//   //   "UserSector" : "",
+//   //   "UserSourceOfIncomeAssetSale" : "",
+//   //   "UserSourceOfIncomeHeritage" : "",
+//   //   "UserSourceOfIncomeOther" : "",
+//   //   "UserSourceOfIncomeOtherText" : "",
+//   //   "UserSourceOfIncomePension" : "",
+//   //   "UserSourceOfIncomeRent" : "",
+//   //   "UserSourceOfIncomeWork" : "",
+//   //   "UserStreet" : userInfo.street || "",
+//   //   "UserTotalNetAssets" : "",
+//   //   "UserZip" : userInfo.postalCode || "",
+//   //   "YearOfNextMonthFromToday" : "",
+//   //   "YesByDefault": true
+//   // }
+// }
+
+// formFieldMappers.ts
+const getCurrentDate = () => new Date().toLocaleDateString("de-DE");
+
+const getFullName = (userInfo: UserInfo): string => {
+  return userInfo.firstName && userInfo.lastName
+    ? `${userInfo.firstName} ${userInfo.lastName}`
+    : "";
+};
+
+// Base field generators for reusability
+const basePersonalFields = (userInfo: UserInfo): FormFieldData => ({
+  UserFirstName: userInfo.firstName || "",
+  UserLastName: userInfo.lastName || "",
+  UserEmail: userInfo.email || "",
+  UserCity: userInfo.city || "",
+  UserFullName: getFullName(userInfo),
+  DateToday: getCurrentDate(),
+});
+
+const baseAddressFields = (userInfo: UserInfo): FormFieldData => ({
+  UserStreet: userInfo.street || "",
+  UserHouseNr: userInfo.houseNumber || "",
+  UserZip: userInfo.postalCode || "",
+  UserCity: userInfo.city || "",
+});
+
+const baseContactFields = (userInfo: UserInfo): FormFieldData => ({
+  UserEmail: userInfo.email || "",
+  UserPhone: userInfo.phone || "",
+});
+
+const baseNationalityFields = (userInfo: UserInfo): FormFieldData => ({
+  UserNationality: userInfo.nationality || "",
+  UserCountry: userInfo.nationality || "",
+  UserCountryOfOrigin: userInfo.nationality || "",
+});
+
+// Individual form mappers
+const depoteroeffnungsantragMapper = (userInfo: UserInfo): FormFieldData => ({
+  ...basePersonalFields(userInfo),
+  ...baseAddressFields(userInfo),
+  ...baseContactFields(userInfo),
+  ...baseNationalityFields(userInfo),
+  UserDoB: userInfo.birthDate || "",
+  UserCityOfOrigin: userInfo.city || "",
+  UserProfession: userInfo.occupation || "",
+  UserSector: "",
+  GoalMonthlyPayment: "",
+  NextMonthFromToday: "",
+  YearOfNextMonthFromToday: "",
+  UserConsentInformationDigitalForm: "",
+  UserNotUsTaxEligible: "",
+  UserCountry1: userInfo.nationality || "",
+  UserConsentfrootsPowerOfAttorny: "",
+  UserConsentDiePlattformDepotBank: "",
+  UserConsentDiePlattformConditions: "",
+  UserConsentDataProcessing: "",
+  UserConsentContractAgreement: "",
+  UserConsentEsaeg: "",
+  UserCity1: userInfo.city || "",
+  UserFullName1: getFullName(userInfo),
+  UserReferenceAccountIban: userInfo.iban || "",
+  CheckboxUserGenderMale: "",
+  CheckboxUserGenderFemale: "",
+  CheckboxUserSelfEmploymentStatus: "",
+  UserPepYes: userInfo.isPEP ? true : false,
+  AdvisorPhone: "",
+  AdvisorFullName: "",
+  UserAnnualIncome: "",
+});
+
+const deckblattVertragspaketMapper = (userInfo: UserInfo): FormFieldData => ({
+  UserLastName: userInfo.lastName || "",
+  UserEmail: userInfo.email || "",
+  UserFirstName: userInfo.firstName || "",
+});
+
+const serviceentgeltMapper = (userInfo: UserInfo): FormFieldData => ({
+  UserFullName: getFullName(userInfo),
+  UserCity: userInfo.city || "",
+  DateToday: getCurrentDate(),
+  AdvisorPhone: "",
+  YesByDefault: true,
+  AdviserFullName: "",
+});
+
+const servicegebuehrMapper = (userInfo: UserInfo): FormFieldData => ({
+  ...baseAddressFields(userInfo),
+  UserFullName: getFullName(userInfo),
+  UserReferenceAccountIban: userInfo.iban || "",
+  DateToday: getCurrentDate(),
+  UserCity1: userInfo.city || "",
+});
+
+const vermittlungsgebuehrMapper = (userInfo: UserInfo): FormFieldData => ({
+  DepotAgencyFee: "",
+  DepotSetupFee: "",
+  UserFirstName: userInfo.firstName || "",
+  UserLastName: userInfo.lastName || "",
+  UserCity: userInfo.city || "",
+  DateToday: getCurrentDate(),
+  AdviserFullName: "",
+});
+
+const initializeFinancialKnowledgeFields = (): FormFieldData => {
+  const categories = ["Equities", "Bonds", "Commodities"];
+  const knowledgeTypes = ["NoKnowledge", "PassiveKnowledge", "ActiveKnowledge"];
+  const experienceTypes = ["ActiveExperience", "PassiveExperience", "NoExperience"];
+  const tradeTypes = ["ZeroTrades", "TenTrades", "MoreTenTrades", "SavingPlanTrades"];
+  const amountTypes = ["ZeroAmount", "Below10kAmount", "Below50kAmount", "More50kAmount"];
+
+  const fields: FormFieldData = {};
+
+  categories.forEach(category => {
+    knowledgeTypes.forEach(type => {
+      fields[`UserFinancialKnowledge${category}${type}`] = "";
+    });
+    experienceTypes.forEach(type => {
+      fields[`UserFinancialKnowledge${category}${type}`] = "";
+    });
+    tradeTypes.forEach(type => {
+      fields[`UserFinancialKnowledge${category}${type}`] = "";
+    });
+    amountTypes.forEach(type => {
+      fields[`UserFinancialKnowledge${category}${type}`] = "";
+    });
+  });
+
+  return fields;
+};
+
+const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo): FormFieldData => ({
+  ...basePersonalFields(userInfo),
+  ...baseAddressFields(userInfo),
+  ...baseContactFields(userInfo),
+  ...baseNationalityFields(userInfo),
+  GoalName: "",
+  UserDoB: userInfo.birthDate || "",
+  UserCityOfOrigin: userInfo.city || "",
+  UserProfession: userInfo.occupation || "",
+  UserSector: "",
+  UserEducation: userInfo.education || "",
+  UserSourceOfIncomeWork: "",
+  UserPreviousFinancialActivitiesProfessional: "",
+  UserPreviousFinancialActivitiesPrivate: "",
+  UserPreviousFinancialActivitiesNo: "",
+  GoalRiskScoreFrootsConservative: "",
+  GoalRiskScoreFrootsBalanced: "",
+  GoalRiskScoreFrootsProfitOrientated: "",
+  UserReferenceAccountIban: userInfo.iban || "",
+  ...initializeFinancialKnowledgeFields(),
+  UserMonthlyAvailableIncome: "",
+  UserTotalNetAssets: "",
+  UserSourceOfIncomePension: "",
+  UserSourceOfIncomeHeritage: "",
+  UserSourceOfIncomeRent: "",
+  UserSourceOfIncomeAssetSale: "",
+  UserSourceOfIncomeOther: "",
+  UserSourceOfIncomeOtherText: "",
+  UserFullName1: getFullName(userInfo),
+  UserCity1: userInfo.city || "",
+  UserMonthlyExpenditures: "",
+  UserGoalRiskScoreName0: "",
+  UserGoalRiskScoreName1: "",
+  UserGoalRiskScoreIndex0: "",
+  UserGoalRiskScoreIndex1: "",
+  GoalTerm0: "",
+  GoalTerm1: "",
+  GoalTerm2: "",
+  UserEsgIndex0: "",
+  UserEsgIndex1: "",
+});
+
+// Form mapper registry
+const FORM_MAPPERS: Record<string, (userInfo: UserInfo) => FormFieldData> = {
+  "Depoteröffnungsantrag.pdf": depoteroeffnungsantragMapper,
+  "Deckblatt_Vertragspaket.pdf": deckblattVertragspaketMapper,
+  "Serviceentgelt.pdf": serviceentgeltMapper,
+  "Servicegebühr.pdf": servicegebuehrMapper,
+  "Vermittlungsgebühr.pdf": vermittlungsgebuehrMapper,
+  "Vermögensverwaltungsvertrag.pdf": vermoegensverwaltungsvertragMapper,
+};
+
+// Main function
+export function createFormDataForContactForm(
+  userInfo: UserInfo,
+  fileName: string
+): FormFieldData {
+  const mapper = FORM_MAPPERS[fileName];
+  return mapper ? mapper(userInfo) : {};
+}
+
+// Optional: Type-safe file name validation
+// export const SUPPORTED_FORMS = Object.keys(FORM_MAPPERS) as const;
+// export type SupportedFormName = typeof SUPPORTED_FORMS[number];
+
+// export function isSupportedForm(fileName: string): fileName is SupportedFormName {
+//   return fileName in FORM_MAPPERS;
+// }

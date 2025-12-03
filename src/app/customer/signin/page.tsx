@@ -45,7 +45,7 @@ export default function OTPAuthPostgres() {
     setMessage('');
 
     if (!email || !email.includes('@')) {
-      setMessage('Please enter a valid email address');
+      setMessage('Bitte geben Sie eine gültige E-Mail-Adresse ein');
       setMessageType('error');
       setLoading(false);
       return;
@@ -54,7 +54,7 @@ export default function OTPAuthPostgres() {
     // Email format validation
     const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailPattern.test(email)) {
-      setMessage('Please enter a valid email address');
+      setMessage('Bitte geben Sie eine gültige E-Mail-Adresse ein');
       setMessageType('error');
       setLoading(false);
       return;
@@ -71,7 +71,7 @@ export default function OTPAuthPostgres() {
 
       if (data.success) {
         if (data.user) {
-          setMessage('Authentication successful! Welcome back!');
+          setMessage('Authentifizierung erfolgreich! Willkommen zurück!');
           setMessageType('success');
           // Redirect to dashboard
           setTimeout(() => {
@@ -79,7 +79,7 @@ export default function OTPAuthPostgres() {
           }, 1000);
         } else {
           setStep('otp');
-          setMessage('OTP sent to your email! Check your inbox.');
+          setMessage('OTP wurde an Ihre E-Mail-Adresse gesendet! Überprüfen Sie Ihren Posteingang.');
           setMessageType('success');
           setTimeout(() => {
             setMessage('');
@@ -99,7 +99,7 @@ export default function OTPAuthPostgres() {
           }
         }
       } else {
-        setMessage(data.message || 'Failed to send OTP');
+        setMessage(data.message || 'OTP konnte nicht gesendet werden');
         setMessageType('error');
 
         // If server indicates we're blocked, show countdown
@@ -112,7 +112,7 @@ export default function OTPAuthPostgres() {
       }
     } catch (error) {
       console.log("🚀 ~ handleSendOTP ~ error:", error)
-      setMessage('Something went wrong. Please try again.');
+      setMessage('Es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.');
       setMessageType('error');
     } finally {
       setLoading(false);
@@ -134,7 +134,7 @@ export default function OTPAuthPostgres() {
       const data = await response.json();
 
       if (data.success) {
-        setMessage('Authentication successful! Welcome back!');
+        setMessage('Authentifizierung erfolgreich! Willkommen zurück!');
         setMessageType('success');
         localStorage.setItem("userEmail", email);
         
@@ -148,7 +148,7 @@ export default function OTPAuthPostgres() {
       }
     } catch (error) {
       console.log("🚀 ~ handleVerifyOTP ~ error:", error)
-      setMessage('Something went wrong. Please try again.');
+      setMessage('Es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.');
       setMessageType('error');
     } finally {
       setLoading(false);
@@ -216,12 +216,13 @@ export default function OTPAuthPostgres() {
             <Lock className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {step === 'email' ? 'Sign In' : 'Verify Code'}
+            {step === 'email' ? 'Anmelden' : 'Code bestätigen'}
           </h1>
           <p className="text-gray-600">
             {step === 'email' 
-              ? 'Enter your details to receive a verification code' 
-              : `Enter the 6-digit code sent to ${email}`
+              ? 'Geben Sie Ihre Daten ein, um einen Verifizierungscode für Ihr Pecun AI Konto zu erhalten.' 
+              // : `Enter the 6-digit code sent to ${email}`
+              : `Geben Sie den 6-stelligen Code ein, der an ${email} gesendet wurde.`
             }
           </p>
         </div>
@@ -253,7 +254,7 @@ export default function OTPAuthPostgres() {
               {/* Email Input */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
+                  E-Mail-Adresse
                 </label>
                 <div className="relative">
                   <input
@@ -263,7 +264,7 @@ export default function OTPAuthPostgres() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 pl-12"
-                    placeholder="Enter your email"
+                    placeholder="Geben Sie Ihre E-Mail-Adresse ein"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Mail className="h-5 w-5 text-gray-400" />
@@ -279,11 +280,11 @@ export default function OTPAuthPostgres() {
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>Loading...</span>
+                    <span>Wird geladen...</span>
                   </>
                 ) : (
                   <>
-                    <span>Submit</span>
+                    <span>Absenden</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -293,7 +294,7 @@ export default function OTPAuthPostgres() {
             <div className="space-y-6">
               <div>
                 <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
-                  Verification Code
+                  Verifizierungscode
                 </label>
                 <input
                   type="text"
@@ -319,7 +320,7 @@ export default function OTPAuthPostgres() {
                   </>
                 ) : (
                   <>
-                    <span>Verify Code</span>
+                    <span>Code bestätigen</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -330,7 +331,7 @@ export default function OTPAuthPostgres() {
                   onClick={resetForm}
                   className="text-gray-600 hover:text-gray-800 transition-colors cursor-pointer"
                 >
-                  ← Back to email
+                  ← Zurück zur E-Mail
                 </button>
                 <button
                   onClick={(e) => {
@@ -341,20 +342,20 @@ export default function OTPAuthPostgres() {
                   className={`text-blue-600 transition-colors cursor-pointer ${(blockedUntil || resendCooldownUntil) ? 'opacity-50 cursor-not-allowed' : 'hover:text-blue-800'}`}
                 >
                   {blockedUntil 
-                    ? `Resend locked (${countdown ?? '00:00'})` 
+                    ? `Erneutes Senden gesperrt (${countdown ?? '00:00'})` 
                     : resendCooldownUntil
-                    ? `Resend locked (${resendCooldownCountdown ?? '00:00'})`
-                    : 'Resend code'}
+                    ? `Erneutes Senden gesperrt (${resendCooldownCountdown ?? '00:00'})`
+                    : 'Code erneut senden'}
                 </button>
               </div>
               {resendLimit !== null && resendCount !== null && (
-                <div className="text-xs text-gray-500 mt-2">{`${resendCount}/${resendLimit} sends used`}</div>
+                <div className="text-xs text-gray-500 mt-2">{`${resendCount}/${resendLimit} Sendungen verwendet`}</div>
               )}
               {blockedUntil && (
-                <div className="text-xs text-red-600 mt-2">You&apos;ve requested the code too many times. Try again in {countdown ?? '00:00'}.</div>
+                <div className="text-xs text-red-600 mt-2">Sie haben den Code zu oft angefordert. Versuchen Sie es erneut in {countdown ?? '00:00'}.</div>
               )}
               {resendCooldownUntil && !blockedUntil && (
-                <div className="text-xs text-orange-600 mt-2">You&apos;ve reached the resend limit. Try again in {resendCooldownCountdown ?? '00:00'}.</div>
+                <div className="text-xs text-orange-600 mt-2">Sie haben das Limit für erneute Sendungen erreicht. Versuchen Sie es erneut in {resendCooldownCountdown ?? '00:00'}.</div>
               )}
             </div>
           )}

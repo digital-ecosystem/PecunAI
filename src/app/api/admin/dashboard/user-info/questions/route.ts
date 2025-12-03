@@ -25,7 +25,7 @@ export async function GET(req: Request) {
 
     // Fetch all questions with their options and selected answer for this session
     const questions = await prisma.question.findMany({
-      orderBy: { id: 'asc' },
+      orderBy: { questionOrder: 'asc' },
       include: {
         options: {
           orderBy: { id: 'asc' },
