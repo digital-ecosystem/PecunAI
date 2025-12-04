@@ -15,7 +15,7 @@ export interface PDFFormFillerOptions {
 export interface UserInfo {
   firstName?: string;
   lastName?: string;
-  birthDate?: string;
+  birthDate?: string | Date;
   birthPlace?: string;
   nationality?: string;
   maritalStatus?: string;
@@ -33,8 +33,8 @@ export interface UserInfo {
   documentType?: string;
   documentNumber?: string;
   issuingAuthority?: string;
-  issuedOn?: string;
-  validUntil?: string;
+  issuedOn?: string | Date;
+  validUntil?: string | Date;
   isPEP?: boolean;
   residenceAbroad?: boolean;
   actingFor?: string;
@@ -275,7 +275,7 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
 
     "vorname 32": userInfo.firstName || '',
     "vorname 33": userInfo.lastName || '',
-    "vorname 34": userInfo.birthDate || '',
+    "vorname 34": formatGermanDate(userInfo.birthDate),
     "vorname 35": userInfo.birthPlace || '',
     "vorname 36": userInfo.nationality || '',
     "vorname 37": userInfo.maritalStatus || '',
@@ -294,8 +294,8 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     "vorname 47": userInfo.currentJob || '',
     "vorname 48": userInfo.issuingAuthority || '',
     "vorname 49": userInfo.documentNumber || '',
-    "vorname 50": userInfo.issuedOn || '',
-    "vorname 51": userInfo.validUntil || '',
+    "vorname 50": formatGermanDate(userInfo.issuedOn),
+    "vorname 51": formatGermanDate(userInfo.validUntil),
 
     // Document type checkboxes
     "Kontrollkästchen 370": userInfo.documentType === 'passport',
@@ -1026,8 +1026,16 @@ const manageAnswer = (answer?: AnswerWithOptions | null) => {
 //   // }
 // }
 
+function formatGermanDate(dateInput?: string | Date) {
+  if (!dateInput) return "";
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return "";
+  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+}
+
+
 // formFieldMappers.ts
-const getCurrentDate = () => new Date().toLocaleDateString("de-DE");
+const getCurrentDate = () => formatGermanDate(new Date());
 
 const getFullName = (userInfo: UserInfo): string => {
   return userInfo.firstName && userInfo.lastName
@@ -1069,7 +1077,7 @@ const depoteroeffnungsantragMapper = (userInfo: UserInfo): FormFieldData => ({
   ...baseAddressFields(userInfo),
   ...baseContactFields(userInfo),
   ...baseNationalityFields(userInfo),
-  UserDoB: userInfo.birthDate || "",
+  UserDoB: formatGermanDate(userInfo.birthDate),
   UserCityOfOrigin: userInfo.city || "",
   UserProfession: userInfo.occupation || "",
   UserSector: "",
@@ -1163,7 +1171,7 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo): FormFieldData =
   ...baseContactFields(userInfo),
   ...baseNationalityFields(userInfo),
   GoalName: "",
-  UserDoB: userInfo.birthDate || "",
+  UserDoB: formatGermanDate(userInfo.birthDate),
   UserCityOfOrigin: userInfo.city || "",
   UserProfession: userInfo.occupation || "",
   UserSector: "",

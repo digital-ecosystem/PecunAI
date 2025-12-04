@@ -320,8 +320,8 @@ const Dashboard = () => {
             {/* Session Details Drawer */}
             {isDrawerOpen && selectedSession && (
                 isLoading ? (
-                    <div className="flex justify-center items-center h-40">
-                        <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                    <div className="fixed inset-0 z-50 flex justify-center items-center bg-black/20 backdrop-blur-sm">
+                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                     </div>
                 ) : (
                     <>

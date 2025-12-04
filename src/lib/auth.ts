@@ -1,6 +1,7 @@
 import { prisma } from './prisma';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import { CONFIG } from '@/config/constants';
 // import { CustomError } from './customError';
 // import { create } from 'domain';
 // import { string } from 'zod';
@@ -75,8 +76,8 @@ export class AuthService {
     const now = new Date()
     const normalizedEmail = email.toLowerCase()
 
-    const LIMIT = parseInt(process.env.OTP_RESEND_LIMIT || '3', 10)
-    const WINDOW_MINUTES = parseInt(process.env.OTP_WINDOW_MINUTES || '5', 10)
+    const LIMIT = CONFIG.AUTH.OTP_RESEND_LIMIT;
+    const WINDOW_MINUTES = CONFIG.AUTH.OTP_WINDOW_MINUTES;
     const windowMs = WINDOW_MINUTES * 60 * 1000
 
     const existingOTP = await prisma.oTP.findUnique({ where: { email: normalizedEmail } })
@@ -210,7 +211,7 @@ export class AuthService {
       { expiresIn: '7d' }
     );
 
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const expiresAt = new Date(Date.now() + CONFIG.AUTH.SESSION_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 
     const session = await prisma.session.create({
       data: {

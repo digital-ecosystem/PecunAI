@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
+import { CONFIG } from '@/config/constants';
 
 const SIGNTEQ_API_TOKEN = process.env.SIGNTEQ_API_KEY || process.env.SIGNTEQ_API_TOKEN || '';
 
@@ -29,7 +30,7 @@ export async function GET(
     console.log('📄 Downloading SignTeq document:', { documentId, type });
 
     const response = await axios.get(
-      `https://api.signteq.io/v1/documents/${documentId}/download`,
+      `${CONFIG.SIGNTEQ.API_URL}/documents/${documentId}/download`,
       {
         params: { type },
         headers: {

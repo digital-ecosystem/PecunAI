@@ -343,7 +343,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                     type="radio"
                     name="isTaxResidentAT"
                     value="true"
-                    checked={formik.values.isTaxResidentAT === true}
+                    checked={formik.values.isTaxResidentAT == true}
                     onChange={(e) => {
                       formik.setFieldValue("isTaxResidentAT", e.target.value === "true");
                       formik.setFieldTouched("isTaxResidentAT", true);
@@ -357,7 +357,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                     type="radio"
                     name="isTaxResidentAT"
                     value="false"
-                    checked={formik.values.isTaxResidentAT === false}
+                    checked={formik.values.isTaxResidentAT == false}
                     onChange={(e) => {
                       formik.setFieldValue("isTaxResidentAT", e.target.value === "true");
                       formik.setFieldTouched("isTaxResidentAT", true);
@@ -380,7 +380,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                     type="radio"
                     name="isTaxResidentOther"
                     value="true"
-                    checked={formik.values.isTaxResidentOther === true}
+                    checked={formik.values.isTaxResidentOther == true}
                     onChange={(e) => {
                       formik.setFieldValue("isTaxResidentOther", e.target.value === "true");
                       formik.setFieldTouched("isTaxResidentOther", true);
@@ -395,10 +395,13 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                     type="radio"
                     name="isTaxResidentOther"
                     value="false"
-                    checked={formik.values.isTaxResidentOther === false}
+                    checked={formik.values.isTaxResidentOther == false}
                     onChange={(e) => {
                       formik.setFieldValue("isTaxResidentOther", e.target.value === "true");
                       formik.setFieldTouched("isTaxResidentOther", true);
+                      if (e.target.value === "false") {
+                        formik.setFieldValue("taxResidencyCountry", "");
+                      }
                     }}
                     onBlur={formik.handleBlur}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"

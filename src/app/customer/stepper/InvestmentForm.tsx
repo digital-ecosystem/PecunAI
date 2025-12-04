@@ -215,7 +215,7 @@ export default function InvestmentForm(
               <p className="text-xs text-gray-500 mb-1">DISPOSITIONSBETRAG</p>
               <p className="text-sm font-semibold">
                 {
-                  formatEuro(Number(answers[questions[13].id])) || '0.00 €'
+                  formatEuro(parseFloat(answers[questions[13].id])) || '0.00 €'
                 }
               </p>
             </div>

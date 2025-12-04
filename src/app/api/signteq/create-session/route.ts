@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
+import { logger } from "@/lib/logger";
+import { handleApiError } from "@/lib/api-error";
+import { CONFIG } from "@/config/constants";
 
 // You should store your SignTeq API token in environment variables
 const SIGNTEQ_API_TOKEN = process.env.SIGNTEQ_API_KEY || process.env.SIGNTEQ_API_TOKEN || '';
@@ -16,7 +19,7 @@ export async function POST(request: NextRequest) {
       //   sessionId 
       signDSessionData,
     } = body;
-    console.log("🚀 ~ POST ~ signDSessionData:", signDSessionData)
+    logger.debug("SignD session data:", signDSessionData);
 
     if (!SIGNTEQ_API_TOKEN) {
       return NextResponse.json(
@@ -138,7 +141,7 @@ export async function POST(request: NextRequest) {
 
     console.log("🚀 ~ POST ~ full payload:", JSON.stringify(payload, null, 2))
 
-    console.log('📝 Creating SignTeq signature request:', {
+    logger.info('Creating SignTeq signature request:', {
       subject: payload.subject,
       recipient: payload.recipients[0].email,
       documentName: payload.documents[0].name,
@@ -146,20 +149,20 @@ export async function POST(request: NextRequest) {
       hasValidBase64: cleanBase64.length > 0
     });
 
-    const response = await axios.post('https://api.signteq.io/v1/requests', payload, {
+    const response = await axios.post(`${CONFIG.SIGNTEQ.API_URL}/requests`, payload, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Authorization': `Bearer ${SIGNTEQ_API_TOKEN}`,
-        'User-Agent': 'NextJS-App'
+        'User-Agent': CONFIG.SIGNTEQ.USER_AGENT
       },
       timeout: 30000, // 30 second timeout
     });
 
     const data = response.data;
-    console.log("🚀 ~ POST ~ data:", data)
+    logger.debug("SignTeq response data:", data);
 
-    console.log('✅ SignTeq request created successfully:', {
+    logger.info('SignTeq request created successfully:', {
       id: data.id,
       type: data.type,
       subject: data.subject,
@@ -181,9 +184,8 @@ export async function POST(request: NextRequest) {
       signing_url: signingUrl,
       data: data
     });
-
   } catch (error) {
-    console.error('❌ SignTeq integration error:', error);
+    logger.error('SignTeq integration error:', error);
 
     // Handle axios errors specifically
     if (axios.isAxiosError(error)) {
@@ -191,7 +193,7 @@ export async function POST(request: NextRequest) {
       const responseData = axiosError.response?.data;
       const statusCode = axiosError.response?.status || 500;
       
-      console.error('❌ SignTeq API error details:', {
+      logger.error('SignTeq API error details:', {
         status: statusCode,
         statusText: axiosError.response?.statusText,
         data: responseData,
@@ -228,17 +230,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Handle other types of errors
-    const errorMessage = error instanceof Error ? error.message : 'Ein unbekannter Fehler ist aufgetreten';
-    console.error('❌ Unexpected error:', errorMessage);
-    
-    return NextResponse.json(
-      {
-        success: false,
-        error: errorMessage,
-        details: 'Ein unerwarteter Fehler ist beim Erstellen der SignTeq-Sitzung aufgetreten'
-      },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

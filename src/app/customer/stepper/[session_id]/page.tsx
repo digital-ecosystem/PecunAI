@@ -45,6 +45,7 @@ import { SignDIframe } from "@/components/SignDIframe";
 import { SignTeqIframe } from "@/components/SignTeqIframe";
 // import { pdfBlobToBase64 } from "@/utils/pdfUtils";
 // import { pdfBlobToBase64 } from "@/utils/pdfUtils";
+import { CONFIG } from "@/config/constants";
 
 /**
  * PHASE STRUCTURE (5 Main Phases):
@@ -1374,8 +1375,8 @@ export default function Stepper() {
               country: user.country || "",
               bic: user.bic || "",
               bankName: user.bankName || "",
-              isTaxResidentAT: user.isTaxResidentAT || null,
-              isTaxResidentOther: user.isTaxResidentOther || null,
+              isTaxResidentAT: user.isTaxResidentAT ?? null,
+              isTaxResidentOther: user.isTaxResidentOther ?? null,
               taxResidencyCountry: user.taxResidencyCountry || "",
             });
           }
@@ -1508,15 +1509,26 @@ export default function Stepper() {
 
     // High-Risk & Tax Residency Checks
     const isHighRiskCountry = (country: string) => highRiskCountries.includes(country);
-    const isUSCitizen = data.nationality === "Vereinigte Staaten" || data.country === "Vereinigte Staaten";
+
+    // US Citizen Check (Comprehensive)
+    const isUSCitizen =
+      data.nationality === "Vereinigte Staaten" ||
+      data.country === "Vereinigte Staaten" ||
+      (data.isTaxResidentOther && data.taxResidencyCountry === "Vereinigte Staaten");
+    // High Risk Check (Comprehensive)
+    const isHighRisk =
+      isHighRiskCountry(data.nationality) ||
+      isHighRiskCountry(data.country || "") ||
+      (data.isTaxResidentOther && isHighRiskCountry(data.taxResidencyCountry || ""));
+    // Lives outside Austria
+    const livesOutsideAustria = data.country !== "Österreich";
 
     if (
-      data.isPEP || // PEP
-      data.isTaxResidentOther || // Second tax residency
-      data.country !== "Österreich" || // Lives outside Austria
-      isHighRiskCountry(data.nationality) || // High-Risk Nationality
-      isHighRiskCountry(data.country || "") || // High-Risk Residence
-      isUSCitizen // US Citizen
+      data.isPEP ||
+      livesOutsideAustria ||
+      isHighRisk ||
+      isUSCitizen ||
+      data.isTaxResidentOther // Second tax residency is a blocker
     ) {
       setIsPepStop(true);
       setLoading(false);
@@ -1551,8 +1563,8 @@ export default function Stepper() {
         // ye
       },
       settings: {
-        redirect_success_url: "http://localhost:3000/success",
-        redirect_error_url: "http://localhost:3000/error",
+        redirect_success_url: `${CONFIG.FRONTEND_URL}/success`,
+        redirect_error_url: `${CONFIG.FRONTEND_URL}/error`,
       },
       magic_flow: data.magicFlow,
     };
@@ -2022,7 +2034,7 @@ export default function Stepper() {
                         <li><strong>Adresse:</strong> Einspinnergasse 1, A-8010 Graz</li>
                         <li><strong>Telefon:</strong> +43 (676) 92 00 670</li>
                         <li><strong>Email:</strong> <a href="mailto:office@4money.at">office@4money.at</a></li>
-                        <li><strong>Website:</strong> <a href="https://www.4money.at" target="_blank">www.4money.at</a></li>
+                        <li><strong>Website:</strong> <a href={CONFIG.EXTERNAL.WEBSITE_URL} target="_blank">{CONFIG.EXTERNAL.WEBSITE_URL.replace('https://', 'www.')}</a></li>
                       </ul>
 
                       <h2>Weitere Hinweise:</h2>
@@ -2253,7 +2265,7 @@ export default function Stepper() {
                     <div className="w-full border border-gray-200 rounded-lg overflow-hidden bg-white flex-1 flex flex-col shadow-sm">
                       {suggestedProduct?.fileName ? (
                         <div className="w-full h-full relative">
-                          <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
+                          <Worker workerUrl={CONFIG.EXTERNAL.PDF_WORKER_URL}>
                             <div className="h-full w-full [&_.rpv-core\_\_viewer]:!h-full [&_.rpv-core\_\_inner-pages]:!p-2 sm:[&_.rpv-core\_\_inner-pages]:!p-4">
                               <Viewer
                                 fileUrl={

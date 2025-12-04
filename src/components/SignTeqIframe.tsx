@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useRef } from 'react';
+import { CONFIG } from '@/config/constants';
 
 interface SignTeqIframeProps {
   src: string;
@@ -21,15 +22,15 @@ export const SignTeqIframe: React.FC<SignTeqIframeProps> = ({
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       // Only listen to messages from SignTeq domain
-      if (!event.origin.includes('signteq.io')) {
+      if (event.origin !== CONFIG.SIGNTEQ.IFRAME_ORIGIN) {
         return;
       }
 
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        
+
         console.log('📨 SignTeq iframe message:', data);
-        
+
         switch (data.type) {
           case 'signature_completed':
           case 'document_signed':
@@ -78,7 +79,7 @@ export const SignTeqIframe: React.FC<SignTeqIframeProps> = ({
     };
 
     window.addEventListener('message', handleMessage);
-    
+
     // Set up interval to check for URL changes (fallback)
     const urlCheckInterval = setInterval(handleUrlChange, 1000);
 
@@ -97,7 +98,7 @@ export const SignTeqIframe: React.FC<SignTeqIframeProps> = ({
   }
 
   return (
-    <div className="rounded-lg overflow-hidden border border-gray-200" style={{width: '100%', height: '100%'}}>
+    <div className="rounded-lg overflow-hidden border border-gray-200" style={{ width: '100%', height: '100%' }}>
       <iframe
         ref={iframeRef}
         src={src}

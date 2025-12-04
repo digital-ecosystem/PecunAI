@@ -81,7 +81,7 @@ export default function ContractDocuments(
   //     // Get the merged PDF blob
   //     const blob = await response.blob();
   //     const url = window.URL.createObjectURL(blob);
-      
+
   //     // Open in modal
   //     setSelectedPDF({
   //       url,
@@ -241,54 +241,56 @@ export default function ContractDocuments(
                         <td className="py-3 px-2 text-gray-700">in %</td>
                         <td className="py-3 px-2 text-gray-700">in €</td>
                       </tr>
-                       <tr>
+                      <tr>
                         <td className="py-3 px-2 text-gray-700">Einstiegskosten (4money)</td>
                         <td className="py-3 px-2 text-gray-700">3,00 %</td>
-                        <td className="py-3 px-2 text-gray-700">30,00 €</td>
+                        <td className="py-3 px-2 text-gray-700">300 €</td>
                         <td className="py-3 px-2 text-gray-700">0,00 %</td>
-                        <td className="py-3 px-2 text-gray-700">0,00 €</td>
+                        <td className="py-3 px-2 text-gray-700">0 €</td>
                       </tr>
                       <tr>
                         <td className="py-3 px-2 text-gray-700">Vermögensverwaltungsgebühr p.a. (froots)</td>
                         <td className="py-3 px-2 text-gray-700">0,39 %</td>
-                        <td className="py-3 px-2 text-gray-700">39,00 €</td>
+                        <td className="py-3 px-2 text-gray-700">390 €</td>
                         <td className="py-3 px-2 text-gray-700">0,24 %</td>
-                        <td className="py-3 px-2 text-gray-700">24,00 €</td>
+                        <td className="py-3 px-2 text-gray-700">240 €</td>
                       </tr>
                       <tr>
                         <td className="py-3 px-2 text-gray-700">Depot- & Kontoführungsgebühren p.a. (die Plattform)</td>
                         <td className="py-3 px-2 text-gray-700">0,37 %</td>
-                        <td className="py-3 px-2 text-gray-700">37,00 €</td>
+                        <td className="py-3 px-2 text-gray-700">370 €</td>
                         <td className="py-3 px-2 text-gray-700">0,37 %</td>
-                        <td className="py-3 px-2 text-gray-700">37,00 €</td>
+                        <td className="py-3 px-2 text-gray-700">370 €</td>
                       </tr>
                       <tr>
                         <td className="py-3 px-2 text-gray-700">Beratungshonorar p.a. (Servicegebühr 4money)</td>
                         <td className="py-3 px-2 text-gray-700">1,11 %</td>
-                        <td className="py-3 px-2 text-gray-700">111,00 €</td>
+                        <td className="py-3 px-2 text-gray-700">1,110 €</td>
                         <td className="py-3 px-2 text-gray-700">0,60 %</td>
-                        <td className="py-3 px-2 text-gray-700">60,00 €</td>
+                        <td className="py-3 px-2 text-gray-700">600 €</td>
                       </tr>
                       <tr>
                         <td className="py-3 px-2 text-gray-700">Produktkosten p.a.</td>
                         <td className="py-3 px-2 text-gray-700">0,17 %</td>
-                        <td className="py-3 px-2 text-gray-700">17,00 €</td>
+                        <td className="py-3 px-2 text-gray-700">170 €</td>
                         <td className="py-3 px-2 text-gray-700">0,12 %</td>
-                        <td className="py-3 px-2 text-gray-700">12,00 €</td>
+                        <td className="py-3 px-2 text-gray-700">120 €</td>
                       </tr>
                       <tr>
                         <td className="py-3 px-2 text-gray-700">Transaktionskosten p.a.</td>
                         <td className="py-3 px-2 text-gray-700">0,05 %</td>
-                        <td className="py-3 px-2 text-gray-700">5,00 €</td>
+                        <td className="py-3 px-2 text-gray-700">5 €</td>
                         <td className="py-3 px-2 text-gray-700">0,05 %</td>
-                        <td className="py-3 px-2 text-gray-700">5,00 €</td>
+                        <td className="py-3 px-2 text-gray-700">5 €</td>
                       </tr>
                       <tr className="font-semibold bg-gray-50">
                         <td className="py-3 px-2 text-gray-900">Summe Gesamtkostenquote (p.a.)</td>
-                        <td className="py-3 px-2 text-gray-900">2,09 %</td>
-                        <td className="py-3 px-2 text-gray-900">209,00 €</td>
+                        <td className="py-3 px-2 text-gray-900">
+                          2,09 %
+                        </td>
+                        <td className="py-3 px-2 text-gray-900">1,994 €</td>
                         <td className="py-3 px-2 text-gray-900">1,38 %</td>
-                        <td className="py-3 px-2 text-gray-900">138,00 €</td>
+                        <td className="py-3 px-2 text-gray-900">1,119 €</td>
                       </tr>
                     </tbody>
                   </table>

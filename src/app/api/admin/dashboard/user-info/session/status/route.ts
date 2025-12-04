@@ -66,7 +66,7 @@ export async function PATCH(req: Request) {
                   : status === 'REJECTED'
                   ? '#dc2626'
                   : '#2563eb'
-              };">${status}</span>
+              };">${status === 'APPROVED' ? 'GENEHMIGT' : status === 'REJECTED' ? 'ABGELEHNT' : status}</span>
             </p>
             <p style="margin-top: 10px; font-size: 14px; color: #666;">
               QA-Sitzungs-ID: ${updated.id}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
+import { CONFIG } from '@/config/constants';
 
 // You should store your SignTeq API token in environment variables
 const SIGNTEQ_API_TOKEN = process.env.SIGNTEQ_API_KEY || process.env.SIGNTEQ_API_TOKEN || '';
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     console.log("🧪 Testing basic payload:", JSON.stringify(payload, null, 2));
 
-    const response = await axios.post('https://api.signteq.io/v1/sign', payload, {
+    const response = await axios.post(`${CONFIG.SIGNTEQ.API_URL}/sign`, payload, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

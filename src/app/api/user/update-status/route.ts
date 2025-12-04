@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { SessionStatus } from "@/types";
+import { logger } from "@/lib/logger";
+import { handleApiError } from "@/lib/api-error";
 
 export async function POST(request: Request) {
   try {
@@ -23,7 +25,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Update user error:", error);
-    return NextResponse.json({ success: false, message: "Benutzer konnte nicht aktualisiert werden" }, { status: 500 });
+    return handleApiError(error);
   }
 }

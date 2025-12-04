@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { CONFIG } from '@/config/constants';
 
 export interface SignTeqField {
   page: number;
@@ -64,7 +65,7 @@ export const useSignTeq = (apiToken: string) => {
     setError(null);
 
     try {
-      const response = await fetch('https://api.signteq.io/v1/sign', {
+      const response = await fetch(`${CONFIG.SIGNTEQ.API_URL}/sign`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,7 +92,7 @@ export const useSignTeq = (apiToken: string) => {
   };
 
   const getSigningUrl = (signatureId: string, signatureToken: string): string => {
-    return `https://app.signteq.io/sign/${signatureId}?token=${signatureToken}`;
+    return `${CONFIG.SIGNTEQ.IFRAME_ORIGIN.replace('https://', 'https://app.')}/sign/${signatureId}?token=${signatureToken}`;
   };
 
   return {
