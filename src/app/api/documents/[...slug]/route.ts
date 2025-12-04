@@ -24,7 +24,7 @@ export async function GET(
     
     if (!realPath.startsWith(baseDir)) {
       return NextResponse.json(
-        { error: 'Unauthorized access' },
+        { error: 'Unbefugter Zugriff' },
         { status: 403 }
       );
     }
@@ -50,7 +50,7 @@ export async function GET(
   } catch (error) {
     console.error('Error serving document:', error);
     return NextResponse.json(
-      { error: 'Document not found' },
+      { error: 'Dokument nicht gefunden' },
       { status: 404 }
     );
   }

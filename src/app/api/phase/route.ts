@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
     const token = cookieStore.get('auth-token')?.value;
 
     if (!token) {
-      return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
+      return NextResponse.json({ message: "Nicht authentifiziert" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
 
     const user = await AuthService.getUserFromToken(token);
     if (!user) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+      return NextResponse.json({ message: "Ungültiges Token" }, { status: 401 });
     }
 
     let questions = [];
@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
     }
   } catch (error) {
     console.error("Fetch sessions error:", error);
-    return NextResponse.json({ message: "Failed to fetch sessions", success: false }, { status: 500 });
+    return NextResponse.json({ message: "Sitzungen konnten nicht abgerufen werden", success: false }, { status: 500 });
   }
 }
 
@@ -143,19 +143,19 @@ export async function POST(req: NextRequest) {
     const token = cookieStore.get('auth-token')?.value;
 
     if (!token) {
-      return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
+      return NextResponse.json({ message: "Nicht authentifiziert" }, { status: 401 });
     }
 
     const user = await AuthService.getUserFromToken(token);
     if (!user) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+      return NextResponse.json({ message: "Ungültiges Token" }, { status: 401 });
     }
 
     const body = await req.json();
     const { sessionId, phase } = body;
 
     if (!sessionId || !phase) {
-      return NextResponse.json({ error: 'Missing sessionId or phase' }, { status: 400 });
+      return NextResponse.json({ error: 'Sitzungs-ID oder Phase fehlt' }, { status: 400 });
     }
 
     // Update the session phase
@@ -169,12 +169,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: "Phase updated successfully",
+      message: "Phase erfolgreich aktualisiert",
       currentPhase: updatedSession.phase 
     });
 
   } catch (error) {
     console.error("Update phase error:", error);
-    return NextResponse.json({ message: "Failed to update phase", success: false }, { status: 500 });
+    return NextResponse.json({ message: "Phase konnte nicht aktualisiert werden", success: false }, { status: 500 });
   }
 }

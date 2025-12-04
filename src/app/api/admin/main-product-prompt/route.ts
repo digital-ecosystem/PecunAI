@@ -7,9 +7,9 @@ import { z } from 'zod';
 // Validation schema for main product prompt creation/update
 const mainProductPromptSchema = z.object({
   vectorId: z.string().optional(),
-  aiModel: z.string().min(1, 'AI model is required').default('gpt-5'),
+  aiModel: z.string().min(1, 'KI-Modell ist erforderlich').default('gpt-5'),
   mcpUrl: z.string().url().optional().or(z.literal('')),
-  mainPrompt: z.string().min(1, 'Main prompt is required'),
+  mainPrompt: z.string().min(1, 'Haupt-Prompt ist erforderlich'),
 });
 
 // GET - List all main product prompts with pagination and search
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const session = await decrypt(cookie);
 
     if (!session?.userId) {
-      return NextResponse.json({ message: 'Not authenticated', success: false }, { status: 401 });
+      return NextResponse.json({ message: 'Nicht authentifiziert', success: false }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching main product prompts:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: 'Interner Serverfehler' },
       { status: 500 }
     );
   }
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     const session = await decrypt(cookie);
 
     if (!session?.userId) {
-      return NextResponse.json({ message: 'Not authenticated', success: false }, { status: 401 });
+      return NextResponse.json({ message: 'Nicht authentifiziert', success: false }, { status: 401 });
     }
 
     const body = await request.json();
@@ -104,19 +104,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: mainProductPrompt,
-      message: 'Main product prompt created successfully',
+      message: 'Hauptprodukt-Prompt erfolgreich erstellt',
     }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Validation error', details: error.issues },
+        { success: false, error: 'Validierungsfehler', details: error.issues },
         { status: 400 }
       );
     }
 
     console.error('Error creating main product prompt:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: 'Interner Serverfehler' },
       { status: 500 }
     );
   }

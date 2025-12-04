@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { 
-  Search, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Filter, 
-  ChevronLeft, 
+import {
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Filter,
+  ChevronLeft,
   ChevronRight,
   FileText,
   Calendar,
@@ -51,7 +51,7 @@ const ProductsPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const router = useRouter();
 
   // Fetch products
@@ -103,7 +103,7 @@ const ProductsPage = () => {
 
   // Handle delete
   const handleDelete = async (product: Product) => {
-    if (!confirm(`Are you sure you want to delete "${product.name}"?`)) {
+    if (!confirm(`Sind Sie sicher, dass Sie "${product.name}" löschen möchten?`)) {
       return;
     }
 
@@ -122,14 +122,14 @@ const ProductsPage = () => {
       }
     } catch (deleteError) {
       console.error('Delete error:', deleteError);
-      alert('Failed to delete product');
+      alert('Produkt konnte nicht gelöscht werden');
     }
   };
 
   // Risk type mapping to German
   const riskMap: Record<string, string> = {
     CONSERVATIVE: 'Konservativ',
-    RISK_AWARE: 'Ausgewogen', 
+    RISK_AWARE: 'Ausgewogen',
     OPPORTUNITY_ORIENTED: 'Gewinnorientiert',
   };
 
@@ -144,7 +144,7 @@ const ProductsPage = () => {
   };
 
   const getRiskTypeText = (riskType: string | null) => {
-    return riskType ? riskMap[riskType] || 'Not Set' : 'Not Set';
+    return riskType ? riskMap[riskType] || 'Nicht festgelegt' : 'Nicht festgelegt';
   };
 
   return (
@@ -153,8 +153,8 @@ const ProductsPage = () => {
       <div className="p-3 sm:p-4 lg:p-6">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Products Overview</h1>
-          <p className="text-sm sm:text-base text-gray-600">Manage your product catalog and configurations</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Produktübersicht</h1>
+          <p className="text-sm sm:text-base text-gray-600">Verwalten Sie Ihren Produktkatalog und Konfigurationen</p>
         </div>
 
         {/* Stats Cards */}
@@ -162,7 +162,7 @@ const ProductsPage = () => {
           <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Products</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Gesamtprodukte</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{totalCount}</p>
               </div>
               <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
@@ -200,13 +200,13 @@ const ProductsPage = () => {
           <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">This Month</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Diesen Monat</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
                   {products.filter(p => {
                     const productDate = new Date(p.createdAt);
                     const now = new Date();
-                    return productDate.getMonth() === now.getMonth() && 
-                           productDate.getFullYear() === now.getFullYear();
+                    return productDate.getMonth() === now.getMonth() &&
+                      productDate.getFullYear() === now.getFullYear();
                   }).length}
                 </p>
               </div>
@@ -226,7 +226,7 @@ const ProductsPage = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                 <input
                   type="text"
-                  placeholder="Search products..."
+                  placeholder="Produkte suchen..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
@@ -241,7 +241,7 @@ const ProductsPage = () => {
                   onChange={(e) => setRiskFilter(e.target.value)}
                   className="w-full sm:w-auto pl-9 sm:pl-10 pr-8 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white text-sm sm:text-base"
                 >
-                  <option value="all">All Risk Types</option>
+                  <option value="all">Alle Risikotypen</option>
                   <option value="CONSERVATIVE">Konservativ</option>
                   <option value="RISK_AWARE">Ausgewogen</option>
                   <option value="OPPORTUNITY_ORIENTED">Gewinnorientiert</option>
@@ -255,8 +255,8 @@ const ProductsPage = () => {
               className="flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
             >
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">Add Product</span>
-              <span className="sm:hidden">Add</span>
+              <span className="hidden sm:inline">Produkt hinzufügen</span>
+              <span className="sm:hidden">Hinzufügen</span>
             </button>
           </div>
         </div>
@@ -273,13 +273,13 @@ const ProductsPage = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm">Product</th>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell">Risk Type</th>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden md:table-cell">Investment Horizon</th>
+                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm">Produkt</th>
+                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell">Risikotyp</th>
+                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden md:table-cell">Anlagehorizont</th>
                       <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden lg:table-cell">PDF</th>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden xl:table-cell">Usage</th>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell">Created</th>
-                      <th className="text-right p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm">Actions</th>
+                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden xl:table-cell">Nutzung</th>
+                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell">Erstellt</th>
+                      <th className="text-right p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm">Aktionen</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -305,7 +305,7 @@ const ProductsPage = () => {
                               </div>
                               {(product.minimumYear !== null || product.maximumYear !== null) && (
                                 <div className="text-xs text-gray-500">
-                                  Horizon: {product.minimumYear !== null ? `${product.minimumYear}` : '0'} - {product.maximumYear !== null ? `${product.maximumYear}` : '∞'} years
+                                  Horizont: {product.minimumYear !== null ? `${product.minimumYear}` : '0'} - {product.maximumYear !== null ? `${product.maximumYear}` : '∞'} Jahre
                                 </div>
                               )}
                               <div className="text-xs text-gray-400">
@@ -323,7 +323,7 @@ const ProductsPage = () => {
                           <div className="text-xs sm:text-sm text-gray-900">
                             {product.minimumYear !== null || product.maximumYear !== null ? (
                               <>
-                                {product.minimumYear !== null ? `${product.minimumYear}` : '0'} - {product.maximumYear !== null ? `${product.maximumYear}` : '∞'} years
+                                {product.minimumYear !== null ? `${product.minimumYear}` : '0'} - {product.maximumYear !== null ? `${product.maximumYear}` : '∞'} Jahre
                               </>
                             ) : (
                               '—'
@@ -339,17 +339,17 @@ const ProductsPage = () => {
                               className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs sm:text-sm"
                             >
                               <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
-                              <span className="hidden xl:inline">View PDF</span>
+                              <span className="hidden xl:inline">PDF anzeigen</span>
                               <span className="xl:hidden">PDF</span>
                             </a>
                           ) : (
-                            <span className="text-gray-400 text-xs sm:text-sm">No PDF</span>
+                            <span className="text-gray-400 text-xs sm:text-sm">Kein PDF</span>
                           )}
                         </td>
                         <td className="p-3 sm:p-4 hidden xl:table-cell">
                           <div className="text-xs sm:text-sm text-gray-900">
-                            <div>{product._count.productSuggestions} suggestions</div>
-                            <div className="text-gray-500">{product._count.aiSettings} AI configs</div>
+                            <div>{product._count.productSuggestions} Vorschläge</div>
+                            <div className="text-gray-500">{product._count.aiSettings} KI-Konfigurationen</div>
                           </div>
                         </td>
                         <td className="p-3 sm:p-4 hidden sm:table-cell">
@@ -391,14 +391,14 @@ const ProductsPage = () => {
               {products.length === 0 && !isLoading && (
                 <div className="text-center py-8 sm:py-12 px-4">
                   <FileText className="w-8 h-8 sm:w-12 sm:h-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No products found</h3>
-                  <p className="text-sm sm:text-base text-gray-500 mb-4">Get started by creating your first product</p>
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Keine Produkte gefunden</h3>
+                  <p className="text-sm sm:text-base text-gray-500 mb-4">Beginnen Sie mit der Erstellung Ihres ersten Produkts</p>
                   <button
                     onClick={() => router.push('/admin/products/add')}
                     className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
                   >
                     <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                    Add Product
+                    Produkt hinzufügen
                   </button>
                 </div>
               )}
@@ -408,7 +408,7 @@ const ProductsPage = () => {
                 <div className="border-t border-gray-200 px-4 sm:px-6 py-4">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
-                      Showing {((currentPage - 1) * 10) + 1} to {Math.min(currentPage * 10, totalCount)} of {totalCount} products
+                      Zeige {((currentPage - 1) * 10) + 1} bis {Math.min(currentPage * 10, totalCount)} von {totalCount} Produkten
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -419,7 +419,7 @@ const ProductsPage = () => {
                         <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                       </button>
                       <span className="px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-gray-900">
-                        {currentPage} of {totalPages}
+                        {currentPage} von {totalPages}
                       </span>
                       <button
                         onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}

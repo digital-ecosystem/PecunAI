@@ -10,11 +10,11 @@ export async function GET(req: Request) {
     const session = await decrypt(cookie);
 
     if (!session?.userId || session?.role !== 'admin') {
-        return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+        return NextResponse.json({ message: 'Nicht authentifiziert' }, { status: 401 });
     }
 
     if (!sessionId) {
-        return NextResponse.json({ success: false, error: 'Missing sessionId' }, { status: 400 });
+        return NextResponse.json({ success: false, error: 'Fehlende Sitzungs-ID' }, { status: 400 });
     }
 
 
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
         });
 
         if (!session || !session.user) {
-            return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+            return NextResponse.json({ success: false, error: 'Benutzer nicht gefunden' }, { status: 404 });
         }
 
         const { id, email, createdAt } = session.user;
@@ -36,6 +36,6 @@ export async function GET(req: Request) {
         });
     } catch (error) {
         console.error('[GET /api/user]', error);
-        return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 });
+        return NextResponse.json({ success: false, error: 'Serverfehler' }, { status: 500 });
     }
 }

@@ -57,7 +57,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching personalInfo:', error);
     return NextResponse.json(
-      { error: 'Server error while fetching personalInfo' },
+      { error: 'Serverfehler beim Abrufen der persönlichen Informationen' },
       { status: 500 }
     );
   }

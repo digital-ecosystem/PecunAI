@@ -34,14 +34,14 @@ export async function POST(request: NextRequest) {
 
     if (!sessionId) {
       return NextResponse.json(
-        { success: false, error: 'Session ID is required' },
+        { success: false, error: 'Sitzungs-ID ist erforderlich' },
         { status: 400 }
       );
     }
 
     if (!userInfo) {
       return NextResponse.json(
-        { success: false, error: 'User information is required' },
+        { success: false, error: 'Benutzerinformationen sind erforderlich' },
         { status: 400 }
       );
     }
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     for (const pdfFileName of pdfFileNames) {
       if (typeof pdfFileName !== 'string' || pdfFileName.trim() === '') {
         return NextResponse.json(
-          { success: false, error: 'Invalid PDF file name provided' },
+          { success: false, error: 'Ungültiger PDF-Dateiname angegeben' },
           { status: 400 }
         );
       }
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
       // Validate the PDF base64 is not empty and has reasonable length
       if (!filledPdfBase64 || filledPdfBase64.length < 100) {
-        throw new Error('Generated PDF appears to be invalid or empty');
+        throw new Error('Generiertes PDF scheint ungültig oder leer zu sein');
       }
 
       // save PDF for debugging if in debug mode
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       success: true,
       // pdfBase64: filledPdfBase64,
       finalPdfPaths,
-      message: 'PDF form filled successfully'
+      message: 'PDF-Formular erfolgreich ausgefüllt'
     });
 
   } catch (error) {
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fill PDF form'
+        error: error instanceof Error ? error.message : 'PDF-Formular konnte nicht ausgefüllt werden'
       },
       { status: 500 }
     );

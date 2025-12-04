@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     if (!duration || !risk) {
       const count = await prisma.product.count();
       if (count === 0) {
-        return NextResponse.json({ error: 'No products found', success: false }, { status: 404 });
+        return NextResponse.json({ error: 'Keine Produkte gefunden', success: false }, { status: 404 });
       }
       const randomIndex = Math.floor(Math.random() * count);
       const product = await prisma.product.findFirst({
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         data: null,
-        message: 'No products found matching the criteria'
+        message: 'Keine Produkte gefunden, die den Kriterien entsprechen'
       });
     }
 
@@ -205,7 +205,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching product suggestions:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: 'Interner Serverfehler' },
       { status: 500 }
     );
   }

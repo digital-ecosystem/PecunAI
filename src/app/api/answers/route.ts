@@ -11,23 +11,23 @@ export async function POST(request: Request) {
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+      return NextResponse.json({ error: 'Fehlende ID' }, { status: 400 });
     }
 
     const { questionId, answer, question, options, questionType } = await request.json();
     if (!questionId || !answer ) {
-      return NextResponse.json({ message: 'Missing questionId, or answer' }, { status: 400 });
+      return NextResponse.json({ message: 'Frage-ID oder Antwort fehlt' }, { status: 400 });
     }
     const cookieStore = await cookies();
     const token = cookieStore.get('auth-token')?.value;
 
     if (!token) {
-      return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
+      return NextResponse.json({ message: "Nicht authentifiziert" }, { status: 401 });
     }
 
     const user = await AuthService.getUserFromToken(token);
     if (!user) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+      return NextResponse.json({ message: "Ungültiges Token" }, { status: 401 });
     }
 
     const session = await prisma.qASession.findFirst({
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       });
       
       if (!session) {
-        return NextResponse.json({ message: "No active session found" }, { status: 404 });
+        return NextResponse.json({ message: "Keine aktive Sitzung gefunden" }, { status: 404 });
       }
       
     const sessionId = session.id;
@@ -91,6 +91,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, answer: newAnswer });
   } catch (error) {
     console.error('Error saving answer:', error);
-    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Interner Serverfehler' }, { status: 500 });
   }
 }

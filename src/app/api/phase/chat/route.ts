@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 
       if (!audioFile) {
         return NextResponse.json(
-          { error: 'Audio file not found' },
+          { error: 'Audiodatei nicht gefunden' },
           { status: 404 }
         )
       }
@@ -57,14 +57,14 @@ export async function POST(req: Request) {
       } catch (transcribeError) {
         console.error('Transcription error:', transcribeError)
         return NextResponse.json(
-          { error: 'Failed to transcribe audio' },
+          { error: 'Audio konnte nicht transkribiert werden' },
           { status: 500 }
         )
       }
     }
 
     if (!userMessage) {
-      return NextResponse.json({ message: 'Message or audioFileId is required' }, { status: 400 })
+      return NextResponse.json({ message: 'Nachricht oder Audiodatei-ID ist erforderlich' }, { status: 400 })
     }
 
     const currentSessionId = sessionId
@@ -241,7 +241,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('API error:', JSON.stringify(error))
     return NextResponse.json({
-      message: 'Sorry, I encountered an error processing your request.',
+      message: 'Entschuldigung, bei der Verarbeitung Ihrer Anfrage ist ein Fehler aufgetreten.',
       error: process.env.NODE_ENV === 'development' ? error : undefined
     }, { status: 500 })
   }
@@ -254,7 +254,7 @@ export async function GET(req: Request) {
   const threadId = searchParams.get('threadId')
 
   if (!sessionId && !threadId) {
-    return NextResponse.json({ message: 'SessionId or threadId is required' }, { status: 400 })
+    return NextResponse.json({ message: 'Sitzungs-ID oder Thread-ID ist erforderlich' }, { status: 400 })
   }
 
   try {
@@ -281,7 +281,7 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error('Error fetching chat history:', error)
     return NextResponse.json({
-      message: 'Error fetching chat history',
+      message: 'Fehler beim Abrufen des Chatverlaufs',
       error: process.env.NODE_ENV === 'development' ? error : undefined
     }, { status: 500 })
   }

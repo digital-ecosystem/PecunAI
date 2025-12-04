@@ -6,16 +6,16 @@ import { z } from 'zod';
 
 // Validation schema for product creation/update
 const productSchema = z.object({
-  name: z.string().min(1, 'Product name is required'),
+  name: z.string().min(1, 'Produktname ist erforderlich'),
   description: z.string().optional(),
   shortName: z.string().optional(),
   fileName: z.string().optional(),
   minimumYear: z.number().int().min(0).max(50).optional(),
   maximumYear: z.number().int().min(0).max(50).optional(),
   riskType: z.enum(['CONSERVATIVE', 'RISK_AWARE', 'OPPORTUNITY_ORIENTED']).optional(),
-  aiModel: z.string().min(1, 'AI model is required').default('gpt-5'),
-  firstMessage: z.string().min(1, 'First message is required'),
-  aiPrompt: z.string().min(1, 'AI prompt is required'),
+  aiModel: z.string().min(1, 'KI-Modell ist erforderlich').default('gpt-5'),
+  firstMessage: z.string().min(1, 'Erste Nachricht ist erforderlich'),
+  aiPrompt: z.string().min(1, 'KI-Prompt ist erforderlich'),
   vectorId: z.string().optional(),
 }).refine((data) => {
   // Ensure minimumYear <= maximumYear if both are provided
@@ -24,7 +24,7 @@ const productSchema = z.object({
   }
   return true;
 }, {
-  message: "Minimum year must be less than or equal to maximum year",
+  message: "Mindestjahr muss kleiner oder gleich dem Maximaljahr sein",
   path: ["minimumYear"],
 });
 
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const session = await decrypt(cookie);
 
     if (!session?.userId) {
-      return NextResponse.json({ message: 'Not authenticated', success: false }, { status: 401 });
+      return NextResponse.json({ message: 'Nicht authentifiziert', success: false }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching products:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: 'Interner Serverfehler' },
       { status: 500 }
     );
   }
@@ -169,19 +169,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: product,
-      message: 'Product created successfully',
+      message: 'Produkt erfolgreich erstellt',
     }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Validation error', details: error.issues },
+        { success: false, error: 'Validierungsfehler', details: error.issues },
         { status: 400 }
       );
     }
 
     console.error('Error creating product:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: 'Interner Serverfehler' },
       { status: 500 }
     );
   }

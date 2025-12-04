@@ -21,5 +21,5 @@ export async function POST(request: Request) {
     return response;
   }
 
-  return NextResponse.json({ success: false, message: 'Invalid credentials' }, { status: 401 });
+  return NextResponse.json({ success: false, message: 'Ungültige Anmeldedaten' }, { status: 401 });
 }

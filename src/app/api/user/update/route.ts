@@ -9,19 +9,19 @@ export async function PATCH(request: Request) {
     const token = cookieStore.get('auth-token')?.value;
 
     if (!token) {
-      return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
+      return NextResponse.json({ message: "Nicht authentifiziert" }, { status: 401 });
     }
 
     const user = await AuthService.getUserFromToken(token);
     if (!user) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+      return NextResponse.json({ message: "Ungültiges Token" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+      return NextResponse.json({ error: 'Fehlende ID' }, { status: 400 });
     }
 
     const body = await request.json();
@@ -197,6 +197,6 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: true, user: updatedOrCreatedUser });
   } catch (error) {
     console.error("Update user error:", error);
-    return NextResponse.json({ success: false, message: "Failed to update user" }, { status: 500 });
+    return NextResponse.json({ success: false, message: "Benutzer konnte nicht aktualisiert werden" }, { status: 500 });
   }
 }

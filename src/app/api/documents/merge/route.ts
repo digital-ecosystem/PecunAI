@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     if (!sessionId) {
       return NextResponse.json(
-        { success: false, error: 'Session ID is required' },
+        { success: false, error: 'Sitzungs-ID ist erforderlich' },
         { status: 400 }
       );
     }
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         console.error('❌ Error reading session directory:', error);
         return NextResponse.json(
-          { success: false, error: 'Session directory not found' },
+          { success: false, error: 'Sitzungsverzeichnis nicht gefunden' },
           { status: 404 }
         );
       }
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     console.log("🚀 ~ POST ~ filesToMerge:", filesToMerge)
     if (filesToMerge.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'No PDF files found to merge' },
+        { success: false, error: 'Keine PDF-Dateien zum Zusammenführen gefunden' },
         { status: 400 }
       );
     }
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         mergedPdfBase64,
-        message: 'PDFs merged successfully',
+        message: 'PDFs erfolgreich zusammengeführt',
       });
     }
 
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to merge PDFs',
+        error: error instanceof Error ? error.message : 'PDFs konnten nicht zusammengeführt werden',
       },
       { status: 500 }
     );

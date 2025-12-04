@@ -7,9 +7,9 @@ import { z } from 'zod';
 // Validation schema for main product prompt update
 const mainProductPromptUpdateSchema = z.object({
   vectorId: z.string().optional(),
-  aiModel: z.string().min(1, 'AI model is required').optional(),
+  aiModel: z.string().min(1, 'KI-Modell ist erforderlich').optional(),
   mcpUrl: z.string().url().optional().or(z.literal('')),
-  mainPrompt: z.string().min(1, 'Main prompt is required').optional(),
+  mainPrompt: z.string().min(1, 'Haupt-Prompt ist erforderlich').optional(),
 });
 
 // GET - Get a single main product prompt by ID
@@ -22,7 +22,7 @@ export async function GET(
     const session = await decrypt(cookie);
 
     if (!session?.userId) {
-      return NextResponse.json({ message: 'Not authenticated', success: false }, { status: 401 });
+      return NextResponse.json({ message: 'Nicht authentifiziert', success: false }, { status: 401 });
     }
 
     const { id } = await params;
@@ -33,7 +33,7 @@ export async function GET(
 
     if (!mainProductPrompt) {
       return NextResponse.json(
-        { success: false, error: 'Main product prompt not found' },
+        { success: false, error: 'Hauptprodukt-Prompt nicht gefunden' },
         { status: 404 }
       );
     }
@@ -45,7 +45,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching main product prompt:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: 'Interner Serverfehler' },
       { status: 500 }
     );
   }
@@ -61,7 +61,7 @@ export async function PUT(
     const session = await decrypt(cookie);
 
     if (!session?.userId) {
-      return NextResponse.json({ message: 'Not authenticated', success: false }, { status: 401 });
+      return NextResponse.json({ message: 'Nicht authentifiziert', success: false }, { status: 401 });
     }
 
     const { id } = await params;
@@ -77,7 +77,7 @@ export async function PUT(
 
     if (!existingPrompt) {
       return NextResponse.json(
-        { success: false, error: 'Main product prompt not found' },
+        { success: false, error: 'Hauptprodukt-Prompt nicht gefunden' },
         { status: 404 }
       );
     }
@@ -97,19 +97,19 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       data: updatedMainProductPrompt,
-      message: 'Main product prompt updated successfully',
+      message: 'Hauptprodukt-Prompt erfolgreich aktualisiert',
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Validation error', details: error.issues },
+        { success: false, error: 'Validierungsfehler', details: error.issues },
         { status: 400 }
       );
     }
 
     console.error('Error updating main product prompt:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: 'Interner Serverfehler' },
       { status: 500 }
     );
   }
@@ -125,7 +125,7 @@ export async function DELETE(
     const session = await decrypt(cookie);
 
     if (!session?.userId) {
-      return NextResponse.json({ message: 'Not authenticated', success: false }, { status: 401 });
+      return NextResponse.json({ message: 'Nicht authentifiziert', success: false }, { status: 401 });
     }
 
     const { id } = await params;
@@ -137,7 +137,7 @@ export async function DELETE(
 
     if (!existingPrompt) {
       return NextResponse.json(
-        { success: false, error: 'Main product prompt not found' },
+        { success: false, error: 'Hauptprodukt-Prompt nicht gefunden' },
         { status: 404 }
       );
     }
@@ -149,12 +149,12 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Main product prompt deleted successfully',
+      message: 'Hauptprodukt-Prompt erfolgreich gelöscht',
     });
   } catch (error) {
     console.error('Error deleting main product prompt:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: 'Interner Serverfehler' },
       { status: 500 }
     );
   }

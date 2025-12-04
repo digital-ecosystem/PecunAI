@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { 
+import {
   Loader2,
   ArrowLeft,
   Edit,
@@ -67,7 +67,7 @@ const ViewProductPage = () => {
         }
       } catch (err) {
         console.error('Error fetching product:', err);
-        setError('Failed to load product');
+        setError('Produkt konnte nicht geladen werden');
       } finally {
         setIsLoading(false);
       }
@@ -81,7 +81,7 @@ const ViewProductPage = () => {
   // Risk type mapping
   const riskMap: Record<string, string> = {
     CONSERVATIVE: 'Konservativ',
-    RISK_AWARE: 'Ausgewogen', 
+    RISK_AWARE: 'Ausgewogen',
     OPPORTUNITY_ORIENTED: 'Gewinnorientiert',
   };
 
@@ -115,7 +115,7 @@ const ViewProductPage = () => {
         <AdminHeader />
         <div className="p-6">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-2xl mx-auto">
-            <div className="text-red-800">{error || 'Product not found'}</div>
+            <div className="text-red-800">{error || 'Produkt nicht gefunden'}</div>
           </div>
         </div>
       </div>
@@ -135,19 +135,19 @@ const ViewProductPage = () => {
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm sm:text-base">Back to Products</span>
+            <span className="text-sm sm:text-base">Zurück zu Produkten</span>
           </button>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
-              <p className="text-sm sm:text-base text-gray-600">Product details and configuration</p>
+              <p className="text-sm sm:text-base text-gray-600">Produktdetails und Konfiguration</p>
             </div>
             <button
               onClick={() => router.push(`/admin/products/${productId}/edit`)}
               className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Edit className="w-4 h-4" />
-              Edit Product
+              Produkt bearbeiten
             </button>
           </div>
         </div>
@@ -157,7 +157,7 @@ const ViewProductPage = () => {
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Product Suggestions</p>
+                <p className="text-sm font-medium text-gray-600">Produktvorschläge</p>
                 <p className="text-2xl font-bold text-gray-900">{product._count.productSuggestions}</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-lg">
@@ -169,7 +169,7 @@ const ViewProductPage = () => {
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">AI Configurations</p>
+                <p className="text-sm font-medium text-gray-600">KI-Konfigurationen</p>
                 <p className="text-2xl font-bold text-gray-900">{product._count.aiSettings}</p>
               </div>
               <div className="p-3 bg-purple-100 rounded-lg">
@@ -181,7 +181,7 @@ const ViewProductPage = () => {
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Created</p>
+                <p className="text-sm font-medium text-gray-600">Erstellt</p>
                 <p className="text-lg font-bold text-gray-900">
                   {new Date(product.createdAt).toLocaleDateString()}
                 </p>
@@ -199,18 +199,18 @@ const ViewProductPage = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* Basic Information */}
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Basisinformationen</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Product Name</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Produktname</label>
                   <div className="text-gray-900">{product.name}</div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Short Name</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Kurzname</label>
                   <div className="text-gray-900">{product.shortName || '—'}</div>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Beschreibung</label>
                   <div className="text-gray-900">{product.description || '—'}</div>
                 </div>
               </div>
@@ -218,22 +218,22 @@ const ViewProductPage = () => {
 
             {/* Investment Details */}
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Investment Details</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Anlagedetails</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Minimum Investment Horizon</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Mindestanlagehorizont</label>
                   <div className="text-gray-900">
-                    {product.minimumYear !== null ? `${product.minimumYear} years` : '—'}
+                    {product.minimumYear !== null ? `${product.minimumYear} Jahre` : '—'}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Maximum Investment Horizon</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Maximaler Anlagehorizont</label>
                   <div className="text-gray-900">
-                    {product.maximumYear !== null ? `${product.maximumYear} years` : '—'}
+                    {product.maximumYear !== null ? `${product.maximumYear} Jahre` : '—'}
                   </div>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Risk Type</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Risikotyp</label>
                   <div>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRiskTypeColor(product.riskType)}`}>
                       {getRiskTypeText(product.riskType)}
@@ -245,20 +245,20 @@ const ViewProductPage = () => {
 
             {/* AI Configuration */}
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">AI Configuration</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">KI-Konfiguration</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">AI Model</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">KI-Modell</label>
                   <div className="text-gray-900">{activeAiSetting?.model || '—'}</div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Product Prompt</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Produkt-Prompt</label>
                   <div className="text-gray-900 bg-gray-50 rounded-lg p-4 text-sm whitespace-pre-wrap">
                     {activeAiSetting?.prompt || '—'}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">First Message</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Erste Nachricht</label>
                   <div className="text-gray-900 bg-gray-50 rounded-lg p-4 text-sm whitespace-pre-wrap">
                     {activeAiSetting?.firstMessage || '—'}
                   </div>
@@ -271,7 +271,7 @@ const ViewProductPage = () => {
           <div className="space-y-6">
             {/* Document */}
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Document</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Produktdokument</h2>
               {product.fileName ? (
                 <a
                   href={product.fileName}
@@ -281,36 +281,36 @@ const ViewProductPage = () => {
                 >
                   <FileText className="w-8 h-8 text-blue-600" />
                   <div>
-                    <div className="font-medium text-gray-900">Product PDF</div>
-                    <div className="text-sm text-gray-500">Click to view</div>
+                    <div className="font-medium text-gray-900">Produkt-PDF</div>
+                    <div className="text-sm text-gray-500">Klicken zum Anzeigen</div>
                   </div>
                 </a>
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <FileText className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                  <div className="text-sm">No PDF uploaded</div>
+                  <div className="text-sm">Kein PDF hochgeladen</div>
                 </div>
               )}
             </div>
 
             {/* Metadata */}
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Metadata</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Metadaten</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Product ID</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Produkt-ID</label>
                   <div className="text-xs text-gray-900 font-mono bg-gray-50 p-2 rounded break-all">
                     {product.id}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Created At</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Erstellt am</label>
                   <div className="text-gray-900">
                     {new Date(product.createdAt).toLocaleString()}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Last Updated</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Zuletzt aktualisiert</label>
                   <div className="text-gray-900">
                     {new Date(product.updatedAt).toLocaleString()}
                   </div>
@@ -319,7 +319,7 @@ const ViewProductPage = () => {
                   <label className="block text-sm font-medium text-gray-600 mb-1">Status</label>
                   <div>
                     <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                      Active
+                      Aktiv
                     </span>
                   </div>
                 </div>

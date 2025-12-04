@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { 
-  Upload, 
-  FileText, 
-  X, 
+import {
+  Upload,
+  FileText,
+  X,
   Loader2,
   ArrowLeft
 } from 'lucide-react';
@@ -63,7 +63,7 @@ const EditProductPage = () => {
         if (data.success) {
           const product = data.data;
           const activeAiSetting = product.aiSettings.find((ai: { isActive: boolean }) => ai.isActive) || product.aiSettings[0];
-          
+
           setFormData({
             name: product.name,
             description: product.description || '',
@@ -87,7 +87,7 @@ const EditProductPage = () => {
         }
       } catch (error) {
         console.error('Error fetching product:', error);
-        setErrors({ general: 'Failed to load product' });
+        setErrors({ general: 'Produkt konnte nicht geladen werden' });
       } finally {
         setIsLoading(false);
       }
@@ -120,7 +120,7 @@ const EditProductPage = () => {
       }
     } catch (uploadError) {
       console.error('Upload error:', uploadError);
-      setErrors(prev => ({ ...prev, fileName: 'Upload failed' }));
+      setErrors(prev => ({ ...prev, fileName: 'Hochladen fehlgeschlagen' }));
     } finally {
       setIsUploading(false);
     }
@@ -157,7 +157,7 @@ const EditProductPage = () => {
       }
     } catch (submitError) {
       console.error('Submit error:', submitError);
-      setErrors({ general: 'An error occurred' });
+      setErrors({ general: 'Ein Fehler ist aufgetreten' });
     } finally {
       setIsSubmitting(false);
     }
@@ -185,10 +185,10 @@ const EditProductPage = () => {
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm sm:text-base">Back to Products</span>
+            <span className="text-sm sm:text-base">Zurück zu Produkten</span>
           </button>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Edit Product</h1>
-          <p className="text-sm sm:text-base text-gray-600">Update product details and AI configuration</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Produkt bearbeiten</h1>
+          <p className="text-sm sm:text-base text-gray-600">Produktdetails und KI-Konfiguration aktualisieren</p>
         </div>
 
         {/* Form Card */}
@@ -202,46 +202,45 @@ const EditProductPage = () => {
 
             {/* Product Information */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Information</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Produktinformationen</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Product Name *
+                    Produktname *
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                      errors.name ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="Enter product name"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${errors.name ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    placeholder="Produktnamen eingeben"
                   />
                   {errors.name && <div className="text-red-600 text-sm mt-1">{errors.name}</div>}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Short Name
+                    Kurzname
                   </label>
                   <input
                     type="text"
                     value={formData.shortName}
                     onChange={(e) => setFormData(prev => ({ ...prev, shortName: e.target.value }))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    placeholder="Enter short name"
+                    placeholder="Kurznamen eingeben"
                   />
                 </div>
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
+                    Beschreibung
                   </label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    placeholder="Enter product description"
+                    placeholder="Produktbeschreibung eingeben"
                     rows={3}
                   />
                 </div>
@@ -250,60 +249,59 @@ const EditProductPage = () => {
 
             {/* Investment Details */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Investment Details</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Anlagedetails</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Minimum Investment Horizon (Years)
+                    Mindestanlagehorizont (Jahre)
                   </label>
                   <input
                     type="number"
                     value={formData.minimumYear || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      minimumYear: e.target.value ? parseInt(e.target.value) : null 
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      minimumYear: e.target.value ? parseInt(e.target.value) : null
                     }))}
                     min="0"
                     max="50"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                      errors.minimumYear ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="e.g., 0 (immediate)"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${errors.minimumYear ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    placeholder="z.B. 0 (sofort)"
                   />
                   {errors.minimumYear && <div className="text-red-600 text-sm mt-1">{errors.minimumYear}</div>}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Maximum Investment Horizon (Years)
+                    Maximaler Anlagehorizont (Jahre)
                   </label>
                   <input
                     type="number"
                     value={formData.maximumYear || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      maximumYear: e.target.value ? parseInt(e.target.value) : null 
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      maximumYear: e.target.value ? parseInt(e.target.value) : null
                     }))}
                     min="0"
                     max="50"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    placeholder="e.g., 7"
+                    placeholder="z.B. 7"
                   />
                 </div>
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Risk Type
+                    Risikotyp
                   </label>
                   <select
                     value={formData.riskType || ''}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
                       riskType: (e.target.value as 'CONSERVATIVE' | 'RISK_AWARE' | 'OPPORTUNITY_ORIENTED') || null
                     }))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   >
-                    <option value="">Select Risk Type</option>
+                    <option value="">Risikotyp auswählen</option>
                     <option value="CONSERVATIVE">Konservativ</option>
                     <option value="RISK_AWARE">Ausgewogen</option>
                     <option value="OPPORTUNITY_ORIENTED">Gewinnorientiert</option>
@@ -314,22 +312,21 @@ const EditProductPage = () => {
 
             {/* AI Configuration */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">AI Configuration</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">KI-Konfiguration</h2>
               <div className="grid grid-cols-1 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Product Prompt *
+                    Produkt-Prompt *
                   </label>
                   <textarea
                     value={formData.aiPrompt}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
                       aiPrompt: e.target.value
                     }))}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                      errors.aiPrompt ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="Enter AI prompt for product recommendations"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${errors.aiPrompt ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    placeholder="KI-Prompt für Produktempfehlungen eingeben"
                     rows={4}
                   />
                   {errors.aiPrompt && <div className="text-red-600 text-sm mt-1">{errors.aiPrompt}</div>}
@@ -337,18 +334,17 @@ const EditProductPage = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    First Message *
+                    Erste Nachricht *
                   </label>
                   <textarea
                     value={formData.firstMessage}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
                       firstMessage: e.target.value
                     }))}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                      errors.firstMessage ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="Enter first message for product recommendations"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${errors.firstMessage ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    placeholder="Erste Nachricht für Produktempfehlungen eingeben"
                     rows={4}
                   />
                   {errors.firstMessage && <div className="text-red-600 text-sm mt-1">{errors.firstMessage}</div>}
@@ -358,20 +354,20 @@ const EditProductPage = () => {
 
             {/* Document Upload */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Document</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Produktdokument</h2>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
                 {uploadedFile ? (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <FileText className="w-5 h-5 text-blue-600" />
-                      <span className="text-sm text-gray-900">PDF uploaded</span>
+                      <span className="text-sm text-gray-900">PDF hochgeladen</span>
                       <a
                         href={uploadedFile}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 text-sm"
                       >
-                        View
+                        Ansehen
                       </a>
                     </div>
                     <button
@@ -389,7 +385,7 @@ const EditProductPage = () => {
                   <div className="text-center">
                     <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <div className="text-sm text-gray-600 mb-2">
-                      Click to upload or drag and drop a PDF file
+                      Klicken zum Hochladen oder PDF-Datei hierher ziehen
                     </div>
                     <input
                       type="file"
@@ -408,12 +404,12 @@ const EditProductPage = () => {
                       {isUploading ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Uploading...
+                          Wird hochgeladen...
                         </>
                       ) : (
                         <>
                           <Upload className="w-4 h-4" />
-                          Choose File
+                          Datei auswählen
                         </>
                       )}
                     </label>
@@ -430,7 +426,7 @@ const EditProductPage = () => {
                 onClick={() => router.push('/admin/products')}
                 className="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
-                Cancel
+                Abbrechen
               </button>
               <button
                 type="submit"
@@ -440,10 +436,10 @@ const EditProductPage = () => {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Updating...
+                    Aktualisieren...
                   </>
                 ) : (
-                  'Update Product'
+                  'Produkt aktualisieren'
                 )}
               </button>
             </div>

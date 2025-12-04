@@ -135,7 +135,7 @@ const Dashboard = () => {
     }
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
+        return new Date(dateString).toLocaleDateString('de-DE', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -154,7 +154,7 @@ const Dashboard = () => {
                                 <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-xs sm:text-sm text-gray-600 truncate">Total Sessions</p>
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Gesamtsitzungen</p>
                                 <p className="text-xl sm:text-2xl font-bold text-gray-900">{totalSessions}</p>
                             </div>
                         </div>
@@ -166,7 +166,7 @@ const Dashboard = () => {
                                 <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-xs sm:text-sm text-gray-600 truncate">Approved</p>
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Genehmigt</p>
                                 <p className="text-xl sm:text-2xl font-bold text-gray-900">{approvedSessions}</p>
                             </div>
                         </div>
@@ -180,7 +180,7 @@ const Dashboard = () => {
                                 <Ban className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-xs sm:text-sm text-gray-600 truncate">Rejected</p>
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Abgelehnt</p>
                                 <p className="text-xl sm:text-2xl font-bold text-gray-900">{rejectedSessions}</p>
                             </div>
                         </div>
@@ -192,7 +192,7 @@ const Dashboard = () => {
                                 <Hourglass className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-xs sm:text-sm text-gray-600 truncate">Pending</p>
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Ausstehend</p>
                                 <p className="text-xl sm:text-2xl font-bold text-gray-900">{pendingSessions}</p>
                             </div>
                         </div>
@@ -204,7 +204,7 @@ const Dashboard = () => {
                                 <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-xs sm:text-sm text-gray-600 truncate">Draft</p>
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Entwurf</p>
                                 <p className="text-xl sm:text-2xl font-bold text-gray-900">{draftSessions}</p>
                             </div>
                         </div>
@@ -221,7 +221,7 @@ const Dashboard = () => {
                                 <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                 <input
                                     type="text"
-                                    placeholder="Search sessions..."
+                                    placeholder="Sitzungen suchen..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
@@ -233,14 +233,14 @@ const Dashboard = () => {
                                     onChange={(e) => setStatusFilter(e.target.value)}
                                     className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
                                 >
-                                    <option value="all">All Status</option>
-                                    <option value="DRAFT">{SessionStatus.DRAFT}</option>
-                                    <option value="PENDING">{SessionStatus.PENDING}</option>
-                                    <option value="REJECTED">{SessionStatus.REJECTED}</option>
-                                    <option value="APPROVED">{SessionStatus.APPROVED}</option>
+                                    <option value="all">Alle Status</option>
+                                    <option value="DRAFT">Entwurf</option>
+                                    <option value="PENDING">Ausstehend</option>
+                                    <option value="REJECTED">Abgelehnt</option>
+                                    <option value="APPROVED">Genehmigt</option>
                                 </select>
                                 <span className="text-xs sm:text-sm text-gray-500 whitespace-nowrap">
-                                    {filteredSessions.length} of {totalSessions} sessions
+                                    {filteredSessions.length} von {totalSessions} Sitzungen
                                 </span>
                             </div>
                         </div>
@@ -252,13 +252,13 @@ const Dashboard = () => {
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        SESSION
+                                        SITZUNG
                                     </th>
                                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         STATUS
                                     </th>
                                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                                        CREATED
+                                        ERSTELLT
                                     </th>
                                 </tr>
                             </thead>
@@ -285,7 +285,19 @@ const Dashboard = () => {
                                         </td>
                                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(session.status)}`}>
-                                                {session.status}
+                                                {/* {session.status} */}
+                                                {session.status === SessionStatus.DRAFT && (
+                                                    <span className="text-xs text-gray-500">Entwurf</span>
+                                                )}
+                                                {session.status === SessionStatus.PENDING && (
+                                                    <span className="text-xs text-gray-500">Anfrage</span>
+                                                )}
+                                                {session.status === SessionStatus.REJECTED && (
+                                                    <span className="text-xs text-gray-500">Abgelehnt</span>
+                                                )}
+                                                {session.status === SessionStatus.APPROVED && (
+                                                    <span className="text-xs text-gray-500">Genehmigt</span>
+                                                )}
                                             </span>
                                         </td>
                                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
@@ -299,7 +311,7 @@ const Dashboard = () => {
 
                     {filteredSessions.length === 0 && (
                         <div className="text-center py-8 sm:py-12 px-4">
-                            <p className="text-sm sm:text-base text-gray-500">No sessions found matching your criteria.</p>
+                            <p className="text-sm sm:text-base text-gray-500">Keine Sitzungen gefunden, die Ihren Kriterien entsprechen.</p>
                         </div>
                     )}
                 </div>
@@ -324,8 +336,8 @@ const Dashboard = () => {
                             <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
                                 <div className="flex items-center justify-between">
                                     <div className="min-w-0 flex-1 mr-4">
-                                        <h2 className="text-lg sm:text-xl font-bold text-gray-900 truncate">Session Details</h2>
-                                        <p className="text-xs sm:text-sm text-gray-600 truncate">Session ID: #{selectedSession?.personalInfo?.qaSessionId}</p>
+                                        <h2 className="text-lg sm:text-xl font-bold text-gray-900 truncate">Sitzungsdetails</h2>
+                                        <p className="text-xs sm:text-sm text-gray-600 truncate">Sitzungs-ID: #{selectedSession?.personalInfo?.qaSessionId}</p>
                                     </div>
                                     <button
                                         onClick={closeDrawer}
@@ -340,14 +352,14 @@ const Dashboard = () => {
                             <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
                                 {/* User Information */}
                                 <div className="bg-gray-50 rounded-lg p-4">
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">User Information</h3>
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Benutzerinformationen</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                         <div>
                                             <label className="block text-xs sm:text-sm font-medium text-gray-600">Name</label>
                                             <p className="text-sm text-gray-900">{selectedSession?.personalInfo?.firstName && selectedSession?.personalInfo?.lastName ? selectedSession?.personalInfo?.firstName + ' ' + selectedSession?.personalInfo?.lastName : ''}</p>
                                         </div>
                                         <div>
-                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">Email</label>
+                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">E-Mail</label>
                                             <p className="text-sm text-gray-900 break-all">{selectedSession.user.email || ''}</p>
                                         </div>
                                     </div>
@@ -355,16 +367,28 @@ const Dashboard = () => {
 
                                 {/* Session Status */}
                                 <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Session Status</h3>
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Sitzungsstatus</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                         <div>
-                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">Current Status</label>
+                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">Aktueller Status</label>
                                             <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(selectedSession.status)}`}>
-                                                {selectedSession.status}
+                                                {/* {selectedSession.status} */}
+                                                {selectedSession.status === SessionStatus.DRAFT && (
+                                                    <span className="text-xs text-gray-500">Entwurf</span>
+                                                )}
+                                                {selectedSession.status === SessionStatus.PENDING && (
+                                                    <span className="text-xs text-gray-500">Anfrage</span>
+                                                )}
+                                                {selectedSession.status === SessionStatus.REJECTED && (
+                                                    <span className="text-xs text-gray-500">Abgelehnt</span>
+                                                )}
+                                                {selectedSession.status === SessionStatus.APPROVED && (
+                                                    <span className="text-xs text-gray-500">Genehmigt</span>
+                                                )}
                                             </span>
                                         </div>
                                         <div>
-                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">Created Date</label>
+                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">Erstellungsdatum</label>
                                             <p className="text-sm text-gray-900">{formatDate(selectedSession.createdAt)}</p>
                                         </div>
                                     </div>
@@ -374,18 +398,18 @@ const Dashboard = () => {
                                 {
                                     selectedSession.status != SessionStatus.DRAFT && (
                                         <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Download Session PDF</h3>
+                                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Sitzungs-PDF herunterladen</h3>
                                             <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
                                                 <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                                                     <a href={`/api/documents/${selectedSession.id}/signed/signature.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
                                                         <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
-                                                        <span className="truncate">Download signed PDF</span>
+                                                        <span className="truncate">Unterschriebenes PDF herunterladen</span>
                                                     </a>
                                                 </button>
                                                 <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                                                     <a href={`/api/documents/${selectedSession.id}/signed/signD-identity-verification-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
                                                         <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
-                                                        <span className="truncate">identity-verification</span>
+                                                        <span className="truncate">Identitätsprüfung</span>
                                                     </a>
                                                 </button>
                                             </div>
@@ -396,7 +420,7 @@ const Dashboard = () => {
                                 {/* Action Buttons */}
                                 {selectedSession.status === SessionStatus.PENDING &&
                                     <div className="bg-gray-50 rounded-lg p-4">
-                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Actions</h3>
+                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Aktionen</h3>
                                         <div className="flex flex-col sm:flex-row gap-3">
                                             {selectedSession.status === SessionStatus.PENDING && (
                                                 <>
@@ -407,7 +431,7 @@ const Dashboard = () => {
                                                         className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
                                                     >
                                                         <CheckCircle className="w-4 h-4 mr-2 flex-shrink-0" />
-                                                        <span>Approve Session</span>
+                                                        <span>Sitzung genehmigen</span>
                                                     </button>
                                                     <button
                                                         onClick={() => {
@@ -416,7 +440,7 @@ const Dashboard = () => {
                                                         className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
                                                     >
                                                         <X className="w-4 h-4 mr-2 flex-shrink-0" />
-                                                        <span>Reject Session</span>
+                                                        <span>Sitzung ablehnen</span>
                                                     </button>
                                                 </>
                                             )}
@@ -426,62 +450,62 @@ const Dashboard = () => {
 
                                 {/* Question and Options */}
                                 <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Question & Response</h3>
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Frage & Antwort</h3>
 
                                     {questionAnswer?.length > 0 &&
                                         questionAnswer.map((item, index) => {
                                             return (
-                                              <React.Fragment key={index}>
-                                                  {/* Question */}
-                                                  <div className="mb-4">
-                                                      <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Question</label>
-                                                      <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
-                                                          <p className="text-sm sm:text-base text-gray-900">{item.text}</p>
-                                                      </div>
-                                                  </div>
-  
-                                                  {/* Available Options - only show if there are options */}
-                                                  {item.options && item.options.length > 0 && (
-                                                      <div className="mb-4">
-                                                          <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Available Options</label>
-                                                          <div className="space-y-2">
-                                                              {item.options.map((option, optIndex) => {
-                                                                  const isSelected = option.value === item.selectedValue
-                                                                  return (
-                                                                      <div
-                                                                          key={optIndex}
-                                                                          className={`flex items-center p-3 rounded-lg border ${isSelected ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
-                                                                              }`}
-                                                                      >
-                                                                          <div
-                                                                              className={`w-2 h-2 rounded-full mr-3 flex-shrink-0 ${isSelected ? 'bg-green-500' : 'bg-gray-300'
-                                                                                  }`}
-                                                                          />
-                                                                          <span
-                                                                              className={`text-xs sm:text-sm flex-1 ${isSelected ? 'text-green-900 font-medium' : 'text-gray-700'
-                                                                                  }`}
-                                                                          >
-                                                                              {option.label}
-                                                                          </span>
-                                                                          {isSelected && <ChevronRight className="w-4 h-4 text-green-600 flex-shrink-0" />}
-                                                                      </div>
-                                                                  )
-                                                              })}
-                                                          </div>
-                                                      </div>
-                                                  )}
-  
-                                                  {/* Selected Answer Highlight */}
-                                                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
-                                                      <label className="block text-xs sm:text-sm font-medium text-green-800 mb-1">Selected Answer</label>
-                                                      <p className="text-sm sm:text-base text-green-900 font-semibold">
-                                                          {item.options && item.options.length > 0
-                                                              ? item.options.find(option => option.value === item.selectedValue)?.label || item.selectedValue || 'N/A'
-                                                              : item.selectedValue || 'N/A'
-                                                          }
-                                                      </p>
-                                                  </div>                                            
-                                              </React.Fragment>
+                                                <React.Fragment key={index}>
+                                                    {/* Question */}
+                                                    <div className="mb-4">
+                                                        <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Frage</label>
+                                                        <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
+                                                            <p className="text-sm sm:text-base text-gray-900">{item.text}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Available Options - only show if there are options */}
+                                                    {item.options && item.options.length > 0 && (
+                                                        <div className="mb-4">
+                                                            <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Verfügbare Optionen</label>
+                                                            <div className="space-y-2">
+                                                                {item.options.map((option, optIndex) => {
+                                                                    const isSelected = option.value === item.selectedValue
+                                                                    return (
+                                                                        <div
+                                                                            key={optIndex}
+                                                                            className={`flex items-center p-3 rounded-lg border ${isSelected ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
+                                                                                }`}
+                                                                        >
+                                                                            <div
+                                                                                className={`w-2 h-2 rounded-full mr-3 flex-shrink-0 ${isSelected ? 'bg-green-500' : 'bg-gray-300'
+                                                                                    }`}
+                                                                            />
+                                                                            <span
+                                                                                className={`text-xs sm:text-sm flex-1 ${isSelected ? 'text-green-900 font-medium' : 'text-gray-700'
+                                                                                    }`}
+                                                                            >
+                                                                                {option.label}
+                                                                            </span>
+                                                                            {isSelected && <ChevronRight className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                                                                        </div>
+                                                                    )
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Selected Answer Highlight */}
+                                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
+                                                        <label className="block text-xs sm:text-sm font-medium text-green-800 mb-1">Ausgewählte Antwort</label>
+                                                        <p className="text-sm sm:text-base text-green-900 font-semibold">
+                                                            {item.options && item.options.length > 0
+                                                                ? item.options.find(option => option.value === item.selectedValue)?.label || item.selectedValue || 'N/V'
+                                                                : item.selectedValue || 'N/V'
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                </React.Fragment>
                                             );
                                         })}
                                 </div>

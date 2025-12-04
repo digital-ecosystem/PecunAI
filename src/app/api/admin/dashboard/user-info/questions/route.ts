@@ -13,12 +13,12 @@ export async function GET(req: Request) {
     const session = await decrypt(cookie);
 
     if (!session?.userId || session?.role !== 'admin') {
-        return NextResponse.json({ message: 'Not authenticated', success: false }, { status: 401 });
+        return NextResponse.json({ message: 'Nicht authentifiziert', success: false }, { status: 401 });
     }
 
     if (!sessionId) {
       return NextResponse.json(
-        { success: false, error: 'Missing sessionId' },
+        { success: false, error: 'Fehlende Sitzungs-ID' },
         { status: 400 }
       );
     }
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error('[GET /api/questions]', error);
     return NextResponse.json(
-      { success: false, error: 'Server error' },
+      { success: false, error: 'Serverfehler' },
       { status: 500 }
     );
   }

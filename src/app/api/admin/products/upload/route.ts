@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json(
-        { success: false, error: 'No file provided' },
+        { success: false, error: 'Keine Datei bereitgestellt' },
         { status: 400 }
       );
     }
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     // Validate file type
     if (file.type !== 'application/pdf') {
       return NextResponse.json(
-        { success: false, error: 'Only PDF files are allowed' },
+        { success: false, error: 'Nur PDF-Dateien sind erlaubt' },
         { status: 400 }
       );
     }
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       return NextResponse.json(
-        { success: false, error: 'File size exceeds 10MB limit' },
+        { success: false, error: 'Dateigröße überschreitet das Limit von 10 MB' },
         { status: 400 }
       );
     }
@@ -60,12 +60,12 @@ export async function POST(request: NextRequest) {
         originalName: file.name,
         size: file.size,
       },
-      message: 'File uploaded successfully',
+      message: 'Datei erfolgreich hochgeladen',
     });
   } catch (error) {
     console.error('Error uploading file:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: 'Interner Serverfehler' },
       { status: 500 }
     );
   }

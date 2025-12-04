@@ -20,7 +20,7 @@ export async function PATCH(req: Request) {
     // Validate input
     if (!sessionId || !status) {
       return NextResponse.json(
-        { success: false, error: 'sessionId and status are required' },
+        { success: false, error: 'Sitzungs-ID und Status sind erforderlich' },
         { status: 400 }
       );
     }
@@ -28,7 +28,7 @@ export async function PATCH(req: Request) {
     // Validate status value
     if (!Object.values(SessionStatus).includes(status)) {
       return NextResponse.json(
-        { success: false, error: `Invalid status: ${status}` },
+        { success: false, error: `Ungültiger Status: ${status}` },
         { status: 400 }
       );
     }
@@ -47,14 +47,14 @@ export async function PATCH(req: Request) {
     await transporter.sendMail({
       from: process.env.EMAIL_FROM,
       to: email, // or wherever you're getting the user's email
-      subject: `Your QA Session has been ${status}`, // e.g. APPROVED, REJECTED, etc.
+      subject: `Ihre QA-Sitzung wurde ${status === 'APPROVED' ? 'GENEHMIGT' : status === 'REJECTED' ? 'ABGELEHNT' : status}`, // e.g. APPROVED, REJECTED, etc.
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #2563eb;">QA Session ${status}</h1>
+            <h1 style="color: #2563eb;">QA-Sitzung ${status === 'APPROVED' ? 'GENEHMIGT' : status === 'REJECTED' ? 'ABGELEHNT' : status}</h1>
             <p style="font-size: 16px; color: #555;">
-              Hello, <br /><br />
-              Your QA Session has been <strong>${status}</strong> by our admin team.
+              Hallo, <br /><br />
+              Ihre QA-Sitzung wurde von unserem Admin-Team <strong>${status === 'APPROVED' ? 'GENEHMIGT' : status === 'REJECTED' ? 'ABGELEHNT' : status}</strong>.
             </p>
           </div>
 
@@ -69,26 +69,26 @@ export async function PATCH(req: Request) {
               };">${status}</span>
             </p>
             <p style="margin-top: 10px; font-size: 14px; color: #666;">
-              QA Session ID: ${updated.id}
+              QA-Sitzungs-ID: ${updated.id}
             </p>
           </div>
 
           ${
             status === 'APPROVED'
-              ? `<p style="font-size: 14px; color: #555;">✅ You can now proceed to download and sign your final document in the dashboard.</p>`
+              ? `<p style="font-size: 14px; color: #555;">✅ Sie können jetzt fortfahren, Ihr endgültiges Dokument im Dashboard herunterzuladen und zu unterschreiben.</p>`
               : status === 'REJECTED'
-              ? `<p style="font-size: 14px; color: #555;">⚠️ Please review the feedback in your dashboard and update the information before resubmitting.</p>`
-              : `<p style="font-size: 14px; color: #555;">⌛ Your submission is currently under review. We’ll notify you once it's processed.</p>`
+              ? `<p style="font-size: 14px; color: #555;">⚠️ Bitte überprüfen Sie das Feedback in Ihrem Dashboard und aktualisieren Sie die Informationen, bevor Sie sie erneut einreichen.</p>`
+              : `<p style="font-size: 14px; color: #555;">⌛ Ihre Einreichung wird derzeit geprüft. Wir benachrichtigen Sie, sobald sie bearbeitet wurde.</p>`
           }
 
           <div style="text-align: center; margin-top: 30px;">
             <a href="${process.env.NEXT_PUBLIC_FRONTEND_URL}/customer/dashboard" style="padding: 10px 20px; background-color: #2563eb; color: #fff; text-decoration: none; border-radius: 6px;">
-              Go to Dashboard
+              Zum Dashboard
             </a>
           </div>
 
           <div style="margin-top: 30px; font-size: 12px; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
-            This is an automated notification. Please do not reply to this email.
+            Dies ist eine automatische Benachrichtigung. Bitte antworten Sie nicht auf diese E-Mail.
           </div>
         </div>
       `,
@@ -98,7 +98,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Session status updated successfully',
+      message: 'Sitzungsstatus erfolgreich aktualisiert',
       session: {
         id: updated.id,
         status: updated.status,
@@ -108,7 +108,7 @@ export async function PATCH(req: Request) {
   } catch (error) {
     console.error('[PATCH /api/session/status]', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: 'Interner Serverfehler' },
       { status: 500 }
     );
   }

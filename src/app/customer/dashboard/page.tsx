@@ -65,7 +65,7 @@ const Dashboard = () => {
 
                 const response = await fetch(`/api/dashboard?${params}`);
                 const data = await response.json();
-                
+
                 if (data?.success) {
                     setSessions(data.sessions);
                     setTotalPages(data.pagination.totalPages);
@@ -106,7 +106,7 @@ const Dashboard = () => {
     };
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
+        return new Date(dateString).toLocaleDateString('de-DE', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -202,7 +202,7 @@ const Dashboard = () => {
                                                     Dashboard
                                                 </h1>
                                                 <p className="mt-1 text-sm text-gray-600 truncate">
-                                                    Welcome back, {user?.name || user?.email?.split('@')[0] || ''}!
+                                                    Willkommen zurück, {user?.name || user?.email?.split('@')[0] || ''}!
                                                 </p>
                                             </div>
                                             <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
@@ -217,7 +217,7 @@ const Dashboard = () => {
                                                         {user?.email || ''}
                                                     </span>
                                                 </div>
-                                                
+
                                                 {/* Mobile User Info */}
                                                 <div className="flex sm:hidden items-center justify-between">
                                                     <div className="flex items-center space-x-2">
@@ -231,13 +231,13 @@ const Dashboard = () => {
                                                         </span>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <button
                                                     onClick={handleLogout}
                                                     className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 hover:text-red-700 transition-colors text-sm font-medium shadow-sm w-full sm:w-auto"
                                                 >
                                                     <LogOut className="w-4 h-4" />
-                                                    <span>Logout</span>
+                                                    <span>Abmelden</span>
                                                 </button>
                                             </div>
                                         </div>
@@ -256,7 +256,7 @@ const Dashboard = () => {
                                                 <FileText className="w-5 h-5 text-blue-600" />
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Total Sessions</p>
+                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Gesamtsitzungen</p>
                                                 <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.length}</p>
                                             </div>
                                         </div>
@@ -268,7 +268,7 @@ const Dashboard = () => {
                                                 <CheckCircle className="w-5 h-5 text-green-600" />
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Approved</p>
+                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Genehmigt</p>
                                                 <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.filter(s => s.status === SessionStatus.APPROVED).length}</p>
                                             </div>
                                         </div>
@@ -280,7 +280,7 @@ const Dashboard = () => {
                                                 <Ban className="w-5 h-5 text-red-600" />
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Rejected</p>
+                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Abgelehnt</p>
                                                 <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.filter(s => s.status === SessionStatus.REJECTED).length}</p>
                                             </div>
                                         </div>
@@ -292,7 +292,7 @@ const Dashboard = () => {
                                                 <Hourglass className="w-5 h-5 text-orange-600" />
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Pending</p>
+                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Ausstehend</p>
                                                 <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.filter(s => s.status === SessionStatus.PENDING).length}</p>
                                             </div>
                                         </div>
@@ -304,7 +304,7 @@ const Dashboard = () => {
                                                 <Clock className="w-5 h-5 text-yellow-600" />
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Draft</p>
+                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Entwurf</p>
                                                 <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.filter(s => s.status === SessionStatus.DRAFT).length}</p>
                                             </div>
                                         </div>
@@ -322,7 +322,7 @@ const Dashboard = () => {
                                             </div>
                                             <input
                                                 type="text"
-                                                placeholder="Search sessions..."
+                                                placeholder="Sitzungen suchen..."
                                                 value={searchTerm}
                                                 onChange={(e) => setSearchTerm(e.target.value)}
                                                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
@@ -333,15 +333,15 @@ const Dashboard = () => {
                                             onChange={(e) => setStatusFilter(e.target.value)}
                                             className="block w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                         >
-                                            <option value="all">All Status</option>
-                                            <option value="DRAFT">{SessionStatus.DRAFT}</option>
-                                            <option value="PENDING">{SessionStatus.PENDING}</option>
-                                            <option value="REJECTED">{SessionStatus.REJECTED}</option>
-                                            <option value="APPROVED">{SessionStatus.APPROVED}</option>
+                                            <option value="all">Alle Status</option>
+                                            <option value="DRAFT">Entwurf</option>
+                                            <option value="PENDING">Anfrage</option>
+                                            <option value="REJECTED">Abgelehnt</option>
+                                            <option value="APPROVED">Genehmigt</option>
                                         </select>
                                     </div>
                                     <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-right">
-                                        <span className="font-medium">{totalCount}</span> of <span className="font-medium">{allSessionsForStats.length}</span> sessions
+                                        <span className="font-medium">{totalCount}</span> von <span className="font-medium">{allSessionsForStats.length}</span> Sitzungen
                                     </div>
                                 </div>
 
@@ -350,18 +350,18 @@ const Dashboard = () => {
                                     {isLoadingSessions ? (
                                         <div className="text-center py-12 px-4">
                                             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-blue-500 mx-auto mb-4"></div>
-                                            <p className="text-sm text-gray-600">Loading sessions...</p>
+                                            <p className="text-sm text-gray-600">Sitzungen werden geladen...</p>
                                         </div>
                                     ) : sessions.length === 0 ? (
                                         <div className="text-center py-12 px-4">
                                             <div className="text-4xl sm:text-6xl mb-4">📚</div>
                                             <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                                {allSessionsForStats.length === 0 ? 'No sessions yet' : 'No sessions found'}
+                                                {allSessionsForStats.length === 0 ? 'Noch keine Sitzungen' : 'Keine Sitzungen gefunden'}
                                             </h3>
                                             <p className="text-sm sm:text-base text-gray-600 max-w-md mx-auto">
                                                 {allSessionsForStats.length === 0
-                                                    ? 'Your sessions will appear here once they\'re created.'
-                                                    : 'Try adjusting your search or filter criteria.'
+                                                    ? 'Ihre Sitzungen erscheinen hier, sobald sie erstellt wurden.'
+                                                    : 'Versuchen Sie, Ihre Such- oder Filterkriterien anzupassen.'
                                                 }
                                             </p>
                                         </div>
@@ -373,13 +373,13 @@ const Dashboard = () => {
                                                     <thead className="bg-gray-50">
                                                         <tr>
                                                             <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                Session
+                                                                Sitzung
                                                             </th>
                                                             <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                                 Status
                                                             </th>
                                                             <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                Created
+                                                                Erstellt
                                                             </th>
                                                         </tr>
                                                     </thead>
@@ -411,7 +411,19 @@ const Dashboard = () => {
                                                                 </td>
                                                                 <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                                                                     <span className={getStatusBadge(session.status)}>
-                                                                        {session.status.replace('_', ' ')}
+                                                                        {/* {session.status.replace('_', ' ')} */}
+                                                                        {session.status === SessionStatus.DRAFT && (
+                                                                            <span className="text-xs text-gray-500">Entwurf</span>
+                                                                        )}
+                                                                        {session.status === SessionStatus.PENDING && (
+                                                                            <span className="text-xs text-gray-500">Anfrage</span>
+                                                                        )}
+                                                                        {session.status === SessionStatus.REJECTED && (
+                                                                            <span className="text-xs text-gray-500">Abgelehnt</span>
+                                                                        )}
+                                                                        {session.status === SessionStatus.APPROVED && (
+                                                                            <span className="text-xs text-gray-500">Genehmigt</span>
+                                                                        )}
                                                                     </span>
                                                                 </td>
                                                                 <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -453,107 +465,104 @@ const Dashboard = () => {
                                                                 </div>
                                                                 <div className="mt-2">
                                                                     <p className="text-xs text-gray-500">
-                                                                        Created: {formatDate(session?.createdAt)}
+                                                                        Erstellt: {formatDate(session?.createdAt)}
                                                                     </p>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 ))}
-                            </div>
-                        </>
-                    )}
-                </div>
-
-                {/* Pagination Controls */}
-                {!isLoadingSessions && totalPages > 1 && (
-                    <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden mt-4">
-                        <div className="px-4 py-3 sm:px-6 bg-gray-50">
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                {/* Page Info */}
-                                <div className="text-sm text-gray-700">
-                                    Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
-                                    <span className="font-medium">{Math.min(indexOfLastItem, totalCount)}</span> of{' '}
-                                    <span className="font-medium">{totalCount}</span> results
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
 
-                                {/* Pagination Buttons */}
-                                <div className="flex items-center space-x-2">
-                                    {/* Previous Button */}
-                                    <button
-                                        onClick={() => handlePageChange(currentPage - 1)}
-                                        disabled={currentPage === 1}
-                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                            currentPage === 1
-                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                                        }`}
-                                    >
-                                        Previous
-                                    </button>
+                                {/* Pagination Controls */}
+                                {!isLoadingSessions && totalPages > 1 && (
+                                    <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden mt-4">
+                                        <div className="px-4 py-3 sm:px-6 bg-gray-50">
+                                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                                {/* Page Info */}
+                                                <div className="text-sm text-gray-700">
+                                                    Zeige <span className="font-medium">{indexOfFirstItem + 1}</span> bis{' '}
+                                                    <span className="font-medium">{Math.min(indexOfLastItem, totalCount)}</span> von{' '}
+                                                    <span className="font-medium">{totalCount}</span> Ergebnissen
+                                                </div>
 
-                                    {/* Page Numbers */}
-                                    <div className="hidden sm:flex items-center space-x-1">
-                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => {
-                                            // Show first, last, current, and adjacent pages
-                                            if (
-                                                pageNumber === 1 ||
-                                                pageNumber === totalPages ||
-                                                (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                                            ) {
-                                                return (
+                                                {/* Pagination Buttons */}
+                                                <div className="flex items-center space-x-2">
+                                                    {/* Previous Button */}
                                                     <button
-                                                        key={pageNumber}
-                                                        onClick={() => handlePageChange(pageNumber)}
-                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                                            pageNumber === currentPage
-                                                                ? 'bg-blue-600 text-white'
-                                                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                                                        }`}
+                                                        onClick={() => handlePageChange(currentPage - 1)}
+                                                        disabled={currentPage === 1}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === 1
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                            : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                                                            }`}
                                                     >
-                                                        {pageNumber}
+                                                        Zurück
                                                     </button>
-                                                );
-                                            } else if (
-                                                pageNumber === currentPage - 2 ||
-                                                pageNumber === currentPage + 2
-                                            ) {
-                                                return (
-                                                    <span key={pageNumber} className="px-2 text-gray-500">
-                                                        ...
-                                                    </span>
-                                                );
-                                            }
-                                            return null;
-                                        })}
+
+                                                    {/* Page Numbers */}
+                                                    <div className="hidden sm:flex items-center space-x-1">
+                                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => {
+                                                            // Show first, last, current, and adjacent pages
+                                                            if (
+                                                                pageNumber === 1 ||
+                                                                pageNumber === totalPages ||
+                                                                (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                                                            ) {
+                                                                return (
+                                                                    <button
+                                                                        key={pageNumber}
+                                                                        onClick={() => handlePageChange(pageNumber)}
+                                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${pageNumber === currentPage
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                                                                            }`}
+                                                                    >
+                                                                        {pageNumber}
+                                                                    </button>
+                                                                );
+                                                            } else if (
+                                                                pageNumber === currentPage - 2 ||
+                                                                pageNumber === currentPage + 2
+                                                            ) {
+                                                                return (
+                                                                    <span key={pageNumber} className="px-2 text-gray-500">
+                                                                        ...
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })}
+                                                    </div>
+
+                                                    {/* Mobile Page Indicator */}
+                                                    <div className="sm:hidden px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700">
+                                                        {currentPage} / {totalPages}
+                                                    </div>
+
+                                                    {/* Next Button */}
+                                                    <button
+                                                        onClick={() => handlePageChange(currentPage + 1)}
+                                                        disabled={currentPage === totalPages}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === totalPages
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                            : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                                                            }`}
+                                                    >
+                                                        Weiter
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
+                                )}
 
-                                    {/* Mobile Page Indicator */}
-                                    <div className="sm:hidden px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700">
-                                        {currentPage} / {totalPages}
-                                    </div>
-
-                                    {/* Next Button */}
-                                    <button
-                                        onClick={() => handlePageChange(currentPage + 1)}
-                                        disabled={currentPage === totalPages}
-                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                            currentPage === totalPages
-                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                                        }`}
-                                    >
-                                        Next
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-            </div>                            {/* Spacing for mobile to prevent content overlap with FAB */}
+                            </div>                            {/* Spacing for mobile to prevent content overlap with FAB */}
                             <div className="h-24 sm:h-0"></div>
-                            
+
                             {/* Floating Action Button */}
                             <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
                                 <button
@@ -570,7 +579,7 @@ const Dashboard = () => {
                                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                         </svg>
-                                        <span className="hidden sm:inline">Start Now</span>
+                                        <span className="hidden sm:inline">Jetzt starten</span>
                                         <span className="sm:hidden">Start</span>
                                     </span>
                                 </button>

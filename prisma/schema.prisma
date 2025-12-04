@@ -404,3 +404,13 @@ enum RiskType {
   RISK_AWARE
   OPPORTUNITY_ORIENTED
 }
+
+model HighRiskCountry {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String?  // ISO code if available
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("high_risk_countries")
+}

@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     if (!qaSessionId || !productId || !name) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Erforderliche Felder fehlen" },
         { status: 400 }
       );
     }
@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
     console.error("SessionProductSuggestion POST Error:", error);
     return NextResponse.json(
       {
-        error: "Failed to save product suggestion",
-        message: error instanceof Error ? error.message : "Unknown error"
+        error: "Produktvorschlag konnte nicht gespeichert werden",
+        message: error instanceof Error ? error.message : "Unbekannter Fehler"
       },
       { status: 500 }
     );
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
 
     if (!qaSessionId) {
       return NextResponse.json(
-        { error: "Missing qaSessionId" },
+        { error: "qaSessionId fehlt" },
         { status: 400 }
       );
     }
@@ -128,8 +128,8 @@ export async function GET(request: NextRequest) {
     console.error("SessionProductSuggestion GET Error:", error);
     return NextResponse.json(
       {
-        error: "Failed to retrieve product suggestion",
-        message: error instanceof Error ? error.message : "Unknown error"
+        error: "Produktvorschlag konnte nicht abgerufen werden",
+        message: error instanceof Error ? error.message : "Unbekannter Fehler"
       },
       { status: 500 }
     );

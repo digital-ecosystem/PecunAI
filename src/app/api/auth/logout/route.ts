@@ -16,7 +16,7 @@ export async function POST() {
 
     // Clear cookie using NextResponse
     const response = NextResponse.json({
-      message: 'Logged out successfully',
+      message: 'Erfolgreich abgemeldet',
       success: true
     });
     response.cookies.set('auth-token', '', {
@@ -29,7 +29,7 @@ export async function POST() {
   } catch (error) {
     console.error('Logout error:', error);
     return NextResponse.json({ 
-      message: 'Failed to logout',
+      message: 'Abmeldung fehlgeschlagen',
       success: false 
     }, { status: 500 });
   }

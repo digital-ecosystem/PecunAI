@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     const token = cookieStore.get('auth-token')?.value;
 
     if (!token) {
-      return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
+      return NextResponse.json({ message: "Nicht authentifiziert" }, { status: 401 });
     }
 
     const { sessionId } = await request.json();
@@ -24,6 +24,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Update user error:", error);
-    return NextResponse.json({ success: false, message: "Failed to update user" }, { status: 500 });
+    return NextResponse.json({ success: false, message: "Benutzer konnte nicht aktualisiert werden" }, { status: 500 });
   }
 }

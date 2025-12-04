@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const { userId } = body;
 
     if (!userId) {
-      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Benutzer-ID ist erforderlich' }, { status: 400 });
     }
 
     const newSession = await prisma.qASession.create({
@@ -25,6 +25,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, session: newSession }, { status: 201 });
   } catch (error) {
     console.error('Failed to create QASession:', error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Interner Serverfehler' }, { status: 500 });
   }
 }

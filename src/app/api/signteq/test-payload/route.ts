@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     if (!SIGNTEQ_API_TOKEN) {
       return NextResponse.json(
-        { success: false, error: 'SignTeq API token not configured' },
+        { success: false, error: 'SignTeq API-Token nicht konfiguriert' },
         { status: 500 }
       );
     }
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: error instanceof Error ? error.message : 'An unknown error occurred' 
+        error: error instanceof Error ? error.message : 'Ein unbekannter Fehler ist aufgetreten' 
       },
       { status: 500 }
     );

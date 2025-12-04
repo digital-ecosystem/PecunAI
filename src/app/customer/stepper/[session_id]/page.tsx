@@ -240,11 +240,11 @@ const validationSchema = Yup.object({
 
   isTaxResidentAT: Yup.boolean()
     .required("Bitte geben Sie an, ob Sie in Österreich steueransässig sind"),
-    // .nullable(),
+  // .nullable(),
 
   isTaxResidentOther: Yup.boolean()
     .required("Bitte geben Sie an, ob Sie in einem anderen Land steueransässig sind"),
-    // .nullable(),
+  // .nullable(),
 
   taxResidencyCountry: Yup.string().when("isTaxResidentOther", {
     is: true,
@@ -291,6 +291,25 @@ export default function Stepper() {
   const [showDownloadPopup, setShowDownloadPopup] = useState(false);
   const [idvPdfBlob, setIdvPdfBlob] = useState<Blob | null>(null);
   const session_id = params.session_id as string;
+  const [isPepStop, setIsPepStop] = useState(false);
+  const [isIncomeStop, setIsIncomeStop] = useState(false);
+  const [highRiskCountries, setHighRiskCountries] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchHighRiskCountries = async () => {
+      try {
+        const response = await fetch('/api/high-risk-countries');
+        if (response.ok) {
+          const data = await response.json();
+          setHighRiskCountries(data.map((c: any) => c.name));
+        }
+      } catch (error) {
+        console.error('Failed to fetch high-risk countries:', error);
+      }
+    };
+    fetchHighRiskCountries();
+  }, []);
+
   const [investmentFormData, investmentSetFormData] = useState({
     liquidationRequired: false,
     timelyUmschichtung: false,
@@ -308,7 +327,7 @@ export default function Stepper() {
         ...prev,
         [field]: !prev[field]
       };
-      
+
       // If updating allConfirmed, toggle all other fields
       if (field === 'allConfirmed') {
         const newValue = !prev.allConfirmed;
@@ -324,9 +343,9 @@ export default function Stepper() {
           allConfirmed: newValue
         };
       }
-      
+
       // Check if all individual checkboxes are now checked
-      const allChecked = 
+      const allChecked =
         // updated.liquidationRequired &&
         // updated.timelyUmschichtung &&
         updated.dataConsent &&
@@ -334,7 +353,7 @@ export default function Stepper() {
         updated.costsDisclosure &&
         updated.liquidityNeeds &&
         updated.additionalLiquidityNeeds;
-      
+
       // Update allConfirmed if all individual boxes are checked
       if (allChecked) {
         updated.allConfirmed = true;
@@ -342,88 +361,88 @@ export default function Stepper() {
         // Uncheck allConfirmed if we're unchecking an individual box
         updated.allConfirmed = false;
       }
-      
+
       return updated;
     });
   };
 
   const [expandedSections, setExpandedSections] = useState({
-      vertraege: false,
-      gebuehren: false,
-      weitereInfo: false
+    vertraege: false,
+    gebuehren: false,
+    weitereInfo: false
+  });
+
+  const [agreements, setAgreements] = useState({
+    acceptAll: false,
+    dataProtection: false,
+    vermoegensverwaltung: false,
+    bankenbedingungen: false,
+    widerruf: false,
+    efsaeg: false,
+    informationen: false,
+    auftraggeber: false,
+    einverstanden: false,
+    disclaimer: false
+  });
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => {
+      const isCurrentlyOpen = prev[section];
+      return {
+        vertraege: false,
+        gebuehren: false,
+        weitereInfo: false,
+        [section]: !isCurrentlyOpen
+      };
     });
-  
-    const [agreements, setAgreements] = useState({
-      acceptAll: false,
-      dataProtection: false,
-      vermoegensverwaltung: false,
-      bankenbedingungen: false,
-      widerruf: false,
-      efsaeg: false,
-      informationen: false,
-      auftraggeber: false,
-      einverstanden: false,
-      disclaimer: false
+  };
+
+  const handleCheckboxChangeContractDocument = (field: keyof typeof agreements) => {
+    setAgreements(prev => {
+      const updated = {
+        ...prev,
+        [field]: !prev[field]
+      };
+
+      // Check if all individual checkboxes are now checked
+      const allChecked =
+        updated.dataProtection &&
+        updated.vermoegensverwaltung &&
+        updated.bankenbedingungen &&
+        updated.widerruf &&
+        updated.efsaeg &&
+        updated.informationen &&
+        updated.auftraggeber &&
+        updated.einverstanden &&
+        updated.disclaimer;
+
+      // Update acceptAll if all individual boxes are checked
+      if (allChecked) {
+        updated.acceptAll = true;
+      } else if (updated.acceptAll && field !== 'acceptAll') {
+        // Uncheck acceptAll if we're unchecking an individual box
+        updated.acceptAll = false;
+      }
+
+      return updated;
     });
-  
-    const toggleSection = (section: keyof typeof expandedSections) => {
-      setExpandedSections(prev => {
-        const isCurrentlyOpen = prev[section];
-        return {
-          vertraege: false,
-          gebuehren: false,
-          weitereInfo: false,
-          [section]: !isCurrentlyOpen
-        };
-      });
-    };
-  
-    const handleCheckboxChangeContractDocument = (field: keyof typeof agreements) => {
-      setAgreements(prev => {
-        const updated = {
-          ...prev,
-          [field]: !prev[field]
-        };
-        
-        // Check if all individual checkboxes are now checked
-        const allChecked = 
-          updated.dataProtection &&
-          updated.vermoegensverwaltung &&
-          updated.bankenbedingungen &&
-          updated.widerruf &&
-          updated.efsaeg &&
-          updated.informationen &&
-          updated.auftraggeber &&
-          updated.einverstanden &&
-          updated.disclaimer;
-        
-        // Update acceptAll if all individual boxes are checked
-        if (allChecked) {
-          updated.acceptAll = true;
-        } else if (updated.acceptAll && field !== 'acceptAll') {
-          // Uncheck acceptAll if we're unchecking an individual box
-          updated.acceptAll = false;
-        }
-        
-        return updated;
-      });
-    };
-  
-    const handleAcceptAll = () => {
-      const newValue = !agreements.acceptAll;
-      setAgreements({
-        acceptAll: newValue,
-        dataProtection: newValue,
-        vermoegensverwaltung: newValue,
-        bankenbedingungen: newValue,
-        widerruf: newValue,
-        efsaeg: newValue,
-        informationen: newValue,
-        auftraggeber: newValue,
-        einverstanden: newValue,
-        disclaimer: newValue
-      });
-    };
+  };
+
+  const handleAcceptAll = () => {
+    const newValue = !agreements.acceptAll;
+    setAgreements({
+      acceptAll: newValue,
+      dataProtection: newValue,
+      vermoegensverwaltung: newValue,
+      bankenbedingungen: newValue,
+      widerruf: newValue,
+      efsaeg: newValue,
+      informationen: newValue,
+      auftraggeber: newValue,
+      einverstanden: newValue,
+      disclaimer: newValue
+    });
+  };
 
   // Pagination for question pages (show multiple questions per view)
   const QUESTIONS_PER_PAGE = 3; // adjust this number to show more/less questions per page
@@ -1032,7 +1051,7 @@ export default function Stepper() {
           setSuggestedProduct(data.data);
           // Also initialize chat if product is found
           if (data.data.id) {
-             await initializeChatWithProduct(data.data.id);
+            await initializeChatWithProduct(data.data.id);
           }
         }
       } catch (error) {
@@ -1372,8 +1391,8 @@ export default function Stepper() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session_id]);
 
-  useEffect(() => { 
-    if(step === PHASES.CONTRACT_DOCUMENT) {
+  useEffect(() => {
+    if (step === PHASES.CONTRACT_DOCUMENT) {
       const fetchContractDocument = async () => {
         setLoading(true);
         try {
@@ -1486,6 +1505,24 @@ export default function Stepper() {
     } catch (error) {
       console.error('API error:', error);
     }
+
+    // High-Risk & Tax Residency Checks
+    const isHighRiskCountry = (country: string) => highRiskCountries.includes(country);
+    const isUSCitizen = data.nationality === "Vereinigte Staaten" || data.country === "Vereinigte Staaten";
+
+    if (
+      data.isPEP || // PEP
+      data.isTaxResidentOther || // Second tax residency
+      data.country !== "Österreich" || // Lives outside Austria
+      isHighRiskCountry(data.nationality) || // High-Risk Nationality
+      isHighRiskCountry(data.country || "") || // High-Risk Residence
+      isUSCitizen // US Citizen
+    ) {
+      setIsPepStop(true);
+      setLoading(false);
+      return;
+    }
+
     const payload: Omit<SignDHandshakePayload, 'login' | 'token'> = {
       type: 'identification',
       attributes: {
@@ -1580,7 +1617,7 @@ export default function Stepper() {
         const pdfSave = await fetch("/api/phase/save-pdf", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileName, pdfBase64: buffer, seessionId: session_id  }),
+          body: JSON.stringify({ fileName, pdfBase64: buffer, seessionId: session_id }),
         });
         // console.log("🚀 ~ handleSignDSuccess ~ pdfSave:", pdfSave)
         const pdfSaveResponse = await pdfSave.json();
@@ -2263,7 +2300,7 @@ export default function Stepper() {
                   <div className="flex-1 overflow-y-auto">
                     <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-6xl">
                       {/* <h1 className="text-xl font-bold text-center mb-6">Personal Information Form</h1> */}
-                      <PersonalInfoForm formik={formik} />
+                      <PersonalInfoForm formik={formik} highRiskCountries={highRiskCountries} />
                     </div>
                   </div>
                 </div>
@@ -2291,7 +2328,7 @@ export default function Stepper() {
                   <div className="w-full h-full flex flex-col">
                     <div className="flex-1 overflow-y-auto">
                       <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-6xl">
-                        <ContractDocument 
+                        <ContractDocument
                           expandedSections={expandedSections}
                           toggleSection={toggleSection}
                           agreements={agreements}
@@ -2537,26 +2574,43 @@ export default function Stepper() {
                   step === PHASES.PERSONAL_INFO ? (
                   <button
                     onClick={() => {
-                          if (step === 1 && currentSubStep === 'QUESTIONS1') {
-                            if ((questionIndex * QUESTIONS_PER_PAGE) >= totalQuestions1) {
-                              lastQuestionNext();
-                            } else {
-                              setQuestionIndex((s) => Math.min(s + 1, totalPages1));
-                            }
-                          } else if (step === 1 && currentSubStep === 'QUESTIONS2') {
-                            if ((questionIndex * QUESTIONS_PER_PAGE) >= totalQuestions2) {
-                              lastQuestionNext();
-                            } else {
-                              setQuestionIndex((s) => Math.min(s + 1, totalPages2));
-                            }
-                          } else {
-                            formik.handleSubmit();
+                      // Disposable Income Check
+                      // Only check if we are in QUESTIONS2 and the current page contains the relevant questions
+                      const incomeQ = questions[5];
+                      const expensesQ = questions[6];
+                      const isIncomePage = currentPageQuestions.some(q => q.id === incomeQ?.id || q.id === expensesQ?.id);
+
+                      if (step === 1 && currentSubStep === 'QUESTIONS2' && isIncomePage) {
+                        if (incomeQ && expensesQ && answers[incomeQ.id] && answers[expensesQ.id]) {
+                          const income = parseFloat(answers[incomeQ.id]);
+                          const expenses = parseFloat(answers[expensesQ.id]);
+                          if (!isNaN(income) && !isNaN(expenses) && (income - expenses) <= 150) {
+                            setIsIncomeStop(true);
+                            return;
                           }
-                        }}
-                        disabled={
-                          (step === 1 && currentSubStep === 'QUESTIONS1' && !isCurrentPageValid) ||
-                          (step === 1 && currentSubStep === 'QUESTIONS2' && !isCurrentPageValid)
                         }
+                      }
+
+                      if (step === 1 && currentSubStep === 'QUESTIONS1') {
+                        if ((questionIndex * QUESTIONS_PER_PAGE) >= totalQuestions1) {
+                          lastQuestionNext();
+                        } else {
+                          setQuestionIndex((s) => Math.min(s + 1, totalPages1));
+                        }
+                      } else if (step === 1 && currentSubStep === 'QUESTIONS2') {
+                        if ((questionIndex * QUESTIONS_PER_PAGE) >= totalQuestions2) {
+                          lastQuestionNext();
+                        } else {
+                          setQuestionIndex((s) => Math.min(s + 1, totalPages2));
+                        }
+                      } else {
+                        formik.handleSubmit();
+                      }
+                    }}
+                    disabled={
+                      (step === 1 && currentSubStep === 'QUESTIONS1' && !isCurrentPageValid) ||
+                      (step === 1 && currentSubStep === 'QUESTIONS2' && !isCurrentPageValid)
+                    }
                     className={`${buttonBaseClass} ${buttonNextClass} disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto`}
                     type={step === PHASES.PERSONAL_INFO ? "submit" : "button"}
                   >
@@ -2578,6 +2632,76 @@ export default function Stepper() {
             </div>
           </div>
         </React.Fragment>
+      )}
+
+      {/* PEP Stop Screen */}
+      {isPepStop && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center transform transition-all scale-100">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              Antrag gestoppt
+            </h3>
+
+            <div className="space-y-4 text-gray-600">
+              <p className="font-medium text-lg">
+                Ihr Antrag kann nicht digital abgeschlossen werden.
+              </p>
+              <p>
+                Aus regulatorischen Gründen ist eine persönliche Betreuung notwendig.
+              </p>
+              <p className="text-sm bg-gray-50 p-4 rounded-lg border border-gray-100">
+                Ihr Berater wird sich zeitnah bei Ihnen melden, um den Prozess manuell fortzuführen.
+              </p>
+            </div>
+
+            <div className="mt-8">
+              <button
+                onClick={() => router.push('/customer/dashboard')}
+                className="w-full px-6 py-3 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                Zurück zum Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Income Stop Screen */}
+      {isIncomeStop && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center transform transition-all scale-100">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              Antrag gestoppt
+            </h3>
+
+            <div className="space-y-4 text-gray-600">
+              <p className="font-medium text-lg">
+                Das angegebene verfügbare Einkommen ist leider zu gering für eine finanzielle Anlage
+              </p>
+            </div>
+
+            <div className="mt-8">
+              <button
+                onClick={() => router.push('/customer/dashboard')}
+                className="w-full px-6 py-3 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                Zurück zum Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

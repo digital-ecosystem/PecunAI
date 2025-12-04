@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
     if (!base64Data || !filename || !sessionId) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: base64Data, filename, sessionId' },
+        { success: false, error: 'Fehlende erforderliche Felder: base64Data, filename, sessionId' },
         { status: 400 }
       );
     }
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Failed to save document' 
+        error: error instanceof Error ? error.message : 'Dokument konnte nicht gespeichert werden' 
       },
       { status: 500 }
     );

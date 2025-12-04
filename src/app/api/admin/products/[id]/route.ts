@@ -4,16 +4,16 @@ import { z } from 'zod';
 
 // Validation schema for product update
 const productUpdateSchema = z.object({
-  name: z.string().min(1, 'Product name is required').optional(),
+  name: z.string().min(1, 'Produktname ist erforderlich').optional(),
   description: z.string().optional(),
   shortName: z.string().optional(),
   fileName: z.string().optional(),
   minimumYear: z.number().int().min(0).max(50).optional(),
   maximumYear: z.number().int().min(0).max(50).optional(),
   riskType: z.enum(['CONSERVATIVE', 'RISK_AWARE', 'OPPORTUNITY_ORIENTED']).optional(),
-  aiModel: z.string().min(1, 'AI model is required').optional(),
-  aiPrompt: z.string().min(1, 'AI prompt is required').optional(),
-  firstMessage: z.string().min(1, 'First message is required'),
+  aiModel: z.string().min(1, 'KI-Modell ist erforderlich').optional(),
+  aiPrompt: z.string().min(1, 'KI-Prompt ist erforderlich').optional(),
+  firstMessage: z.string().min(1, 'Erste Nachricht ist erforderlich'),
   vectorId: z.string().optional(),
 }).refine((data) => {
   // Ensure minimumYear <= maximumYear if both are provided
@@ -22,7 +22,7 @@ const productUpdateSchema = z.object({
   }
   return true;
 }, {
-  message: "Minimum year must be less than or equal to maximum year",
+  message: "Mindestjahr muss kleiner oder gleich dem Maximaljahr sein",
   path: ["minimumYear"],
 });
 
@@ -59,7 +59,7 @@ export async function GET(
 
     if (!product) {
       return NextResponse.json(
-        { success: false, error: 'Product not found' },
+        { success: false, error: 'Produkt nicht gefunden' },
         { status: 404 }
       );
     }
@@ -71,7 +71,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching product:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: 'Interner Serverfehler' },
       { status: 500 }
     );
   }
@@ -97,7 +97,7 @@ export async function PUT(
 
     if (!existingProduct) {
       return NextResponse.json(
-        { success: false, error: 'Product not found' },
+        { success: false, error: 'Produkt nicht gefunden' },
         { status: 404 }
       );
     }
@@ -173,20 +173,20 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       data: updatedProduct,
-      message: 'Product updated successfully',
+      message: 'Produkt erfolgreich aktualisiert',
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Validation error:', error.issues);
       return NextResponse.json(
-        { success: false, error: 'Validation error', details: error.issues },
+        { success: false, error: 'Validierungsfehler', details: error.issues },
         { status: 400 }
       );
     }
 
     console.error('Error updating product:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: 'Interner Serverfehler' },
       { status: 500 }
     );
   }
@@ -215,7 +215,7 @@ export async function DELETE(
 
     if (!existingProduct) {
       return NextResponse.json(
-        { success: false, error: 'Product not found' },
+        { success: false, error: 'Produkt nicht gefunden' },
         { status: 404 }
       );
     }
@@ -225,7 +225,7 @@ export async function DELETE(
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Cannot delete product with existing suggestions. Please remove all suggestions first.' 
+          error: 'Produkt kann nicht gelöscht werden, da Vorschläge existieren. Bitte entfernen Sie zuerst alle Vorschläge.' 
         },
         { status: 400 }
       );
@@ -245,12 +245,12 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Product deleted successfully',
+      message: 'Produkt erfolgreich gelöscht',
     });
   } catch (error) {
     console.error('Error deleting product:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: 'Interner Serverfehler' },
       { status: 500 }
     );
   }

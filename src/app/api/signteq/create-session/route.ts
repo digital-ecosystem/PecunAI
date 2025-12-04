@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     if (!SIGNTEQ_API_TOKEN) {
       return NextResponse.json(
-        { success: false, error: 'SignTeq API token not configured' },
+        { success: false, error: 'SignTeq API-Token nicht konfiguriert' },
         { status: 500 }
       );
     }
@@ -28,14 +28,14 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!documentBase64) {
       return NextResponse.json(
-        { success: false, error: 'Document base64 data is required' },
+        { success: false, error: 'Dokument-Base64-Daten sind erforderlich' },
         { status: 400 }
       );
     }
 
     if (!recipientEmail || !recipientName) {
       return NextResponse.json(
-        { success: false, error: 'Recipient email and name are required' },
+        { success: false, error: 'Empfänger-E-Mail und Name sind erforderlich' },
         { status: 400 }
       );
     }
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Extract meaningful error message
-      let errorMessage = 'SignTeq API error';
+      let errorMessage = 'SignTeq API-Fehler';
       let errorDetails = '';
 
       if (responseData) {
@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
           errorMessage = responseData.error;
         } else if (responseData.errors) {
           // Handle validation errors
-          errorMessage = 'Validation error';
+          errorMessage = 'Validierungsfehler';
           errorDetails = JSON.stringify(responseData.errors);
         }
       }
@@ -229,14 +229,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle other types of errors
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    const errorMessage = error instanceof Error ? error.message : 'Ein unbekannter Fehler ist aufgetreten';
     console.error('❌ Unexpected error:', errorMessage);
     
     return NextResponse.json(
       {
         success: false,
         error: errorMessage,
-        details: 'An unexpected error occurred while creating the SignTeq session'
+        details: 'Ein unerwarteter Fehler ist beim Erstellen der SignTeq-Sitzung aufgetreten'
       },
       { status: 500 }
     );

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     if (!userInfo) {
       return NextResponse.json(
-        { success: false, error: 'User information is required' },
+        { success: false, error: 'Benutzerinformationen sind erforderlich' },
         { status: 400 }
       );
     }
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // Validate the PDF base64 is not empty and has reasonable length
     if (!filledPdfBase64 || filledPdfBase64.length < 100) {
-      throw new Error('Generated PDF appears to be invalid or empty');
+      throw new Error('Generiertes PDF scheint ungültig oder leer zu sein');
     }
 
     // save PDF for debugging if in debug mode
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       success: true,
       // pdfBase64: filledPdfBase64,
       finalPath: sessionId ? `/private-documents/${sessionId}/signed/signature.pdf` : null,
-      message: 'PDF form filled successfully'
+      message: 'PDF-Formular erfolgreich ausgefüllt'
     });
 
   } catch (error) {
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fill PDF form' 
+        error: error instanceof Error ? error.message : 'PDF-Formular konnte nicht ausgefüllt werden' 
       },
       { status: 500 }
     );
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
     }
     
     return NextResponse.json(
-      { success: false, error: 'Invalid action parameter' },
+      { success: false, error: 'Ungültiger Aktionsparameter' },
       { status: 400 }
     );
     
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Failed to process request' 
+        error: error instanceof Error ? error.message : 'Anfrage konnte nicht verarbeitet werden' 
       },
       { status: 500 }
     );

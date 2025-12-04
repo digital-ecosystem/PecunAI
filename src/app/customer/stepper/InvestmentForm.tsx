@@ -21,28 +21,28 @@ type Portfolio = {
   score?: number;
 };
 export default function InvestmentForm(
-    {
-        investmentFormData,
-        handleCheckboxChange,
-        suggestedProduct,
-        questions,
-        answers,
-    }: {
-        investmentFormData: {
-            liquidationRequired: boolean;
-            timelyUmschichtung: boolean;
-            allConfirmed: boolean;
-            dataConsent: boolean;
-            confirmationDeclaration: boolean;
-            costsDisclosure: boolean;
-            liquidityNeeds: boolean;
-            additionalLiquidityNeeds: boolean;
-        };
-        handleCheckboxChange: (field: keyof typeof investmentFormData) => void;
-        suggestedProduct: Portfolio | null;
-        questions: Question[];
-        answers: Record<string, string>;
-    }
+  {
+    investmentFormData,
+    handleCheckboxChange,
+    suggestedProduct,
+    questions,
+    answers,
+  }: {
+    investmentFormData: {
+      liquidationRequired: boolean;
+      timelyUmschichtung: boolean;
+      allConfirmed: boolean;
+      dataConsent: boolean;
+      confirmationDeclaration: boolean;
+      costsDisclosure: boolean;
+      liquidityNeeds: boolean;
+      additionalLiquidityNeeds: boolean;
+    };
+    handleCheckboxChange: (field: keyof typeof investmentFormData) => void;
+    suggestedProduct: Portfolio | null;
+    questions: Question[];
+    answers: Record<string, string>;
+  }
 ) {
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 bg-gray-50 lg:min-h-screen min-h-0">
@@ -62,9 +62,9 @@ export default function InvestmentForm(
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
           <div>
-              <p className="text-xs text-gray-500 mb-1">ERSTELLUNGSDATUM</p>
-              <p className="font-semibold">
-                {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            <p className="text-xs text-gray-500 mb-1">ERSTELLUNGSDATUM</p>
+            <p className="font-semibold">
+              {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
             </p>
           </div>
           <div>
@@ -99,9 +99,15 @@ export default function InvestmentForm(
           <div>
             <p className="text-xs text-gray-500 mb-1">EINFÜHRUNG IN ANLAGEKLASSEN</p>
             <p className='flex flex-wrap gap-2 font-semibold'>
-              <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">AKTIEN / AKTIENFONDS</span>
-              <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">ANLEIHEN / ANLEIHENFONDS</span>
-              <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">EDELMETALLE</span>
+              {answers[questions[8].id] !== 'none' && (
+                <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">AKTIEN / AKTIENFONDS</span>
+              )}
+              {answers[questions[9].id] !== 'none' && (
+                <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">ANLEIHEN / ANLEIHENFONDS</span>
+              )}
+              {answers[questions[10].id] !== 'none' && (
+                <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">EDELMETALLE</span>
+              )}
             </p>
           </div>
         </div>
@@ -170,7 +176,7 @@ export default function InvestmentForm(
               <p className="text-xs text-gray-500 mb-1">Sehr kurzfristig</p>
               <p className="text-sm">
                 {
-                  Number(answers[questions[1].id]) < 3 ? '100%' : '-'
+                  Number(answers[questions[1].id]) <= 1 ? '100%' : '-'
                 }
               </p>
             </div>
@@ -178,7 +184,7 @@ export default function InvestmentForm(
               <p className="text-xs text-gray-500 mb-1">Kurzfristig</p>
               <p className="text-sm">
                 {
-                  Number(answers[questions[1].id]) >= 3 && Number(answers[questions[1].id]) < 5 ? '100%' : '-'
+                  Number(answers[questions[1].id]) >= 3 && Number(answers[questions[1].id]) <= 5 ? '100%' : '-'
                 }
               </p>
             </div>
@@ -186,15 +192,15 @@ export default function InvestmentForm(
               <p className="text-xs text-gray-500 mb-1">Mittelfristig</p>
               <p className="text-sm font-semibold">
                 {
-                  Number(answers[questions[1].id]) >= 5 && Number(answers[questions[1].id]) < 7 ? '100%' : '-'
+                  Number(answers[questions[1].id]) > 5 && Number(answers[questions[1].id]) <= 7 ? '100%' : '-'
                 }
-              </p>  
+              </p>
             </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">Langfristig</p>
               <p className="text-sm">
                 {
-                  Number(answers[questions[1].id]) >= 7 ? '100%' : '-'
+                  Number(answers[questions[1].id]) > 7 ? '100%' : '-'
                 }
               </p>
             </div>
@@ -241,8 +247,8 @@ export default function InvestmentForm(
                     {suggestedProduct?.name}
                   </td>
                   <td className="p-3 text-sm">
-                    {suggestedProduct?.riskType === 'CONSERVATIVE' ? 'Konservativ' : 
-                     suggestedProduct?.riskType === 'RISK_AWARE' ? 'Ausgewogen' : 'Gewinnorientiert'}   
+                    {suggestedProduct?.riskType === 'CONSERVATIVE' ? 'Konservativ' :
+                      suggestedProduct?.riskType === 'RISK_AWARE' ? 'Ausgewogen' : 'Gewinnorientiert'}
                   </td>
                   <td className="p-3 text-sm">
                     {suggestedProduct?.name || 'N/A'}
@@ -253,7 +259,7 @@ export default function InvestmentForm(
                     {/* Assuming SRI is derived from riskType for demonstration */}
                     {/* {suggestedProduct?.riskType === 'CONSERVATIVE' ? 'Low' : 
                      suggestedProduct?.riskType === 'RISK_AWARE' ? 'Medium' : 'High'}     */}
-                     {suggestedProduct?.from}
+                    {suggestedProduct?.from}
                   </td>
                   <td className="p-3 text-sm">
                     {suggestedProduct?.to}
@@ -269,10 +275,10 @@ export default function InvestmentForm(
       </div>
 
       {/* Confirmation Checkboxes Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="space-y-4">
           <label className="flex items-start gap-3">
-            <input 
+            <input
               type="checkbox"
               checked={investmentFormData.allConfirmed}
               onChange={() => handleCheckboxChange('allConfirmed')}
@@ -282,7 +288,7 @@ export default function InvestmentForm(
           </label>
 
           <label className="flex items-start gap-3">
-            <input 
+            <input
               type="checkbox"
               checked={investmentFormData.dataConsent}
               onChange={() => handleCheckboxChange('dataConsent')}
@@ -294,64 +300,64 @@ export default function InvestmentForm(
           </label>
 
           <label className="flex items-start gap-3">
-            <input 
+            <input
               type="checkbox"
               checked={investmentFormData.confirmationDeclaration}
               onChange={() => handleCheckboxChange('confirmationDeclaration')}
               className="w-5 h-5 text-teal-600 rounded mt-1 flex-shrink-0"
             />
             <span className="text-sm text-gray-700 break-words">
-              Bestätigungserklärung: Ich bestätige alle Hinweise zur Kenntnis genommen zu haben und bestätige die 
-              Richtigkeit und Vollständigkeit des vorliegenden Kund:innen- und Anleger:innenprofils. Auf Grundlage dieser 
-              Informationen führt das WPDLU richtlinienkollegige Anlageberatung durch und erteilt Empfehlungen bzgl. 
-              angemessener bzw. geeigneter Produkte. Die Empfehlungen basieren auf deinen Kenntnissen und 
-              Erfahrungen im Wertpapierbereich, auf den Anlagezielen (des/der Kund:in (angedachte Anlagedauer, 
-              Ertragserwartungen, Präferenzen bezüglich bestimmter Investments), auf deiner Risikobereitschaft und 
+              Bestätigungserklärung: Ich bestätige alle Hinweise zur Kenntnis genommen zu haben und bestätige die
+              Richtigkeit und Vollständigkeit des vorliegenden Kund:innen- und Anleger:innenprofils. Auf Grundlage dieser
+              Informationen führt das WPDLU richtlinienkollegige Anlageberatung durch und erteilt Empfehlungen bzgl.
+              angemessener bzw. geeigneter Produkte. Die Empfehlungen basieren auf deinen Kenntnissen und
+              Erfahrungen im Wertpapierbereich, auf den Anlagezielen (des/der Kund:in (angedachte Anlagedauer,
+              Ertragserwartungen, Präferenzen bezüglich bestimmter Investments), auf deiner Risikobereitschaft und
               berücksichtigen deiner finanziellen Verhältnisse sowie die Fähigkeit Verlust zu tragen.
             </span>
           </label>
 
           <label className="flex items-start gap-3">
-            <input 
+            <input
               type="checkbox"
               checked={investmentFormData.costsDisclosure}
               onChange={() => handleCheckboxChange('costsDisclosure')}
               className="w-5 h-5 text-teal-600 rounded mt-1 flex-shrink-0"
             />
             <span className="text-sm text-gray-700 break-words">
-              Der/die Kund:in wurde über die Kosten, des Ausgabeaufschlages in Höhe von einem bis ca. sieben Prozent 
-              und/oder Set Up Fee und/oder Servicegebühr, entsprechend hingewiesen und aufgeklärt. Des Weiteren ist 
-              je nach Produktauswahl, z.B. bei geschlossenen Fonds ein höherer Provisionsanteil durch eine zusätzliche 
-              innere Provision möglich. Die geschätzten Kosten wurden anhand der exante Kostenvoraussschau und den 
-              aktuellen Anleger:inneninformationen (z. B. Kund:inneninformationsdokument - KID, Wesentliche 
-              Anleger:inneninformation (WAI), Produktinformationsblatt - PIB, Verbraucherinformationsblatt - VIB) 
+              Der/die Kund:in wurde über die Kosten, des Ausgabeaufschlages in Höhe von einem bis ca. sieben Prozent
+              und/oder Set Up Fee und/oder Servicegebühr, entsprechend hingewiesen und aufgeklärt. Des Weiteren ist
+              je nach Produktauswahl, z.B. bei geschlossenen Fonds ein höherer Provisionsanteil durch eine zusätzliche
+              innere Provision möglich. Die geschätzten Kosten wurden anhand der exante Kostenvoraussschau und den
+              aktuellen Anleger:inneninformationen (z. B. Kund:inneninformationsdokument - KID, Wesentliche
+              Anleger:inneninformation (WAI), Produktinformationsblatt - PIB, Verbraucherinformationsblatt - VIB)
               ausgewiesen, besprochen und dargelegt.
             </span>
           </label>
 
           <label className="flex items-start gap-3">
-            <input 
+            <input
               type="checkbox"
               checked={investmentFormData.liquidityNeeds}
               onChange={() => handleCheckboxChange('liquidityNeeds')}
               className="w-5 h-5 text-teal-600 rounded mt-1 flex-shrink-0"
             />
             <span className="text-sm text-gray-700 break-words">
-              Der/die Kund:in bestätigt, dass kein zusätzlicher Liquiditätsbedarf bei den bestehenden oder neu zu 
-              investierenden Anlagen besteht. Der/die Kund:in bestätigt, dass in der nächsten Zeit kein unmittelbarer 
+              Der/die Kund:in bestätigt, dass kein zusätzlicher Liquiditätsbedarf bei den bestehenden oder neu zu
+              investierenden Anlagen besteht. Der/die Kund:in bestätigt, dass in der nächsten Zeit kein unmittelbarer
               Liquiditätsbedarf geplant ist.
             </span>
           </label>
 
           <label className="flex items-start gap-3">
-            <input 
+            <input
               type="checkbox"
               checked={investmentFormData.additionalLiquidityNeeds}
               onChange={() => handleCheckboxChange('additionalLiquidityNeeds')}
               className="w-5 h-5 text-teal-600 rounded mt-1 flex-shrink-0"
             />
             <span className="text-sm text-gray-700 break-words">
-              Der/die Kund:in bestätigt, dass innerhalb des nächsten Jahres zusätzlicher Liquiditätsbedarf gegeben ist 
+              Der/die Kund:in bestätigt, dass innerhalb des nächsten Jahres zusätzlicher Liquiditätsbedarf gegeben ist
               und dieser in den Angaben zu den Anlagezielen und Anlagedauer bekannt gegeben wurde.
             </span>
           </label>

@@ -7,6 +7,7 @@ import { PersonalInfoFormData } from "@/types";
 
 type PersonalInfoFormProps = {
   formik: ReturnType<typeof useFormik<PersonalInfoFormData>>;
+  highRiskCountries?: string[];
 };
 
 // German country list for nationality and address
@@ -57,8 +58,13 @@ const PHONE_CODES = [
 ];
 
 const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
-  { formik }
+  { formik, highRiskCountries = [] }
 ) => {
+  // Combine and sort countries
+  const allCountries = React.useMemo(() => {
+    const combined = Array.from(new Set([...GERMAN_COUNTRIES, ...highRiskCountries]));
+    return combined.sort((a, b) => a.localeCompare(b, 'de'));
+  }, [highRiskCountries]);
   const renderField = (
     name: string,
     label: string,
@@ -129,7 +135,8 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                            disabled:bg-gray-50 disabled:text-gray-500"
               >
                 <option value="">Bitte wählen...</option>
-                {GERMAN_COUNTRIES.map((country) => (
+                <option value="">Bitte wählen...</option>
+                {allCountries.map((country) => (
                   <option key={country} value={country}>
                     {country}
                   </option>
@@ -205,7 +212,8 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                            disabled:bg-gray-50 disabled:text-gray-500"
               >
                 <option value="">Bitte wählen...</option>
-                {GERMAN_COUNTRIES.map((country) => (
+                <option value="">Bitte wählen...</option>
+                {allCountries.map((country) => (
                   <option key={country} value={country}>
                     {country}
                   </option>
@@ -239,7 +247,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                            disabled:bg-gray-50 disabled:text-gray-500"
               >
                 {PHONE_CODES.map((code) => (
-                  <option key={code.value} value={code.value}>
+                  <option key={code.label} value={code.value}>
                     {code.label}
                   </option>
                 ))}
@@ -421,7 +429,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                              disabled:bg-gray-50 disabled:text-gray-500"
                 >
                   <option value="">Bitte wählen...</option>
-                  {GERMAN_COUNTRIES.map((country) => (
+                  {allCountries.map((country) => (
                     <option key={country} value={country}>
                       {country}
                     </option>
@@ -454,7 +462,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                 Sind Sie eine politisch exponierte Person (PEP) oder stehen Sie in einem Naheverhältnis zu einer politisch exponierten Person (z. B. verwandt oder verschwägert)?
               </label>
             </div>
-            
+
             {/* <div className="flex items-start space-x-3">
               <input
                 type="checkbox"

@@ -10,7 +10,7 @@ export async function GET() {
     console.log("🚀 ~ GET ~ session:", session)
 
     if (!session?.userId || session?.role !== 'admin') {
-      return NextResponse.json({ message: 'Not authenticated', success: false }, { status: 401 });
+      return NextResponse.json({ message: 'Nicht authentifiziert', success: false }, { status: 401 });
     }
 
     const sessions = await prisma.qASession.findMany({
@@ -21,6 +21,6 @@ export async function GET() {
     return NextResponse.json({ success: true, sessions });
   } catch (error) {
     console.error("Fetch sessions error:", error);
-    return NextResponse.json({ message: "Failed to fetch sessions", success: false }, { status: 500 });
+    return NextResponse.json({ message: 'Sitzungen konnten nicht abgerufen werden', success: false }, { status: 500 });
   }
 }

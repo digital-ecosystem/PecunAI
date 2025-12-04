@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   try {
     const { fileName, pdfBase64, seessionId } = await request.json();
     if (!fileName || !pdfBase64) {
-      return NextResponse.json({ message: 'Missing fileName or pdfBase64' }, { status: 400 });
+      return NextResponse.json({ message: 'Dateiname oder pdfBase64 fehlt' }, { status: 400 });
     }
 
     // Decode base64 to buffer
@@ -27,6 +27,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, fileUrl });
   } catch (error) {
     console.error('Error saving PDF:', error);
-    return NextResponse.json({ success: false, message: 'Failed to save PDF' }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'PDF konnte nicht gespeichert werden' }, { status: 500 });
   }
 }

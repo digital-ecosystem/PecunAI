@@ -695,6 +695,46 @@ async function main() {
     });
   }
 
+  const highRiskCountries = [
+    "Afghanistan",
+    "Barbados",
+    "Burkina Faso",
+    "Kamerun",
+    "Demokratische Republik Kongo",
+    "Gibraltar",
+    "Haiti",
+    "Iran",
+    "Jamaika",
+    "Jordanien",
+    "Mali",
+    "Mosambik",
+    "Myanmar",
+    "Nigeria",
+    "Nordkorea",
+    "Panama",
+    "Philippinen",
+    "Senegal",
+    "Südafrika",
+    "Südsudan",
+    "Syrien",
+    "Tansania",
+    "Trinidad und Tobago",
+    "Uganda",
+    "Vanuatu",
+    "Venezuela",
+    "Vietnam",
+    "Jemen"
+  ];
+
+  console.log('Seeding high-risk countries...');
+  for (const country of highRiskCountries) {
+    await prisma.highRiskCountry.upsert({
+      where: { name: country },
+      update: {},
+      create: { name: country },
+    });
+  }
+
   console.log('✅ Seed complete!');
 }
 
