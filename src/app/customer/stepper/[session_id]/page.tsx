@@ -127,7 +127,7 @@ const buttonBackClass =
 
 const validationSchema = Yup.object({
   iban: Yup.string()
-    // .matches(/^([A-Z]{2}[0-9]{2}[A-Z0-9]{1,30})$/, "Ungültiges IBAN-Format")
+    .matches(/^([A-Z]{2}[0-9]{2}[A-Z0-9]{1,30})$/, "Ungültiges IBAN-Format")
     .required("IBAN ist erforderlich"),
   firstName: Yup.string()
     .min(2, "Vorname muss mindestens 2 Zeichen lang sein")
@@ -246,6 +246,10 @@ const validationSchema = Yup.object({
   isTaxResidentOther: Yup.boolean()
     .required("Bitte geben Sie an, ob Sie in einem anderen Land steueransässig sind"),
   // .nullable(),
+
+  isPEP: Yup.boolean()
+    .required("Bitte geben Sie an, ob Sie eine PEP sind")
+    .nullable(),
 
   taxResidencyCountry: Yup.string().when("isTaxResidentOther", {
     is: true,
@@ -564,7 +568,7 @@ export default function Stepper() {
       issuingAuthority: "",
       issuedOn: "",
       validUntil: "",
-      isPEP: false,
+      isPEP: null,
       residenceAbroad: false,
       actingFor: "",
       magicFlow: false,
@@ -1399,7 +1403,7 @@ export default function Stepper() {
         try {
           const response = await fetch(`/api/phase/contract-document`, {
             method: "POST",
-            body: JSON.stringify({ sessionId: session_id, userInfo: formik.values }),
+            body: JSON.stringify({ sessionId: session_id, userInfo: formik.values, questions: questions, answers: answers }),
           });
           const data = await response.json();
           if (data.success && data.documentUrl) {

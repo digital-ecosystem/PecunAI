@@ -128,7 +128,7 @@ export interface PersonalInfoFormData {
   iban: string;
   bic: string;
   bankName: string;
-  isPEP: boolean;
+  isPEP: boolean | null;
   isTaxResidentAT: boolean | null;
   isTaxResidentOther: boolean | null;
   taxResidencyCountry: string;

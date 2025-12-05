@@ -47,11 +47,11 @@ const QuestionCard = ({
   footnote,
   inputPlaceholder,
 }: QuestionCardProps) => {
-  
+
   // Check if this is Question 4 about sustainability and "neutral" is selected
-  const isSustainabilityQuestion = 
-  (questionText?.includes("sustainability") || questionText?.includes("Nachhaltigkeit")) &&
-  (questionText?.includes("considered in your investment advice") || questionText?.includes("berücksichtigen"));
+  const isSustainabilityQuestion =
+    (questionText?.includes("sustainability") || questionText?.includes("Nachhaltigkeit")) &&
+    (questionText?.includes("considered in your investment advice") || questionText?.includes("berücksichtigen"));
 
   const isNeutralSelected = isSustainabilityQuestion && selected === "neutral";
 
@@ -61,10 +61,10 @@ const QuestionCard = ({
   const hasMinValidationError = isNumberInput && selected && minValue !== undefined && selectedNum !== null && selectedNum < minValue;
   const hasMaxValidationError = isNumberInput && selected && maxValue !== undefined && selectedNum !== null && selectedNum > maxValue;
   const hasValidationError = hasMinValidationError || hasMaxValidationError;
-  
+
   // Check for forbidden values (e.g., "none" or "keine")
   const hasForbiddenValueError = selected && forbiddenValues && forbiddenValues.includes(selected);
-  
+
   const isNextDisabled = !selected || (questionType === "text" && selected?.trim() === "") || hasValidationError || hasForbiddenValueError || false;
 
   return (
@@ -86,7 +86,7 @@ const QuestionCard = ({
         <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-blue-50 text-blue-600 text-lg sm:text-xl font-bold">
           ?
         </div> */}
-        {/* <h2 className="text-xl font-bold mt-4">{title}</h2>
+      {/* <h2 className="text-xl font-bold mt-4">{title}</h2>
         <p className="text-gray-500 text-sm">{subtitle}</p> */}
       {/* </div> */}
 
@@ -146,13 +146,13 @@ const QuestionCard = ({
       ) : (
         /* Multiple Choice Options */
         <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-              {options?.map((opt, idx) => (
+          {options?.map((opt, idx) => (
             <label
               key={idx}
               className={`flex items-start sm:items-center gap-3 p-3 sm:p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md
                 ${selected === opt.value
-                  ? isNeutralSelected 
-                    ? "border-yellow-500 bg-yellow-50 shadow-sm" 
+                  ? isNeutralSelected
+                    ? "border-yellow-500 bg-yellow-50 shadow-sm"
                     : "border-blue-500 bg-blue-50 shadow-sm"
                   : "border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                 }`}
@@ -189,12 +189,10 @@ const QuestionCard = ({
             </div>
             <div>
               <h4 className="text-sm sm:text-base font-semibold text-yellow-800 mb-2">
-                Sustainability Consideration
+                Nachhaltigkeitshinweis
               </h4>
               <p className="text-xs sm:text-sm text-yellow-700 leading-relaxed">
-                You have selected to remain neutral regarding sustainability in your investment advice. 
-                Please note that our investment recommendations will not specifically consider environmental, 
-                social, or governance (ESG) factors in the selection process.
+                Sie haben ausgewählt, dass Sie in Bezug auf Nachhaltigkeit bei Ihrer Anlageberatung neutral bleiben möchten. Bitte beachten Sie, dass unsere Anlageempfehlungen in diesem Fall keine Umwelt-, Sozial- oder Governance-(ESG)-Faktoren im Auswahlprozess berücksichtigen.
               </p>
             </div>
           </div>

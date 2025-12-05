@@ -9,6 +9,8 @@ export async function POST(request: NextRequest) {
       userInfo,
       //   additionalData = {}, 
       // pdfFileNames,
+      questions = [],
+      answers = {},
       options = { flattenForm: true, debugMode: false },
       sessionId,
     } = body;
@@ -71,7 +73,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Create form data from user info
-      const formData = createFormDataForContactForm(userInfo, pdfFileName);
+      const formData = createFormDataForContactForm(userInfo, pdfFileName, questions, answers);
 
       // Fill the form
       filler.fillForm(formData);

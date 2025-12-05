@@ -68,7 +68,8 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
   const renderField = (
     name: string,
     label: string,
-    type = "text"
+    type = "text",
+    customOnChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
   ) => (
     <div className="w-full">
       <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
@@ -78,7 +79,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
         id={name}
         name={name}
         type={type}
-        onChange={formik.handleChange}
+        onChange={customOnChange || formik.handleChange}
         onBlur={formik.handleBlur}
         value={
           typeof formik.values[name as keyof typeof formik.values] === "boolean"
@@ -180,7 +181,10 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Kontodaten</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            {renderField("iban", "IBAN")}
+            {renderField("iban", "IBAN", "text", (e) => {
+              const { value } = e.target;
+              formik.setFieldValue("iban", value.toUpperCase().replace(/\s/g, ""));
+            })}
             {renderField("bic", "BIC")}
             {renderField("bankName", "Name der Bank")}
           </div>
@@ -451,19 +455,45 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Zusätzliche Optionen</h3>
           <div className="space-y-4">
             {/* PEP Question - Full German Text */}
-            <div className="flex items-start space-x-3">
-              <input
-                type="checkbox"
-                name="isPEP"
-                id="isPEP"
-                checked={formik.values.isPEP}
-                onChange={formik.handleChange}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded 
-                           mt-0.5 flex-shrink-0"
-              />
-              <label htmlFor="isPEP" className="text-sm text-gray-700 leading-relaxed">
+            {/* PEP Question - Radio Buttons */}
+            <div className="w-full">
+              <p className="text-sm font-medium text-gray-700 mb-3">Politisch Exponierte Person</p>
+              <p className="text-sm text-gray-500 mb-3 leading-relaxed">
                 Sind Sie eine politisch exponierte Person (PEP) oder stehen Sie in einem Naheverhältnis zu einer politisch exponierten Person (z. B. verwandt oder verschwägert)?
-              </label>
+              </p>
+              <div className="flex gap-6">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="isPEP"
+                    value="true"
+                    checked={formik.values.isPEP === true}
+                    onChange={() => {
+                      formik.setFieldValue("isPEP", true);
+                      formik.setFieldTouched("isPEP", true);
+                    }}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Ja</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="isPEP"
+                    value="false"
+                    checked={formik.values.isPEP === false}
+                    onChange={() => {
+                      formik.setFieldValue("isPEP", false);
+                      formik.setFieldTouched("isPEP", true);
+                    }}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Nein</span>
+                </label>
+              </div>
+              {(formik.touched.isPEP || formik.submitCount > 0) && formik.errors.isPEP && (
+                <p className="text-red-500 text-xs mt-1">{formik.errors.isPEP}</p>
+              )}
             </div>
 
             {/* <div className="flex items-start space-x-3">

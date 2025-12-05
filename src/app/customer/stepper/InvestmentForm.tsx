@@ -171,7 +171,7 @@ export default function InvestmentForm(
         {/* Horizontalmanagement */}
         <div className="mb-6">
           <p className="font-semibold mb-3">Horizontmanagement des Anlegerportfolios</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div>
               <p className="text-xs text-gray-500 mb-1">Sehr kurzfristig</p>
               <p className="text-sm">
@@ -277,7 +277,7 @@ export default function InvestmentForm(
       {/* Confirmation Checkboxes Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="space-y-4">
-          <label className="flex items-start gap-3">
+          {/* <label className="flex items-start gap-3">
             <input
               type="checkbox"
               checked={investmentFormData.allConfirmed}
@@ -285,6 +285,17 @@ export default function InvestmentForm(
               className="w-5 h-5 text-teal-600 rounded mt-1 flex-shrink-0"
             />
             <span className="text-sm text-gray-700">Alle bestätigen</span>
+          </label> */}
+          <label className="flex flex-col sm:flex-row items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={investmentFormData.allConfirmed}
+              onChange={() => handleCheckboxChange('allConfirmed')}
+              className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
+            />
+            <span className="text-sm font-semibold text-gray-900 group-hover:text-teal-600 transition-colors break-words">
+              Alle bestätigen
+            </span>
           </label>
 
           <label className="flex items-start gap-3">
