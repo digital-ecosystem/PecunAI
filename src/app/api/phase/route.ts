@@ -109,15 +109,15 @@ export async function GET(req: NextRequest) {
           !answerRows.some(a => a.questionId === q.id)
         );
 
-        // Combine: answered first, then unanswered, up to 15 total
+        // Combine: answered first, then unanswered
         questions = [
           ...answeredQuestions,
-          ...unansweredQuestions.slice(0, 15 - answeredQuestions.length)
-        ].slice(0, 15); // Ensure max 15
+          ...unansweredQuestions
+        ];
 
       } else {
         // No session found, just return first 15 questions from main table
-        questions = allQuestions.slice(0, 15);
+        questions = allQuestions;
       }
 
       return NextResponse.json({ success: true, questions, answers, currentPhase: session?.phase || 'TERMS1', sessionStatus: session?.status });
@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
         include: { options: true },
         orderBy: { questionOrder: "asc" }
       });
-      questions = allQuestions.slice(0, 15);
+      questions = allQuestions;
 
       return NextResponse.json({ success: true, questions });
     }

@@ -174,6 +174,31 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                 <p className="text-red-500 text-xs mt-1">{formik.errors.maritalStatus}</p>
               )}
             </div>
+            {/* Gender dropdown */}
+            <div className="w-full">
+              <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
+                Geschlecht
+              </label>
+              <select
+                id="gender"
+                name="gender"
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.gender}
+                className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-colors duration-200 ease-in-out
+                           disabled:bg-gray-50 disabled:text-gray-500"
+              >
+                <option value="">Bitte wählen...</option>
+                <option value="male">Männlich</option>
+                <option value="female">Weiblich</option>
+                {/* <option value="diverse">Divers</option> */}
+              </select>
+              {formik.touched.gender && formik.errors.gender && (
+                <p className="text-red-500 text-xs mt-1">{formik.errors.gender}</p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -294,12 +319,44 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
             {renderField("currentJob", "Aktueller Beruf")}
             {renderField("industry", "Branche")}
             {renderField("occupation", "Tätigkeit")}
+
+            {/* Self-Employed Question */}
+            <div className="w-full">
+              <p className="text-sm font-medium text-gray-700 mb-3">Selbstständig</p>
+              <div className="flex gap-6">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="isSelfEmployed"
+                    value="true"
+                    checked={formik.values.isSelfEmployed == true}
+                    onChange={() => formik.setFieldValue("isSelfEmployed", true)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Ja</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="isSelfEmployed"
+                    value="false"
+                    checked={formik.values.isSelfEmployed == false}
+                    onChange={() => formik.setFieldValue("isSelfEmployed", false)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Nein</span>
+                </label>
+              </div>
+              {formik.touched.isSelfEmployed && formik.errors.isSelfEmployed && (
+                <p className="text-red-500 text-xs mt-1">{formik.errors.isSelfEmployed}</p>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Document Information Section */}
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Dokumentinformationen</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Ausweisdokument</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {/* Document Type dropdown - Corrected */}
             <div className="w-full">

@@ -60,6 +60,8 @@ export async function PATCH(request: Request) {
       bankName,
       isTaxResidentAT,
       isTaxResidentOther,
+      gender,
+      isSelfEmployed,
       taxResidencyCountry,
     } = body;
 
@@ -94,6 +96,8 @@ export async function PATCH(request: Request) {
         bankName,
         isTaxResidentAT,
         isTaxResidentOther,
+        gender,
+        isSelfEmployed,
         taxResidencyCountry,
         ...(dateOfBirthISO ? { dateOfBirth: dateOfBirthISO } : {})
       },
@@ -124,6 +128,8 @@ export async function PATCH(request: Request) {
         bankName,
         isTaxResidentAT,
         isTaxResidentOther,
+        gender,
+        isSelfEmployed,
         taxResidencyCountry,
         dateOfBirth: dateOfBirthISO ? dateOfBirthISO : new Date().toISOString() // Default to now if not provided
       }

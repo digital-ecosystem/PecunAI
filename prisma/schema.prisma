@@ -264,6 +264,8 @@ model PersonalInfo {
   bankName               String?
   isTaxResidentAT        Boolean?
   isTaxResidentOther     Boolean?
+  gender                 String?
+  isSelfEmployed         Boolean          @default(false)
   taxResidencyCountry    String?
   qaSessionId            String           @unique
   residenceAbroad        Boolean          @default(false)

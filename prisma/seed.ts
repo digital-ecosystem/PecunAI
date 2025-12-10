@@ -1,105 +1,9 @@
 // prisma/seed.ts
-// import { PrismaClient } from '@prisma/client';
-
 import { prisma } from "@/lib/prisma";
 
-// const prisma = new PrismaClient();
-
 async function main() {
-  // const questions = [
-  //   {
-  //     text: 'What type of document do you need to prepare and sign?',
-  //     options: [
-  //       { label: 'Sales contract', value: 'sales_contract' },
-  //       { label: 'Employment contract', value: 'employment_contract' },
-  //       { label: 'NDA / confidentiality agreement', value: 'nda_confidentiality' },
-  //       { label: 'Other legal agreement', value: 'other_legal' },
-  //     ]
-  //   },
-  //   {
-  //     text: 'How many parties must sign this document?',
-  //     options: [
-  //       { label: 'Just me', value: 'just_me' },
-  //       { label: 'Two parties', value: 'two_parties' },
-  //       { label: 'Three-to-five parties', value: 'three_to_five' },
-  //       { label: 'More than five parties', value: 'more_than_five' },
-  //     ]
-  //   },
-  //   {
-  //     text: 'How complex is the agreement?',
-  //     options: [
-  //       { label: 'Standard template, minimal edits', value: 'template_minimal_edits' },
-  //       { label: 'Mostly standard with a few custom clauses', value: 'standard_few_custom' },
-  //       { label: 'Highly customized document', value: 'highly_customized' },
-  //       { label: 'Not sure yet', value: 'not_sure_yet' },
-  //     ]
-  //   },
-  //   {
-  //     text: 'When do you need the final signed document?',
-  //     options: [
-  //       { label: 'Within 24 hours', value: 'within_24h' },
-  //       { label: 'Two–three days', value: 'two_three_days' },
-  //       { label: 'Within a week', value: 'within_a_week' },
-  //       { label: 'Flexible / no rush', value: 'flexible' },
-  //     ]
-  //   },
-  //   {
-  //     text: 'Which additional services interest you?',
-  //     options: [
-  //       { label: 'AI clause suggestions', value: 'ai_suggestions' },
-  //       { label: 'Expert legal review', value: 'expert_review' },
-  //       { label: 'Priority customer support', value: 'priority_support' },
-  //       { label: 'None of these', value: 'none' },
-  //     ]
-  //   }
-  // ];
 
   await prisma.question.deleteMany();
-
-
-  // const questions = [
-  //   {
-  //     text: "Anlageziele",
-  //     options: [
-  //       { label: "Allgemeiner Vermögensaufbau", value: "general_wealth_building" },
-  //       { label: "Altersvorsorge", value: "retirement_planning" },
-  //       { label: "Diversifikation des Gesamtvermögens", value: "diversification_total_assets" },
-  //       { label: "Sonstiges", value: "other" },
-  //     ],
-  //   },
-  //   {
-  //     text: "Angedachte Anlagedauer",
-  //     options: [
-  //       { label: "Kurzfristig (< 3 Jahre)", value: "short_term" },
-  //       { label: "Mittelfristig (3–7 Jahre)", value: "medium_term" },
-  //       { label: "Langfristig (7–10 Jahre)", value: "long_term" },
-  //       { label: "Sehr langfristig (> 10 Jahre)", value: "very_long_term" },
-  //     ],
-  //   },
-  //   {
-  //     text: "Mir uns wurden die Informationen zur Nachhaltigkeit zur Kenntnis gebracht?",
-  //     options: [
-  //       { label: "Ja", value: "yes" },
-  //       { label: "Nein", value: "no" },
-  //     ],
-  //   },
-  //   {
-  //     text: "Möchten Sie \"Nachhaltigkeit\" bei Ihrer Investition im Rahmen der Anlageberatung berücksichtigen?",
-  //     options: [
-  //       { label: "Ja", value: "yes" },
-  //       { label: "Nein", value: "no" },
-  //       { label: "Ich bin nachhaltigkeitsneutral", value: "neutral" },
-  //     ],
-  //   },
-  //   {
-  //     text: "Angaben über die Risikoneigung",
-  //     options: [
-  //       { label: "Konservativ", value: "conservative" },
-  //       { label: "Chancenorientiert", value: "opportunity_oriented" },
-  //       { label: "Risikobewusst", value: "risk_aware" },
-  //     ],
-  //   },
-  // ];
 
   const questions = [
     {
@@ -212,22 +116,84 @@ async function main() {
       footnote: `Bitte geben Sie an, ob Sie bereits Erfahrungen mit vermögensverwaltenden Dienstleistungen gesammelt haben. Diese Information hilft uns, Ihre Kenntnisse in Bezug auf professionell gesteuerte Anlageformen einzuschätzen.`
     },
     {
+      text: "Erfahrungen – Aktien, Aktienfonds und Aktien ETFs",
+      questionOrder: 13,
+      footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie bereits mit Aktien, Aktienfonds oder Aktien-ETFs gesammelt haben.`,
+      options: [
+        { label: "Kenne ich nicht", value: "none" },
+        { label: "Verstehe ich", value: "average" },
+        { label: "Habe ich genutzt", value: "good" },
+      ],
+    },
+    {
+      text: "Transaktionen letzte 3 Jahre – Aktien, Aktienfonds und Aktien ETFs",
+      questionOrder: 14,
+      footnote: `Bitte geben Sie an, wie viele Transaktionen Sie in den vergangenen drei Jahren mit Aktien, Aktienfonds oder ETFs durchgeführt haben.`,
+      options: [
+        { label: "0", value: "0" },
+        { label: "1-10", value: "1-10" },
+        { label: "+10", value: "+10" },
+      ],
+    },
+    {
+      text: "Erfahrungen – Anleihen, Anleihenfonds und Anleihen ETFs",
+      questionOrder: 15,
+      footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie mit Anleihen, Anleihenfonds oder Anleihen-ETFs gesammelt haben.`,
+      options: [
+        { label: "Kenne ich nicht", value: "none" },
+        { label: "Verstehe ich", value: "average" },
+        { label: "Habe ich genutzt", value: "good" },
+      ],
+    },
+    {
+      text: "Transaktionen letzte 3 Jahre – Anleihen, Anleihenfonds und Anleihen ETFs",
+      questionOrder: 16,
+      footnote: `Bitte geben Sie an, wie viele Transaktionen Sie in den letzten drei Jahren mit Anleihenprodukten durchgeführt haben.`,
+      options: [
+        { label: "0", value: "0" },
+        { label: "1-10", value: "1-10" },
+        { label: "+10", value: "+10" },
+      ],
+    },
+    {
+      text: "Erfahrungen – Rohstoffe (z. B. Gold)",
+      questionOrder: 17,
+      footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie mit Rohstoffen wie Gold gesammelt haben.`,
+      options: [
+        { label: "Kenne ich nicht", value: "none" },
+        { label: "Verstehe ich", value: "average" },
+        { label: "Habe ich genutzt", value: "good" },
+      ],
+    },
+    {
+      text: "Transaktionen letzte 3 Jahre – Rohstoffe (z. B. Gold)",
+      questionOrder: 18,
+      footnote: `Bitte geben Sie an, wie viele Transaktionen Sie in den letzten drei Jahren mit Rohstoffen durchgeführt haben.`,
+      options: [
+        { label: "0", value: "0" },
+        { label: "1-10", value: "1-10" },
+        { label: "+10", value: "+10" },
+      ],
+    },
+    {
       text: "Herkunft der Vermögenswerte – Woher stammen die Mittel für Ihre geplante Veranlagung?",
       options: [
         { label: "Berufliche Tätigkeit", value: "employment_income" },
         { label: "Ersparnisse", value: "savings" },
+        { label: "Staatliche Zuwendungen (Pension, Familienbeihilfe o.Ä.)", value: "pension" },
         { label: "Erbschaft", value: "inheritance" },
         { label: "Miete / Pacht", value: "rental_income" },
+        { label: "Verkauf von Vermögenswerten (Autoverkauf, Hausverkauf o.Ä.)", value: "sale_of_assets" },
         { label: "Sonstiges", value: "other" },
       ],
-      questionOrder: 13,
+      questionOrder: 19,
       footnote: `Bitte wählen Sie aus, aus welcher Quelle die für die Veranlagung vorgesehenen Gelder stammen. Diese Angabe ist aus rechtlichen Gründen erforderlich und unterstützt die Beurteilung der finanziellen Hintergründe.`
     },
     {
       text: "Beabsichtigte Einmalveranlagung – Welchen Betrag möchten Sie einmalig investieren?",
       questionType: "number",
       maxValue: 5000,
-      questionOrder: 14,
+      questionOrder: 20,
       inputPlaceholder: "Bitte Betrag in Euro eingeben…",
       footnote:`Bitte geben Sie den Betrag an, den Sie einmalig investieren möchten. Diese Angabe hilft uns, Ihre geplante Investitionshöhe und deren Eignung im Rahmen der Anlageberatung einzuschätzen.`
     },
@@ -235,12 +201,51 @@ async function main() {
       text: "Beabsichtigte monatliche Veranlagung – Welchen Betrag möchten Sie regelmäßig pro Monat investieren?",
       questionType: "number",
       maxValue: 500,
-      questionOrder: 15,
+      questionOrder: 21,
       inputPlaceholder: "Bitte Betrag in Euro eingeben…",
       footnote: `Bitte geben Sie an, welchen Betrag Sie monatlich investieren möchten. Laufende Investitionen beeinflussen die langfristige Vermögensentwicklung und sind relevant für die geeignete Produktauswahl.`
     },
+    {
+      text: "Aktuell veranlagtes Vermögen – Aktien, Aktienfonds und Aktien ETFs",
+      questionOrder: 22,
+      footnote: `Bitte geben Sie an, wie viel Ihres veranlagten Vermögens derzeit in Aktien, Aktienfonds oder Aktien-ETFs investiert ist.`,
+      options: [
+        { label: "0", value: "0" },
+        { label: "bis 10.000 €", value: "up_to_10000" },
+        { label: "10.000–50.000 €", value: "10000_to_50000" },
+        { label: "50.000–500.000 €", value: "50000_to_500000" },
+        { label: "über 500.000 €", value: "above_500000" },
+        { label: "Sparplan", value: "savings_plan" },
+      ],
+    },
+    {
+      text: "Aktuell veranlagtes Vermögen – Anleihen, Anleihenfonds und Anleihen ETFs",
+      questionOrder: 23,
+      footnote: `Bitte geben Sie an, wie viel Ihres veranlagten Vermögens derzeit in Anleihen, Anleihenfonds oder Anleihen-ETFs investiert ist.`,
+      options: [
+        { label: "0", value: "0" },
+        { label: "bis 10.000 €", value: "up_to_10000" },
+        { label: "10.000–50.000 €", value: "10000_to_50000" },
+        { label: "50.000–500.000 €", value: "50000_to_500000" },
+        { label: "über 500.000 €", value: "above_500000" },
+        { label: "Sparplan", value: "savings_plan" },
+      ],
+    },
+    {
+      text: "Aktuell veranlagtes Vermögen – Rohstoffe (z. B. Gold)",
+      questionOrder: 24,
+      footnote: `Bitte geben Sie an, wie viel Ihres veranlagten Vermögens derzeit in Rohstoffe (z. B. Gold) investiert ist.`,
+      options: [
+        { label: "0", value: "0" },
+        { label: "bis 10.000 €", value: "up_to_10000" },
+        { label: "10.000–50.000 €", value: "10000_to_50000" },
+        { label: "50.000–500.000 €", value: "50000_to_500000" },
+        { label: "über 500.000 €", value: "above_500000" },
+        { label: "Sparplan", value: "savings_plan" },
+      ],
+    },
+    
   ];
-
 
   for (const q of questions) {
     await prisma.question.create({
@@ -304,154 +309,7 @@ async function main() {
   await prisma.sessionProductSuggestion.deleteMany();
   await prisma.aISettings.deleteMany();
   await prisma.product.deleteMany();
-
-  // Product data with AI settings
-  // const productsWithAI = [
-  //   {
-  //     product: {
-  //       name: "VVKN1 Goal Conservative Portfolio",
-  //       shortName: "VVKN1",
-  //       description: "Conservative portfolio for short-term goals with minimal risk. Suitable for 0-1 year investment horizon.",
-  //       fileName: "/products/vvkn1_product_guide.pdf",
-  //       minimumYear: 0,
-  //       maximumYear: 1,
-  //       riskType: "CONSERVATIVE",
-  //     },
-  //     ai: {
-  //       model: "gpt-4",
-  //       prompt: "You are a financial advisor specializing in conservative investment strategies. Recommend this portfolio for clients with very low risk tolerance who need liquidity within 0-1 years. Focus on capital preservation and safety.",
-  //       vectorId: "vvkn1-conservative",
-  //     }
-  //   },
-  //   {
-  //     product: {
-  //       name: "VVKN2 Peace of Mind Portfolio", 
-  //       shortName: "VVKN2",
-  //       description: "Low-risk portfolio designed for peace of mind investing over 1-2 years.",
-  //       fileName: "/products/vvkn2_product_guide.pdf",
-  //       minimumYear: 1,
-  //       maximumYear: 2,
-  //       riskType: "CONSERVATIVE",
-  //     },
-  //     ai: {
-  //       model: "gpt-4",
-  //       prompt: "You are a financial advisor focusing on low-risk investments. This portfolio is ideal for clients who prioritize peace of mind and minimal volatility over 1-2 years. Emphasize stability and gradual growth.",
-  //       vectorId: "vvkn2-conservative",
-  //     }
-  //   },
-  //   {
-  //     product: {
-  //       name: "VVKN3 Balanced Portfolio",
-  //       shortName: "VVKN3",
-  //       description: "Balanced investment approach for medium-term goals with moderate risk over 3-4 years.",
-  //       fileName: "/products/vvkn3_product_guide.pdf",
-  //       minimumYear: 3,
-  //       maximumYear: 4,
-  //       riskType: "RISK_AWARE",
-  //     },
-  //     ai: {
-  //       model: "gpt-4",
-  //       prompt: "You are a financial advisor specializing in balanced investment strategies. This portfolio suits clients with moderate risk tolerance seeking growth over 3-4 years. Balance growth potential with risk management.",
-  //       vectorId: "vvkn3-balanced",
-  //     }
-  //   },
-  //   {
-  //     product: {
-  //       name: "VVKN4 Future Growth Portfolio", 
-  //       shortName: "VVKN4",
-  //       description: "Growth-oriented portfolio for future planning with higher returns over 4-6 years.",
-  //       fileName: "/products/vvkn4_product_guide.pdf",
-  //       minimumYear: 4,
-  //       maximumYear: 6,
-  //       riskType: "RISK_AWARE",
-  //     },
-  //     ai: {
-  //       model: "gpt-4",
-  //       prompt: "You are a financial advisor focused on growth investing. This portfolio is designed for clients planning for the future with moderate-to-high risk tolerance over 4-6 years. Emphasize growth potential and long-term planning.",
-  //       vectorId: "vvkn4-growth",
-  //     }
-  //   },
-  //   {
-  //     product: {
-  //       name: "VVKN5 Dynamic Growth Portfolio",
-  //       shortName: "VVKN5",
-  //       description: "Dynamic growth strategy for long-term wealth building over 5-7 years.",
-  //       fileName: "/products/vvkn5_product_guide.pdf",
-  //       minimumYear: 5,
-  //       maximumYear: 7,
-  //       riskType: "OPPORTUNITY_ORIENTED",
-  //     },
-  //     ai: {
-  //       model: "gpt-4",
-  //       prompt: "You are a financial advisor specializing in aggressive growth strategies. This portfolio targets clients with high risk tolerance seeking maximum returns over 5-7 years. Focus on wealth building and long-term appreciation.",
-  //       vectorId: "vvkn5-dynamic",
-  //     }
-  //   },
-  //   {
-  //     product: {
-  //       name: "Conservative Bond Fund",
-  //       shortName: "CBF",
-  //       description: "Ultra-conservative bond fund for capital preservation and steady income.",
-  //       fileName: "/products/cbf_product_guide.pdf",
-  //       minimumYear: 0,
-  //       maximumYear: 2,
-  //       riskType: "CONSERVATIVE",
-  //     },
-  //     ai: {
-  //       model: "gpt-4",
-  //       prompt: "You are a financial advisor specializing in fixed-income investments. This bond fund is perfect for ultra-conservative clients prioritizing capital preservation and steady income. Emphasize safety and reliability.",
-  //       vectorId: "cbf-bonds",
-  //     }
-  //   },
-  //   {
-  //     product: {
-  //       name: "Balanced Growth Fund",
-  //       shortName: "BGF",
-  //       description: "Balanced mix of growth and income investments for moderate returns.",
-  //       fileName: "/products/bgf_product_guide.pdf",
-  //       minimumYear: 3,
-  //       maximumYear: 5,
-  //       riskType: "RISK_AWARE",
-  //     },
-  //     ai: {
-  //       model: "gpt-4",
-  //       prompt: "You are a financial advisor focusing on balanced investment approaches. This fund combines growth and income strategies for clients seeking moderate returns with manageable risk over 3-5 years.",
-  //       vectorId: "bgf-balanced",
-  //     }
-  //   },
-  //   {
-  //     product: {
-  //       name: "Aggressive Growth Fund",
-  //       shortName: "AGF",
-  //       description: "High-growth potential fund for investors seeking maximum returns over longer periods.",
-  //       fileName: "/products/agf_product_guide.pdf",
-  //       minimumYear: 5,
-  //       maximumYear: 7,
-  //       riskType: "OPPORTUNITY_ORIENTED",
-  //     },
-  //     ai: {
-  //       model: "gpt-4",
-  //       prompt: "You are a financial advisor specializing in aggressive growth investments. This fund is for experienced investors with very high risk tolerance seeking maximum returns over 5-7 years. Emphasize growth potential and volatility tolerance.",
-  //       vectorId: "agf-aggressive",
-  //     }
-  //   },
-  //   {
-  //     product: {
-  //       name: "Ultra-High Risk Trading Fund",
-  //       shortName: "UHRTF",
-  //       description: "Maximum risk, maximum reward trading strategies for experienced investors only.",
-  //       fileName: "/products/uhrtf_product_guide.pdf",
-  //       minimumYear: 1,
-  //       maximumYear: 3,
-  //       riskType: "OPPORTUNITY_ORIENTED",
-  //     },
-  //     ai: {
-  //       model: "gpt-4",
-  //       prompt: "You are a financial advisor specializing in high-risk trading strategies. This fund is only for experienced investors who can handle extreme volatility and potential losses. Focus on risk disclosure and experience requirements.",
-  //       vectorId: "uhrtf-trading",
-  //     }
-  //   },
-  // ];
+  
   const productsWithAI = [
     // VVKN1 Goal (0–1 years)
     {

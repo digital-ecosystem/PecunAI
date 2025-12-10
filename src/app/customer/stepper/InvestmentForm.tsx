@@ -44,6 +44,7 @@ export default function InvestmentForm(
     answers: Record<string, string>;
   }
 ) {
+  console.log('suggestedProduct : ', suggestedProduct)
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 bg-gray-50 lg:min-h-screen min-h-0">
       {/* Header Section */}
@@ -93,10 +94,6 @@ export default function InvestmentForm(
         {/* Tags */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
           <div>
-            <p className="text-xs text-gray-500 mb-1">DEPOT</p>
-            <p className="font-semibold">-</p>
-          </div>
-          <div>
             <p className="text-xs text-gray-500 mb-1">EINFÜHRUNG IN ANLAGEKLASSEN</p>
             <p className='flex flex-wrap gap-2 font-semibold'>
               {answers[questions[8].id] !== 'none' && (
@@ -110,9 +107,6 @@ export default function InvestmentForm(
               )}
             </p>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
           <div>
             <p className="text-xs text-gray-500 mb-1">VORHERIGE FINANZDIENSTLEISTUNGEN</p>
             {/* Question No 12 */}
@@ -125,6 +119,13 @@ export default function InvestmentForm(
             </p>
           </div>
         </div>
+
+        {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+          <div>
+            <p className="text-xs text-gray-500 mb-1">DEPOT</p>
+            <p className="font-semibold">-</p>
+          </div>
+        </div> */}
 
         {/* Portfolio Details */}
         {/* <div className="mb-6">
@@ -215,7 +216,7 @@ export default function InvestmentForm(
               <p className="text-xs text-gray-500 mb-1">DISPOSITIONSBETRAG</p>
               <p className="text-sm font-semibold">
                 {
-                  formatEuro(parseFloat(answers[questions[13].id])) || '0.00 €'
+                  formatEuro(parseFloat(answers[questions[19].id])) || '0.00 €'
                 }
               </p>
             </div>

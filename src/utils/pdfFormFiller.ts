@@ -45,6 +45,8 @@ export interface UserInfo {
   isTaxResidentAT?: boolean;
   isTaxResidentOther?: boolean;
   taxResidencyCountry?: string;
+  gender?: string;
+  isSelfEmployed?: boolean;
 }
 
 interface AnswerWithOptions {
@@ -789,7 +791,7 @@ const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[],
   UserCityOfOrigin: userInfo.city || "",
   UserProfession: userInfo.occupation || "",
   UserSector: userInfo.industry || "",
-  GoalMonthlyPayment: formatCurrency(Number(getDynamicAnswer(questions[14], answers))),
+  GoalMonthlyPayment: formatCurrency(Number(getDynamicAnswer(questions[20], answers))),
   // Next Month From Today
   NextMonthFromToday: getNextMonthFromToday(),
   YearOfNextMonthFromToday: getNextMonthYear(),
@@ -805,22 +807,22 @@ const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[],
   UserCity1: userInfo.city || "",
   UserFullName1: getFullName(userInfo),
   UserReferenceAccountIban: userInfo.iban || "",
-  CheckboxUserGenderMale: "",
-  CheckboxUserGenderFemale: "",
-  CheckboxUserSelfEmploymentStatus: "",
+  CheckboxUserGenderMale: userInfo.gender === "male" ? true : false,
+  CheckboxUserGenderFemale: userInfo.gender === "female" ? true : false,
+  CheckboxUserSelfEmploymentStatus: userInfo.isSelfEmployed ? true : false,
   UserPepYes: userInfo.isPEP ? true : false,
   AdvisorPhone: "",
   AdvisorFullName: "",
   UserAnnualIncome: formatCurrency(Number(getDynamicAnswer(questions[6], answers)) * 12),
 });
 
-const deckblattVertragspaketMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => ({
+const deckblattVertragspaketMapper = (userInfo: UserInfo): FormFieldData => ({
   UserLastName: userInfo.lastName || "",
   UserEmail: userInfo.email || "",
   UserFirstName: userInfo.firstName || "",
 });
 
-const serviceentgeltMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => ({
+const serviceentgeltMapper = (userInfo: UserInfo): FormFieldData => ({
   UserFullName: getFullName(userInfo),
   UserCity: userInfo.city || "",
   DateToday: getCurrentDate(),
@@ -829,7 +831,7 @@ const serviceentgeltMapper = (userInfo: UserInfo, questions: Question[], answers
   AdviserFullName: "",
 });
 
-const servicegebuehrMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => ({
+const servicegebuehrMapper = (userInfo: UserInfo): FormFieldData => ({
   ...baseAddressFields(userInfo),
   UserFullName: getFullName(userInfo),
   UserReferenceAccountIban: "",
@@ -838,8 +840,8 @@ const servicegebuehrMapper = (userInfo: UserInfo, questions: Question[], answers
 });
 
 const vermittlungsgebuehrMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => ({
-  DepotAgencyFee: Number(getDynamicAnswer(questions[13], answers)) > 0 ? '5' : '0',
-  DepotSetupFee: Number(getDynamicAnswer(questions[14], answers)) > 0 ? Math.round(Number(getDynamicAnswer(questions[14], answers)) * 0.025) : '0',
+  DepotAgencyFee: Number(getDynamicAnswer(questions[19], answers)) > 0 ? '5' : '0',
+  DepotSetupFee: Number(getDynamicAnswer(questions[20], answers)) > 0 ? Math.round(Number(getDynamicAnswer(questions[20], answers)) * 0.025) : '0',
   UserFirstName: userInfo.firstName || "",
   UserLastName: userInfo.lastName || "",
   UserCity: userInfo.city || "",
@@ -859,22 +861,127 @@ const initializeFinancialKnowledgeFields = (questions: Question[], answers: Reco
   categories.forEach(category => {
     // Question 9
     knowledgeTypes.forEach(type => {
-      if (type == "NoKnowledge") {
-        fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[8], answers) == "Keine" ? true : false;
-      } else if (type == "PassiveKnowledge") {
-        fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[8], answers) == "Durchschnittliche" ? true : false;
+      if(category == "Equities") {
+        if (type == "NoKnowledge") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[8], answers) == "Keine" ? true : false;
+        } else if (type == "PassiveKnowledge") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[8], answers) == "Durchschnittliche" ? true : false;
+        } else {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[8], answers) == "Gute" ? true : false;
+        }
+      } else if(category == "Bonds") {
+        if (type == "NoKnowledge") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[9], answers) == "Keine" ? true : false;
+        } else if (type == "PassiveKnowledge") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[9], answers) == "Durchschnittliche" ? true : false;
+        } else {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[9], answers) == "Gute" ? true : false;
+        }
       } else {
-        fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[8], answers) == "Gute" ? true : false;
+        if (type == "NoKnowledge") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[10], answers) == "Keine" ? true : false;
+        } else if (type == "PassiveKnowledge") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[10], answers) == "Durchschnittliche" ? true : false;
+        } else {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[10], answers) == "Gute" ? true : false;
+        }
+      } 
+    });
+
+    experienceTypes.forEach(type => {
+      if(category == "Equities") {
+        if (type == "NoExperience") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[12], answers) == "Kenne ich nicht" ? true : false;
+        } else if (type == "PassiveExperience") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[12], answers) == "Verstehe ich" ? true : false;
+        } else {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[12], answers) == "Habe ich genutzt" ? true : false;
+        }
+      } else if(category == "Bonds") {
+        if (type == "NoExperience") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[14], answers) == "Kenne ich nicht" ? true : false;
+        } else if (type == "PassiveExperience") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[14], answers) == "Verstehe ich" ? true : false;
+        } else {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[14], answers) == "Habe ich genutzt" ? true : false;
+        }
+      } else {
+        if (type == "NoExperience") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[16], answers) == "Kenne ich nicht" ? true : false;
+        } else if (type == "PassiveExperience") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[16], answers) == "Verstehe ich" ? true : false;
+        } else {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[16], answers) == "Habe ich genutzt" ? true : false;
+        }
       }
     });
-    experienceTypes.forEach(type => {
-        fields[`UserFinancialKnowledge${category}${type}`] = "";
-    });
     tradeTypes.forEach(type => {
-      fields[`UserFinancialKnowledge${category}${type}`] = "";
+      if(category == "Equities") {
+        if (type == "ZeroTrades") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[13], answers) == "0" ? true : false;
+        } else if (type == "TenTrades") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[13], answers) == "1-10" ? true : false;
+        } else if (type == "MoreTenTrades") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[13], answers) == "+10" ? true : false;
+        } else {
+          fields[`UserFinancialKnowledge${category}${type}`] = false
+        }
+        
+      } else if(category == "Bonds") {
+        if (type == "ZeroTrades") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[15], answers) == "0" ? true : false;
+        } else if (type == "TenTrades") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[15], answers) == "1-10" ? true : false;
+        } else if (type == "MoreTenTrades") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[15], answers) == "+10" ? true : false;
+        } else {
+          fields[`UserFinancialKnowledge${category}${type}`] = false
+        }
+      } else {
+        if (type == "ZeroTrades") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[17], answers) == "0" ? true : false;
+        } else if (type == "TenTrades") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[17], answers) == "1-10" ? true : false;
+        } else if (type == "MoreTenTrades") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[17], answers) == "+10" ? true : false;
+        } else {
+          fields[`UserFinancialKnowledge${category}${type}`] = false
+        }
+      }
     });
     amountTypes.forEach(type => {
-      fields[`UserFinancialKnowledge${category}${type}`] = "";
+      if(category == "Equities") {
+        if (type == "ZeroAmount") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[21], answers) == "0" ? true : false;
+        } else if (type == "Below10kAmount") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[21], answers) == "bis 10.000 €" ? true : false;
+        } else if (type == "Below50kAmount") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[21], answers) == "10.000–50.000 €" ? true : false;
+        } else {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[21], answers) == "50.000–500.000 €" || getDynamicAnswer(questions[21], answers) == "über 500.000 €" ? true : false;
+        }
+      } else if(category == "Bonds") {
+        if (type == "ZeroAmount") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[22], answers) == "0" ? true : false;
+        } else if (type == "Below10kAmount") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[22], answers) == "bis 10.000 €" ? true : false;
+        } else if (type == "Below50kAmount") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[22], answers) == "10.000–50.000 €" ? true : false;
+        } else {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[22], answers) == "50.000–500.000 €" || getDynamicAnswer(questions[21], answers) == "über 500.000 €" ? true : false;
+        }
+      } else {
+        if (type == "ZeroAmount") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[23], answers) == "0" ? true : false;
+        } else if (type == "Below10kAmount") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[23], answers) == "bis 10.000 €" ? true : false;
+        } else if (type == "Below50kAmount") {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[23], answers) == "10.000–50.000 €" ? true : false;
+        } else {
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[23], answers) == "50.000–500.000 €" || getDynamicAnswer(questions[21], answers) == "über 500.000 €" ? true : false;
+        }
+      }
+
     });
   });
   return fields;
@@ -903,18 +1010,18 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
   GoalRiskScoreFrootsConservative: getDynamicAnswer(questions[4], answers) == "Konservativ" ? true : false,
   GoalRiskScoreFrootsBalanced: getDynamicAnswer(questions[4], answers) == "Chancenorientiert" ? true : false,
   GoalRiskScoreFrootsProfitOrientated: getDynamicAnswer(questions[4], answers) == "Risikobewusst" ? true : false,
-  UserReferenceAccountIban: userInfo.iban || "",
+  UserReferenceAccountIban: "",
   ...initializeFinancialKnowledgeFields(questions, answers),
   UserMonthlyAvailableIncome: formatCurrency(Number(getDynamicAnswer(questions[5], answers))),
   UserMonthlyExpenditures: formatCurrency(Number(getDynamicAnswer(questions[6], answers))),
   UserTotalNetAssets: formatCurrency(Number(getDynamicAnswer(questions[7], answers))),
-  // Question 13
-  UserSourceOfIncomeWork: getDynamicAnswer(questions[12], answers) === "Berufliche Tätigkeit" ? true : false,
-  UserSourceOfIncomePension: getDynamicAnswer(questions[12], answers) === "Ersparnisse" ? true : false,
-  UserSourceOfIncomeHeritage: getDynamicAnswer(questions[12], answers) === "Erbschaft" ? true : false,
-  UserSourceOfIncomeRent: getDynamicAnswer(questions[12], answers) === "Miete / Pacht" ? true : false,
-  UserSourceOfIncomeAssetSale: getDynamicAnswer(questions[12], answers) === "Miete / Pacht" ? true : false,
-  UserSourceOfIncomeOther: getDynamicAnswer(questions[12], answers) === "Sonstiges" ? true : false,
+  // Question 19
+  UserSourceOfIncomeWork: getDynamicAnswer(questions[18], answers) == "Berufliche Tätigkeit" || getDynamicAnswer(questions[18], answers) == "Ersparnisse" ? true : false,
+  UserSourceOfIncomePension: getDynamicAnswer(questions[18], answers) == "Staatliche Zuwendungen (Pension, Familienbeihilfe o.Ä.)" ? true : false,
+  UserSourceOfIncomeHeritage: getDynamicAnswer(questions[18], answers) == "Erbschaft" ? true : false,
+  UserSourceOfIncomeRent: getDynamicAnswer(questions[18], answers) == "Miete / Pacht" ? true : false,
+  UserSourceOfIncomeAssetSale: getDynamicAnswer(questions[18], answers) == "Verkauf von Vermögenswerten (Autoverkauf, Hausverkauf o.Ä.)" ? true : false,
+  UserSourceOfIncomeOther: getDynamicAnswer(questions[18], answers) == "Sonstiges" ? true : false,
   UserSourceOfIncomeOtherText: "",
 
   UserFullName1: getFullName(userInfo),

@@ -256,6 +256,10 @@ const validationSchema = Yup.object({
     then: (schema) => schema.required("Steueransässigkeitsland ist erforderlich"),
     otherwise: (schema) => schema.nullable(),
   }),
+
+  gender: Yup.string().required("Geschlecht ist erforderlich"),
+
+  isSelfEmployed: Yup.boolean().nullable(),
 });
 
 // Test credentials from the documentation
@@ -577,6 +581,8 @@ export default function Stepper() {
       bankName: "",
       isTaxResidentAT: null,
       isTaxResidentOther: null,
+      gender: "",
+      isSelfEmployed: false,
       taxResidencyCountry: ""
     },
     validationSchema,
@@ -839,6 +845,7 @@ export default function Stepper() {
       const val = answerValue.toLowerCase();
       return val === 'none' || val === 'keine';
     }
+
     return false;
   }
 
@@ -1072,61 +1079,6 @@ export default function Stepper() {
       if (step === PHASES.SUGGESTIONS && questions.length > 0) {
         try {
           setLoading(true);
-          // const durationKeywords = [
-          //   "short_term",
-          //   "medium_term",
-          //   "long_term",
-          //   "very_long_term",
-          // ]; // 'time', 'year', 'duration', 'horizon', 'long', 'period', 'when', 'invest', 'plan', 'month'
-          // const riskKeywords = [
-          //   "conservative",
-          //   "opportunity_oriented",
-          //   "risk_aware",
-          // ]; // 'risk', 'comfortable', 'volatility', 'tolerance', 'fluctuation', 'loss', 'willing', 'safe'
-          // const durationEntry = Object.entries(answers).find(([, value]) =>
-          //   durationKeywords.includes(value)
-          // );
-          // const riskEntry = Object.entries(answers).find(([, value]) =>
-          //   riskKeywords.includes(value)
-          // );
-          // const durationEntry = questions[1] ? answers[questions[1].id] : undefined;
-          // const riskEntry = questions[4] ? answers[questions[4].id] : undefined;
-
-          // const durationKey = durationEntry?.[0]; // question id for duration
-          // // const durationValue = durationEntry?.[1]; // actual selected value
-
-          // const riskKey = riskEntry?.[0]; // question id for risk
-          // // const riskValue = riskEntry?.[1]; // actual selected value
-
-          // let durationQuestionId = durationKey;
-          // let riskQuestionId = riskKey;
-
-          // // Strategy 3: If keyword matching fails, use positional fallback
-          // if (!durationQuestionId && questions.length > 0) {
-          //   // Assume duration is typically asked early (first 3 questions)
-          //   durationQuestionId = questions[0]?.id;
-          //   for (let i = 0; i < Math.min(3, questions.length); i++) {
-          //     if (answers[questions[i].id]) {
-          //       durationQuestionId = questions[i].id;
-          //       break;
-          //     }
-          //   }
-          // }
-
-          // if (!riskQuestionId && questions.length > 1) {
-          //   // Assume risk is typically asked later (questions 2-5)
-          //   riskQuestionId = questions[Math.min(3, questions.length - 1)]?.id;
-          //   for (let i = 1; i < questions.length; i++) {
-          //     if (
-          //       answers[questions[i].id] &&
-          //       questions[i].id !== durationQuestionId
-          //     ) {
-          //       riskQuestionId = questions[i].id;
-          //       break;
-          //     }
-          //   }
-          // }
-
           const durationQuestionId = questions[1]?.id;
           const riskQuestionId = questions[4]?.id;
 
@@ -1257,7 +1209,7 @@ export default function Stepper() {
         const data = await res.json();
         // console.log("🚀 ~ fetchQuestions ~ data:", data)
         if (data.success) {
-          setQuestions(data.questions);
+          setQuestions(data.questions.sort((a: Question, b: Question) => a.questionOrder - b.questionOrder));
           setAnswers(data.answers || {});
 
           // Build answersByIndex from answers and questions
@@ -1381,6 +1333,8 @@ export default function Stepper() {
               bankName: user.bankName || "",
               isTaxResidentAT: user.isTaxResidentAT ?? null,
               isTaxResidentOther: user.isTaxResidentOther ?? null,
+              gender: user.gender || "",
+              isSelfEmployed: user.isSelfEmployed || false,
               taxResidencyCountry: user.taxResidencyCountry || "",
             });
           }
@@ -1498,6 +1452,8 @@ export default function Stepper() {
           bankName: data.bankName,
           isTaxResidentAT: data.isTaxResidentAT,
           isTaxResidentOther: data.isTaxResidentOther,
+          gender: data.gender,
+          isSelfEmployed: data.isSelfEmployed,
           taxResidencyCountry: data.taxResidencyCountry,
         }),
       });
@@ -2590,6 +2546,35 @@ export default function Stepper() {
                   step === PHASES.PERSONAL_INFO ? (
                   <button
                     onClick={() => {
+                      // Sustainability Check (Q3)
+                      const sustainabilityQ = questions[2];
+                      const isSustainabilityPage = currentPageQuestions.some(q => q.id === sustainabilityQ?.id);
+
+                      if (step === 1 && currentSubStep === 'QUESTIONS2' && isSustainabilityPage) {
+                        if (sustainabilityQ && answers[sustainabilityQ.id]) {
+                          const val = answers[sustainabilityQ.id].toLowerCase();
+                          if (val === 'no' || val === 'nein') {
+                            setIsPepStop(true);
+                            return;
+                          }
+                        }
+                      }
+
+                      // Equities Check (Q13)
+                      const equitiesQ = questions[12];
+                      const isEquitiesPage = currentPageQuestions.some(q => q.id === equitiesQ?.id);
+
+                      if (step === 1 && currentSubStep === 'QUESTIONS2' && isEquitiesPage) {
+                        if (equitiesQ && answers[equitiesQ.id]) {
+                          const val = answers[equitiesQ.id].toLowerCase();
+                          if (val === 'none' || val === 'keine' || val === 'kenne ich nicht') {
+                            setIsPepStop(true);
+                            return;
+                          }
+                        }
+                      }
+
+
                       // Disposable Income Check
                       // Only check if we are in QUESTIONS2 and the current page contains the relevant questions
                       const incomeQ = questions[5];

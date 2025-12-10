@@ -131,6 +131,8 @@ export interface PersonalInfoFormData {
   isPEP: boolean | null;
   isTaxResidentAT: boolean | null;
   isTaxResidentOther: boolean | null;
+  gender: string;
+  isSelfEmployed: boolean | null;
   taxResidencyCountry: string;
   residenceAbroad: boolean;
   magicFlow: boolean;
