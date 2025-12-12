@@ -1,79 +1,84 @@
 export interface Session {
-    id: string
-    userId: string
-    status: SessionStatus
-    token: string
-    expiresAt: string
-    createdAt: string
-    updatedAt: string
-    user: User,
-    personalInfo: PersonalInfo
+  id: string
+  userId: string
+  status: SessionStatus
+  token: string
+  expiresAt: string
+  createdAt: string
+  updatedAt: string
+  user: User,
+  personalInfo: PersonalInfo
 }
 
 export interface PersonalInfo {
-    firstName: string
-    lastName: string
-    // age: number
-    qaSessionId: string
+  firstName: string
+  lastName: string
+  // age: number
+  qaSessionId: string
 }
 export interface User {
-    id: string
-    email: string
-    name: string
-    isActive: boolean
-    created_at: string
-    updatedAt: string
-    sessionStatus: SessionStatus // Optional, if not always present
+  id: string
+  email: string
+  name: string
+  isActive: boolean
+  created_at: string
+  updatedAt: string
+  sessionStatus: SessionStatus // Optional, if not always present
 }
 
 export enum SessionStatus {
-    DRAFT = "DRAFT",
-    PENDING = "PENDING",
-    APPROVED = "APPROVED",
-    REJECTED = "REJECTED"
+  DRAFT = "DRAFT",
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED"
 }
 
 export interface Question {
-    maxValue: undefined
-    minValue: undefined
-    id: string
-    text: string
-    questionType?: string // "choice" or "text"
-    created_at: string
-    options: Option[]
-    questionOrder: number
-    footnote?: string
-    inputPlaceholder?: string
+  maxValue: undefined
+  minValue: undefined
+  id: string
+  text: string
+  questionType?: string // "choice" or "text"
+  created_at: string
+  options: Option[]
+  questionOrder: number
+  footnote?: string
+  inputPlaceholder?: string
+  showIf?: {
+    questionOrder: number;
+    condition: "equals" | "notEquals";
+    value: string;
+  };
 }
 
 export interface Option {
-    id: string
-    questionId: string
-    label: string
-    value: string
-    created_at: string
+  id: string
+  questionId: string
+  label: string
+  value: string
+  created_at: string
 }
 
 export interface UserUpdate {
-    first_name: string
-    last_name: string
-    // age: number
-    dob?: string
+  first_name: string
+  last_name: string
+  // age: number
+  dob?: string
 }
 
 export interface DashboardQuestions {
-    id: number
-    text: string
-    options: Option[]
-    selectedValue: string
-  }
-  
-  export interface Option {
-    label: string
-    value: string
-  }
+  id: number
+  text: string
+  options: Option[]
+  selectedValue: string
+}
 
- export enum Role {
+export interface Option {
+  label: string
+  value: string
+}
+
+export enum Role {
   customer = 'customer',
   assistant = 'assistant'
 }
@@ -170,4 +175,11 @@ export interface Answer {
   // Relations
   // qaSession?: ;
   // question?: Question;
+}
+
+
+export enum RiskType {
+  KONSERVATIV = "KONSERVATIV",
+  AUSGEWOHGEN = "AUSGEWOHGEN",
+  GEWINNORIENTIERT = "GEWINNORIENTIERT"
 }

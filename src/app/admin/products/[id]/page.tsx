@@ -20,7 +20,7 @@ interface Product {
   fileName: string | null;
   minimumYear: number | null;
   maximumYear: number | null;
-  riskType: 'CONSERVATIVE' | 'RISK_AWARE' | 'OPPORTUNITY_ORIENTED' | null;
+  riskType: 'KONSERVATIV' | 'AUSGEWOHGEN' | 'GEWINNORIENTIERT' | null;
   createdAt: string;
   updatedAt: string;
   _count: {
@@ -80,16 +80,16 @@ const ViewProductPage = () => {
 
   // Risk type mapping
   const riskMap: Record<string, string> = {
-    CONSERVATIVE: 'Konservativ',
-    RISK_AWARE: 'Ausgewogen',
-    OPPORTUNITY_ORIENTED: 'Gewinnorientiert',
+    KONSERVATIV: 'Konservativ',
+    AUSGEWOHGEN: 'Ausgewogen',
+    GEWINNORIENTIERT: 'Gewinnorientiert',
   };
 
   const getRiskTypeColor = (riskType: string | null) => {
     switch (riskType) {
-      case 'CONSERVATIVE': return 'bg-green-100 text-green-800';
-      case 'RISK_AWARE': return 'bg-yellow-100 text-yellow-800';
-      case 'OPPORTUNITY_ORIENTED': return 'bg-orange-100 text-orange-800';
+      case 'KONSERVATIV': return 'bg-green-100 text-green-800';
+      case 'AUSGEWOHGEN': return 'bg-yellow-100 text-yellow-800';
+      case 'GEWINNORIENTIERT': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };

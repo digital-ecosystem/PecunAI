@@ -12,7 +12,7 @@ const productSchema = z.object({
   fileName: z.string().optional(),
   minimumYear: z.number().int().min(0).max(50).optional(),
   maximumYear: z.number().int().min(0).max(50).optional(),
-  riskType: z.enum(['CONSERVATIVE', 'RISK_AWARE', 'OPPORTUNITY_ORIENTED']).optional(),
+  riskType: z.enum(['KONSERVATIV', 'AUSGEWOHGEN', 'GEWINNORIENTIERT']).optional(),
   aiModel: z.string().min(1, 'KI-Modell ist erforderlich').default('gpt-5'),
   firstMessage: z.string().min(1, 'Erste Nachricht ist erforderlich'),
   aiPrompt: z.string().min(1, 'KI-Prompt ist erforderlich'),
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     // Build where clause for filtering
     const whereClause: Record<string, unknown> = {};
-    
+
     if (search) {
       whereClause.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     // Validate input
     const validatedData = productSchema.parse(body);
 

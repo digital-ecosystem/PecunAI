@@ -26,7 +26,7 @@ interface Product {
   fileName: string | null;
   minimumYear: number | null;
   maximumYear: number | null;
-  riskType: 'CONSERVATIVE' | 'RISK_AWARE' | 'OPPORTUNITY_ORIENTED' | null;
+  riskType: 'KONSERVATIV' | 'AUSGEWOHGEN' | 'GEWINNORIENTIERT' | null;
   createdAt: string;
   updatedAt: string;
   _count: {
@@ -128,17 +128,17 @@ const ProductsPage = () => {
 
   // Risk type mapping to German
   const riskMap: Record<string, string> = {
-    CONSERVATIVE: 'Konservativ',
-    RISK_AWARE: 'Ausgewogen',
-    OPPORTUNITY_ORIENTED: 'Gewinnorientiert',
+    KONSERVATIV: 'Konservativ',
+    AUSGEWOHGEN: 'Ausgewogen',
+    GEWINNORIENTIERT: 'Gewinnorientiert',
   };
 
   // Risk type color helper
   const getRiskTypeColor = (riskType: string | null) => {
     switch (riskType) {
-      case 'CONSERVATIVE': return 'bg-green-100 text-green-800';
-      case 'RISK_AWARE': return 'bg-yellow-100 text-yellow-800';
-      case 'OPPORTUNITY_ORIENTED': return 'bg-orange-100 text-orange-800';
+      case 'KONSERVATIV': return 'bg-green-100 text-green-800';
+      case 'AUSGEWOHGEN': return 'bg-yellow-100 text-yellow-800';
+      case 'GEWINNORIENTIERT': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -188,7 +188,7 @@ const ProductsPage = () => {
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Gewinnorientiert</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                  {products.filter(p => p.riskType === 'OPPORTUNITY_ORIENTED').length}
+                  {products.filter(p => p.riskType === 'GEWINNORIENTIERT').length}
                 </p>
               </div>
               <div className="p-2 sm:p-3 bg-red-100 rounded-lg flex-shrink-0">
@@ -242,9 +242,9 @@ const ProductsPage = () => {
                   className="w-full sm:w-auto pl-9 sm:pl-10 pr-8 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white text-sm sm:text-base"
                 >
                   <option value="all">Alle Risikotypen</option>
-                  <option value="CONSERVATIVE">Konservativ</option>
-                  <option value="RISK_AWARE">Ausgewogen</option>
-                  <option value="OPPORTUNITY_ORIENTED">Gewinnorientiert</option>
+                  <option value="KONSERVATIV">Konservativ</option>
+                  <option value="AUSGEWOHGEN">Ausgewogen</option>
+                  <option value="GEWINNORIENTIERT">Gewinnorientiert</option>
                 </select>
               </div>
             </div>

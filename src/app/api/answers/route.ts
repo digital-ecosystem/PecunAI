@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
-    
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     const { questionId, answer, question, options, questionType } = await request.json();
-    if (!questionId || !answer ) {
+    if (!questionId || !answer) {
       return NextResponse.json({ message: 'Frage-ID oder Antwort fehlt' }, { status: 400 });
     }
     const cookieStore = await cookies();
@@ -31,22 +31,22 @@ export async function POST(request: Request) {
     }
 
     const session = await prisma.qASession.findFirst({
-        where: { userId: user.id, id: id },
-        orderBy: { id: "asc" }
-      });
-      
-      if (!session) {
-        return NextResponse.json({ message: "Keine aktive Sitzung gefunden" }, { status: 404 });
-      }
-      
+      where: { userId: user.id, id: id },
+      orderBy: { id: "asc" }
+    });
+
+    if (!session) {
+      return NextResponse.json({ message: "Keine aktive Sitzung gefunden" }, { status: 404 });
+    }
+
     const sessionId = session.id;
 
     const newAnswer = await prisma.answer.upsert({
       where: {
-        qaSessionId_questionText: {
+        qaSessionId_questionId: {
           qaSessionId: sessionId,
-          questionText: question,
-        }        
+          questionId: questionId,
+        }
       },
       update: {
         value: answer,

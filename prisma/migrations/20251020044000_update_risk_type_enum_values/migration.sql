@@ -5,7 +5,7 @@
 
 */
 -- CreateEnum
-CREATE TYPE "RiskType_new" AS ENUM ('CONSERVATIVE', 'RISK_AWARE', 'OPPORTUNITY_ORIENTED');
+CREATE TYPE "RiskType_new" AS ENUM ('KONSERVATIV', 'AUSGEWOHGEN', 'GEWINNORIENTIERT');
 
 -- AlterTable
 ALTER TABLE "products" ALTER COLUMN "riskType" TYPE "RiskType_new" USING ("riskType"::text::"RiskType_new");

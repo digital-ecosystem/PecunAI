@@ -18,7 +18,7 @@ interface ProductFormData {
   fileName: string | null;
   minimumYear: number | null;
   maximumYear: number | null;
-  riskType: 'CONSERVATIVE' | 'RISK_AWARE' | 'OPPORTUNITY_ORIENTED' | null;
+  riskType: 'KONSERVATIV' | 'AUSGEWOHGEN' | 'GEWINNORIENTIERT' | null;
   aiModel: string;
   aiPrompt: string;
   firstMessage: string;
@@ -283,7 +283,7 @@ const EditProductPage = () => {
                       maximumYear: e.target.value ? parseInt(e.target.value) : null
                     }))}
                     min="0"
-                    max="50"
+                    max="1000"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     placeholder="z.B. 7"
                   />
@@ -297,14 +297,14 @@ const EditProductPage = () => {
                     value={formData.riskType || ''}
                     onChange={(e) => setFormData(prev => ({
                       ...prev,
-                      riskType: (e.target.value as 'CONSERVATIVE' | 'RISK_AWARE' | 'OPPORTUNITY_ORIENTED') || null
+                      riskType: (e.target.value as 'KONSERVATIV' | 'AUSGEWOHGEN' | 'GEWINNORIENTIERT') || null
                     }))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   >
                     <option value="">Risikotyp auswählen</option>
-                    <option value="CONSERVATIVE">Konservativ</option>
-                    <option value="RISK_AWARE">Ausgewogen</option>
-                    <option value="OPPORTUNITY_ORIENTED">Gewinnorientiert</option>
+                    <option value="KONSERVATIV">Konservativ</option>
+                    <option value="AUSGEWOHGEN">Ausgewogen</option>
+                    <option value="GEWINNORIENTIERT">Gewinnorientiert</option>
                   </select>
                 </div>
               </div>

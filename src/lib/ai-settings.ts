@@ -59,7 +59,7 @@ export async function getSessionProductId(sessionId: string): Promise<string | n
 
 // Predefined welcome messages for each product
 export const PRODUCT_WELCOME_MESSAGES: Record<string, string> = {
-  'conservative_bond': 'Willkommen! Ich bin hier, um Ihnen bei Ihren konservativen Anlagemöglichkeiten zu helfen. Lassen Sie uns über sichere Investitionen sprechen, die zu Ihrem Risikoprofil passen.',
+  'KONSERVATIV_bond': 'Willkommen! Ich bin hier, um Ihnen bei Ihren konservativen Anlagemöglichkeiten zu helfen. Lassen Sie uns über sichere Investitionen sprechen, die zu Ihrem Risikoprofil passen.',
   'balanced_portfolio': 'Hallo! Als Ihr Berater für ausgewogene Portfolios kann ich Ihnen helfen, eine perfekte Balance zwischen Sicherheit und Wachstumspotenzial zu finden.',
   'growth_investment': 'Willkommen! Ich freue mich, mit Ihnen über gewinnorientierte Investmentmöglichkeiten zu sprechen. Lassen Sie uns Ihre Wachstumsziele erkunden.',
   'default': 'Willkommen! Ich bin Ihr persönlicher Finanzberater und helfe Ihnen gerne bei all Ihren Fragen zu dem vorgeschlagenen Produkt.'
@@ -67,16 +67,16 @@ export const PRODUCT_WELCOME_MESSAGES: Record<string, string> = {
 
 export function getWelcomeMessage(productName: string | null): string {
   if (!productName) return PRODUCT_WELCOME_MESSAGES.default;
-  
+
   // Normalize product name to find matching message
   const normalizedName = productName.toLowerCase().replace(/[^a-z]/g, '_');
-  
+
   // Try to find exact match or partial match
   for (const [key, message] of Object.entries(PRODUCT_WELCOME_MESSAGES)) {
     if (key === normalizedName || normalizedName.includes(key)) {
       return message;
     }
   }
-  
+
   return PRODUCT_WELCOME_MESSAGES.default;
 }

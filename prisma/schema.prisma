@@ -143,7 +143,7 @@ model Answer {
   qaSession       QASession @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
   question        Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  @@unique([qaSessionId, questionText], name: "qaSessionId_questionText")
+  @@unique([qaSessionId, questionId], name: "qaSessionId_questionId")
   @@map("answers")
 }
 
@@ -402,9 +402,9 @@ enum TermsType {
 }
 
 enum RiskType {
-  CONSERVATIVE
-  RISK_AWARE
-  OPPORTUNITY_ORIENTED
+  KONSERVATIV
+  AUSGEWOHGEN
+  GEWINNORIENTIERT
 }
 
 model HighRiskCountry {

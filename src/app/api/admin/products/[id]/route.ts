@@ -8,9 +8,9 @@ const productUpdateSchema = z.object({
   description: z.string().optional(),
   shortName: z.string().optional(),
   fileName: z.string().optional(),
-  minimumYear: z.number().int().min(0).max(50).optional(),
-  maximumYear: z.number().int().min(0).max(50).optional(),
-  riskType: z.enum(['CONSERVATIVE', 'RISK_AWARE', 'OPPORTUNITY_ORIENTED']).optional(),
+  minimumYear: z.number().int().min(0).max(1000).optional(),
+  maximumYear: z.number().int().min(0).max(1000).optional(),
+  riskType: z.enum(['KONSERVATIV', 'AUSGEWOHGEN', 'GEWINNORIENTIERT']).optional(),
   aiModel: z.string().min(1, 'KI-Modell ist erforderlich').optional(),
   aiPrompt: z.string().min(1, 'KI-Prompt ist erforderlich').optional(),
   firstMessage: z.string().min(1, 'Erste Nachricht ist erforderlich'),
@@ -223,9 +223,9 @@ export async function DELETE(
     // Check if product has dependencies
     if (existingProduct._count.productSuggestions > 0) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Produkt kann nicht gelöscht werden, da Vorschläge existieren. Bitte entfernen Sie zuerst alle Vorschläge.' 
+        {
+          success: false,
+          error: 'Produkt kann nicht gelöscht werden, da Vorschläge existieren. Bitte entfernen Sie zuerst alle Vorschläge.'
         },
         { status: 400 }
       );

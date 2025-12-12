@@ -21,74 +21,138 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ product, success: true });
     }
 
-    // Map duration to years
-    let minYear = 0, maxYear = 100;
-    // switch (duration) {
-    //   case duration:
-    //     minYear = 0;
-    //     maxYear = 2;
-    //     break;
-    //   case 'medium_term':
-    //     minYear = 3;
-    //     maxYear = 6;
-    //     break;
-    //   case 'long_term':
-    //     minYear = 7;
-    //     maxYear = 10;
-    //     break;
-    //   case 'very_long_term':
-    //     minYear = 11;
-    //     maxYear = 100;
-    //     break;
-    // }
+    // Parse duration to number
+    const durationValue = parseInt(duration);
+    if (isNaN(durationValue)) {
+      return NextResponse.json({ error: 'Ungültige Dauer', success: false }, { status: 400 });
+    }
 
-    if (Number(duration) <= 3) {
-      minYear = 0;
-      maxYear = 3;
-    } else if (Number(duration) > 3 && Number(duration) < 5) {
-      minYear = 3;
-      maxYear = 5;
-    } else if (Number(duration) >= 5 && Number(duration) < 7) {
-      minYear = 5;
-      maxYear = 7;
-    } else if (Number(duration) >= 7) {
-      minYear = 7;
-      maxYear = 100;
+    // Special handling for duration 0 (Liquidity+)
+    if (durationValue === 0) {
+      console.log('🔍 Duration is 0, fetching VVKN0 Liquidity+');
+      const liquidityProduct = await prisma.product.findFirst({
+        where: {
+          minimumYear: 0,
+          maximumYear: 0
+        },
+        include: {
+          aiSettings: {
+            where: { isActive: true },
+            select: {
+              id: true,
+              model: true,
+              prompt: true,
+              vectorId: true,
+            }
+          }
+        }
+      });
+
+      if (liquidityProduct) {
+        const suggestion = {
+          id: liquidityProduct.id,
+          name: liquidityProduct.shortName || liquidityProduct.name,
+          fullName: liquidityProduct.name,
+          description: liquidityProduct.description,
+          fileName: liquidityProduct.fileName,
+          from: liquidityProduct.minimumYear || 0,
+          to: liquidityProduct.maximumYear || 0,
+          risk: 'Konservativ', // Always conservative for Liquidity+
+          riskType: liquidityProduct.riskType,
+          aiSettings: liquidityProduct.aiSettings[0] || null,
+          score: 100
+        };
+
+        return NextResponse.json({
+          success: true,
+          data: suggestion,
+          alternatives: [] // No alternatives for 0 duration
+        });
+      }
     }
 
     // Map risk to database enum values
     let riskType: string;
     switch (risk) {
-      case 'conservative':
-        riskType = 'CONSERVATIVE';
+      case 'KONSERVATIV':
+        riskType = 'KONSERVATIV';
         break;
-      case 'risk_aware':
-        riskType = 'RISK_AWARE';
+      case 'AUSGEWOHGEN':
+        riskType = 'AUSGEWOHGEN';
         break;
-      case 'opportunity_oriented':
-        riskType = 'OPPORTUNITY_ORIENTED';
+      case 'GEWINNORIENTIERT':
+        riskType = 'GEWINNORIENTIERT';
         break;
       default:
-        riskType = 'CONSERVATIVE';
+        // Handle invalid risk gracefully or return error
+        return NextResponse.json({ error: 'Ungültiger Risikotyp', success: false }, { status: 400 });
     }
 
-    console.log('🔍 Mapped parameters:', { minYear, maxYear, riskType });
+    // Initialize search parameters
+    let searchDuration = durationValue;
+    let searchRisk = riskType;
 
-    // Find products that match the criteria
+    console.log('🔍 Original parameters:', { durationValue, riskType });
+
+    /**
+     * GAP FILLING LOGIC (Parameter Remapping)
+     * Maps unsupported Duration/Risk combinations to the nearest valid product criteria.
+     */
+
+    // Case 1: 1-2 Years + Growth (GEWINNORIENTIERT) -> Remap to Balanced (AUSGEWOHGEN)
+    // Target: VVKN2 (Balanced, 1-2y)
+    if (durationValue >= 1 && durationValue <= 2 && riskType === 'GEWINNORIENTIERT') {
+      searchRisk = 'AUSGEWOHGEN';
+      console.log('🔄 Remapping: 1-2y Growth -> Balanced');
+    }
+
+    // Case 2: 3-4 Years + Conservative OR Growth -> Remap to Balanced (AUSGEWOHGEN)
+    // Target: VVKN3 (Balanced, 3-4y)
+    if (durationValue >= 3 && durationValue <= 4 && (riskType === 'KONSERVATIV' || riskType === 'GEWINNORIENTIERT')) {
+      searchRisk = 'AUSGEWOHGEN';
+      console.log(`🔄 Remapping: 3-4y ${riskType} -> Balanced`);
+    }
+
+    // Case 3: 5-7 Years + Conservative -> Remap to Balanced and cap duration at 4
+    // Target: VVKN3 (Balanced, 3-4y)
+    if (durationValue >= 5 && durationValue <= 7 && riskType === 'KONSERVATIV') {
+      searchRisk = 'AUSGEWOHGEN';
+      searchDuration = 4; // Force into VVKN3 range
+      console.log('🔄 Remapping: 5-7y Conservative -> 4y Balanced');
+    }
+
+    // Case 4: 5-7 Years + Balanced -> Cap duration at 4
+    // Target: VVKN3 (Balanced, 3-4y)
+    // Note: If we had a 5-7y Balanced product, we wouldn't need this. Assuming VVKN3 is the intended fallback.
+    if (durationValue >= 5 && durationValue <= 7 && riskType === 'AUSGEWOHGEN') {
+      searchDuration = 4; // Force into VVKN3 range
+      console.log('🔄 Remapping: 5-7y Balanced -> 4y Balanced');
+    }
+
+    // Case 5: 8-9 Years + Growth (GEWINNORIENTIERT) -> Cap duration at 7
+    // Target: VVKN4 (Growth, 5-7y)
+    if (durationValue >= 8 && durationValue <= 9 && riskType === 'GEWINNORIENTIERT') {
+      searchDuration = 7; // Force into VVKN4 range
+      console.log('🔄 Remapping: 8-9y Growth -> 7y Growth');
+    }
+
+    console.log('🔍 Final Search parameters:', { searchDuration, searchRisk });
+
+    // Find products where the duration falls within their min/max year range
     const products = await prisma.product.findMany({
       where: {
-        riskType: riskType as 'CONSERVATIVE' | 'RISK_AWARE' | 'OPPORTUNITY_ORIENTED',
+        riskType: searchRisk as 'KONSERVATIV' | 'AUSGEWOHGEN' | 'GEWINNORIENTIERT',
         AND: [
           {
             OR: [
               { minimumYear: null },
-              { minimumYear: { lte: maxYear } }
+              { minimumYear: { lte: searchDuration } }
             ]
           },
           {
             OR: [
               { maximumYear: null },
-              { maximumYear: { gte: minYear } }
+              { maximumYear: { gte: searchDuration } }
             ]
           }
         ]
@@ -105,12 +169,12 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: [
-        { minimumYear: 'asc' },
-        { maximumYear: 'asc' }
+        { minimumYear: 'desc' }, // Prefer products starting later (often higher tier) if multiple match
       ]
     });
 
     console.log('🔍 Found products:', products.length);
+    // console.log("products : ", products);
 
     if (products.length === 0) {
       return NextResponse.json({
@@ -120,48 +184,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Score products based on how well they match the criteria
-    const scoredProducts = products.map(product => {
-      let score = 0;
-      
-      // Perfect risk match gets high score
-      if (product.riskType === riskType) {
-        score += 100;
-      }
-
-      // Calculate distance from ideal duration range
-      const productMinYear = product.minimumYear || 0;
-      const productMaxYear = product.maximumYear || 100;
-      
-      // Check overlap with requested range
-      const overlapMin = Math.max(minYear, productMinYear);
-      const overlapMax = Math.min(maxYear, productMaxYear);
-      
-      if (overlapMin <= overlapMax) {
-        // There's an overlap, score based on how much overlap
-        const overlapSize = overlapMax - overlapMin + 1;
-        const requestedRangeSize = maxYear - minYear + 1;
-        const overlapRatio = overlapSize / requestedRangeSize;
-        score += overlapRatio * 50; // Up to 50 points for overlap
-      }
-
-      // Prefer products that start earlier (more conservative approach)
-      score += (10 - productMinYear) * 2; // Bonus for earlier start
-
-      return {
-        ...product,
-        score
-      };
-    });
-
-    // Sort by score and pick the best match
-    scoredProducts.sort((a, b) => b.score - a.score);
-    const bestProduct = scoredProducts[0];
+    // The best match is the first one (due to sorting or just being the valid one)
+    const bestProduct = products[0];
 
     console.log('🎯 Best product match:', {
       name: bestProduct.name,
       shortName: bestProduct.shortName,
-      score: bestProduct.score,
       minimumYear: bestProduct.minimumYear,
       maximumYear: bestProduct.maximumYear,
       riskType: bestProduct.riskType
@@ -176,17 +204,17 @@ export async function GET(request: NextRequest) {
       fileName: bestProduct.fileName,
       from: bestProduct.minimumYear || 0,
       to: bestProduct.maximumYear || 100,
-      risk: riskType === 'CONSERVATIVE' ? 'Konservativ' : 
-            riskType === 'RISK_AWARE' ? 'Ausgewogen' : 'Gewinnorientiert',
+      risk: riskType === 'KONSERVATIV' ? 'Konservativ' :
+        riskType === 'AUSGEWOHGEN' ? 'Ausgewogen' : 'Gewinnorientiert',
       riskType: bestProduct.riskType,
       aiSettings: bestProduct.aiSettings[0] || null,
-      score: bestProduct.score
+      score: 100 // exact match
     };
 
     return NextResponse.json({
       success: true,
       data: suggestion,
-      alternatives: scoredProducts.slice(1, 4).map(p => ({
+      alternatives: products.slice(1, 4).map(p => ({
         id: p.id,
         name: p.shortName || p.name,
         fullName: p.name,
@@ -194,11 +222,11 @@ export async function GET(request: NextRequest) {
         fileName: p.fileName,
         from: p.minimumYear || 0,
         to: p.maximumYear || 100,
-        risk: riskType === 'CONSERVATIVE' ? 'Konservativ' : 
-              riskType === 'RISK_AWARE' ? 'Ausgewogen' : 'Gewinnorientiert',
+        risk: riskType === 'KONSERVATIV' ? 'Konservativ' :
+          riskType === 'AUSGEWOHGEN' ? 'Ausgewogen' : 'Gewinnorientiert',
         riskType: p.riskType,
         aiSettings: p.aiSettings[0] || null,
-        score: p.score
+        score: 90 // alternative match
       }))
     });
 

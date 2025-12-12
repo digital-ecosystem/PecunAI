@@ -120,9 +120,9 @@ const buttonBackClass =
   "border text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-40";
 
 // const riskMap: Record<string, string> = {
-//   conservative: 'Konservativ',
-//   risk_aware: 'Ausgewogen',
-//   opportunity_oriented: 'Gewinnorientiert',
+//   KONSERVATIV: 'Konservativ',
+//   AUSGEWOHGEN: 'Ausgewogen',
+//   GEWINNORIENTIERT: 'Gewinnorientiert',
 // };
 
 const validationSchema = Yup.object({
@@ -461,8 +461,49 @@ export default function Stepper() {
   const totalQuestions1 = questions1.length;
   const totalPages1 = Math.max(1, Math.ceil(totalQuestions1 / QUESTIONS_PER_PAGE));
 
+
+  // Helper to check visibility
+  const isQuestionVisible = (q: Question): boolean => {
+    if (!q.showIf) return true;
+
+    const { questionOrder, condition, value } = q.showIf;
+    // Find the question that this one depends on
+    const dependencyQ = questions.find(curr => curr.questionOrder === questionOrder);
+    if (!dependencyQ) return true;
+
+    // RECURSIVE CHECK: If dependency is not visible, this question is also not visible
+    if (!isQuestionVisible(dependencyQ)) return false;
+
+    const answer = answers[dependencyQ.id];
+    // If parent not answered, hide child
+    if (!answer) return false;
+
+    const normalizedAnswer = answer.toLowerCase();
+    const normalizedValue = value.toLowerCase();
+
+    // Check for 'none' equivalents
+    if (normalizedValue === 'none') {
+      const isNone = normalizedAnswer === 'none' || normalizedAnswer === 'keine';
+      if (condition === 'notEquals') return !isNone;
+      if (condition === 'equals') return isNone;
+    }
+
+    // Check for 'yes' equivalents
+    if (normalizedValue === 'yes') {
+      const isYes = normalizedAnswer === 'yes' || normalizedAnswer === 'ja';
+      if (condition === 'equals') return isYes;
+      if (condition === 'notEquals') return !isYes;
+    }
+
+    if (condition === 'equals') return normalizedAnswer === normalizedValue;
+    if (condition === 'notEquals') return normalizedAnswer !== normalizedValue;
+
+    return true;
+  };
+
   // For PHASES.QUESTIONS2 (remaining questions)
-  const questions2 = questions.slice(2);
+  const questionsPhase2Raw = questions.slice(2);
+  const questions2 = questionsPhase2Raw.filter(isQuestionVisible);
   const totalQuestions2 = questions2.length;
   const totalPages2 = Math.max(1, Math.ceil(totalQuestions2 / QUESTIONS_PER_PAGE));
 
@@ -510,7 +551,10 @@ export default function Stepper() {
     const answer = answers[q.id];
     if (!answer) return false;
     if (hasValidationError(q, answer)) return false;
-    if (hasForbiddenSelection(q, answer)) return false;
+    /**
+     * Not need for now
+     */
+    // if (hasForbiddenSelection(q, answer)) return false;
     return true;
   });
 
@@ -1209,7 +1253,25 @@ export default function Stepper() {
         const data = await res.json();
         // console.log("🚀 ~ fetchQuestions ~ data:", data)
         if (data.success) {
-          setQuestions(data.questions.sort((a: Question, b: Question) => a.questionOrder - b.questionOrder));
+          const sortedQuestions = data.questions.sort((a: Question, b: Question) => a.questionOrder - b.questionOrder);
+
+          // Apply showIf logic
+          const questionsWithLogic = sortedQuestions.map((q: Question) => {
+            const rules: Record<number, any> = {
+              13: { questionOrder: 12, condition: 'notEquals', value: 'none' },
+              14: { questionOrder: 13, condition: 'equals', value: 'yes' },
+              16: { questionOrder: 15, condition: 'notEquals', value: 'none' },
+              17: { questionOrder: 16, condition: 'equals', value: 'yes' },
+              19: { questionOrder: 18, condition: 'notEquals', value: 'none' },
+              20: { questionOrder: 19, condition: 'equals', value: 'yes' },
+            };
+            if (rules[q.questionOrder]) {
+              return { ...q, showIf: rules[q.questionOrder] };
+            }
+            return q;
+          });
+
+          setQuestions(questionsWithLogic);
           setAnswers(data.answers || {});
 
           // Build answersByIndex from answers and questions
@@ -2561,18 +2623,18 @@ export default function Stepper() {
                       }
 
                       // Equities Check (Q13)
-                      const equitiesQ = questions[12];
-                      const isEquitiesPage = currentPageQuestions.some(q => q.id === equitiesQ?.id);
+                      // const equitiesQ = questions[12];
+                      // const isEquitiesPage = currentPageQuestions.some(q => q.id === equitiesQ?.id);
 
-                      if (step === 1 && currentSubStep === 'QUESTIONS2' && isEquitiesPage) {
-                        if (equitiesQ && answers[equitiesQ.id]) {
-                          const val = answers[equitiesQ.id].toLowerCase();
-                          if (val === 'none' || val === 'keine' || val === 'kenne ich nicht') {
-                            setIsPepStop(true);
-                            return;
-                          }
-                        }
-                      }
+                      // if (step === 1 && currentSubStep === 'QUESTIONS2' && isEquitiesPage) {
+                      //   if (equitiesQ && answers[equitiesQ.id]) {
+                      //     const val = answers[equitiesQ.id].toLowerCase();
+                      //     if (val === 'none' || val === 'keine' || val === 'kenne ich nicht') {
+                      //       setIsPepStop(true);
+                      //       return;
+                      //     }
+                      //   }
+                      // }
 
 
                       // Disposable Income Check

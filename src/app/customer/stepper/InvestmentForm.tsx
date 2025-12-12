@@ -96,24 +96,24 @@ export default function InvestmentForm(
           <div>
             <p className="text-xs text-gray-500 mb-1">EINFÜHRUNG IN ANLAGEKLASSEN</p>
             <p className='flex flex-wrap gap-2 font-semibold'>
-              {answers[questions[8].id] !== 'none' && (
+              {(answers[questions[11].id] !== 'none' || (questions[13] && answers[questions[13].id] && answers[questions[13].id] !== '0')) && (
                 <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">AKTIEN / AKTIENFONDS</span>
               )}
-              {answers[questions[9].id] !== 'none' && (
+              {(answers[questions[14].id] !== 'none' || (questions[16] && answers[questions[16].id] && answers[questions[16].id] !== '0')) && (
                 <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">ANLEIHEN / ANLEIHENFONDS</span>
               )}
-              {answers[questions[10].id] !== 'none' && (
+              {(answers[questions[17].id] !== 'none' || (questions[19] && answers[questions[19].id] && answers[questions[19].id] !== '0')) && (
                 <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">EDELMETALLE</span>
               )}
             </p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">VORHERIGE FINANZDIENSTLEISTUNGEN</p>
-            {/* Question No 12 */}
+            {/* Question No 20 */}
             <p className="font-semibold">
               <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">
                 {
-                  answers[questions[11].id] == 'good' || answers[questions[11].id] == 'average' ? 'ANLAGEBERATUNG' : '-'
+                  answers[questions[20].id] == 'good' || answers[questions[20].id] == 'average' || answers[questions[20].id] == 'experienced_positive' || answers[questions[20].id] == 'experienced_negative' ? 'ANLAGEBERATUNG' : '-'
                 }
               </span>
             </p>
@@ -216,7 +216,7 @@ export default function InvestmentForm(
               <p className="text-xs text-gray-500 mb-1">DISPOSITIONSBETRAG</p>
               <p className="text-sm font-semibold">
                 {
-                  formatEuro(parseFloat(answers[questions[19].id])) || '0.00 €'
+                  formatEuro(parseFloat(answers[questions[22].id])) || '0.00 €'
                 }
               </p>
             </div>
@@ -248,8 +248,8 @@ export default function InvestmentForm(
                     {suggestedProduct?.name}
                   </td>
                   <td className="p-3 text-sm">
-                    {suggestedProduct?.riskType === 'CONSERVATIVE' ? 'Konservativ' :
-                      suggestedProduct?.riskType === 'RISK_AWARE' ? 'Ausgewogen' : 'Gewinnorientiert'}
+                    {suggestedProduct?.riskType === 'KONSERVATIV' ? 'Konservativ' :
+                      suggestedProduct?.riskType === 'AUSGEWOHGEN' ? 'Ausgewogen' : 'Gewinnorientiert'}
                   </td>
                   <td className="p-3 text-sm">
                     {suggestedProduct?.name || 'N/A'}
@@ -258,8 +258,8 @@ export default function InvestmentForm(
                   </td>
                   <td className="p-3 text-sm">
                     {/* Assuming SRI is derived from riskType for demonstration */}
-                    {/* {suggestedProduct?.riskType === 'CONSERVATIVE' ? 'Low' : 
-                     suggestedProduct?.riskType === 'RISK_AWARE' ? 'Medium' : 'High'}     */}
+                    {/* {suggestedProduct?.riskType === 'KONSERVATIV' ? 'Low' : 
+                     suggestedProduct?.riskType === 'AUSGEWOHGEN' ? 'Medium' : 'High'}     */}
                     {suggestedProduct?.from}
                   </td>
                   <td className="p-3 text-sm">
