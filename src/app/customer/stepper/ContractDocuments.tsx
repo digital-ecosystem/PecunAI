@@ -199,6 +199,18 @@ export default function ContractDocuments(
                       Serviceentgelt
                     </span>
                   </button>
+                  {/* 4money Protokoll */}
+                  <button
+                    onClick={() => openPDF('4money_protokoll_PecunAI_v2.pdf')}
+                    className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 hover:bg-gray-50 rounded transition-colors group text-left"
+                  >
+                    <svg className="w-5 h-5 text-teal-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-sm text-gray-700 group-hover:text-teal-600 transition-colors break-words">
+                      4money Protokoll
+                    </span>
+                  </button>
                 </div>
               </div>
             )}

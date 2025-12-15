@@ -24,6 +24,16 @@ export async function POST(request: NextRequest) {
     let filesToMerge = pdfFileNames;
     console.log("🚀 ~ POST ~ filesToMerge:", filesToMerge)
 
+    const ORDERED_PDFS = [
+      "Deckblatt_Vertragspaket.pdf",
+      "Depoteröffnungsantrag.pdf",
+      "Serviceentgelt.pdf",
+      "Servicegebühr.pdf",
+      "Vermittlungsgebühr.pdf",
+      "Vermögensverwaltungsvertrag.pdf",
+      "4money_protokoll_PecunAI_v2.pdf"
+    ];
+
     // If no specific files provided, merge all PDFs in the session folder
     if (!filesToMerge || filesToMerge.length === 0) {
       try {
@@ -32,7 +42,9 @@ export async function POST(request: NextRequest) {
           `private-documents/${sessionId}/contract-document`
         );
         const allFiles = await readdir(sessionDir);
-        filesToMerge = allFiles.filter((file) => file.endsWith('.pdf'));
+
+        // Filter available files based on the ordered list
+        filesToMerge = ORDERED_PDFS.filter(orderedFile => allFiles.includes(orderedFile));
 
         if (debugMode) {
           console.log('📂 Found PDF files:', filesToMerge);
@@ -78,7 +90,7 @@ export async function POST(request: NextRequest) {
       // Create directory if it doesn't exist
       const mergedDir = path.dirname(mergedFilePath);
       await mkdir(mergedDir, { recursive: true });
-      
+
       await writeFile(mergedFilePath, mergedPdfBuffer);
       console.log('💾 Merged PDF saved to:', mergedFilePath);
     } catch (saveError) {

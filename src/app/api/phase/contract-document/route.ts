@@ -23,13 +23,14 @@ export async function POST(request: NextRequest) {
     // }
 
     const pdfFileNames = [
-      "Depoteröffnungsantrag.pdf",
       "Deckblatt_Vertragspaket.pdf",
+      "Depoteröffnungsantrag.pdf",
       "Serviceentgelt.pdf",
       "Servicegebühr.pdf",
       "Vermittlungsgebühr.pdf",
       "Vermögensverwaltungsvertrag.pdf",
-      "Froots_Allgemeine_Informationsbroschüren.pdf"
+      "Froots_Allgemeine_Informationsbroschüren.pdf",
+      "4money_protokoll_PecunAI_v2.pdf"
     ];
 
     const finalPdfPaths: string[] = [];

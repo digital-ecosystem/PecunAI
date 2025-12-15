@@ -348,10 +348,15 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     "Kontrollkästchen 549": questionAnswers[1]?.selectedOption == "other" || false,
 
     // Question 2
-    "Kontrollkästchen 25": questionAnswers[2]?.selectedOption == "short_term" || false,
-    "Kontrollkästchen 26": questionAnswers[2]?.selectedOption == "mid_term" || false,
-    "Kontrollkästchen 27": questionAnswers[2]?.selectedOption == "long_term" || false,
-    "Kontrollkästchen 28": questionAnswers[2]?.selectedOption == "very_long_term" || false,
+    "Kontrollkästchen 25": Number(questionAnswers[2]?.selectedOption) < 3 ? true : false,
+    "Kontrollkästchen 26": Number(questionAnswers[2]?.selectedOption) >= 3 && Number(questionAnswers[2]?.selectedOption) < 7 ? true : false,
+    "Kontrollkästchen 27": Number(questionAnswers[2]?.selectedOption) >= 7 && Number(questionAnswers[2]?.selectedOption) < 10 ? true : false,
+    "Kontrollkästchen 28": Number(questionAnswers[2]?.selectedOption) >= 10 ? true : false,
+
+    "vorname 7": Number(questionAnswers[2]?.selectedOption) < 3 ? '100 %' : '',
+    "vorname 8": Number(questionAnswers[2]?.selectedOption) >= 3 && Number(questionAnswers[2]?.selectedOption) < 7 ? '100 %' : '',
+    "vorname 9": Number(questionAnswers[2]?.selectedOption) >= 7 && Number(questionAnswers[2]?.selectedOption) < 10 ? '100 %' : '',
+    "vorname 10": Number(questionAnswers[2]?.selectedOption) >= 10 ? '100 %' : '',
 
 
     // Question 3
@@ -390,10 +395,6 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
 
     // "Kontrollkästchen 478": true,
 
-    // "vorname 7": "vorname 7",
-    // "vorname 8": "vorname 8",
-    // "vorname 9": "vorname 9",
-    // "vorname 10": "vorname 10",
     // "vorname 148": "vorname 148",
     // "vorname 149": "vorname 149",
     // "vorname 151": "vorname 151",
@@ -402,15 +403,15 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     "vorname 12": manageAnswer(questionAnswers[6]),
     "vorname 13": manageAnswer(questionAnswers[8]),
     "vorname 14": manageAnswer(questionAnswers[7]),
-    "Kontrollkästchen 100": questionAnswers[13]?.selectedOption == "employment_income" || false,
-    "Kontrollkästchen 101": questionAnswers[13]?.selectedOption == "savings" || false,
-    "Kontrollkästchen 102": questionAnswers[13]?.selectedOption == "inheritance" || false,
-    "Kontrollkästchen 103": questionAnswers[13]?.selectedOption == "rental_income" || false,
-    "Kontrollkästchen 104": questionAnswers[13]?.selectedOption == "other" || false,
+    "Kontrollkästchen 100": questionAnswers[22]?.selectedOption == "employment_income" || false,
+    "Kontrollkästchen 101": questionAnswers[22]?.selectedOption == "savings" || false,
+    "Kontrollkästchen 102": questionAnswers[22]?.selectedOption == "inheritance" || false,
+    "Kontrollkästchen 103": questionAnswers[22]?.selectedOption == "rental_income" || false,
+    "Kontrollkästchen 104": questionAnswers[22]?.selectedOption == "other" || false,
     // "vorname 16": "vorname 16",
     // "vorname 26": "vorname 26",
-    "vorname 150": manageAnswer(questionAnswers[14]) || '',
-    "vorname 157": manageAnswer(questionAnswers[15]) || '',
+    "vorname 150": manageAnswer(questionAnswers[23]) || '',
+    "vorname 157": manageAnswer(questionAnswers[24]) || '',
 
     // "vorname 52": "vorname 52",
     // "vorname 54": "vorname 54",
@@ -420,7 +421,7 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     // "vorname 58": "vorname 58",
     // "vorname 59": "vorname 59",
     // "vorname 60": "vorname 60",
-    // "vorname 158": "vorname 158",
+    "vorname 158": "vorname 158",
     "vorname 63": new Date().toLocaleDateString('de-DE'),
     "vorname 159": `${userInfo.firstName} ${userInfo.lastName}, ${userInfo.countryCode || ''}${userInfo.phone || ''}` || '',
     // "vorname 62": "vorname 62",
@@ -1063,6 +1064,23 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
   UserEsgIndex1: getDynamicAnswer(questions[3], answers),
 });
 
+const moneyProtokollMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => {
+  console.log("🚀 ~ moneyProtokollMapper ~ userInfo:", userInfo)
+  const questionAnswers: Record<number, AnswerWithOptions> = {};
+
+  questions.forEach(q => {
+    const answerValue = answers[q.id];
+    if (answerValue !== undefined) {
+      questionAnswers[q.questionOrder] = {
+        selectedOption: answerValue,
+        options: q.options || []
+      };
+    }
+  });
+
+  return createFormDataFromUser(userInfo, questionAnswers);
+};
+
 // Form mapper registry
 const FORM_MAPPERS: Record<string, (userInfo: UserInfo, questions: Question[], answers: Record<string, string>) => FormFieldData> = {
   "Depoteröffnungsantrag.pdf": depoteroeffnungsantragMapper,
@@ -1075,7 +1093,10 @@ const FORM_MAPPERS: Record<string, (userInfo: UserInfo, questions: Question[], a
   // Done
   "Vermittlungsgebühr.pdf": vermittlungsgebuehrMapper,
   "Vermögensverwaltungsvertrag.pdf": vermoegensverwaltungsvertragMapper,
+  "4money_protokoll_PecunAI_v2.pdf": moneyProtokollMapper,
 };
+
+
 
 // Main function
 export function createFormDataForContactForm(
