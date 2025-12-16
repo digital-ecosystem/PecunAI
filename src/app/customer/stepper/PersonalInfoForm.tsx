@@ -117,6 +117,34 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
             {renderField("firstName", "Vorname")}
             {renderField("lastName", "Nachname")}
             {renderField("birthPlace", "Geburtsort")}
+
+            {/* Birth Country dropdown */}
+            <div className="w-full">
+              <label htmlFor="birthCountry" className="block text-sm font-medium text-gray-700 mb-1">
+                Geburtsland
+              </label>
+              <select
+                id="birthCountry"
+                name="birthCountry"
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.birthCountry}
+                className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-colors duration-200 ease-in-out
+                           disabled:bg-gray-50 disabled:text-gray-500"
+              >
+                <option value="">Bitte wählen...</option>
+                {allCountries.map((country) => (
+                  <option key={country} value={country}>
+                    {country}
+                  </option>
+                ))}
+              </select>
+              {formik.touched.birthCountry && formik.errors.birthCountry && (
+                <p className="text-red-500 text-xs mt-1">{formik.errors.birthCountry}</p>
+              )}
+            </div>
             {renderField("birthDate", "Geburtsdatum", "date")}
 
             {/* Nationality dropdown */}

@@ -110,6 +110,7 @@ export interface PersonalInfoFormData {
   firstName: string;
   lastName: string;
   birthPlace: string;
+  birthCountry?: string;
   nationality: string;
   birthDate: string;
   maritalStatus: string;

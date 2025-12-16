@@ -132,13 +132,13 @@ const QuestionCard = ({
               className="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
             />
             {maxValue !== undefined && (
-              <p className="text-xs sm:text-sm text-gray-500">Maximaler Wert: {formatEuro(maxValue)}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Maximaler Wert: {questionOrder == 2 ? maxValue : formatEuro(maxValue)}</p>
             )}
           </div>
           {hasValidationError && (
             <div className="mt-3 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm sm:text-base text-red-700 font-medium">
-                {hasMaxValidationError ? `Maximaler Wert ist ${formatEuro(maxValue!)}` : errorMessage || "Invalid input"}
+                {hasMaxValidationError ? `Maximaler Wert ist ${questionOrder == 2 ? maxValue : formatEuro(maxValue!)}` : errorMessage || "Invalid input"}
               </p>
             </div>
           )}

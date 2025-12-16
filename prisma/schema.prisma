@@ -257,6 +257,7 @@ model PersonalInfo {
   nationality            String
   phone                  String
   placeOfBirth           String
+  birthCountry           String?
   postalCode             String
   iban                   String?
   country                String?

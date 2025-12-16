@@ -17,6 +17,7 @@ export interface UserInfo {
   lastName?: string;
   birthDate?: string | Date;
   birthPlace?: string;
+  birthCountry?: string;
   nationality?: string;
   maritalStatus?: string;
   street?: string;
@@ -761,7 +762,7 @@ const baseContactFields = (userInfo: UserInfo): FormFieldData => ({
 const baseNationalityFields = (userInfo: UserInfo): FormFieldData => ({
   UserNationality: userInfo.nationality || "",
   UserCountry: userInfo.country || "",
-  UserCountryOfOrigin: userInfo.country || "",
+  UserCountryOfOrigin: userInfo.birthCountry || "",
 });
 
 // Individual form mappers
@@ -790,7 +791,7 @@ const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[],
   ...baseContactFields(userInfo),
   ...baseNationalityFields(userInfo),
   UserDoB: formatGermanDate(userInfo.birthDate),
-  UserCityOfOrigin: userInfo.city || "",
+  UserCityOfOrigin: userInfo.birthPlace || "",
   UserProfession: userInfo.occupation || "",
   UserSector: userInfo.industry || "",
   GoalMonthlyPayment: formatCurrency(Number(getDynamicAnswer(questions[20], answers))),
@@ -1026,7 +1027,7 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
   GoalTerm1: Number(getDynamicAnswer(questions[1], answers)) + " Jahre",
   GoalTerm2: Number(getDynamicAnswer(questions[1], answers)) + " Jahre",
   UserDoB: formatGermanDate(userInfo.birthDate),
-  UserCityOfOrigin: userInfo.city || "",
+  UserCityOfOrigin: userInfo.birthPlace || "",
   UserProfession: userInfo.occupation || "",
   UserSector: userInfo.industry || "",
   UserEducation: userInfo.education || "",

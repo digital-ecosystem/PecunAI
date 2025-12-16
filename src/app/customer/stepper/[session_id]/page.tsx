@@ -10,7 +10,7 @@ import {
 } from "@/types";
 import { CheckCircle } from "lucide-react";
 import dynamic from "next/dynamic";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Viewer, Worker, SpecialZoomLevel } from "@react-pdf-viewer/core";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 // import HTMLRenderer from '@/components/HTMLRenderer';
@@ -142,6 +142,9 @@ const validationSchema = Yup.object({
   birthPlace: Yup.string()
     .min(2, "Geburtsort muss mindestens 2 Zeichen lang sein")
     .required("Geburtsort ist erforderlich"),
+
+  birthCountry: Yup.string()
+    .required("Geburtsland ist erforderlich"),
 
   nationality: Yup.string()
     .min(2, "Nationalität muss mindestens 2 Zeichen lang sein")
@@ -303,6 +306,7 @@ export default function Stepper() {
   const [isPepStop, setIsPepStop] = useState(false);
   const [isIncomeStop, setIsIncomeStop] = useState(false);
   const [highRiskCountries, setHighRiskCountries] = useState<string[]>([]);
+  const questionSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchHighRiskCountries = async () => {
@@ -318,6 +322,13 @@ export default function Stepper() {
     };
     fetchHighRiskCountries();
   }, []);
+
+  useEffect(() => {
+    if (questionIndex) {
+      console.log("questionIndex", questionIndex)
+      questionSectionRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [questionIndex])
 
   const [investmentFormData, investmentSetFormData] = useState({
     liquidationRequired: false,
@@ -596,6 +607,7 @@ export default function Stepper() {
       firstName: "",
       lastName: "",
       birthPlace: "",
+      birthCountry: "",
       nationality: "",
       birthDate: "",
       maritalStatus: "",
@@ -619,7 +631,7 @@ export default function Stepper() {
       isPEP: null,
       residenceAbroad: false,
       actingFor: "",
-      magicFlow: false,
+      magicFlow: process.env.NEXT_PUBLIC_ENV === 'development' ? true : false,
       country: "",
       bic: "",
       bankName: "",
@@ -1360,12 +1372,14 @@ export default function Stepper() {
         const data = await response.json();
         if (data?.success) {
           const user = data.user;
+          console.log("🚀 ~ fetchUserInfo ~ user:", user)
           // Set formik values if user details are available
           if (user) {
             formik.setValues({
               firstName: user.firstName || "",
               lastName: user.lastName || "",
               birthPlace: user.placeOfBirth || "",
+              birthCountry: user.birthCountry || "",
               nationality: user.nationality || "",
               birthDate: user.dateOfBirth || "",
               maritalStatus: user.maritalStatus || "",
@@ -1389,7 +1403,7 @@ export default function Stepper() {
               isPEP: user.isPep || false,
               residenceAbroad: user.residenceAbroad || false,
               actingFor: user.actsOnOwnAccount ? "own" : "other",
-              magicFlow: true,
+              magicFlow: process.env.NEXT_PUBLIC_ENV === 'development' ? true : false,
               country: user.country || "",
               bic: user.bic || "",
               bankName: user.bankName || "",
@@ -1495,6 +1509,7 @@ export default function Stepper() {
           countryCode: data.countryCode,
           phone: data.phone,
           placeOfBirth: data.birthPlace,
+          birthCountry: data.birthCountry,
           postalCode: data.postalCode,
           residenceAbroad: data.residenceAbroad,
           street: data.street,
@@ -1588,7 +1603,7 @@ export default function Stepper() {
         redirect_success_url: `${CONFIG.FRONTEND_URL}/success`,
         redirect_error_url: `${CONFIG.FRONTEND_URL}/error`,
       },
-      magic_flow: data.magicFlow,
+      magic_flow: process.env.NEXT_PUBLIC_ENV === 'development' ? data.magicFlow : false,
     };
     await createSession(payload);
     setLoading(false);
@@ -2020,7 +2035,7 @@ export default function Stepper() {
       ) : (
         <React.Fragment>
           <div className={cardClass}>
-            <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+            <div ref={currentSubStep === 'QUESTIONS2' ? questionSectionRef : null} className="flex-1 flex flex-col min-h-0 overflow-y-auto">
               {step === PHASES.TERMS1 && currentSubStep === 'TERMS1' && (
                 <div className="flex flex-col h-full p-4 sm:p-6 lg:p-6 ">
                   {/* Header */}

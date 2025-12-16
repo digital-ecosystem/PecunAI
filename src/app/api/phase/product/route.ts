@@ -119,6 +119,10 @@ export async function GET(request: NextRequest) {
       searchRisk = 'AUSGEWOHGEN';
       searchDuration = 4; // Force into VVKN3 range
       console.log('🔄 Remapping: 5-7y Conservative -> 4y Balanced');
+    } else if (riskType === 'KONSERVATIV' && durationValue > 7) {
+      searchRisk = 'AUSGEWOHGEN';
+      searchDuration = 4; // Force into VVKN3 range
+      console.log('🔄 Remapping: 8-9y Conservative -> 4y Balanced');
     }
 
     // Case 4: 5-7 Years + Balanced -> Cap duration at 4
@@ -127,6 +131,9 @@ export async function GET(request: NextRequest) {
     if (durationValue >= 5 && durationValue <= 7 && riskType === 'AUSGEWOHGEN') {
       searchDuration = 4; // Force into VVKN3 range
       console.log('🔄 Remapping: 5-7y Balanced -> 4y Balanced');
+    } else if (riskType === 'AUSGEWOHGEN' && durationValue > 7) {
+      searchDuration = 4; // Force into VVKN3 range
+      console.log('🔄 Remapping: 8-9y Balanced -> 4y Balanced');
     }
 
     // Case 5: 8-9 Years + Growth (GEWINNORIENTIERT) -> Cap duration at 7
@@ -134,6 +141,9 @@ export async function GET(request: NextRequest) {
     if (durationValue >= 8 && durationValue <= 9 && riskType === 'GEWINNORIENTIERT') {
       searchDuration = 7; // Force into VVKN4 range
       console.log('🔄 Remapping: 8-9y Growth -> 7y Growth');
+    } else if (riskType === 'GEWINNORIENTIERT' && durationValue > 9) {
+      searchDuration = 7; // Force into VVKN4 range
+      console.log('🔄 Remapping: 10-12y Growth -> 7y Growth');
     }
 
     console.log('🔍 Final Search parameters:', { searchDuration, searchRisk });

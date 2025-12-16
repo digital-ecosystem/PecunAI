@@ -272,6 +272,7 @@ async function main() {
       questionType: "number",
       questionOrder: 2,
       minValue: 3,
+      maxValue: 99,
       inputPlaceholder: "Bitte Anzahl in Jahren eingeben…",
       footnote: `Geben Sie bitte an, wie viele Jahre Sie planen, Ihr Kapital investiert zu lassen. Die Anlagedauer beeinflusst maßgeblich, welche Produkte und Strategien für Sie geeignet sind.`,
     },
