@@ -5,7 +5,7 @@ import { decrypt } from "@/lib/session";
 
 export async function GET() {
   try {
-    const cookie = (await cookies()).get('session')?.value;
+    const cookie = (await cookies()).get('admin_session')?.value;
     const session = await decrypt(cookie);
     console.log("🚀 ~ GET ~ session:", session)
 

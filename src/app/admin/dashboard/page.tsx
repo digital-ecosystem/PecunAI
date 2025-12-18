@@ -1,10 +1,17 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Search, CheckCircle, Clock, FileText, ChevronRight, X, Loader2, Hourglass, Ban } from 'lucide-react';
+import { Search, CheckCircle, Clock, FileText, ChevronRight, X, Loader2, Hourglass, Ban, MessageSquare, ArrowLeft, Bot, User } from 'lucide-react';
 import { DashboardQuestions, Session, SessionStatus } from '@/types';
 import { useRouter } from 'next/navigation';
 import AdminHeader from '@/components/AdminHeader';
+
+interface ChatMessage {
+    id: string;
+    role: 'customer' | 'assistant';
+    content: string;
+    createdAt: string;
+}
 
 const Dashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -15,6 +22,9 @@ const Dashboard = () => {
     const [questionAnswer, setQuestionAnswer] = useState<DashboardQuestions[]>([]);
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+    const [isChatLoading, setIsChatLoading] = useState(false);
 
 
     useEffect(() => {
@@ -106,6 +116,33 @@ const Dashboard = () => {
     const closeDrawer = () => {
         setIsDrawerOpen(false);
         setSelectedSession(null);
+        setIsChatOpen(false);
+        setChatMessages([]);
+    };
+
+    const openChatView = async () => {
+        if (!selectedSession?.id) return;
+        setIsChatLoading(true);
+        try {
+            const response = await fetch(`/api/admin/dashboard/chat-messages?sessionId=${selectedSession.id}`, {
+                method: 'GET',
+                credentials: 'include',
+            });
+            const data = await response.json();
+            if (data?.success) {
+                setChatMessages(data.messages || []);
+                setIsChatOpen(true);
+            }
+        } catch (error) {
+            console.error('Error fetching chat messages:', error);
+        } finally {
+            setIsChatLoading(false);
+        }
+    };
+
+    const closeChatView = () => {
+        setIsChatOpen(false);
+        setChatMessages([]);
     };
 
     const handleStatusChange = async (sessionId: string, status: SessionStatus) => {
@@ -336,19 +373,69 @@ const Dashboard = () => {
                             <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
                                 <div className="flex items-center justify-between">
                                     <div className="min-w-0 flex-1 mr-4">
-                                        <h2 className="text-lg sm:text-xl font-bold text-gray-900 truncate">Sitzungsdetails</h2>
+                                        <h2 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
+                                            {isChatOpen ? 'KI Unterhaltung' : 'Sitzungsdetails'}
+                                        </h2>
                                         <p className="text-xs sm:text-sm text-gray-600 truncate">Sitzungs-ID: #{selectedSession?.personalInfo?.qaSessionId}</p>
                                     </div>
                                     <button
-                                        onClick={closeDrawer}
+                                        onClick={isChatOpen ? closeChatView : closeDrawer}
                                         className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors flex-shrink-0"
                                     >
-                                        <X className="w-4 h-4 text-gray-600" />
+                                        {isChatOpen ? <ArrowLeft className="w-4 h-4 text-gray-600" /> : <X className="w-4 h-4 text-gray-600" />}
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Drawer Content */}
+                            {/* Chat View */}
+                            {isChatOpen ? (
+                                <div className="flex flex-col h-[calc(100vh-80px)]">
+                                    <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
+                                        {chatMessages.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                                                <MessageSquare className="w-12 h-12 mb-4 text-gray-300" />
+                                                <p className="text-sm">Keine Nachrichten in dieser Unterhaltung</p>
+                                            </div>
+                                        ) : (
+                                            chatMessages.map((message) => (
+                                                <div
+                                                    key={message.id}
+                                                    className={`flex ${message.role === 'customer' ? 'justify-end' : 'justify-start'}`}
+                                                >
+                                                    <div className={`flex items-start gap-2 max-w-[85%] ${message.role === 'customer' ? 'flex-row-reverse' : ''}`}>
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                                            message.role === 'customer' 
+                                                                ? 'bg-blue-100' 
+                                                                : 'bg-purple-100'
+                                                        }`}>
+                                                            {message.role === 'customer' 
+                                                                ? <User className="w-4 h-4 text-blue-600" />
+                                                                : <Bot className="w-4 h-4 text-purple-600" />
+                                                            }
+                                                        </div>
+                                                        <div className={`rounded-2xl px-4 py-2 ${
+                                                            message.role === 'customer'
+                                                                ? 'bg-blue-600 text-white'
+                                                                : 'bg-gray-100 text-gray-900'
+                                                        }`}>
+                                                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                                            <p className={`text-xs mt-1 ${
+                                                                message.role === 'customer' ? 'text-blue-200' : 'text-gray-400'
+                                                            }`}>
+                                                                {new Date(message.createdAt).toLocaleTimeString('de-DE', {
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit'
+                                                                })}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                            /* Drawer Content */
                             <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
                                 {/* User Information */}
                                 <div className="bg-gray-50 rounded-lg p-4">
@@ -392,6 +479,22 @@ const Dashboard = () => {
                                             <p className="text-sm text-gray-900">{formatDate(selectedSession.createdAt)}</p>
                                         </div>
                                     </div>
+                                </div>
+
+                                {/* KI Unterhaltung Button */}
+                                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                                    <button
+                                        onClick={openChatView}
+                                        disabled={isChatLoading}
+                                        className="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        {isChatLoading ? (
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                        ) : (
+                                            <MessageSquare className="w-5 h-5" />
+                                        )}
+                                        <span className="font-medium">KI Unterhaltung</span>
+                                    </button>
                                 </div>
 
                                 {/* Download the session PDF */}
@@ -510,6 +613,7 @@ const Dashboard = () => {
                                         })}
                                 </div>
                             </div>
+                            )}
                         </div>
                     </>
                 )

@@ -18,7 +18,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookie = (await cookies()).get('session')?.value;
+    const cookie = (await cookies()).get('admin_session')?.value;
     const session = await decrypt(cookie);
 
     if (!session?.userId) {
@@ -57,7 +57,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookie = (await cookies()).get('session')?.value;
+    const cookie = (await cookies()).get('admin_session')?.value;
     const session = await decrypt(cookie);
 
     if (!session?.userId) {
@@ -121,7 +121,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookie = (await cookies()).get('session')?.value;
+    const cookie = (await cookies()).get('admin_session')?.value;
     const session = await decrypt(cookie);
 
     if (!session?.userId) {

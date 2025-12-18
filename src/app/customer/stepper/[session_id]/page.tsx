@@ -43,6 +43,7 @@ import { SignDHandshakePayload } from "@/types/signd";
 import { SignDIframe } from "@/components/SignDIframe";
 // import { generatePDF as GenerateSimplePDF } from "@/utils/pdfGenerator";
 import { SignTeqIframe } from "@/components/SignTeqIframe";
+import { SustainabilityStopPopup } from "@/components/popup";
 // import { pdfBlobToBase64 } from "@/utils/pdfUtils";
 // import { pdfBlobToBase64 } from "@/utils/pdfUtils";
 import { CONFIG } from "@/config/constants";
@@ -271,6 +272,10 @@ const TEST_CREDENTIALS = {
   token: process.env.SIGND_LOGIN_TOKEN || "TD5QZ22FAmh3IMd8ozeuwG9kVCkwcmsbPhy1KPWaMaAaGKiMmOHPsRm7MGaeRbQ8",
 };
 
+// Constants for minimum investment values
+const Q23_MIN_VALUE = 1500; // Minimum one-time investment
+const Q24_MIN_VALUE = 75;   // Minimum monthly investment
+
 export default function Stepper() {
   const [loading, setLoading] = useState(true);
   const [chatBtnLading, setChatBtnLanding] = useState(false);
@@ -305,6 +310,7 @@ export default function Stepper() {
   const session_id = params.session_id as string;
   const [isPepStop, setIsPepStop] = useState(false);
   const [isIncomeStop, setIsIncomeStop] = useState(false);
+  const [isSustainabilityStop, setIsSustainabilityStop] = useState(false);
   const [highRiskCountries, setHighRiskCountries] = useState<string[]>([]);
   const questionSectionRef = useRef<HTMLDivElement>(null);
 
@@ -879,6 +885,94 @@ export default function Stepper() {
     // }));
   };
 
+  // Helper function to get available income (income - expenses)
+  function getAvailableIncome(): number {
+    const incomeQ = questions[5]; // Q6 - income
+    const expensesQ = questions[6]; // Q7 - expenses
+    const incomeVal = incomeQ && answers[incomeQ.id] ? parseFloat(answers[incomeQ.id]) : 0;
+    const expensesVal = expensesQ && answers[expensesQ.id] ? parseFloat(answers[expensesQ.id]) : 0;
+    return incomeVal - expensesVal;
+  }
+
+  // Helper function to get total net assets (Q8)
+  function getTotalNetAssets(): number {
+    const netAssetsQ = questions[7]; // Q8 - total net assets
+    const netAssetsVal = netAssetsQ && answers[netAssetsQ.id] ? parseFloat(answers[netAssetsQ.id]) : 0;
+    return netAssetsVal;
+  }
+
+  // Helper function to check if one-time investment (Q23) has errors
+  function hasOneTimeInvestmentError(q: Question | undefined, answerValue: string | undefined): boolean {
+    if (!q || !answerValue || q.questionOrder !== 23) return false;
+    
+    const numValue = parseFloat(answerValue);
+    if (isNaN(numValue)) return false;
+    
+    // Check minimum value
+    if (numValue < Q23_MIN_VALUE) return true;
+    
+    // Check against total net assets (Q8)
+    const totalNetAssets = getTotalNetAssets();
+    return numValue > totalNetAssets;
+  }
+
+  // Get error message for one-time investment validation
+  function getOneTimeInvestmentErrorMessage(q: Question | undefined, answerValue: string | undefined): string | undefined {
+    if (!q || !answerValue || q.questionOrder !== 23) return undefined;
+    
+    const numValue = parseFloat(answerValue);
+    if (isNaN(numValue)) return undefined;
+    
+    // Check minimum value first
+    if (numValue < Q23_MIN_VALUE) {
+      return `Der Mindestbetrag für eine Einmalanlage beträgt ${Q23_MIN_VALUE.toLocaleString('de-DE')} €.`;
+    }
+    
+    // Check against total net assets
+    const totalNetAssets = getTotalNetAssets();
+    if (numValue > totalNetAssets) {
+      return `Der Einmalanlagebetrag darf nicht höher als Ihr Nettogesamtvermögen (${totalNetAssets.toFixed(2)} €) sein.`;
+    }
+    
+    return undefined;
+  }
+
+  // Helper function to check if monthly investment has errors
+  function hasMonthlyInvestmentError(q: Question | undefined, answerValue: string | undefined): boolean {
+    if (!q || !answerValue || q.questionOrder !== 24) return false;
+    
+    const numValue = parseFloat(answerValue);
+    if (isNaN(numValue)) return false;
+    
+    // Check minimum value
+    if (numValue < Q24_MIN_VALUE) return true;
+    
+    // Check against available income (income - expenses)
+    const availableIncome = getAvailableIncome();
+    return numValue >= availableIncome;
+  }
+
+  // Get error message for monthly investment validation
+  function getMonthlyInvestmentErrorMessage(q: Question | undefined, answerValue: string | undefined): string | undefined {
+    if (!q || !answerValue || q.questionOrder !== 24) return undefined;
+    
+    const numValue = parseFloat(answerValue);
+    if (isNaN(numValue)) return undefined;
+    
+    // Check minimum value first
+    if (numValue < Q24_MIN_VALUE) {
+      return `Der Mindestbetrag für eine monatliche Anlage beträgt ${Q24_MIN_VALUE} €.`;
+    }
+    
+    // Check against available income
+    const availableIncome = getAvailableIncome();
+    if (numValue >= availableIncome) {
+      return `Der monatliche Anlagebetrag darf nicht höher als oder gleich Ihrem verfügbaren Einkommen (${availableIncome.toFixed(2)} €) sein.`;
+    }
+    
+    return undefined;
+  }
+
   // Helper function to check if a number input violates min/max constraints
   function hasValidationError(q: Question | undefined, answerValue: string | undefined): boolean {
     // console.log("🚀 ~ hasValidationError ~ q, answerValue:", q, answerValue);
@@ -889,6 +983,16 @@ export default function Stepper() {
 
     if (q.minValue !== null && q.minValue !== undefined && numValue < q.minValue) return true;
     if (q.maxValue !== null && q.maxValue !== undefined && numValue > q.maxValue) return true;
+
+    // Check Q23 (one-time investment) against Q8 (total net assets)
+    if (q.questionOrder === 23) {
+      if (hasOneTimeInvestmentError(q, answerValue)) return true;
+    }
+
+    // Check Q24 (monthly investment) against (income - expenses)
+    if (q.questionOrder === 24) {
+      if (hasMonthlyInvestmentError(q, answerValue)) return true;
+    }
 
     return false;
   }
@@ -2248,7 +2352,15 @@ export default function Stepper() {
                         selected={answers[q?.id]}
                         maxValue={q?.maxValue || undefined}
                         minValue={q?.minValue || undefined}
-                        errorMessage={q?.minValue ? "Wir haben derzeit kein Produkt für diese Laufzeit." : undefined}
+                        errorMessage={
+                          q?.questionOrder === 23
+                            ? getOneTimeInvestmentErrorMessage(q, answers[q?.id])
+                            : q?.questionOrder === 24
+                              ? getMonthlyInvestmentErrorMessage(q, answers[q?.id])
+                              : (q?.minValue && answers[q?.id] && parseInt(answers[q?.id], 10) < q.minValue)
+                                ? "Wir haben derzeit kein Produkt für diese Laufzeit."
+                                : undefined
+                        }
                         footnote={q?.footnote}
                         inputPlaceholder={q?.inputPlaceholder}
                         onSelect={async (opt) => {
@@ -2281,7 +2393,15 @@ export default function Stepper() {
                         selected={answers[q?.id]}
                         maxValue={q?.maxValue || undefined}
                         minValue={q?.minValue || undefined}
-                        errorMessage={q?.minValue ? "Wir haben derzeit kein Produkt für diese Laufzeit." : undefined}
+                        errorMessage={
+                          q?.questionOrder === 23
+                            ? getOneTimeInvestmentErrorMessage(q, answers[q?.id])
+                            : q?.questionOrder === 24
+                              ? getMonthlyInvestmentErrorMessage(q, answers[q?.id])
+                              : (q?.minValue && answers[q?.id] && parseInt(answers[q?.id], 10) < q.minValue)
+                                ? "Wir haben derzeit kein Produkt für diese Laufzeit."
+                                : undefined
+                        }
                         forbiddenValues={q?.questionOrder === 9 || q?.questionOrder === 10 ? ["none"] : undefined}
                         forbiddenErrorMessage={q?.questionOrder === 9 || q?.questionOrder === 10 ? "Mit dieser Auswahl können Sie nicht fortfahren." : undefined}
                         footnote={q?.footnote}
@@ -2623,15 +2743,29 @@ export default function Stepper() {
                   step === PHASES.PERSONAL_INFO ? (
                   <button
                     onClick={() => {
-                      // Sustainability Check (Q3)
-                      const sustainabilityQ = questions[2];
-                      const isSustainabilityPage = currentPageQuestions.some(q => q.id === sustainabilityQ?.id);
+                      // Sustainability Check (Q3) - if answer is "no" or "nein"
+                      const sustainabilityQ3 = questions[2];
+                      const isSustainabilityQ3Page = currentPageQuestions.some(q => q.id === sustainabilityQ3?.id);
 
-                      if (step === 1 && currentSubStep === 'QUESTIONS2' && isSustainabilityPage) {
-                        if (sustainabilityQ && answers[sustainabilityQ.id]) {
-                          const val = answers[sustainabilityQ.id].toLowerCase();
+                      if (step === 1 && currentSubStep === 'QUESTIONS2' && isSustainabilityQ3Page) {
+                        if (sustainabilityQ3 && answers[sustainabilityQ3.id]) {
+                          const val = answers[sustainabilityQ3.id].toLowerCase();
                           if (val === 'no' || val === 'nein') {
-                            setIsPepStop(true);
+                            setIsSustainabilityStop(true);
+                            return;
+                          }
+                        }
+                      }
+
+                      // Sustainability Preferences Check (Q4) - if answer is "ja" or "nein"
+                      const sustainabilityQ4 = questions[3];
+                      const isSustainabilityQ4Page = currentPageQuestions.some(q => q.id === sustainabilityQ4?.id);
+
+                      if (step === 1 && currentSubStep === 'QUESTIONS2' && isSustainabilityQ4Page) {
+                        if (sustainabilityQ4 && answers[sustainabilityQ4.id]) {
+                          const val = answers[sustainabilityQ4.id].toLowerCase();
+                          if (val === 'ja' || val === 'yes' || val === 'nein' || val === 'no') {
+                            setIsSustainabilityStop(true);
                             return;
                           }
                         }
@@ -2781,6 +2915,16 @@ export default function Stepper() {
           </div>
         </div>
       )}
+
+      {/* Sustainability Stop Popup */}
+      <SustainabilityStopPopup
+        isOpen={isSustainabilityStop}
+        onClose={() => setIsSustainabilityStop(false)}
+        title="Antrag gestoppt"
+        message="Ihr Antrag kann nicht digital abgeschlossen werden."
+        subMessage="Aufgrund Ihrer Nachhaltigkeitspräferenzen ist eine persönliche Beratung erforderlich."
+        infoText="Ihr Berater wird sich zeitnah bei Ihnen melden, um den Prozess manuell fortzuführen."
+      />
     </div>
   );
 }

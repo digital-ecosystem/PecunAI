@@ -15,7 +15,7 @@ const mainProductPromptSchema = z.object({
 // GET - List all main product prompts with pagination and search
 export async function GET(request: NextRequest) {
   try {
-    const cookie = (await cookies()).get('session')?.value;
+    const cookie = (await cookies()).get('admin_session')?.value;
     const session = await decrypt(cookie);
 
     if (!session?.userId) {
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 // POST - Create a new main product prompt
 export async function POST(request: NextRequest) {
   try {
-    const cookie = (await cookies()).get('session')?.value;
+    const cookie = (await cookies()).get('admin_session')?.value;
     const session = await decrypt(cookie);
 
     if (!session?.userId) {

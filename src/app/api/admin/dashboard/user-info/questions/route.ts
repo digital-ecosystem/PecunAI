@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const sessionId = searchParams.get('sessionId');
-    const cookie = (await cookies()).get('session')?.value;
+    const cookie = (await cookies()).get('admin_session')?.value;
     const session = await decrypt(cookie);
 
     if (!session?.userId || session?.role !== 'admin') {

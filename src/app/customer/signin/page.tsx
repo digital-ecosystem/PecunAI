@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Users } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
 export default function OTPAuthPostgres() {
   const [step, setStep] = useState('email');
@@ -17,6 +18,19 @@ export default function OTPAuthPostgres() {
   // const [windowMinutes, setWindowMinutes] = useState<number | null>(null)
   const [resendCooldownUntil, setResendCooldownUntil] = useState<string | null>(null)
   const [resendCooldownCountdown, setResendCooldownCountdown] = useState<string | null>(null)
+  const [referralCode, setReferralCode] = useState<string | null>(null)
+  
+  const searchParams = useSearchParams();
+
+  // Capture referral code from URL and store in cookie
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) {
+      setReferralCode(ref);
+      // Store referral code in cookie (expires in 30 days)
+      document.cookie = `referral_code=${ref}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+    }
+  }, [searchParams]);
 
   // If the user is already authenticated, redirect to dashboard.
   useEffect(() => {
@@ -210,6 +224,19 @@ export default function OTPAuthPostgres() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {/* Referral Banner */}
+        {referralCode && (
+          <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <Users className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-emerald-800">Partner-Empfehlung</p>
+              <p className="text-xs text-emerald-600">Sie wurden von einem Partner eingeladen</p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">
@@ -262,6 +289,11 @@ export default function OTPAuthPostgres() {
                     id="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !loading && email) {
+                        handleSendOTP(e as React.FormEvent<HTMLButtonElement>);
+                      }
+                    }}
                     required
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 pl-12"
                     placeholder="Geben Sie Ihre E-Mail-Adresse ein"

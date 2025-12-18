@@ -276,6 +276,7 @@ export class PDFFormFiller {
  * Helper function to create form data from user information
  */
 export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Record<number, AnswerWithOptions>, additionalData: FormFieldData = {}): FormFieldData {
+  console.log('Creating form data from user info:', questionAnswers[22]);
   const formData: FormFieldData = {
     // Personal Information
     'vorname': userInfo.firstName || '',
@@ -354,10 +355,10 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     "Kontrollkästchen 27": Number(questionAnswers[2]?.selectedOption) >= 7 && Number(questionAnswers[2]?.selectedOption) < 10 ? true : false,
     "Kontrollkästchen 28": Number(questionAnswers[2]?.selectedOption) >= 10 ? true : false,
 
-    "vorname 7": Number(questionAnswers[2]?.selectedOption) < 3 ? '100 %' : '',
-    "vorname 8": Number(questionAnswers[2]?.selectedOption) >= 3 && Number(questionAnswers[2]?.selectedOption) < 7 ? '100 %' : '',
-    "vorname 9": Number(questionAnswers[2]?.selectedOption) >= 7 && Number(questionAnswers[2]?.selectedOption) < 10 ? '100 %' : '',
-    "vorname 10": Number(questionAnswers[2]?.selectedOption) >= 10 ? '100 %' : '',
+    "vorname 7": Number(questionAnswers[2]?.selectedOption) < 3 ? '100' : '',
+    "vorname 8": Number(questionAnswers[2]?.selectedOption) >= 3 && Number(questionAnswers[2]?.selectedOption) < 7 ? '100' : '',
+    "vorname 9": Number(questionAnswers[2]?.selectedOption) >= 7 && Number(questionAnswers[2]?.selectedOption) < 10 ? '100' : '',
+    "vorname 10": Number(questionAnswers[2]?.selectedOption) >= 10 ? '100' : '',
 
 
     // Question 3
@@ -747,6 +748,16 @@ const basePersonalFields = (userInfo: UserInfo): FormFieldData => ({
   DateToday: getCurrentDate(),
 });
 
+// Base field generators for reusability
+const basePersonalFieldsDepoter = (userInfo: UserInfo): FormFieldData => ({
+  UserFirstName: userInfo.lastName || "",
+  UserLastName: userInfo.firstName || "",
+  UserEmail: userInfo.email || "",
+  UserCity: userInfo.city || "",
+  UserFullName: getFullName(userInfo),
+  DateToday: getCurrentDate(),
+});
+
 const baseAddressFields = (userInfo: UserInfo): FormFieldData => ({
   UserStreet: userInfo.street || "",
   UserHouseNr: userInfo.houseNumber || "",
@@ -786,7 +797,7 @@ const getDynamicAnswer = (question: Question | undefined, answers: Record<string
 };
 
 const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => ({
-  ...basePersonalFields(userInfo),
+  ...basePersonalFieldsDepoter(userInfo),
   ...baseAddressFields(userInfo),
   ...baseContactFields(userInfo),
   ...baseNationalityFields(userInfo),

@@ -62,10 +62,13 @@ const QuestionCard = ({
   const hasMaxValidationError = isNumberInput && selected && maxValue !== undefined && selectedNum !== null && selectedNum > maxValue;
   const hasValidationError = hasMinValidationError || hasMaxValidationError;
 
+  // Check if there's a custom error message passed from parent (e.g., Q24 monthly investment validation)
+  const hasCustomError = isNumberInput && selected && !!errorMessage;
+
   // Check for forbidden values (e.g., "none" or "keine")
   const hasForbiddenValueError = selected && forbiddenValues && forbiddenValues.includes(selected);
 
-  const isNextDisabled = !selected || (questionType === "text" && selected?.trim() === "") || hasValidationError || hasForbiddenValueError || false;
+  const isNextDisabled = !selected || (questionType === "text" && selected?.trim() === "") || hasValidationError || hasCustomError || hasForbiddenValueError || false;
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 md:p-8 bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 h-full overflow-y-auto">
@@ -135,10 +138,12 @@ const QuestionCard = ({
               <p className="text-xs sm:text-sm text-gray-500">Maximaler Wert: {questionOrder == 2 ? maxValue : formatEuro(maxValue)}</p>
             )}
           </div>
-          {hasValidationError && (
+          {(hasValidationError || hasCustomError) && (
             <div className="mt-3 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm sm:text-base text-red-700 font-medium">
-                {hasMaxValidationError ? `Maximaler Wert ist ${questionOrder == 2 ? maxValue : formatEuro(maxValue!)}` : errorMessage || "Invalid input"}
+                {hasMaxValidationError 
+                  ? `Maximaler Wert ist ${questionOrder == 2 ? maxValue : formatEuro(maxValue!)}` 
+                  : errorMessage || "Invalid input"}
               </p>
             </div>
           )}

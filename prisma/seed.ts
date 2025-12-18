@@ -1,6 +1,7 @@
 // prisma/seed.ts
 import { prisma } from "@/lib/prisma";
 import { RiskType } from "@/types";
+import bcrypt from "bcrypt";
 
 async function main() {
 
@@ -1915,6 +1916,78 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.`
         mainPrompt: item.mainPrompt,
       },
     });
+  }
+
+  // ==================== SEED ADMINS ====================
+  console.log('🔐 Seeding Admins...');
+  
+  await prisma.admin.deleteMany();
+  
+  const admins = [
+    {
+      email: 'alexander.bracic@4money.at',
+      firstName: 'Alexander',
+      lastName: 'Bracic',
+      birthday: new Date('1985-03-15'),
+      agentNumber: 'ADM-001',
+      password: 'Admin@4Money2024!',
+    },
+    {
+      email: 'r.diem@clara-compliance.com',
+      firstName: 'Robert',
+      lastName: 'Diem',
+      birthday: new Date('1980-07-22'),
+      agentNumber: 'ADM-002',
+      password: 'Admin@Clara2024!',
+    },
+  ];
+
+  for (const admin of admins) {
+    const hashedPassword = await bcrypt.hash(admin.password, 10);
+    await prisma.admin.create({
+      data: {
+        email: admin.email,
+        firstName: admin.firstName,
+        lastName: admin.lastName,
+        birthday: admin.birthday,
+        agentNumber: admin.agentNumber,
+        password: hashedPassword,
+      },
+    });
+    console.log(`  ✅ Admin created: ${admin.email} (password: ${admin.password})`);
+  }
+
+  // ==================== SEED PARTNERS ====================
+  console.log('🤝 Seeding Partners...');
+  
+  await prisma.partner.deleteMany();
+  
+  const partners = [
+    {
+      email: 'b.mahdi@adana.group',
+      firstName: 'Bassem',
+      lastName: 'Mahdi',
+      birthday: new Date('1990-01-01'),
+      agentNumber: 'PTR-001',
+      password: 'Partner@Adana2024!',
+      referralCode: 'ADANA2024',
+    },
+  ];
+
+  for (const partner of partners) {
+    const hashedPassword = await bcrypt.hash(partner.password, 10);
+    await prisma.partner.create({
+      data: {
+        email: partner.email,
+        firstName: partner.firstName,
+        lastName: partner.lastName,
+        birthday: partner.birthday,
+        agentNumber: partner.agentNumber,
+        password: hashedPassword,
+        referralCode: partner.referralCode,
+      },
+    });
+    console.log(`  ✅ Partner created: ${partner.email} (password: ${partner.password}, referralCode: ${partner.referralCode})`);
   }
 
   console.log('✅ Seed complete!');

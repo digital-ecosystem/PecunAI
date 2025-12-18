@@ -15,20 +15,20 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.toLowerCase();
 
-    // Find admin by email in database
-    const admin = await prisma.admin.findUnique({
+    // Find partner by email
+    const partner = await prisma.partner.findUnique({
       where: { email: normalizedEmail },
     });
 
-    if (!admin) {
+    if (!partner) {
       return NextResponse.json(
         { success: false, message: 'Ungültige Anmeldedaten' },
         { status: 401 }
       );
     }
 
-    // Check if admin is active
-    if (!admin.isActive) {
+    // Check if partner is active
+    if (!partner.isActive) {
       return NextResponse.json(
         { success: false, message: 'Ihr Konto ist deaktiviert' },
         { status: 401 }
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, admin.password);
+    const isValidPassword = await bcrypt.compare(password, partner.password);
 
     if (!isValidPassword) {
       return NextResponse.json(
@@ -47,25 +47,28 @@ export async function POST(request: Request) {
 
     // Create session
     const session = {
-      userId: admin.id,
-      role: 'admin',
-      email: admin.email,
-      firstName: admin.firstName,
-      lastName: admin.lastName,
+      userId: partner.id,
+      role: 'partner',
+      email: partner.email,
+      firstName: partner.firstName,
+      lastName: partner.lastName,
+      referralCode: partner.referralCode,
     };
+
     const sessionString = Buffer.from(JSON.stringify(session)).toString('base64');
 
     const response = NextResponse.json({
       success: true,
-      admin: {
-        id: admin.id,
-        firstName: admin.firstName,
-        lastName: admin.lastName,
-        email: admin.email,
+      partner: {
+        id: partner.id,
+        firstName: partner.firstName,
+        lastName: partner.lastName,
+        email: partner.email,
+        referralCode: partner.referralCode,
       },
     });
 
-    response.cookies.set('admin_session', sessionString, {
+    response.cookies.set('partner_session', sessionString, {
       httpOnly: true,
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
@@ -75,10 +78,11 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
-    console.error('Admin login error:', error);
+    console.error('Partner login error:', error);
     return NextResponse.json(
       { success: false, message: 'Ein Fehler ist aufgetreten' },
       { status: 500 }
     );
   }
 }
+

@@ -24,6 +24,39 @@ model User {
   @@map("users")
 }
 
+model Admin {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  firstName   String
+  lastName    String
+  birthday    DateTime? @db.Date
+  agentNumber String?
+  password    String    // Hashed password
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("admins")
+}
+
+model Partner {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  firstName    String
+  lastName     String
+  birthday     DateTime?   @db.Date
+  agentNumber  String?
+  password     String      // Hashed password
+  referralCode String      @unique // Unique code like "PARTNER123"
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  // Sessions referred by this partner
+  qaSessions   QASession[]
+
+  @@map("partners")
+}
+
 model OTP {
   id                  String    @id @default(cuid())
   email               String    @unique
@@ -59,9 +92,13 @@ model QASession {
   updatedAt          DateTime                  @updatedAt
   userId             String
   status             SessionStatus?            @default(DRAFT)
+  // Partner referral tracking
+  partnerId          String?                   
+  referralCode       String?                   
   answers            Answer[]
   personalInfo       PersonalInfo?
   user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partner            Partner?                  @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   auditLogs          SessionAuditLog?
   productSuggestions SessionProductSuggestion?
   termsAcceptance    SessionTermsAcceptance[]

@@ -32,7 +32,7 @@ const productSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
 
-    const cookie = (await cookies()).get('session')?.value;
+    const cookie = (await cookies()).get('admin_session')?.value;
     const session = await decrypt(cookie);
 
     if (!session?.userId) {
