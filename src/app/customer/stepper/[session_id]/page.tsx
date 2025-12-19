@@ -209,31 +209,31 @@ const validationSchema = Yup.object({
     .min(2, "Tätigkeit muss mindestens 2 Zeichen lang sein")
     .required("Tätigkeit ist erforderlich"),
 
-  documentType: Yup.string()
-    .oneOf(
-      ["passport", "identity_card", "drivers_license"],
-      "Ungültige Dokumentenart"
-    )
-    .required("Dokumentenart ist erforderlich"),
+  // documentType: Yup.string()
+  //   .oneOf(
+  //     ["passport", "identity_card", "drivers_license"],
+  //     "Ungültige Dokumentenart"
+  //   )
+  //   .required("Dokumentenart ist erforderlich"),
 
-  documentNumber: Yup.string()
-    .matches(
-      /^[a-zA-Z0-9]{4,20}$/,
-      "Dokumentnummer muss 4–20 alphanumerische Zeichen enthalten"
-    )
-    .required("Dokumentnummer ist erforderlich"),
+  // documentNumber: Yup.string()
+  //   .matches(
+  //     /^[a-zA-Z0-9]{4,20}$/,
+  //     "Dokumentnummer muss 4–20 alphanumerische Zeichen enthalten"
+  //   )
+  //   .required("Dokumentnummer ist erforderlich"),
 
-  issuingAuthority: Yup.string()
-    .min(2, "Ausstellende Behörde muss mindestens 2 Zeichen lang sein")
-    .required("Ausstellende Behörde ist erforderlich"),
+  // issuingAuthority: Yup.string()
+  //   .min(2, "Ausstellende Behörde muss mindestens 2 Zeichen lang sein")
+  //   .required("Ausstellende Behörde ist erforderlich"),
 
-  issuedOn: Yup.date()
-    .required("Ausstellungsdatum ist erforderlich")
-    .max(new Date(), "Ausstellungsdatum darf nicht in der Zukunft liegen"),
+  // issuedOn: Yup.date()
+  //   .required("Ausstellungsdatum ist erforderlich")
+  //   .max(new Date(), "Ausstellungsdatum darf nicht in der Zukunft liegen"),
 
-  validUntil: Yup.date()
-    .min(Yup.ref("issuedOn"), "Gültig bis muss nach dem Ausstellungsdatum liegen")
-    .required("Gültigkeitsdatum ist erforderlich"),
+  // validUntil: Yup.date()
+  //   .min(Yup.ref("issuedOn"), "Gültig bis muss nach dem Ausstellungsdatum liegen")
+  //   .required("Gültigkeitsdatum ist erforderlich"),
 
   country: Yup.string().required("Land ist erforderlich"),
 
@@ -320,7 +320,7 @@ export default function Stepper() {
         const response = await fetch('/api/high-risk-countries');
         if (response.ok) {
           const data = await response.json();
-          setHighRiskCountries(data.map((c: any) => c.name));
+          setHighRiskCountries(data.map((c: Record<string, string>) => c.name));
         }
       } catch (error) {
         console.error('Failed to fetch high-risk countries:', error);
@@ -903,14 +903,14 @@ export default function Stepper() {
 
   // Helper function to check if one-time investment (Q23) has errors
   function hasOneTimeInvestmentError(q: Question | undefined, answerValue: string | undefined): boolean {
-    if (!q || !answerValue || q.questionOrder !== 23) return false;
-    
+    if (!q || !answerValue || q.questionOrder !== 20) return false;
+
     const numValue = parseFloat(answerValue);
     if (isNaN(numValue)) return false;
-    
+
     // Check minimum value
     if (numValue < Q23_MIN_VALUE) return true;
-    
+
     // Check against total net assets (Q8)
     const totalNetAssets = getTotalNetAssets();
     return numValue > totalNetAssets;
@@ -918,35 +918,35 @@ export default function Stepper() {
 
   // Get error message for one-time investment validation
   function getOneTimeInvestmentErrorMessage(q: Question | undefined, answerValue: string | undefined): string | undefined {
-    if (!q || !answerValue || q.questionOrder !== 23) return undefined;
-    
+    if (!q || !answerValue || q.questionOrder !== 20) return undefined;
+
     const numValue = parseFloat(answerValue);
     if (isNaN(numValue)) return undefined;
-    
+
     // Check minimum value first
     if (numValue < Q23_MIN_VALUE) {
       return `Der Mindestbetrag für eine Einmalanlage beträgt ${Q23_MIN_VALUE.toLocaleString('de-DE')} €.`;
     }
-    
+
     // Check against total net assets
     const totalNetAssets = getTotalNetAssets();
     if (numValue > totalNetAssets) {
       return `Der Einmalanlagebetrag darf nicht höher als Ihr Nettogesamtvermögen (${totalNetAssets.toFixed(2)} €) sein.`;
     }
-    
+
     return undefined;
   }
 
   // Helper function to check if monthly investment has errors
   function hasMonthlyInvestmentError(q: Question | undefined, answerValue: string | undefined): boolean {
-    if (!q || !answerValue || q.questionOrder !== 24) return false;
-    
+    if (!q || !answerValue || q.questionOrder !== 21) return false;
+
     const numValue = parseFloat(answerValue);
     if (isNaN(numValue)) return false;
-    
+
     // Check minimum value
     if (numValue < Q24_MIN_VALUE) return true;
-    
+
     // Check against available income (income - expenses)
     const availableIncome = getAvailableIncome();
     return numValue >= availableIncome;
@@ -954,22 +954,22 @@ export default function Stepper() {
 
   // Get error message for monthly investment validation
   function getMonthlyInvestmentErrorMessage(q: Question | undefined, answerValue: string | undefined): string | undefined {
-    if (!q || !answerValue || q.questionOrder !== 24) return undefined;
-    
+    if (!q || !answerValue || q.questionOrder !== 21) return undefined;
+
     const numValue = parseFloat(answerValue);
     if (isNaN(numValue)) return undefined;
-    
+
     // Check minimum value first
     if (numValue < Q24_MIN_VALUE) {
       return `Der Mindestbetrag für eine monatliche Anlage beträgt ${Q24_MIN_VALUE} €.`;
     }
-    
+
     // Check against available income
     const availableIncome = getAvailableIncome();
     if (numValue >= availableIncome) {
       return `Der monatliche Anlagebetrag darf nicht höher als oder gleich Ihrem verfügbaren Einkommen (${availableIncome.toFixed(2)} €) sein.`;
     }
-    
+
     return undefined;
   }
 
@@ -985,12 +985,12 @@ export default function Stepper() {
     if (q.maxValue !== null && q.maxValue !== undefined && numValue > q.maxValue) return true;
 
     // Check Q23 (one-time investment) against Q8 (total net assets)
-    if (q.questionOrder === 23) {
+    if (q.questionOrder === 20) {
       if (hasOneTimeInvestmentError(q, answerValue)) return true;
     }
 
     // Check Q24 (monthly investment) against (income - expenses)
-    if (q.questionOrder === 24) {
+    if (q.questionOrder === 21) {
       if (hasMonthlyInvestmentError(q, answerValue)) return true;
     }
 
@@ -998,16 +998,16 @@ export default function Stepper() {
   }
 
   // Helper to check forbidden values for specific questions (e.g., Q9 & Q10)
-  function hasForbiddenSelection(q: Question | undefined, answerValue: string | undefined): boolean {
-    if (!q || !answerValue) return false;
-    // For questions 9 and 10, forbid 'none' or 'keine'
-    if (q.questionOrder === 9 || q.questionOrder === 10) {
-      const val = answerValue.toLowerCase();
-      return val === 'none' || val === 'keine';
-    }
+  // function hasForbiddenSelection(q: Question | undefined, answerValue: string | undefined): boolean {
+  //   if (!q || !answerValue) return false;
+  //   // For questions 9 and 10, forbid 'none' or 'keine'
+  //   if (q.questionOrder === 9 || q.questionOrder === 10) {
+  //     const val = answerValue.toLowerCase();
+  //     return val === 'none' || val === 'keine';
+  //   }
 
-    return false;
-  }
+  //   return false;
+  // }
 
   const sendMessage = useCallback(
     async (messageOverride: string = "", shouldAppend: boolean = true) => {
@@ -1373,13 +1373,18 @@ export default function Stepper() {
 
           // Apply showIf logic
           const questionsWithLogic = sortedQuestions.map((q: Question) => {
-            const rules: Record<number, any> = {
+            // const rules: Record<number, Record<string, string | number>> = {
+            //   13: { questionOrder: 12, condition: 'notEquals', value: 'none' },
+            //   14: { questionOrder: 13, condition: 'equals', value: 'yes' },
+            //   16: { questionOrder: 15, condition: 'notEquals', value: 'none' },
+            //   17: { questionOrder: 16, condition: 'equals', value: 'yes' },
+            //   19: { questionOrder: 18, condition: 'notEquals', value: 'none' },
+            //   20: { questionOrder: 19, condition: 'equals', value: 'yes' },
+            // };
+            const rules: Record<number, Record<string, string | number>> = {
               13: { questionOrder: 12, condition: 'notEquals', value: 'none' },
-              14: { questionOrder: 13, condition: 'equals', value: 'yes' },
-              16: { questionOrder: 15, condition: 'notEquals', value: 'none' },
-              17: { questionOrder: 16, condition: 'equals', value: 'yes' },
-              19: { questionOrder: 18, condition: 'notEquals', value: 'none' },
-              20: { questionOrder: 19, condition: 'equals', value: 'yes' },
+              15: { questionOrder: 14, condition: 'notEquals', value: 'none' },
+              17: { questionOrder: 16, condition: 'notEquals', value: 'none' },
             };
             if (rules[q.questionOrder]) {
               return { ...q, showIf: rules[q.questionOrder] };
@@ -2353,9 +2358,9 @@ export default function Stepper() {
                         maxValue={q?.maxValue || undefined}
                         minValue={q?.minValue || undefined}
                         errorMessage={
-                          q?.questionOrder === 23
+                          q?.questionOrder === 20
                             ? getOneTimeInvestmentErrorMessage(q, answers[q?.id])
-                            : q?.questionOrder === 24
+                            : q?.questionOrder === 21
                               ? getMonthlyInvestmentErrorMessage(q, answers[q?.id])
                               : (q?.minValue && answers[q?.id] && parseInt(answers[q?.id], 10) < q.minValue)
                                 ? "Wir haben derzeit kein Produkt für diese Laufzeit."
@@ -2394,9 +2399,9 @@ export default function Stepper() {
                         maxValue={q?.maxValue || undefined}
                         minValue={q?.minValue || undefined}
                         errorMessage={
-                          q?.questionOrder === 23
+                          q?.questionOrder === 20
                             ? getOneTimeInvestmentErrorMessage(q, answers[q?.id])
-                            : q?.questionOrder === 24
+                            : q?.questionOrder === 21
                               ? getMonthlyInvestmentErrorMessage(q, answers[q?.id])
                               : (q?.minValue && answers[q?.id] && parseInt(answers[q?.id], 10) < q.minValue)
                                 ? "Wir haben derzeit kein Produkt für diese Laufzeit."
@@ -2771,19 +2776,46 @@ export default function Stepper() {
                         }
                       }
 
-                      // Equities Check (Q13)
-                      // const equitiesQ = questions[12];
-                      // const isEquitiesPage = currentPageQuestions.some(q => q.id === equitiesQ?.id);
+                      // Equities Check (Q12)
+                      const equitiesQ = questions[11];
+                      const isEquitiesPage = currentPageQuestions.some(q => q.id === equitiesQ?.id);
 
-                      // if (step === 1 && currentSubStep === 'QUESTIONS2' && isEquitiesPage) {
-                      //   if (equitiesQ && answers[equitiesQ.id]) {
-                      //     const val = answers[equitiesQ.id].toLowerCase();
-                      //     if (val === 'none' || val === 'keine' || val === 'kenne ich nicht') {
-                      //       setIsPepStop(true);
-                      //       return;
-                      //     }
-                      //   }
-                      // }
+                      // Bound check (Q14)
+                      const boundQ = questions[13];
+                      const isBoundPage = currentPageQuestions.some(q => q.id === boundQ?.id);
+
+                      // Gold checj (Q16)
+                      const goldQ = questions[15];
+                      const isGoldPage = currentPageQuestions.some(q => q.id === goldQ?.id);
+
+                      if (step === 1 && currentSubStep === 'QUESTIONS2') {
+                        // Check equities only if on the page with Q12
+                        if (isEquitiesPage && equitiesQ && answers[equitiesQ.id]) {
+                          const val = answers[equitiesQ.id].toLowerCase();
+                          if (val === 'none' || val === 'keine' || val === 'kenne ich nicht') {
+                            setIsPepStop(true);
+                            return;
+                          }
+                        }
+
+                        // Check bounds only if on the page with Q14
+                        if (isBoundPage && boundQ && answers[boundQ.id]) {
+                          const val = answers[boundQ.id].toLowerCase();
+                          if (val === 'none' || val === 'keine' || val === 'kenne ich nicht') {
+                            setIsPepStop(true);
+                            return;
+                          }
+                        }
+
+                        // Check gold only if on the page with Q16
+                        if (isGoldPage && goldQ && answers[goldQ.id]) {
+                          const val = answers[goldQ.id].toLowerCase();
+                          if (val === 'none' || val === 'keine' || val === 'kenne ich nicht') {
+                            setIsPepStop(true);
+                            return;
+                          }
+                        }
+                      }
 
 
                       // Disposable Income Check

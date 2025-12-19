@@ -383,10 +383,10 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
         </div>
 
         {/* Document Information Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-4">
+        {/* Document Type dropdown - Corrected */}
+        {/* <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Ausweisdokument</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            {/* Document Type dropdown - Corrected */}
             <div className="w-full">
               <label htmlFor="documentType" className="block text-sm font-medium text-gray-700 mb-1">
                 Art des Ausweisdokuments
@@ -417,7 +417,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
             {renderField("issuedOn", "Ausstellungsdatum", "date")}
             {renderField("validUntil", "Gültig bis", "date")}
           </div>
-        </div>
+        </div> */}
 
         {/* Tax Information Section */}
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-4">
@@ -435,7 +435,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                     checked={formik.values.isTaxResidentAT == true}
                     onChange={(e) => {
                       formik.setFieldValue("isTaxResidentAT", e.target.value === "true");
-                      formik.setFieldTouched("isTaxResidentAT", true);
+                      formik.setFieldTouched("isTaxResidentAT", true, false);
                     }}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
@@ -449,16 +449,18 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                     checked={formik.values.isTaxResidentAT == false}
                     onChange={(e) => {
                       formik.setFieldValue("isTaxResidentAT", e.target.value === "true");
-                      formik.setFieldTouched("isTaxResidentAT", true);
+                      formik.setFieldTouched("isTaxResidentAT", true, false);
                     }}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
                   <span className="ml-2 text-sm text-gray-700">Nein</span>
                 </label>
               </div>
-              {(formik.touched.isTaxResidentAT || formik.submitCount > 0) && formik.errors.isTaxResidentAT && (
-                <p className="text-red-500 text-xs mt-1">{formik.errors.isTaxResidentAT}</p>
-              )}
+              {formik.touched.isTaxResidentAT &&
+                formik.errors.isTaxResidentAT && (
+                  <p className="text-red-500 text-xs mt-1">{formik.errors.isTaxResidentAT}</p>
+                )}
+
             </div>
             {/* Question 2: Tax resident in another country */}
             <div className="w-full">
@@ -472,7 +474,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                     checked={formik.values.isTaxResidentOther == true}
                     onChange={(e) => {
                       formik.setFieldValue("isTaxResidentOther", e.target.value === "true");
-                      formik.setFieldTouched("isTaxResidentOther", true);
+                      formik.setFieldTouched("isTaxResidentOther", true, false);
                     }}
                     onBlur={formik.handleBlur}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
@@ -487,7 +489,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                     checked={formik.values.isTaxResidentOther == false}
                     onChange={(e) => {
                       formik.setFieldValue("isTaxResidentOther", e.target.value === "true");
-                      formik.setFieldTouched("isTaxResidentOther", true);
+                      formik.setFieldTouched("isTaxResidentOther", true, false);
                       if (e.target.value === "false") {
                         formik.setFieldValue("taxResidencyCountry", "");
                       }
@@ -498,7 +500,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                   <span className="ml-2 text-sm text-gray-700">Nein</span>
                 </label>
               </div>
-              {(formik.touched.isTaxResidentOther || formik.submitCount > 0) && formik.errors.isTaxResidentOther && (
+              {formik.touched.isTaxResidentOther && formik.errors.isTaxResidentOther && (
                 <p className="text-red-500 text-xs mt-1">{formik.errors.isTaxResidentOther}</p>
               )}
             </div>
@@ -555,7 +557,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                     checked={formik.values.isPEP === true}
                     onChange={() => {
                       formik.setFieldValue("isPEP", true);
-                      formik.setFieldTouched("isPEP", true);
+                      formik.setFieldTouched("isPEP", true, false);
                     }}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
@@ -569,7 +571,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                     checked={formik.values.isPEP === false}
                     onChange={() => {
                       formik.setFieldValue("isPEP", false);
-                      formik.setFieldTouched("isPEP", true);
+                      formik.setFieldTouched("isPEP", true, false);
                     }}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />

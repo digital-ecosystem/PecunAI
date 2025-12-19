@@ -375,25 +375,25 @@ async function main() {
     {
       text: "Wie schätzen Sie Ihre Kenntnisse zu Aktien, Aktienfonds und Aktien-ETFs ein?",
       options: [
-        { label: "Gute Kenntnisse", value: "good" },
-        { label: "Durchschnittliche Kenntnisse", value: "average" },
-        { label: "Keine Kenntnisse", value: "none" },
+        { label: `Habe ich genutzt`, value: "good" },
+        { label: "Verstehe ich", value: "average" },
+        { label: "Kenne ich nicht", value: "none" },
       ],
       questionOrder: 12,
       footnote: `Bitte geben Sie an, welche Erfahrungen und Kenntnisse Sie im Umgang mit Aktien, Aktienfonds oder aktienbasierten ETFs besitzen. Diese Angaben helfen uns zu beurteilen, ob diese Anlageformen für Sie geeignet sind`
     },
-    {
-      text: "Haben Sie bereits praktische Transaktionen mit Aktien, Aktienfonds oder Aktien-ETFs durchgeführt?",
-      options: [
-        { label: "Ja, ich habe Transaktionen durchgeführt.", value: "yes" },
-        { label: "Nein, ich habe keine Transaktionen durchgeführt.", value: "no" }
-      ],
-      questionOrder: 13,
-      footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie bereits mit Aktien, Aktienfonds oder Aktien-ETFs gesammelt haben.`
-    },
+    // {
+    //   text: "Haben Sie bereits praktische Transaktionen mit Aktien, Aktienfonds oder Aktien-ETFs durchgeführt?",
+    //   options: [
+    //     { label: "Ja, ich habe Transaktionen durchgeführt.", value: "yes" },
+    //     { label: "Nein, ich habe keine Transaktionen durchgeführt.", value: "no" }
+    //   ],
+    //   questionOrder: 13,
+    //   footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie bereits mit Aktien, Aktienfonds oder Aktien-ETFs gesammelt haben.`
+    // },
     {
       text: "Wie viele Transaktionen haben Sie in den letzten 3 Jahren durchgeführt?",
-      questionOrder: 14,
+      questionOrder: 13,
       footnote: `Bitte geben Sie an, wie viele Transaktionen Sie in den vergangenen drei Jahren mit Aktien, Aktienfonds oder ETFs durchgeführt haben.`,
       options: [
         { label: "0", value: "0" },
@@ -407,25 +407,25 @@ async function main() {
     {
       text: "Wie schätzen Sie Ihre Kenntnisse zu Anleihen und Anleihenfonds ein?",
       options: [
-        { label: "Gute Kenntnisse", value: "good" },
-        { label: "Durchschnittliche Kenntnisse", value: "average" },
-        { label: "Keine Kenntnisse", value: "none" },
+        { label: `Habe ich genutzt`, value: "good" },
+        { label: "Verstehe ich", value: "average" },
+        { label: "Kenne ich nicht", value: "none" },
       ],
-      questionOrder: 15,
+      questionOrder: 14,
       footnote: `Hier erfassen wir, wie vertraut Sie mit Anleihen und anleihenbasierten Produkten sind. Je nach Erfahrungsstand können bestimmte Produkte empfohlen oder ausgeschlossen werden.`
     },
-    {
-      text: "Haben Sie bereits praktische Transaktionen mit Anleihen und Anleihenfonds durchgeführt?",
-      questionOrder: 16,
-      footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie mit Anleihen, Anleihenfonds oder Anleihen-ETFs gesammelt haben.`,
-      options: [
-        { label: "Ja, ich habe Transaktionen durchgeführt.", value: "yes" },
-        { label: "Nein, ich habe keine Transaktionen durchgeführt.", value: "no" }
-      ],
-    },
+    // {
+    //   text: "Haben Sie bereits praktische Transaktionen mit Anleihen und Anleihenfonds durchgeführt?",
+    //   questionOrder: 15,
+    //   footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie mit Anleihen, Anleihenfonds oder Anleihen-ETFs gesammelt haben.`,
+    //   options: [
+    //     { label: "Ja, ich habe Transaktionen durchgeführt.", value: "yes" },
+    //     { label: "Nein, ich habe keine Transaktionen durchgeführt.", value: "no" }
+    //   ],
+    // },
     {
       text: "Wie viele Transaktionen haben Sie in den letzten 3 Jahren durchgeführt?",
-      questionOrder: 17,
+      questionOrder: 15,
       footnote: `Bitte geben Sie an, wie viele Transaktionen Sie in den letzten drei Jahren mit Anleihenprodukten durchgeführt haben.`,
       options: [
         { label: "0", value: "0" },
@@ -438,27 +438,26 @@ async function main() {
     // =======================================================
     {
       text: "Wie schätzen Sie Ihre Kenntnisse zu Edelmetallen ein?",
-      questionOrder: 18,
+      questionOrder: 16,
       footnote: `Bitte teilen Sie uns mit, wie viel Erfahrung Sie im Bereich Edelmetalle besitzen. Diese Information ist wichtig, um Ihre Kenntnisse über Chancen und Risiken dieser Anlageklasse einschätzen zu können.`,
       options: [
-        { label: "Gute Kenntnisse", value: "good" },
-        { label: "Durchschnittliche Kenntnisse", value: "average" },
-        { label: "Keine Kenntnisse", value: "none" },
+        { label: `Habe ich genutzt`, value: "good" },
+        { label: "Verstehe ich", value: "average" },
+        { label: "Kenne ich nicht", value: "none" },
       ],
     },
-
-    {
-      text: "Haben Sie bereits praktische Transaktionen mit Edelmetallen durchgeführt?",
-      questionOrder: 19,
-      footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie mit Rohstoffen wie Gold gesammelt haben.`,
-      options: [
-        { label: "Ja, ich habe Transaktionen durchgeführt.", value: "yes" },
-        { label: "Nein, ich habe keine Transaktionen durchgeführt.", value: "no" }
-      ],
-    },
+    // {
+    //   text: "Haben Sie bereits praktische Transaktionen mit Edelmetallen durchgeführt?",
+    //   questionOrder: 19,
+    //   footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie mit Rohstoffen wie Gold gesammelt haben.`,
+    //   options: [
+    //     { label: "Ja, ich habe Transaktionen durchgeführt.", value: "yes" },
+    //     { label: "Nein, ich habe keine Transaktionen durchgeführt.", value: "no" }
+    //   ],
+    // },
     {
       text: "Wie viele Transaktionen haben Sie in den letzten 3 Jahren durchgeführt?",
-      questionOrder: 20,
+      questionOrder: 17,
       footnote: `Bitte geben Sie an, wie viele Transaktionen Sie in den letzten drei Jahren mit Rohstoffen durchgeführt haben.`,
       options: [
         { label: "0", value: "0" },
@@ -485,7 +484,7 @@ async function main() {
           value: "no_experience",
         },
       ],
-      questionOrder: 21,
+      questionOrder: 18,
       footnote: `Bitte geben Sie an, ob Sie bereits Erfahrungen mit vermögensverwaltenden Dienstleistungen gesammelt haben. Diese Information hilft uns, Ihre Kenntnisse in Bezug auf professionell gesteuerte Anlageformen einzuschätzen.`
     },
     // ------------------------------
@@ -502,14 +501,14 @@ async function main() {
         { label: "Verkauf von Vermögenswerten (Autoverkauf, Hausverkauf o.Ä.)", value: "sale_of_assets" },
         { label: "Sonstiges", value: "other" },
       ],
-      questionOrder: 22,
+      questionOrder: 19,
       footnote: `Bitte wählen Sie aus, aus welcher Quelle die für die Veranlagung vorgesehenen Gelder stammen. Diese Angabe ist aus rechtlichen Gründen erforderlich und unterstützt die Beurteilung der finanziellen Hintergründe.`
     },
     {
       text: "Beabsichtigte Einmalveranlagung – Welchen Betrag möchten Sie einmalig investieren?",
       questionType: "number",
       maxValue: 5000,
-      questionOrder: 23,
+      questionOrder: 20,
       inputPlaceholder: "Bitte Betrag in Euro eingeben…",
       footnote: `Bitte geben Sie den Betrag an, den Sie einmalig investieren möchten. Diese Angabe hilft uns, Ihre geplante Investitionshöhe und deren Eignung im Rahmen der Anlageberatung einzuschätzen.`
     },
@@ -517,7 +516,7 @@ async function main() {
       text: "Beabsichtigte monatliche Veranlagung – Welchen Betrag möchten Sie regelmäßig pro Monat investieren?",
       questionType: "number",
       maxValue: 500,
-      questionOrder: 24,
+      questionOrder: 21,
       inputPlaceholder: "Bitte Betrag in Euro eingeben…",
       footnote: `Bitte geben Sie an, welchen Betrag Sie monatlich investieren möchten. Laufende Investitionen beeinflussen die langfristige Vermögensentwicklung und sind relevant für die geeignete Produktauswahl.`
     }
@@ -1920,9 +1919,9 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.`
 
   // ==================== SEED ADMINS ====================
   console.log('🔐 Seeding Admins...');
-  
+
   await prisma.admin.deleteMany();
-  
+
   const admins = [
     {
       email: 'alexander.bracic@4money.at',
@@ -1959,9 +1958,9 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.`
 
   // ==================== SEED PARTNERS ====================
   console.log('🤝 Seeding Partners...');
-  
+
   await prisma.partner.deleteMany();
-  
+
   const partners = [
     {
       email: 'b.mahdi@adana.group',
