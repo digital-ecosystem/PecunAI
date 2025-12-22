@@ -1031,7 +1031,7 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
   UserPreviousFinancialActivitiesPrivate: getDynamicAnswer(questions[17], answers, true) == "experienced_negative" ? true : false,
   UserPreviousFinancialActivitiesNo: getDynamicAnswer(questions[17], answers, true) == "no_experience" ? true : false,
 
-  GoalRiskScoreFrootsKONSERVATIV: getDynamicAnswer(questions[4], answers, true) == "KONSERVATIV" ? true : false,
+  GoalRiskScoreFrootsConservative: getDynamicAnswer(questions[4], answers, true) == "KONSERVATIV" ? true : false,
   GoalRiskScoreFrootsBalanced: getDynamicAnswer(questions[4], answers, true) == "GEWINNORIENTIERT" ? true : false,
   GoalRiskScoreFrootsProfitOrientated: getDynamicAnswer(questions[4], answers, true) == "AUSGEWOHGEN" ? true : false,
   UserReferenceAccountIban: userInfo.iban || "",
