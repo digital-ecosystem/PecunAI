@@ -1622,7 +1622,7 @@ ABSCHLUSS:
   const mainProductPrompts = [
     {
       mcpUrl: "",
-      aiModel: "gpt-5",
+      aiModel: "gpt-5.2",
       vectorId: "",
       mainPrompt: `# SYSTEMPROMPT – PECUNAI
 

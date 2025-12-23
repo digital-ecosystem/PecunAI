@@ -1080,12 +1080,18 @@ export default function Stepper() {
                   } else if (data.content) {
                     // Update the last message with new content
                     setMessages((prev) => {
-                      const newMessages = [...prev];
-                      const lastMessage = newMessages[newMessages.length - 1];
-                      if (lastMessage && lastMessage.role === Role.assistant) {
-                        lastMessage.content += data.content;
+                      // IMPORTANT: keep this update immutable.
+                      // Mutating `lastMessage` can cause duplicated text in React 18 Strict Mode
+                      // because updater functions may be invoked more than once in dev.
+                      for (let i = prev.length - 1; i >= 0; i--) {
+                        const msg = prev[i];
+                        if (msg?.role === Role.assistant) {
+                          const next = prev.slice();
+                          next[i] = { ...msg, content: (msg.content ?? '') + data.content };
+                          return next;
+                        }
                       }
-                      return newMessages;
+                      return prev;
                     });
                   }
                 } catch (e) {

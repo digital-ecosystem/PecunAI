@@ -38,6 +38,9 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.60.0",
+    "react-markdown": "^10.1.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "uuid": "^11.1.0",
     "yup": "^1.7.1",
     "zod": "3.25.6"

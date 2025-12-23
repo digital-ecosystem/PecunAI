@@ -218,6 +218,7 @@ const MainProductPromptPage = () => {
   // AI Model color helper
   const getAiModelColor = (aiModel: string) => {
     switch (aiModel) {
+      case 'gpt-5.2': return 'bg-purple-100 text-purple-800';
       case 'gpt-5': return 'bg-purple-100 text-purple-800';
       case 'gpt-5-mini': return 'bg-purple-100 text-purple-800';
       case 'gpt-4': return 'bg-blue-100 text-blue-800';
@@ -591,6 +592,7 @@ const MainProductPromptPage = () => {
                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base ${errors.aiModel ? 'border-red-300' : 'border-gray-300'
                           }`}
                       >
+                        <option value="gpt-5.2">GPT-5.2</option>
                         <option value="gpt-5">GPT-5</option>
                         <option value="gpt-5-mini">GPT-5-mini</option>
                         <option value="gpt-4">GPT-4</option>

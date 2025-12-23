@@ -116,8 +116,10 @@ export async function POST(req: Request) {
     }
 
     // Get AI settings for the session
-    const productId = await getSessionProductId(sessionId)
-    const mainPrompt = await getMainProductPrompt()
+    const [productId, mainPrompt] = await Promise.all([
+      getSessionProductId(sessionId),
+      getMainProductPrompt(),
+    ]);
     const productSettings = productId ? await getProductAISettings(productId) : null
 
     // Use AI settings for model selection and instructions

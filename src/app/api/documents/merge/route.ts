@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       "Servicegebühr.pdf",
       "Vermittlungsgebühr.pdf",
       "Vermögensverwaltungsvertrag.pdf",
-      "4money_protokoll_PecunAI_v2.pdf"
+      "4money_protokoll_PecunAI_v3.pdf"
     ];
 
     // If no specific files provided, merge all PDFs in the session folder

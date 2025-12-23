@@ -806,11 +806,11 @@ const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[],
   UserSector: userInfo.industry || "",
   GoalMonthlyPayment: formatCurrency(Number(getDynamicAnswer(questions[19], answers))),
   // Next Month From Today
-  NextMonthFromToday: getNextMonthFromToday(),
-  YearOfNextMonthFromToday: getNextMonthYear(),
+  //NextMonthFromToday: getNextMonthFromToday(),
+  //YearOfNextMonthFromToday: getNextMonthYear(),
   UserConsentInformationDigitalForm: "",
   UserNotUsTaxEligible: "",
-  UserCountry1: userInfo.taxResidencyCountry || "",
+  UserCountry1: userInfo.isTaxResidentAT ? "Österreich" : (userInfo.taxResidencyCountry || ""),
   UserConsentfrootsPowerOfAttorny: "",
   UserConsentDiePlattformDepotBank: "",
   UserConsentDiePlattformConditions: "",
@@ -1088,7 +1088,7 @@ const FORM_MAPPERS: Record<string, (userInfo: UserInfo, questions: Question[], a
   // Done
   "Vermittlungsgebühr.pdf": vermittlungsgebuehrMapper,
   "Vermögensverwaltungsvertrag.pdf": vermoegensverwaltungsvertragMapper,
-  "4money_protokoll_PecunAI_v2.pdf": moneyProtokollMapper,
+  "4money_protokoll_PecunAI_v3.pdf": moneyProtokollMapper,
 };
 
 

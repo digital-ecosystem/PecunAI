@@ -50,3 +50,5 @@ next-env.d.ts
 /public/audio
 
 /private-documents
+
+.yarn.lock

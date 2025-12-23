@@ -87,13 +87,13 @@ export default function InvestmentForm(
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">BERATUNGSORT</p>
-            <p className="font-semibold">Online Beratung (PecunAI)</p>
+            <p className="font-semibold">Online</p>
           </div>
         </div>
 
         {/* Tags */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-          <div>
+          {/*<div>
             <p className="text-xs text-gray-500 mb-1">EINFÜHRUNG IN ANLAGEKLASSEN</p>
             <p className='flex flex-wrap gap-2 font-semibold'>
               {(answers[questions[11].id] !== 'none') && (
@@ -106,7 +106,7 @@ export default function InvestmentForm(
                 <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs">EDELMETALLE</span>
               )}
             </p>
-          </div>
+          </div>*/}
           <div>
             <p className="text-xs text-gray-500 mb-1">VORHERIGE FINANZDIENSTLEISTUNGEN</p>
             {/* Question No 20 */}
@@ -210,10 +210,10 @@ export default function InvestmentForm(
 
         {/* Anlageeinsatz */}
         <div className="mb-6">
-          <p className="font-semibold mb-3">Anlageeinsatz</p>
+          <p className="font-semibold mb-3">Anlageansatz</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-gray-500 mb-1">DISPOSITIONSBETRAG</p>
+              <p className="text-xs text-gray-500 mb-1">Einmalige Einzahlung</p>
               <p className="text-sm font-semibold">
                 {
                   formatEuro(parseFloat(answers[questions[19].id])) || '0.00 €'
@@ -221,7 +221,7 @@ export default function InvestmentForm(
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-1">BEREITS GETÄTIGTE ZAHLUNGEN</p>
+              <p className="text-xs text-gray-500 mb-1">monatliche Zahlung</p>
               <p className="text-sm">-</p>
             </div>
           </div>
@@ -321,7 +321,7 @@ export default function InvestmentForm(
             <span className="text-sm text-gray-700 break-words">
               Bestätigungserklärung: Ich bestätige alle Hinweise zur Kenntnis genommen zu haben und bestätige die
               Richtigkeit und Vollständigkeit des vorliegenden Kund:innen- und Anleger:innenprofils. Auf Grundlage dieser
-              Informationen führt das WPDLU richtlinienkollegige Anlageberatung durch und erteilt Empfehlungen bzgl.
+              Informationen führt das WPDLU Nicht-unabhängige Anlageberatung durch und erteilt Empfehlungen bzgl.
               angemessener bzw. geeigneter Produkte. Die Empfehlungen basieren auf deinen Kenntnissen und
               Erfahrungen im Wertpapierbereich, auf den Anlagezielen (des/der Kund:in (angedachte Anlagedauer,
               Ertragserwartungen, Präferenzen bezüglich bestimmter Investments), auf deiner Risikobereitschaft und
@@ -361,7 +361,7 @@ export default function InvestmentForm(
             </span>
           </label>
 
-          <label className="flex items-start gap-3">
+          {/*<label className="flex items-start gap-3">
             <input
               type="checkbox"
               checked={investmentFormData.additionalLiquidityNeeds}
@@ -372,7 +372,7 @@ export default function InvestmentForm(
               Der/die Kund:in bestätigt, dass innerhalb des nächsten Jahres zusätzlicher Liquiditätsbedarf gegeben ist
               und dieser in den Angaben zu den Anlagezielen und Anlagedauer bekannt gegeben wurde.
             </span>
-          </label>
+          </label>*/}
         </div>
 
         {/* Navigation Buttons */}

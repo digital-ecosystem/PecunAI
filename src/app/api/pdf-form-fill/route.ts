@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Use provided path or default to the static PDF
-    const finalPdfPath = pdfPath || path.join(process.cwd(), 'public/static-pdf/4money_protokoll_PecunAI_v2.pdf');
+    const finalPdfPath = pdfPath || path.join(process.cwd(), 'public/static-pdf/4money_protokoll_PecunAI_v3.pdf');
 
     console.log('📄 Filling PDF form:', finalPdfPath);
 
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     if (action === 'fields') {
       // Get form field information
       const pdfPath = searchParams.get('pdfPath') || 
-        path.join(process.cwd(), 'public/static-pdf/4money_protokoll_PecunAI_v2.pdf');
+        path.join(process.cwd(), 'public/static-pdf/4money_protokoll_PecunAI_v3.pdf');
       
       const filler = await PDFFormFiller.loadFromFile(pdfPath, { debugMode: true });
       const fieldNames = filler.getFieldNames();

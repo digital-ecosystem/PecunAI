@@ -1,5 +1,8 @@
 import { Message, Role } from '@/types'
 import { useRef, useEffect, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeSanitize from 'rehype-sanitize'
 
 // Speech Recognition types
 interface SpeechRecognitionEvent extends Event {
@@ -437,14 +440,16 @@ export default function Chatbot({
       const decoder = new TextDecoder()
       let transcript = ''
       let fullResponse = ''
+      let buffer = ''
 
       if (reader) {
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
 
-          const text = decoder.decode(value, { stream: true })
-          const lines = text.split('\n')
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || '' // keep incomplete line
 
           for (const line of lines) {
             if (line.startsWith('data: ')) {
@@ -454,7 +459,8 @@ export default function Chatbot({
                   transcript = json.transcript
                 }
                 if (json.content) {
-                  fullResponse = json.content
+                  // backend sends deltas; accumulate for debugging
+                  fullResponse += json.content
                 }
                 if (json.done) {
                   // Final message received - trigger refresh to replace placeholder
@@ -483,6 +489,44 @@ export default function Chatbot({
       setAudioTranscribing(false)
       setPlaceholderId(null)
     }
+  }
+
+  const renderMessageContent = (content: string) => {
+    // AI responses are Markdown (e.g. **bold**, lists). Render them safely.
+    // `rehype-sanitize` ensures we don't allow arbitrary HTML/script injection.
+    return (
+      <div className="text-sm sm:text-base text-gray-800 leading-relaxed">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeSanitize]}
+          components={{
+            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+            em: ({ children }) => <em className="italic">{children}</em>,
+            ul: ({ children }) => <ul className="my-2 list-disc pl-5 space-y-1">{children}</ul>,
+            ol: ({ children }) => <ol className="my-2 list-decimal pl-5 space-y-1">{children}</ol>,
+            li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+            blockquote: ({ children }) => (
+              <blockquote className="border-l-4 border-gray-200 pl-4 italic text-gray-700 my-2">
+                {children}
+              </blockquote>
+            ),
+            a: ({ href, children }) => (
+              <a
+                href={href}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="text-blue-600 hover:text-blue-800 underline underline-offset-2 break-words"
+              >
+                {children}
+              </a>
+            ),
+          }}
+        >
+          {content || ''}
+        </ReactMarkdown>
+      </div>
+    )
   }
 
 
@@ -572,9 +616,7 @@ export default function Chatbot({
                       </button>
                     </div>
 
-                    <div className="text-sm sm:text-base text-gray-800 whitespace-pre-wrap leading-relaxed">
-                      {message.content}
-                    </div>
+                    {renderMessageContent(message.content)}
 
                     {/* Audio Player */}
                     {message.audioFile && (
