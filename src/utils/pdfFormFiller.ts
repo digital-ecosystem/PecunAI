@@ -824,9 +824,9 @@ const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[],
   CheckboxUserGenderFemale: userInfo.gender === "female" ? true : false,
   CheckboxUserSelfEmploymentStatus: userInfo.isSelfEmployed ? true : false,
   UserPepYes: userInfo.isPEP ? true : false,
-  AdvisorPhone: "",
-  AdvisorFullName: "",
-  UserAnnualIncome: formatCurrency(Number(getDynamicAnswer(questions[6], answers)) * 12),
+  AdvisorPhone: "06769061716",
+  AdvisorFullName: "14020007	ALEXANDER BRACIC",
+  UserAnnualIncome: formatCurrency(Number(getDynamicAnswer(questions[6], answers)) * 14),
 });
 
 const deckblattVertragspaketMapper = (userInfo: UserInfo): FormFieldData => ({
@@ -839,9 +839,9 @@ const serviceentgeltMapper = (userInfo: UserInfo): FormFieldData => ({
   UserFullName: getFullName(userInfo),
   UserCity: userInfo.city || "",
   DateToday: getCurrentDate(),
-  AdvisorPhone: "",
+  AdvisorPhone: "06769061716",
   YesByDefault: true,
-  AdviserFullName: "",
+  AdviserFullName: "14020007	ALEXANDER BRACIC",
 });
 
 const servicegebuehrMapper = (userInfo: UserInfo): FormFieldData => ({
@@ -853,8 +853,8 @@ const servicegebuehrMapper = (userInfo: UserInfo): FormFieldData => ({
 });
 
 const vermittlungsgebuehrMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => ({
-  DepotAgencyFee: Number(getDynamicAnswer(questions[19], answers)) > 0 ? '5' : '0',
-  DepotSetupFee: Number(getDynamicAnswer(questions[20], answers)) > 0 ? Math.round(Number(getDynamicAnswer(questions[20], answers)) * 2.5) : '0',
+  DepotAgencyFee: Number(getDynamicAnswer(questions[19], answers)) > 0 ? '5' : '-',
+  DepotSetupFee: Number(getDynamicAnswer(questions[20], answers)) > 0 ? Math.round(Number(getDynamicAnswer(questions[20], answers)) * 2.5) : '-',
   UserFirstName: userInfo.firstName || "",
   UserLastName: userInfo.lastName || "",
   UserCity: userInfo.city || "",
