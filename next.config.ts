@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     'probable-kiwi-peaceful.ngrok-free.app',
     'localhost:4001',
     'ai.digital-ecosystem.management',
+    'https://ai.digital-ecosystem.management'
   ],
   eslint: {
     ignoreDuringBuilds: true,
