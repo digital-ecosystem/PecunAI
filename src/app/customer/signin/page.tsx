@@ -1,9 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Mail, Lock, ArrowRight, Users } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
-export default function OTPAuthPostgres() {
+function OTPAuthPostgresContent() {
   const [step, setStep] = useState('email');
   const [email, setEmail] = useState('');
   // const [name, setName] = useState('');
@@ -405,5 +405,24 @@ export default function OTPAuthPostgres() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OTPAuthPostgres() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Wird geladen...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <OTPAuthPostgresContent />
+    </Suspense>
   );
 }
