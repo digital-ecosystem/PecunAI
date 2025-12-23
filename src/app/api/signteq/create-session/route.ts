@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
           fields: [
             {
               page: 1,
-              type: "signature", // custom-stamp
+              type: process.env.NEXT_PUBLIC_ENV === "production" ? "custom-stamp" : "signature",
               width: 250,
               height: 100,
               x: 500,
@@ -118,36 +118,36 @@ export async function POST(request: NextRequest) {
         do_not_notify: true,
         language: "en",
         // QES - Right Check
-        // qes: true
+        qes: process.env.NEXT_PUBLIC_ENV === "production" ? true : false
       }]
     };
     // Log the exact payload structure for debugging
-    console.log("🚀 ~ POST ~ payload structure:", {
-      payloadKeys: Object.keys(payload),
-      documentsStructure: payload.documents.map(doc => ({
-        keys: Object.keys(doc),
-        hasName: !!doc.name,
-        hasBase64: !!doc.base64,
-        base64Length: doc.base64?.length || 0,
-        fieldsCount: doc.fields?.length || 0
-      })),
-      recipientsStructure: payload.recipients.map(rec => ({
-        keys: Object.keys(rec),
-        hasEmail: !!rec.email,
-        hasName: !!rec.name,
-        id: rec.id
-      }))
-    });
+    // console.log("🚀 ~ POST ~ payload structure:", {
+    //   payloadKeys: Object.keys(payload),
+    //   documentsStructure: payload.documents.map(doc => ({
+    //     keys: Object.keys(doc),
+    //     hasName: !!doc.name,
+    //     hasBase64: !!doc.base64,
+    //     base64Length: doc.base64?.length || 0,
+    //     fieldsCount: doc.fields?.length || 0
+    //   })),
+    //   recipientsStructure: payload.recipients.map(rec => ({
+    //     keys: Object.keys(rec),
+    //     hasEmail: !!rec.email,
+    //     hasName: !!rec.name,
+    //     id: rec.id
+    //   }))
+    // });
 
-    console.log("🚀 ~ POST ~ full payload:", JSON.stringify(payload, null, 2))
+    // console.log("🚀 ~ POST ~ full payload:", JSON.stringify(payload, null, 2))
 
-    logger.info('Creating SignTeq signature request:', {
-      subject: payload.subject,
-      recipient: payload.recipients[0].email,
-      documentName: payload.documents[0].name,
-      base64Length: cleanBase64.length,
-      hasValidBase64: cleanBase64.length > 0
-    });
+    // logger.info('Creating SignTeq signature request:', {
+    //   subject: payload.subject,
+    //   recipient: payload.recipients[0].email,
+    //   documentName: payload.documents[0].name,
+    //   base64Length: cleanBase64.length,
+    //   hasValidBase64: cleanBase64.length > 0
+    // });
 
     const response = await axios.post(`${CONFIG.SIGNTEQ.API_URL}/requests`, payload, {
       headers: {
