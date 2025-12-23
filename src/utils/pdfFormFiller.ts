@@ -660,6 +660,80 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     // "Kontrollkästchen 421": true,
     // "Kontrollkästchen 436": true,
 
+    // Question 9 - 17
+    // Knowledge, experience
+    // Anleihen / Anleihefonds / Anleihen ETFs
+    "Kontrollkästchen 550": questionAnswers[12]?.selectedOption == "none",
+    "Kontrollkästchen 551": questionAnswers[12]?.selectedOption == "average",
+    "Kontrollkästchen 552": questionAnswers[12]?.selectedOption == "good",
+
+    "Kontrollkästchen 553": questionAnswers[12]?.selectedOption == "none",
+    "Kontrollkästchen 554": questionAnswers[12]?.selectedOption == "average",
+    "Kontrollkästchen 555": questionAnswers[12]?.selectedOption == "good",
+
+    "Kontrollkästchen 556": questionAnswers[12]?.selectedOption == "none",
+    "Kontrollkästchen 557": questionAnswers[12]?.selectedOption == "average",
+    "Kontrollkästchen 558": questionAnswers[12]?.selectedOption == "good",
+
+    "Kontrollkästchen 559": questionAnswers[14]?.selectedOption == "none",
+    "Kontrollkästchen 560": questionAnswers[14]?.selectedOption == "average",
+    "Kontrollkästchen 561": questionAnswers[14]?.selectedOption == "good",
+
+    "Kontrollkästchen 562": questionAnswers[16]?.selectedOption == "none",
+    "Kontrollkästchen 563": questionAnswers[16]?.selectedOption == "average",
+    "Kontrollkästchen 564": questionAnswers[16]?.selectedOption == "good",
+
+    "Kontrollkästchen 565": questionAnswers[16]?.selectedOption == "none",
+    "Kontrollkästchen 566": questionAnswers[16]?.selectedOption == "average",
+    "Kontrollkästchen 567": questionAnswers[16]?.selectedOption == "good",
+
+    // 0, 1-10, +10 Transaktion
+    "Kontrollkästchen 568": questionAnswers[13]?.selectedOption == "0",
+    "Kontrollkästchen 569": questionAnswers[15]?.selectedOption == "0",
+    "Kontrollkästchen 570": questionAnswers[17]?.selectedOption == "0",
+
+    "Kontrollkästchen 571": questionAnswers[13]?.selectedOption == "1-10",
+    "Kontrollkästchen 572": questionAnswers[15]?.selectedOption == "1-10",
+    "Kontrollkästchen 573": questionAnswers[17]?.selectedOption == "1-10",
+
+    "Kontrollkästchen 574": questionAnswers[13]?.selectedOption == "+10",
+    "Kontrollkästchen 575": questionAnswers[15]?.selectedOption == "+10",
+    "Kontrollkästchen 576": questionAnswers[17]?.selectedOption == "+10",
+
+    "Kontrollkästchen 577": false,
+    "Kontrollkästchen 578": false,
+    "Kontrollkästchen 579": false,
+
+    // 0
+    "Kontrollkästchen 580": questionAnswers[9]?.selectedOption == "0",
+    "Kontrollkästchen 581": questionAnswers[10]?.selectedOption == "0",
+    "Kontrollkästchen 582": questionAnswers[11]?.selectedOption == "0",
+    // up_to_10000
+    "Kontrollkästchen 583": questionAnswers[9]?.selectedOption == "up_to_10000",
+    "Kontrollkästchen 584": questionAnswers[10]?.selectedOption == "up_to_10000",
+    "Kontrollkästchen 585": questionAnswers[11]?.selectedOption == "up_to_10000",
+    // 10000_to_50000
+    "Kontrollkästchen 586": questionAnswers[9]?.selectedOption == "10000_to_50000",
+    "Kontrollkästchen 587": questionAnswers[10]?.selectedOption == "10000_to_50000",
+    "Kontrollkästchen 588": questionAnswers[11]?.selectedOption == "10000_to_50000",
+    // above_50000, 50000_to_500000
+    "Kontrollkästchen 589": (questionAnswers[9]?.selectedOption == "50000_to_500000" || questionAnswers[9]?.selectedOption == "above_50000") ? true : false,
+    "Kontrollkästchen 590": (questionAnswers[10]?.selectedOption == "50000_to_500000" || questionAnswers[10]?.selectedOption == "above_50000") ? true : false,
+    "Kontrollkästchen 591": (questionAnswers[11]?.selectedOption == "50000_to_500000" || questionAnswers[11]?.selectedOption == "above_50000") ? true : false,
+
+    // if (type == "ZeroAmount") {
+    //       fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[10], answers, true) == "0" ? true : false;
+    //     } else if (type == "Below10kAmount") {
+    //       fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[10], answers, true) == "up_to_10000" ? true : false;
+    //     } else if (type == "Below50kAmount") {
+    //       fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[10], answers, true) == "10000_to_50000" ? true : false;
+    //     } else {
+    //       fields[`UserFinancialKnowledge${category}${type}`] = (
+    //         (getDynamicAnswer(questions[10], answers, true) == "50000_to_500000") ||
+    //         getDynamicAnswer(questions[10], answers, true) == "above_500000"
+    //       ) ? true : false;
+    //     }
+
     // Merge with any additional data
     ...additionalData
   };
@@ -1105,17 +1179,17 @@ export function createFormDataForContactForm(
 }
 
 
-function getNextMonthFromToday(): string {
-  const today = new Date();
-  const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
-  return formatGermanDate(nextMonth);
-}
+// function getNextMonthFromToday(): string {
+//   const today = new Date();
+//   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+//   return formatGermanDate(nextMonth);
+// }
 
-function getNextMonthYear(): string {
-  const today = new Date();
-  const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
-  return nextMonth.getFullYear().toString();
-}
+// function getNextMonthYear(): string {
+//   const today = new Date();
+//   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+//   return nextMonth.getFullYear().toString();
+// }
 // Optional: Type-safe file name validation
 // export const SUPPORTED_FORMS = Object.keys(FORM_MAPPERS) as const;
 // export type SupportedFormName = typeof SUPPORTED_FORMS[number];
