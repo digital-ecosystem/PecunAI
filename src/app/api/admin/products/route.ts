@@ -12,7 +12,7 @@ const productSchema = z.object({
   fileName: z.string().optional(),
   minimumYear: z.number().int().min(0).max(50).optional(),
   maximumYear: z.number().int().min(0).max(50).optional(),
-  riskType: z.enum(['KONSERVATIV', 'AUSGEWOHGEN', 'GEWINNORIENTIERT']).optional(),
+  riskType: z.enum(['KONSERVATIV', 'AUSGEWOGEN', 'GEWINNORIENTIERT']).optional(),
   aiModel: z.string().min(1, 'KI-Modell ist erforderlich').default('gpt-5'),
   firstMessage: z.string().min(1, 'Erste Nachricht ist erforderlich'),
   aiPrompt: z.string().min(1, 'KI-Prompt ist erforderlich'),

@@ -2,60 +2,117 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { AuthService } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { userId } = body;
+    const cookieStore = await cookies();
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Benutzer-ID ist erforderlich' }, { status: 400 });
+    const token = cookieStore.get('auth-token')?.value;
+    if (!token) {
+      return NextResponse.json({ success: false, message: 'Nicht authentifiziert' }, { status: 401 });
     }
 
-    // Check for referral code in cookies
-    const cookieStore = await cookies();
-    const referralCode = cookieStore.get('referral_code')?.value;
-    
-    let partnerId: string | null = null;
+    const user = await AuthService.getUserFromToken(token);
+    if (!user?.id) {
+      return NextResponse.json({ success: false, message: 'Ungültiges Token' }, { status: 401 });
+    }
 
-    // If referral code exists, find the partner
-    if (referralCode) {
-      const partner = await prisma.partner.findUnique({
-        where: { referralCode: referralCode },
-        select: { id: true, isActive: true },
-      });
+    const body = await req.json().catch(() => ({}));
+    const partnerCodeFromBody = typeof body?.partnerCode === 'string' ? body.partnerCode.trim() : '';
 
-      // Only assign if partner exists and is active
-      if (partner && partner.isActive) {
-        partnerId = partner.id;
-      }
+    const referralCodeFromCookie = (cookieStore.get('referral_code')?.value ?? '').trim();
+    const partnerCode = partnerCodeFromBody || referralCodeFromCookie;
+
+    if (!partnerCode) {
+      const response = NextResponse.json(
+        { success: false, message: 'Partner-Code ist erforderlich', error: 'PARTNER_REQUIRED' },
+        { status: 400 }
+      );
+      response.cookies.set('autostart_session', '', { path: '/', maxAge: 0 });
+      return response;
+    }
+
+    const partner = await prisma.partner.findUnique({
+      where: { referralCode: partnerCode },
+      select: {
+        id: true,
+        isActive: true,
+        referralCode: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
+    });
+
+    if (!partner || !partner.isActive) {
+      const response = NextResponse.json(
+        { success: false, message: 'Ungültiger oder inaktiver Partner-Code', error: 'PARTNER_INVALID' },
+        { status: 400 }
+      );
+      response.cookies.set('autostart_session', '', { path: '/', maxAge: 0 });
+      return response;
+    }
+
+    // Only one draft session per user
+    const existingOpen = await prisma.qASession.findFirst({
+      where: {
+        userId: user.id,
+        status: { in: ['DRAFT'] },
+      },
+      select: { id: true, status: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (existingOpen) {
+      const response = NextResponse.json(
+        {
+          success: false,
+          message: 'Es gibt bereits eine offene Beratung. Bitte zuerst abschließen.',
+          error: 'OPEN_SESSION_EXISTS',
+          sessionId: existingOpen.id,
+          status: existingOpen.status,
+        },
+        { status: 409 }
+      );
+
+      // Prevent autostart loops
+      response.cookies.set('autostart_session', '', { path: '/', maxAge: 0 });
+      return response;
     }
 
     const newSession = await prisma.qASession.create({
       data: {
-        userId: userId,
         status: 'DRAFT',
         phase: 'TERMS1',
-        // Link to partner if referral code was valid
-        partnerId: partnerId,
-        referralCode: partnerId ? referralCode : null, // Store code for historical tracking
+        referralCode: partner.referralCode,
+        user: { connect: { id: user.id } },
+        partner: { connect: { id: partner.id } },
       },
     });
 
-    // Create response
-    const response = NextResponse.json({ 
-      success: true, 
-      session: newSession,
-      referredBy: partnerId ? referralCode : null,
-    }, { status: 201 });
+    const response = NextResponse.json(
+      {
+        success: true,
+        session: newSession,
+        partner: {
+          id: partner.id,
+          firstName: partner.firstName,
+          lastName: partner.lastName,
+          email: partner.email,
+          referralCode: partner.referralCode,
+        },
+      },
+      { status: 201 }
+    );
 
-    // Clear the referral cookie after it's been used (so future sessions aren't auto-assigned)
-    if (referralCode) {
-      response.cookies.set('referral_code', '', {
-        path: '/',
-        maxAge: 0, // Delete the cookie
-      });
+    // Clear referral cookie only if we used it (i.e., no explicit partnerCode in body)
+    if (!partnerCodeFromBody && referralCodeFromCookie) {
+      response.cookies.set('referral_code', '', { path: '/', maxAge: 0 });
     }
+
+    // Clear autostart marker after successful creation
+    response.cookies.set('autostart_session', '', { path: '/', maxAge: 0 });
 
     return response;
   } catch (error) {

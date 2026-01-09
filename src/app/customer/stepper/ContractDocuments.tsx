@@ -201,7 +201,7 @@ export default function ContractDocuments(
                   </button>
                   {/* 4money Protokoll */}
                   <button
-                    onClick={() => openPDF('4money_protokoll_PecunAI_v3.pdf')}
+                    onClick={() => openPDF('4money_protokoll_PecunAI_v4.pdf')}
                     className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 hover:bg-gray-50 rounded transition-colors group text-left"
                   >
                     <svg className="w-5 h-5 text-teal-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -328,7 +328,7 @@ export default function ContractDocuments(
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                   <span className="text-sm text-gray-700 group-hover:text-teal-600 transition-colors break-words">
-                    ffoods Allgemeine Informationsbroschüren
+                    Froots Allgemeine Informationsbroschüren
                   </span>
                 </button>
               </div>
@@ -364,9 +364,9 @@ export default function ContractDocuments(
               className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
             />
             <span className="text-sm text-gray-700 leading-relaxed break-words">
-              Ich erkläre, dass ich mit der gesetzeskonformen Datenverarbeitung gemäß Datenschutz-Grundverordnung zur
-              Inanspruchnahme und Abwicklung von ffoods (Asset Management by ffoods GmbH), 4money (4money Financial Services
-              GmbH) und der Partnerbank Die Plattform (Schelhammer Capital Bank AG) einverstanden bin.
+              Ich erkläre, dass ich mit der gesetzeskonformen Datenverarbeitung gemäß Datenschutz – Grundverordnung und 
+              den Vertragsbedingungen von froots (Asset Management by froots GmbH), 4money (4money Financial Services GmbH) und
+              der Partnerbank Die Plattform (Schelhammer Capital Bank AG) einverstanden bin.
             </span>
           </label>
 
@@ -379,9 +379,9 @@ export default function ContractDocuments(
               className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
             />
             <span className="text-sm text-gray-700 leading-relaxed break-words">
-              Ich beauftrage ffoods (Asset Management by ffoods GmbH) hiermit mit der Vermögensverwaltung und
-              erteile dieser gegenüber der Partnerbank Die Plattform (Schelhammer Capital Bank AG) eine
-              Verwaltungsvollmacht.
+              Ich beauftrage froots (Asset Management by froots GmbH) hiermit mit der Vermögensverwaltung und 
+              erteile dieser gegenüber der Partnerbank 
+              Die Plattform (Schelhammer Capital Bank AG) eine Verwaltungsvollmacht.
             </span>
           </label>
 
@@ -394,8 +394,8 @@ export default function ContractDocuments(
               className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
             />
             <span className="text-sm text-gray-700 leading-relaxed break-words">
-              Ich entnehme darüber hinaus die Partnerbank Die Plattform ( Schelhammer Capital Bank AG) vom
-              Bankgeheimnis gemäß §38 Abs. 2 Ziff BWG.
+              Ich entbinde darüber hinaus die Partnerbank Die Plattform 
+              ( Schelhammer Capital Bank AG) vom Bankengeheimnis gemäß §38 Abs. 2 Z5 BWG.
             </span>
           </label>
 
@@ -408,73 +408,9 @@ export default function ContractDocuments(
               className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
             />
             <span className="text-sm text-gray-700 leading-relaxed break-words">
-              Ich erteile meine widerrufliche Zustimmung, dass sämtliche mich betreffenden Daten, die mit dieser
-              Geschäftsverbindung im Zusammenhang stehen, auch mit der Partnerbank Die Plattform (Schelhammer
-              Capital Bank AG) geteilt werden können.
-            </span>
-          </label>
-
-          {/* Einverständnis */}
-          <label className="flex flex-col sm:flex-row items-start gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={agreements.einverstanden}
-              onChange={() => handleCheckboxChangeContractDocument('einverstanden')}
-              className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
-            />
-            <span className="text-sm text-gray-700 leading-relaxed break-words">
-              Ich bin einverstanden, dass ich in Zukunft alle Informationen von ffoods (Asset Management by ffoods
-              GmbH), 4money (4money Financial Services GmbH) und persönlich an mich gerichtete Informationen
-              und Mitteilungen bezüglich der Partnerbank Die Plattform (Schelhammer Capital Bank AG) auf
-              elektronischem Weg oder im Onlinebanking erhalten werde. Auch die die Geheimhaltung sowie nicht
-              öffentlicher Informationen.
-            </span>
-          </label>
-
-          {/* EFSAEG */}
-          <label className="flex flex-col sm:flex-row items-start gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={agreements.efsaeg}
-              onChange={() => handleCheckboxChangeContractDocument('efsaeg')}
-              className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
-            />
-            <span className="text-sm text-gray-700 leading-relaxed break-words">
-              Ich hab die Informationen zum Einlagensicherungs- und Anlegerentschädigungsgesetz (ESAEG) der
-              Partnerbank Die Plattform (Schelhammer Capital Bank AG) erhalten.
-            </span>
-          </label>
-
-          {/* Informationen */}
-          <label className="flex items-start gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={agreements.informationen}
-              onChange={() => handleCheckboxChangeContractDocument('informationen')}
-              className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
-            />
-            <span className="text-sm text-gray-700 leading-relaxed">
-              Ich habe alle relevanten Dokumente von ffoods (Asset Management by ffoods GmbH), 4money (4money
-              Financial Services GmbH) und der Partnerbank Die Plattform (Schelhammer Capital Bank AG) inklusiv
-              dem gültigen Konditionsblatt erhalten, vollständig gelesen und erkläre mich hiermit ausdrücklich damit
-              einverstanden.
-            </span>
-          </label>
-
-          {/* Auftraggeber */}
-          <label className="flex items-start gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={agreements.auftraggeber}
-              onChange={() => handleCheckboxChangeContractDocument('auftraggeber')}
-              className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
-            />
-            <span className="text-sm text-gray-700 leading-relaxed">
-              Der Auftraggeber stimmt hiermit zu, dass die ffoods alle betreffenden Daten aus der Geschäftsverbindung
-              an 4money (4money Financial Services GmbH) sowie weitere Gesellschaften des 4money Konzerns zum
-              Verzinsung (Performance, Asset Allocation), gegenüber der 4money zum Zweck der Erbringung von
-              eigenen Wertpapierdienstleistungen (Anlageberatung) durch 4money öffentlich und einfachen ffoods
-              insoweit von der Verschweigenheitspflicht nach § 8 Abs. 1 WAG 2018.
+              Ich erteile meine widerrufliche Zustimmung, dass sämtliche mich betreffenden Daten, 
+              die mit dieser Geschäftsverbindung in Zusammenhang stehen, 
+              auch mit der Partnerbank Die Plattform (Schelhammer Capital Bank AG) geteilt werden können.
             </span>
           </label>
 
@@ -487,10 +423,75 @@ export default function ContractDocuments(
               className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
             />
             <span className="text-sm text-gray-700 leading-relaxed">
-              Rücknahmerecht: Ich erteile gemäß §5 Abs. 4 FernFinG ausdrücklich meine Zustimmung, dass mit der
-              Erfüllung der Verträge vor Ablauf der 14 tägigen Rücktrittsfrist begonnen wird.
+              Rücktrittsrecht: Ich erteile gemäß §8 Abs. 5 FernFinG ausdrücklich meine Zustimmung, dass mit der Erfüllung 
+              der Verträge bereits vor Ablauf der 14-tägigen Rücktrittsfrist begonnen wird.
             </span>
           </label>
+
+          {/* Einverständnis */}
+          <label className="flex flex-col sm:flex-row items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={agreements.einverstanden}
+              onChange={() => handleCheckboxChangeContractDocument('einverstanden')}
+              className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
+            />
+            <span className="text-sm text-gray-700 leading-relaxed break-words">
+              Ich bin einverstanden, dass ich in Zukunft alle Informationen von froots 
+              (Asset Management by froots GmbH), 4money (4money Financial Services GmbH) und 
+              persönlich an mich gerichtete Informationen nach WAG und Mitteilungen der Partnerbank Die Plattform 
+              (Schelhammer Capital Bank AG) auf elektronischem Weg oder per Onlinezugang erhalte und verstehe, 
+              dass ich die Dienstleistung sonst nicht in Anspruch nehmen kann.
+            </span>
+          </label>
+
+          {/* EFSAEG */}
+          <label className="flex flex-col sm:flex-row items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={agreements.efsaeg}
+              onChange={() => handleCheckboxChangeContractDocument('efsaeg')}
+              className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
+            />
+            <span className="text-sm text-gray-700 leading-relaxed break-words">
+              Ich hab die Informationen zum Einlagensicherungs- und Anlegerentschädigungsgesetz
+              (ESAEG) der Partnerbank Die Plattform (Schelhammer Capital Bank AG) erhalten.
+            </span>
+          </label>
+
+          {/* Informationen */}
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={agreements.informationen}
+              onChange={() => handleCheckboxChangeContractDocument('informationen')}
+              className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
+            />
+            <span className="text-sm text-gray-700 leading-relaxed">
+              Ich habe alle relevanten Dokumente von froots (Asset Management by froots GmbH),
+               4money (4money Financial Services GmbH) und 
+               der Partnerbank Die Plattform (Schelhammer Capital Bank AG) 
+              inklusive dem gültigen Konditionsblatt erhalten, vollständig gelesen und erkläre mich hiermit ausdrücklich damit einverstanden.
+            </span>
+          </label>
+
+          {/* Auftraggeber */}
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={agreements.auftraggeber}
+              onChange={() => handleCheckboxChangeContractDocument('auftraggeber')}
+              className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
+            />
+            <span className="text-sm text-gray-700 leading-relaxed">
+              Der Auftraggeber stimmt hiermit zu, dass die froots alle betreffenden Daten aus der Geschäftsverbindung mit froots, 
+              die im Zusammenhang mit der Portfolioverwaltung stehen, wie etwa Informationen zur Veranlagung 
+              (Performance, Asset-Allocation), gegenüber der 4money zum Zweck der Erbringung von eigenen 
+              Wertpapierdienstleistungen (Anlageberatung) durch 4money offenlegt und entbindet froots insoweit von 
+              der Verschwiegenheitspflicht nach § 8 Abs 1 WAG 2018.
+            </span>
+          </label>
+
         </div>
 
         {/* Navigation Buttons */}

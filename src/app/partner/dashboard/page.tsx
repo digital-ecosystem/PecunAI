@@ -61,6 +61,8 @@ const PartnerDashboard = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -162,6 +164,14 @@ const PartnerDashboard = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+    const copyReferralCode = () => {
+    if (!partner?.referralCode) return;
+    const referralLink = partner.referralCode;
+    navigator.clipboard.writeText(referralLink);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -185,11 +195,22 @@ const PartnerDashboard = () => {
             <div>
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Link2 className="w-5 h-5" />
-                Ihr Empfehlungslink
+                Ihr Partner Link
               </h2>
               <p className="text-emerald-100 text-sm mt-1">
-                Teilen Sie diesen Link mit Ihren Kunden, um Empfehlungen zu verfolgen
+                Teilen Sie diesen Link mit Ihren Kunden, um eine Sitzung zu verfolgen
               </p>
+            </div>
+            <div className="flex items-center gap-2 bg-white/20 backdrop-blur rounded-lg px-4 py-2">
+              <code className="text-sm font-mono truncate max-w-xs">
+                {partner?.referralCode}
+              </code>
+              <button
+                onClick={copyReferralCode}
+                className="p-2 bg-white/20 hover:bg-white/30 rounded transition-colors flex-shrink-0"
+              >
+                {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              </button>
             </div>
             <div className="flex items-center gap-2 bg-white/20 backdrop-blur rounded-lg px-4 py-2">
               <code className="text-sm font-mono truncate max-w-xs">

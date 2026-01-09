@@ -2,6 +2,8 @@
 import { prisma } from "@/lib/prisma";
 import { RiskType } from "@/types";
 import bcrypt from "bcrypt";
+import { generateUniqueReferralCode } from "@/utils/referralCodeGenerator";
+
 
 async function main() {
 
@@ -51,7 +53,7 @@ async function main() {
   //     options: [
   //       { label: "Konservativ", value: "KONSERVATIV" },
   //       { label: "Chancenorientiert", value: "GEWINNORIENTIERT" },
-  //       { label: "Risikobewusst", value: "AUSGEWOHGEN" },
+  //       { label: "Risikobewusst", value: "AUSGEWOGEN" },
   //     ],
   //     questionOrder: 5,
   //     footnote: `Ihre Risikoneigung hilft uns, eine geeignete Anlagestrategie für Sie zu bestimmen. Je nach Risikoprofil können Chancen und Risiken einer möglichen Investition variieren.`
@@ -300,8 +302,10 @@ async function main() {
       text: "Risikoneigung – Wie würden Sie Ihre persönliche Risikobereitschaft einschätzen?",
       options: [
         { label: "Konservativ", value: "KONSERVATIV" },
-        { label: "Chancenorientiert", value: "GEWINNORIENTIERT" },
-        { label: "Risikobewusst", value: "AUSGEWOHGEN" },
+        { label: "Ausgewogen", value: "AUSGEWOGEN" },
+        { label: "Gewinnorientiert", value: "GEWINNORIENTIERT" },
+        //{ label: "Chancenorientiert", value: "GEWINNORIENTIERT" },
+        //{ label: "Risikobewusst", value: "AUSGEWOGEN" },
       ],
       questionOrder: 5,
       footnote: `Ihre Risikoneigung hilft uns, eine geeignete Anlagestrategie für Sie zu bestimmen. Je nach Risikoprofil können Chancen und Risiken einer möglichen Investition variieren.`
@@ -611,7 +615,7 @@ async function main() {
   //       fileName: "/products/vvkn1_product_guide.pdf",
   //       minimumYear: 0,
   //       maximumYear: 1,
-  //       riskType: "AUSGEWOHGEN",
+  //       riskType: "AUSGEWOGEN",
   //     },
   //     ai: {
   //       model: "gpt-5",
@@ -664,7 +668,7 @@ async function main() {
   //       fileName: "/products/vvkn2_product_guide.pdf",
   //       minimumYear: 1,
   //       maximumYear: 2,
-  //       riskType: "AUSGEWOHGEN",
+  //       riskType: "AUSGEWOGEN",
   //     },
   //     ai: {
   //       model: "gpt-5",
@@ -717,7 +721,7 @@ async function main() {
   //       fileName: "/products/vvkn3_product_guide.pdf",
   //       minimumYear: 3,
   //       maximumYear: 4,
-  //       riskType: "AUSGEWOHGEN",
+  //       riskType: "AUSGEWOGEN",
   //     },
   //     ai: {
   //       model: "gpt-5",
@@ -770,7 +774,7 @@ async function main() {
   //       fileName: "/products/vvkn4_product_guide.pdf",
   //       minimumYear: 5,
   //       maximumYear: null,
-  //       riskType: "AUSGEWOHGEN",
+  //       riskType: "AUSGEWOGEN",
   //     },
   //     ai: {
   //       model: "gpt-5",
@@ -909,7 +913,7 @@ async function main() {
   //       fileName: "/products/vvkn2_product_guide.pdf",
   //       minimumYear: 3,
   //       maximumYear: 6,
-  //       riskType: "AUSGEWOHGEN", //Ausgewogen
+  //       riskType: "AUSGEWOGEN", //Ausgewogen
   //     },
   //     ai: {
   //       model: "gpt-5",
@@ -964,7 +968,7 @@ async function main() {
   //       fileName: "/products/vvkn3_product_guide.pdf",
   //       minimumYear: 5,
   //       maximumYear: 10,
-  //       riskType: "AUSGEWOHGEN", // Ausgewogen
+  //       riskType: "AUSGEWOGEN", // Ausgewogen
   //     },
   //     ai: {
   //       model: "gpt-5",
@@ -1154,6 +1158,7 @@ async function main() {
         fileName: "/products/vvkn1_product_guide.pdf",
         minimumYear: 1,
         maximumYear: 2,
+        sri: "2",
         riskType: RiskType.KONSERVATIV,
       },
       ai: {
@@ -1213,7 +1218,8 @@ ABSCHLUSS:
         fileName: "/products/vvkn2_product_guide.pdf",
         minimumYear: 1,
         maximumYear: 2,
-        riskType: RiskType.AUSGEWOHGEN,
+        sri: "2",
+        riskType: RiskType.AUSGEWOGEN,
       },
       ai: {
         model: "gpt-5",
@@ -1275,8 +1281,9 @@ ABSCHLUSS:
           "Ausgewogenes Portfolio, das Chancen und Stabilität verbindet. Geeignet für Kund:innen mit ausgewogenem Risikoprofil und einem Anlagehorizont von 3–4 Jahren, oder konservativem Risikoprofil ab 5 Jahren.",
         fileName: "/products/vvkn3_product_guide.pdf",
         minimumYear: 3,
-        maximumYear: 4,
-        riskType: RiskType.AUSGEWOHGEN,
+        maximumYear: 7,
+        sri: "3",
+        riskType: RiskType.AUSGEWOGEN,
       },
       ai: {
         model: "gpt-5",
@@ -1350,6 +1357,7 @@ ABSCHLUSS:
         fileName: "/products/vvkn4_product_guide.pdf",
         minimumYear: 5,
         maximumYear: 7,
+        sri : "3",
         riskType: RiskType.GEWINNORIENTIERT,
       },
       ai: {
@@ -1424,7 +1432,8 @@ ABSCHLUSS:
           "Offensiv ausgerichtetes Portfolio mit sehr hohem Aktienanteil und höchsten langfristigen Wachstumschancen. Geeignet für Kund:innen mit gewinnorientiertem Risikoprofil und einem Anlagehorizont ab 7 Jahren.",
         fileName: "/products/vvkn5_product_guide.pdf",
         minimumYear: 7,
-        maximumYear: 99,
+        maximumYear: 7,
+        sri : "4",
         riskType: RiskType.GEWINNORIENTIERT,
       },
       ai: {
@@ -1491,13 +1500,14 @@ ABSCHLUSS:
     // ---------------------------------------------------------
     {
       product: {
-        name: "VVKN0 Liquidity+ – Ultra-konservatives Geldmarktportfolio",
+        name: "VVKN6 Liquidity+ – Ultra-konservatives Geldmarktportfolio",
         shortName: "VVKN0",
         description:
           "Ultra-konservatives Portfolio zur kurzfristigen Veranlagung liquider Mittel. Sehr geringe Schwankungen, tägliche Liquidität und Fokus auf Kapitalerhalt.",
         fileName: "/products/vvkn6_product_guide.pdf",
         minimumYear: 0,
         maximumYear: 0,
+        sri : "1",
         riskType: RiskType.KONSERVATIV,
       },
       ai: {
@@ -1557,9 +1567,10 @@ ABSCHLUSS:
         shortName: item.product.shortName,
         description: item.product.description,
         fileName: item.product.fileName,
+        sri: item.product.sri,
         minimumYear: item.product.minimumYear,
         maximumYear: item.product.maximumYear,
-        riskType: item.product.riskType as "KONSERVATIV" | "AUSGEWOHGEN" | "GEWINNORIENTIERT",
+        riskType: item.product.riskType as "KONSERVATIV" | "AUSGEWOGEN" | "GEWINNORIENTIERT",
       },
     });
 
@@ -1963,13 +1974,164 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.`
 
   const partners = [
     {
-      email: 'b.mahdi@adana.group',
-      firstName: 'Bassem',
-      lastName: 'Mahdi',
-      birthday: new Date('1990-01-01'),
-      agentNumber: 'PTR-001',
-      password: 'Partner@Adana2024!',
-      referralCode: 'ADANA2024',
+      email: 'alexander.bracic@finova.at',
+      phone: '+436769061716',
+      firstName: 'Alexander',
+      lastName: 'Bracic',
+      birthday: new Date('1991-12-16'),
+      agentNumber: '24020007',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'lukas.hochsteger@finova.at',
+      phone: '+436603409741',
+      firstName: 'Lukas',
+      lastName: 'Hochsteger',
+      birthday: new Date('2000-11-10'),
+      agentNumber: '24020020',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'franz.resch@finova.at',
+      phone: '+4366+43518878',
+      firstName: 'Franz',
+      lastName: 'Resch',
+      birthday: new Date('1984-12-09'),
+      agentNumber: '24020012',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'sedin.cehajic@finova.at',
+      phone: '+436604967939',
+      firstName: 'Sedin',
+      lastName: 'Cehajic',
+      birthday: new Date('1993-10-28'),
+      agentNumber: '24020015',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'leonhard.ogris@finova.at',
+      phone: '+436642111429',
+      firstName: 'Leonhard',
+      lastName: 'Ogris',
+      birthday: new Date('1994-02-05'),
+      agentNumber: '24020014',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'filip.bonat@finova.at',
+      phone: '+436767857277',
+      firstName: 'Filip',
+      lastName: 'Bonat',
+      birthday: new Date('1998-08-11'),
+      agentNumber: '24020098',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'gerald.puntigam@finova.at',
+      phone: '+436606162633',
+      firstName: 'Gerald',
+      lastName: 'Puntigam',
+      birthday: new Date('1985-04-09'),
+      agentNumber: '24020022',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'erwin.buerger@finova.at',
+      phone: '+436507772332',
+      firstName: 'Erwin',
+      lastName: 'Bürger',
+      birthday: new Date('1989-07-31'),
+      agentNumber: '24020013',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'aldin.mujanic@finova.at',
+      phone: '+4366+43806916',
+      firstName: 'Aldin',
+      lastName: 'Mujanic',
+      birthday: new Date('1992-02-12'),
+      agentNumber: '24020027',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'marco.puntigam@finova.at',
+      phone: '+436764026060',
+      firstName: 'Marco',
+      lastName: 'Puntigam',
+      birthday: new Date('1991-11-03'),
+      agentNumber: '24020011',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'marco.schober@finova.at',
+      phone: '+436766774502',
+      firstName: 'Marco',
+      lastName: 'Schober',
+      birthday: new Date('1985-06-15'),
+      agentNumber: '24020010',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'guenter.moser@finova.at',
+      phone: '+436645314077',
+      firstName: 'Günter',
+      lastName: 'Moser',
+      birthday: new Date('1985-06-17'),
+      agentNumber: '24020009',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'christian.leski@finova.at',
+      phone: '+436645440636',
+      firstName: 'Christian',
+      lastName: 'Leski',
+      birthday: new Date('1986-03-04'),
+      agentNumber: '24020008',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'gernot.fasching@finova.at',
+      phone: '+436648962909',
+      firstName: 'Gernot',
+      lastName: 'Fasching',
+      birthday: new Date('1994-07-10'),
+      agentNumber: '24020005',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'hamza.hamzic@finova.at',
+      phone: '+4366047+43825',
+      firstName: 'Hamza',
+      lastName: 'Hamzic',
+      birthday: new Date('1993-09-24'),
+      agentNumber: '24020002',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
+    },
+    {
+      email: 'heiko.juritsch@finova.at',
+      phone: '+436644276749',
+      firstName: 'Heiko',
+      lastName: 'Juritsch',
+      birthday: new Date('1990-06-13'),
+      agentNumber: '24020001',
+      password: 'Partner@2024!',
+      referralCode: await  generateUniqueReferralCode(),
     },
   ];
 
@@ -1978,6 +2140,7 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.`
     await prisma.partner.create({
       data: {
         email: partner.email,
+        phone: partner.phone,
         firstName: partner.firstName,
         lastName: partner.lastName,
         birthday: partner.birthday,

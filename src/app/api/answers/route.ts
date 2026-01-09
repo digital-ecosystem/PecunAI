@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     const { questionId, answer, question, options, questionType } = await request.json();
-    if (!questionId || !answer) {
+    if (!questionId || answer === undefined || answer === null) {
       return NextResponse.json({ message: 'Frage-ID oder Antwort fehlt' }, { status: 400 });
     }
     const cookieStore = await cookies();
@@ -40,6 +40,18 @@ export async function POST(request: Request) {
     }
 
     const sessionId = session.id;
+
+    // If client clears an input, delete the stored answer (idempotent)
+    if (typeof answer === 'string' && answer.trim() === '') {
+      await prisma.answer.deleteMany({
+        where: {
+          qaSessionId: sessionId,
+          questionId,
+        },
+      });
+
+      return NextResponse.json({ success: true, deleted: true });
+    }
 
     const newAnswer = await prisma.answer.upsert({
       where: {

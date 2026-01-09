@@ -346,7 +346,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
             {renderField("education", "Ausbildung")}
             {renderField("currentJob", "Aktueller Beruf")}
             {renderField("industry", "Branche")}
-            {renderField("occupation", "Tätigkeit")}
+            {/*renderField("occupation", "Tätigkeit")*/}
 
             {/* Self-Employed Question */}
             <div className="w-full">

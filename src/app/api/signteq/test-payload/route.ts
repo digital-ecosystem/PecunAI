@@ -3,7 +3,7 @@ import axios from 'axios';
 import { CONFIG } from '@/config/constants';
 
 // You should store your SignTeq API token in environment variables
-const SIGNTEQ_API_TOKEN = process.env.SIGNTEQ_API_KEY || process.env.SIGNTEQ_API_TOKEN || '';
+const SIGNTEQ_API_TOKEN = process.env.SIGNTEQ_API_KEY || '';
 
 export async function POST(request: NextRequest) {
   try {

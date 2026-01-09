@@ -249,7 +249,7 @@ export default function InvestmentForm(
                   </td>
                   <td className="p-3 text-sm">
                     {suggestedProduct?.riskType === 'KONSERVATIV' ? 'Konservativ' :
-                      suggestedProduct?.riskType === 'AUSGEWOHGEN' ? 'Ausgewogen' : 'Gewinnorientiert'}
+                      suggestedProduct?.riskType === 'AUSGEWOGEN' ? 'Ausgewogen' : 'Gewinnorientiert'}
                   </td>
                   <td className="p-3 text-sm">
                     {suggestedProduct?.name || 'N/A'}
@@ -259,11 +259,11 @@ export default function InvestmentForm(
                   <td className="p-3 text-sm">
                     {/* Assuming SRI is derived from riskType for demonstration */}
                     {/* {suggestedProduct?.riskType === 'KONSERVATIV' ? 'Low' : 
-                     suggestedProduct?.riskType === 'AUSGEWOHGEN' ? 'Medium' : 'High'}     */}
+                     suggestedProduct?.riskType === 'AUSGEWOGEN' ? 'Medium' : 'High'}     */}
                     {suggestedProduct?.from}
                   </td>
                   <td className="p-3 text-sm">
-                    {suggestedProduct?.to}
+                    {suggestedProduct?.to === 7 ? (7 + '+') : suggestedProduct?.to}
                   </td>
                 </tr>
               </tbody>

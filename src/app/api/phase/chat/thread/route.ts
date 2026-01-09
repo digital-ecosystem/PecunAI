@@ -11,31 +11,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'qaSessionId is required' }, { status: 400 })
     }
 
-    // Check if session already exists
-    const existingSession = await prisma.thread.findUnique({
-      where: { qaSessionId: qaSessionId }
-    })
-
-    if (existingSession) {
-      return NextResponse.json({
-        message: 'Session already exists',
-        session: existingSession,
-        success: true
-      }, { status: 200 })
-    }
-
-    // Create new session
-    const newSession = await prisma.thread.create({
-      data: {
-        qaSessionId
-      }
+    // Idempotent + race-safe: multiple calls should return the same thread
+    const thread = await prisma.thread.upsert({
+      where: { qaSessionId },
+      update: {},
+      create: { qaSessionId },
     })
 
     return NextResponse.json({
-      message: 'Session created',
-      session: newSession,
+      message: 'Thread ready',
+      session: thread,
       success: true
-    }, { status: 201 })
+    }, { status: 200 })
 
   } catch (error) {
     console.error('Error in thread API:', error)

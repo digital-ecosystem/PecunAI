@@ -77,8 +77,8 @@ export async function GET(request: NextRequest) {
       case 'KONSERVATIV':
         riskType = 'KONSERVATIV';
         break;
-      case 'AUSGEWOHGEN':
-        riskType = 'AUSGEWOHGEN';
+      case 'AUSGEWOGEN':
+        riskType = 'AUSGEWOGEN';
         break;
       case 'GEWINNORIENTIERT':
         riskType = 'GEWINNORIENTIERT';
@@ -99,28 +99,28 @@ export async function GET(request: NextRequest) {
      * Maps unsupported Duration/Risk combinations to the nearest valid product criteria.
      */
 
-    // Case 1: 1-2 Years + Growth (GEWINNORIENTIERT) -> Remap to Balanced (AUSGEWOHGEN)
+    // Case 1: 1-2 Years + Growth (GEWINNORIENTIERT) -> Remap to Balanced (AUSGEWOGEN)
     // Target: VVKN2 (Balanced, 1-2y)
     if (durationValue >= 1 && durationValue <= 2 && riskType === 'GEWINNORIENTIERT') {
-      searchRisk = 'AUSGEWOHGEN';
+      searchRisk = 'AUSGEWOGEN';
       console.log('🔄 Remapping: 1-2y Growth -> Balanced');
     }
 
-    // Case 2: 3-4 Years + Conservative OR Growth -> Remap to Balanced (AUSGEWOHGEN)
+    // Case 2: 3-4 Years + Conservative OR Growth -> Remap to Balanced (AUSGEWOGEN)
     // Target: VVKN3 (Balanced, 3-4y)
     if (durationValue >= 3 && durationValue <= 4 && (riskType === 'KONSERVATIV' || riskType === 'GEWINNORIENTIERT')) {
-      searchRisk = 'AUSGEWOHGEN';
+      searchRisk = 'AUSGEWOGEN';
       console.log(`🔄 Remapping: 3-4y ${riskType} -> Balanced`);
     }
 
     // Case 3: 5-7 Years + Conservative -> Remap to Balanced and cap duration at 4
     // Target: VVKN3 (Balanced, 3-4y)
     if (durationValue >= 5 && durationValue <= 7 && riskType === 'KONSERVATIV') {
-      searchRisk = 'AUSGEWOHGEN';
+      searchRisk = 'AUSGEWOGEN';
       searchDuration = 4; // Force into VVKN3 range
       console.log('🔄 Remapping: 5-7y Conservative -> 4y Balanced');
     } else if (riskType === 'KONSERVATIV' && durationValue > 7) {
-      searchRisk = 'AUSGEWOHGEN';
+      searchRisk = 'AUSGEWOGEN';
       searchDuration = 4; // Force into VVKN3 range
       console.log('🔄 Remapping: 8-9y Conservative -> 4y Balanced');
     }
@@ -128,10 +128,10 @@ export async function GET(request: NextRequest) {
     // Case 4: 5-7 Years + Balanced -> Cap duration at 4
     // Target: VVKN3 (Balanced, 3-4y)
     // Note: If we had a 5-7y Balanced product, we wouldn't need this. Assuming VVKN3 is the intended fallback.
-    if (durationValue >= 5 && durationValue <= 7 && riskType === 'AUSGEWOHGEN') {
+    if (durationValue >= 5 && durationValue <= 7 && riskType === 'AUSGEWOGEN') {
       searchDuration = 4; // Force into VVKN3 range
       console.log('🔄 Remapping: 5-7y Balanced -> 4y Balanced');
-    } else if (riskType === 'AUSGEWOHGEN' && durationValue > 7) {
+    } else if (riskType === 'AUSGEWOGEN' && durationValue > 7) {
       searchDuration = 4; // Force into VVKN3 range
       console.log('🔄 Remapping: 8-9y Balanced -> 4y Balanced');
     }
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
     // Find products where the duration falls within their min/max year range
     const products = await prisma.product.findMany({
       where: {
-        riskType: searchRisk as 'KONSERVATIV' | 'AUSGEWOHGEN' | 'GEWINNORIENTIERT',
+        riskType: searchRisk as 'KONSERVATIV' | 'AUSGEWOGEN' | 'GEWINNORIENTIERT',
         AND: [
           {
             OR: [
@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
       from: bestProduct.minimumYear || 0,
       to: bestProduct.maximumYear || 100,
       risk: riskType === 'KONSERVATIV' ? 'Konservativ' :
-        riskType === 'AUSGEWOHGEN' ? 'Ausgewogen' : 'Gewinnorientiert',
+        riskType === 'AUSGEWOGEN' ? 'Ausgewogen' : 'Gewinnorientiert',
       riskType: bestProduct.riskType,
       aiSettings: bestProduct.aiSettings[0] || null,
       score: 100 // exact match
@@ -233,7 +233,7 @@ export async function GET(request: NextRequest) {
         from: p.minimumYear || 0,
         to: p.maximumYear || 100,
         risk: riskType === 'KONSERVATIV' ? 'Konservativ' :
-          riskType === 'AUSGEWOHGEN' ? 'Ausgewogen' : 'Gewinnorientiert',
+          riskType === 'AUSGEWOGEN' ? 'Ausgewogen' : 'Gewinnorientiert',
         riskType: p.riskType,
         aiSettings: p.aiSettings[0] || null,
         score: 90 // alternative match

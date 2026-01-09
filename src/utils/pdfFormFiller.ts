@@ -12,6 +12,28 @@ export interface PDFFormFillerOptions {
   debugMode?: boolean;
 }
 
+export interface suggestedProduct {
+  id: string;
+  shortName: string;
+  name: string;
+  sri: string;
+  maximumYear: number;
+  minimumYear: number;
+  startTime?: Date;
+}
+
+export interface Partner {
+  id: string;
+  email: string;
+  phone: string;
+  firstName: string;
+  lastName: string;
+  birthday: Date;
+  referralCode: string;
+  agentNumber: string;
+  isActive: boolean;
+}
+
 export interface UserInfo {
   firstName?: string;
   lastName?: string;
@@ -41,7 +63,7 @@ export interface UserInfo {
   actingFor?: string;
   iban?: string;
   country?: string;
-  bic?: string;
+  bic?: string | null;
   bankName?: string;
   isTaxResidentAT?: boolean;
   isTaxResidentOther?: boolean;
@@ -275,13 +297,18 @@ export class PDFFormFiller {
 /**
  * Helper function to create form data from user information
  */
-export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Record<number, AnswerWithOptions>, additionalData: FormFieldData = {}): FormFieldData {
+export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Record<number, AnswerWithOptions>, additionalData: FormFieldData = {}, suggestedProduct: suggestedProduct, partner: Partner): FormFieldData {
+  const date = new Date();
+  const sessionTime = new Date(suggestedProduct.startTime || Date.now());
   const formData: FormFieldData = {
     // Personal Information
     'vorname': userInfo.firstName || '',
     'nachname': userInfo.lastName || '',
-    'Name, Gebdatum': `${userInfo.firstName || ''} ${userInfo.lastName || ''} , ${userInfo.birthDate || ''}`,
+    'Name, Gebdatum': `${partner.firstName || ''} ${partner.lastName || ''} , ${formatGermanDate(partner.birthday)}`,
+    "vermittlerinnennummer": partner.agentNumber || '',
+    "vorname 159": partner.agentNumber || '',
 
+    
     "vorname 32": userInfo.firstName || '',
     "vorname 33": userInfo.lastName || '',
     "vorname 34": formatGermanDate(userInfo.birthDate),
@@ -298,9 +325,9 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
 
     "vorname 44": userInfo.education || '',
     "vorname 45": userInfo.currentJob || '',
-    "vorname 46": userInfo.occupation || '',
+    //"vorname 46": userInfo.occupation || '',
 
-    "vorname 47": userInfo.currentJob || '',
+    //"vorname 47": userInfo.currentJob || '',
     "vorname 48": userInfo.issuingAuthority || '',
     "vorname 49": userInfo.documentNumber || '',
     "vorname 50": formatGermanDate(userInfo.issuedOn),
@@ -372,7 +399,7 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     // Question 5
     "Kontrollkästchen 86": questionAnswers[5]?.selectedOption == "KONSERVATIV" || false,
     "Kontrollkästchen 87": questionAnswers[5]?.selectedOption == "GEWINNORIENTIERT" || false,
-    "Kontrollkästchen 88": questionAnswers[5]?.selectedOption == "AUSGEWOHGEN" || false,
+    "Kontrollkästchen 88": questionAnswers[5]?.selectedOption == "AUSGEWOGEN" || false,
 
     // "Kontrollkästchen 33": true,
     // "Kontrollkästchen 34": true,
@@ -404,6 +431,7 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     "vorname 12": manageAnswer(questionAnswers[6]),
     "vorname 13": manageAnswer(questionAnswers[8]),
     "vorname 14": manageAnswer(questionAnswers[7]),
+    "vorname 16": (parseInt(manageAnswer(questionAnswers[6])) - parseInt(manageAnswer(questionAnswers[7]))).toString() || '',
     "Kontrollkästchen 100": questionAnswers[19]?.selectedOption == "employment_income" ? true : false,
     "Kontrollkästchen 102": (questionAnswers[19]?.selectedOption == "savings" || questionAnswers[19]?.selectedOption == "pension" || questionAnswers[19]?.selectedOption == "sale_of_assets") ? true : false,
     "Kontrollkästchen 103": questionAnswers[19]?.selectedOption == "inheritance" ? true : false,
@@ -415,29 +443,28 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     "vorname 157": manageAnswer(questionAnswers[21]) || '',
 
     // "vorname 52": "vorname 52",
-    // "vorname 54": "vorname 54",
-    // "vorname 55": "vorname 55",
-    // "vorname 56": "vorname 56",
-    // "vorname 57": "vorname 57",
-    // "vorname 58": "vorname 58",
-    // "vorname 59": "vorname 59",
-    // "vorname 60": "vorname 60",
-    "vorname 158": "vorname 158",
+    "vorname 54": date.getDay().toString().padStart(2, '0'),
+    "vorname 55": (date.getMonth() + 1).toString().padStart(2, '0'),
+    "vorname 56": date.getFullYear().toString(),
+    "vorname 57": sessionTime.getMinutes().toString().padStart(2, '0'),
+    "vorname 58": sessionTime.getHours().toString().padStart(2, '0'),
+    "vorname 59": date.getMinutes().toString().padStart(2, '0'),
+    "vorname 60": date.getHours().toString().padStart(2, '0'),
+    "vorname 158": "online",
     "vorname 63": new Date().toLocaleDateString('de-DE'),
-    "vorname 159": `${userInfo.firstName} ${userInfo.lastName}, ${userInfo.countryCode || ''}${userInfo.phone || ''}` || '',
     // "vorname 62": "vorname 62",
     // "vorname 64": "vorname 64",
     // "vorname 65": "vorname 65",
     // "vorname 66": "vorname 66",
     // "vorname 67": "vorname 67",
     // "vorname 68": "vorname 68",
-    // "vorname 69": "vorname 69",
-    // "vorname 70": "vorname 70",
-    // "vorname 71": "vorname 71",
-    // "vorname 72": "vorname 72",
+    "vorname 69": suggestedProduct?.shortName || '',
+    "vorname 70": suggestedProduct?.name || '',
+    "vorname 71": suggestedProduct?.sri || '',
+    "vorname 72": suggestedProduct?.maximumYear === 7 ? "7+" : suggestedProduct?.maximumYear.toString() || '',
     // "vorname 73": "vorname 73",
     // "vorname 74": "vorname 74",
-    // "vorname 75": "vorname 75",
+    //"vorname 75": "75",
     // "vorname 76": "vorname 76",
     // "vorname 77": "vorname 77",
     // "vorname 78": "vorname 78",
@@ -459,7 +486,7 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     // "vorname 94": "vorname 94",
     // "vorname 95": "vorname 95",
     // "vorname 96": "vorname 96",
-    // "vorname 97": "vorname 97",
+    "vorname 97": "Wie empfanden",
     // "vorname 98": "vorname 98",
     // "vorname 99": "vorname 99",
     // "vorname 100": "vorname 100",
@@ -489,20 +516,20 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     // "vorname 124": "vorname 124",
     // "vorname 125": "vorname 125",
     // "vorname 126": "vorname 126",
-    // "vorname 127": "vorname 127",
-    // "vorname 128": "vorname 128",
-    // "vorname 129": "vorname 129",
+    "vorname 127": date.getDay().toString().padStart(2, '0'),
+    "vorname 128": (date.getMonth() + 1).toString().padStart(2, '0'),
+    "vorname 129": (date.getFullYear() % 100).toString().padStart(2, '0'),
     // "vorname 130": "vorname 130",
     // "vorname 131": "vorname 131",
     // "vorname 132": "vorname 132",
-    // "vorname 133": "vorname 133",
-    // "vorname 134": "vorname 134",
-    // "vorname 135": "vorname 135",
-    // "vorname 136": "vorname 136",
-    // "vorname 137": "vorname 137",
-    // "vorname 138": "vorname 138",
-    // "vorname 139": "vorname 139",
-    // "vorname 140": "vorname 140",
+    "vorname 133": date.getDay().toString().padStart(2, '0'),
+    "vorname 134": (date.getMonth() + 1).toString().padStart(2, '0'),
+    "vorname 135": date.getFullYear().toString(),
+    "vorname 136": sessionTime.getMinutes().toString().padStart(2, '0'),
+    "vorname 137": sessionTime.getHours().toString().padStart(2, '0'),
+    "vorname 138": date.getMinutes().toString().padStart(2, '0'),
+    "vorname 139": date.getHours().toString().padStart(2, '0'),
+    "vorname 140": "online",
     "vorname 141": new Date().toLocaleDateString('de-DE'),
     // "vorname 142": "vorname 142",
     // "vorname 143": "vorname 143",
@@ -513,6 +540,52 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     // "vorname 165": "vorname 165",
 
 
+    //checkboxes that always need to be checked
+    "Kontrollkästchen 107": true,
+
+    "Kontrollkästchen 374": true,
+
+    "Kontrollkästchen 462": true,
+
+    "Kontrollkästchen 450": true,
+    "Kontrollkästchen 451": true,
+    "Kontrollkästchen 452": true,
+    "Kontrollkästchen 453": true,
+    "Kontrollkästchen 454": true,
+    "Kontrollkästchen 455": true,
+    "Kontrollkästchen 456": true,
+    "Kontrollkästchen 457": true,
+    "Kontrollkästchen 458": true,
+    "Kontrollkästchen 459": true,
+    "Kontrollkästchen 460": true,
+    "Kontrollkästchen 461": true,
+    "Kontrollkästchen 512": true,
+    "Kontrollkästchen 513": true,
+
+    "Kontrollkästchen 466": true,
+    "Kontrollkästchen 467": true,
+
+    "Optionsfeld 294": true,
+    "Kontrollkästchen 397": true,
+    "Kontrollkästchen 398": true,
+    "Kontrollkästchen 399": true,
+    "Kontrollkästchen 400": true,
+    "Kontrollkästchen 401": true,
+    "Kontrollkästchen 402": true,
+    "Kontrollkästchen 403": true,
+
+    "Kontrollkästchen 405": true,
+    "Kontrollkästchen 408": true,
+    "Kontrollkästchen 409": true,
+    "Kontrollkästchen 410": true,
+
+    "Kontrollkästchen 411": true,
+    "Kontrollkästchen 412": true,
+    "Kontrollkästchen 413": true,
+    "Kontrollkästchen 414": true,
+
+    "Kontrollkästchen 417": true,
+    "Kontrollkästchen 436": true,
 
 
     // "Kontrollkästchen 33": true,
@@ -749,10 +822,12 @@ export async function fillPDFForm(
   userInfo: UserInfo,
   additionalData: FormFieldData = {},
   options: PDFFormFillerOptions = {},
-  questionAnswers: Record<number, AnswerWithOptions> = {}
+  questionAnswers: Record<number, AnswerWithOptions> = {},
+  suggestedProduct: suggestedProduct,
+  partner: Partner
 ): Promise<Buffer> {
   const filler = await PDFFormFiller.loadFromFile(pdfPath, options);
-  const formData = createFormDataFromUser(userInfo, questionAnswers, additionalData);
+  const formData = createFormDataFromUser(userInfo, questionAnswers, additionalData, suggestedProduct, partner);
 
   filler.fillForm(formData);
 
@@ -791,7 +866,7 @@ function formatGermanDate(dateInput?: string | Date) {
   if (!dateInput) return "";
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return "";
-  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+  return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
 }
 
 function formatCurrency(amount?: number | string) {
@@ -869,16 +944,16 @@ const getDynamicAnswer = (question: Question | undefined, answers: Record<string
   return answer;
 };
 
-const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => ({
+const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>, suggestedProduct: suggestedProduct, partner: Partner): FormFieldData => ({
   ...basePersonalFieldsDepoter(userInfo),
   ...baseAddressFields(userInfo),
   ...baseContactFields(userInfo),
   ...baseNationalityFields(userInfo),
   UserDoB: formatGermanDate(userInfo.birthDate),
   UserCityOfOrigin: userInfo.birthPlace || "",
-  UserProfession: userInfo.occupation || "",
+  UserProfession: userInfo.currentJob || "",
   UserSector: userInfo.industry || "",
-  GoalMonthlyPayment: formatCurrency(Number(getDynamicAnswer(questions[19], answers))),
+  GoalMonthlyPayment: formatCurrency(Number(getDynamicAnswer(questions[20], answers))),
   // Next Month From Today
   //NextMonthFromToday: getNextMonthFromToday(),
   //YearOfNextMonthFromToday: getNextMonthYear(),
@@ -898,8 +973,8 @@ const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[],
   CheckboxUserGenderFemale: userInfo.gender === "female" ? true : false,
   CheckboxUserSelfEmploymentStatus: userInfo.isSelfEmployed ? true : false,
   UserPepYes: userInfo.isPEP ? true : false,
-  AdvisorPhone: "06769061716",
-  AdvisorFullName: "14020007	ALEXANDER BRACIC",
+  AdvisorPhone: partner.phone || "",
+  AdvisorFullName: `${partner.agentNumber} ${partner.firstName} ${partner.lastName}` || "",
   UserAnnualIncome: formatCurrency(Number(getDynamicAnswer(questions[6], answers)) * 14),
 });
 
@@ -1096,7 +1171,7 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
   GoalTerm2: Number(getDynamicAnswer(questions[1], answers)) + " Jahre",
   UserDoB: formatGermanDate(userInfo.birthDate),
   UserCityOfOrigin: userInfo.birthPlace || "",
-  UserProfession: userInfo.occupation || "",
+  UserProfession: userInfo.currentJob || "",
   UserSector: userInfo.industry || "",
   UserEducation: userInfo.education || "",
 
@@ -1107,7 +1182,7 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
 
   GoalRiskScoreFrootsConservative: getDynamicAnswer(questions[4], answers, true) == "KONSERVATIV" ? true : false,
   GoalRiskScoreFrootsBalanced: getDynamicAnswer(questions[4], answers, true) == "GEWINNORIENTIERT" ? true : false,
-  GoalRiskScoreFrootsProfitOrientated: getDynamicAnswer(questions[4], answers, true) == "AUSGEWOHGEN" ? true : false,
+  GoalRiskScoreFrootsProfitOrientated: getDynamicAnswer(questions[4], answers, true) == "AUSGEWOGEN" ? true : false,
   UserReferenceAccountIban: userInfo.iban || "",
   ...initializeFinancialKnowledgeFields(questions, answers),
   UserMonthlyAvailableIncome: formatCurrency(Number(getDynamicAnswer(questions[5], answers))),
@@ -1133,7 +1208,7 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
   UserEsgIndex1: getDynamicAnswer(questions[3], answers),
 });
 
-const moneyProtokollMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => {
+const moneyProtokollMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>, suggestedProduct: suggestedProduct, partner: Partner): FormFieldData => {
   console.log("🚀 ~ moneyProtokollMapper ~ userInfo:", userInfo)
   const questionAnswers: Record<number, AnswerWithOptions> = {};
 
@@ -1147,11 +1222,11 @@ const moneyProtokollMapper = (userInfo: UserInfo, questions: Question[], answers
     }
   });
 
-  return createFormDataFromUser(userInfo, questionAnswers);
+  return createFormDataFromUser(userInfo, questionAnswers, {}, suggestedProduct, partner);
 };
 
 // Form mapper registry
-const FORM_MAPPERS: Record<string, (userInfo: UserInfo, questions: Question[], answers: Record<string, string>) => FormFieldData> = {
+const FORM_MAPPERS: Record<string, (userInfo: UserInfo, questions: Question[], answers: Record<string, string>, suggestedProduct: suggestedProduct, partner: Partner) => FormFieldData> = {
   "Depoteröffnungsantrag.pdf": depoteroeffnungsantragMapper,
   // Done
   "Deckblatt_Vertragspaket.pdf": deckblattVertragspaketMapper,
@@ -1162,7 +1237,7 @@ const FORM_MAPPERS: Record<string, (userInfo: UserInfo, questions: Question[], a
   // Done
   "Vermittlungsgebühr.pdf": vermittlungsgebuehrMapper,
   "Vermögensverwaltungsvertrag.pdf": vermoegensverwaltungsvertragMapper,
-  "4money_protokoll_PecunAI_v3.pdf": moneyProtokollMapper,
+  "4money_protokoll_PecunAI_v4.pdf": moneyProtokollMapper,
 };
 
 
@@ -1172,10 +1247,12 @@ export function createFormDataForContactForm(
   userInfo: UserInfo,
   fileName: string,
   questions: Question[],
-  answers: Record<string, string>
+  answers: Record<string, string>,
+  suggestedProduct: suggestedProduct,
+  partner: Partner
 ): FormFieldData {
   const mapper = FORM_MAPPERS[fileName];
-  return mapper ? mapper(userInfo, questions, answers) : {};
+  return mapper ? mapper(userInfo, questions, answers, suggestedProduct, partner) : {};
 }
 
 

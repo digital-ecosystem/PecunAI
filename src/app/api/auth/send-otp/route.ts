@@ -5,10 +5,12 @@ import { CustomError } from '@/lib/customError';
 // import { SessionStatus } from '@/types';
 
 const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
+  host: process.env.EMAIL_SMTP_HOST || 'relay382.mysmtp2.com',
+  port: parseInt(process.env.EMAIL_SMTP_PORT || '587'),
+  secure: false, // true for 465, false for other ports (587 uses STARTTLS)
   auth: {
-    user: process.env.EMAIL_SERVER_USER,
-    pass: process.env.EMAIL_SERVER_PASSWORD,
+    user: process.env.EMAIL_SMTP_USER,
+    pass: process.env.EMAIL_SMTP_PASSWORD,
   },
 });
 
@@ -85,7 +87,7 @@ export async function POST(request: Request) {
 
         // Send email
         await transporter.sendMail({
-          from: process.env.EMAIL_FROM,
+          from: `"4money" <${process.env.EMAIL_FROM || 'office@4money.at'}>`,
           to: normalizedEmail,
           subject: 'Ihr Verifizierungscode für den Onboarding-Prozess',
           html: `

@@ -835,7 +835,7 @@ export default function Chatbot({
               <div className="mt-2 sm:mt-2.5 px-1 sm:px-0 max-w-full">
                 <strong className="block text-gray-600 mb-1 text-xs sm:text-xs">Wichtiger Hinweis:</strong>
                 <p className={`text-xs sm:text-xs text-gray-500 text-start leading-relaxed ${!isDisclaimerExpanded ? 'line-clamp-2 sm:line-clamp-none' : ''}`}>
-                  Der digitale Assistent unterstützt Sie bei allen Fragen rund um Ihre Veranlagung und stellt Ihnen die relevanten Informationen bestmöglich zur Verfügung. Obwohl selbstverständlich alles daran gesetzt wird, Unschärfen zu vermeiden, können in Einzelfällen dennoch Ungenauigkeiten auftreten. Sämtliche Angaben und Empfehlungen werden am Ende von einem lizenzierten Vermögensberater überprüft und final bestätigt, daher werden allfällige Unklarheiten spätestens dann geklärt.
+                  Der digitale Assistent unterstützt Sie bei allen Fragen rund um Ihre Investition und stellt Ihnen die relevanten Informationen bestmöglich zur Verfügung. Obwohl selbstverständlich alles daran gesetzt wird, Unschärfen zu vermeiden, können in Einzelfällen dennoch Ungenauigkeiten auftreten. Sämtliche Angaben und Empfehlungen werden am Ende von einem Berater der 4money Financial Services überprüft. Sollten Angaben in diesem Chat ungenau oder inkorrekt gewesen sein, wird der Berater mit Ihnen zur Klarstellung Kontakt aufnehmen.
                 </p>
                 <button
                   type="button"

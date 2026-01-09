@@ -13,6 +13,9 @@ function CustomerLoginContent() {
     if (ref) {
       // Always overwrite the cookie with the new referral code
       document.cookie = `referral_code=${ref}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+
+      // Mark that we should auto-start a session after login
+      document.cookie = `autostart_session=1; path=/; max-age=${60 * 30}; SameSite=Lax`;
     }
   }, [searchParams]);
 

@@ -4,10 +4,12 @@ import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
+  host: process.env.EMAIL_SMTP_HOST || 'relay382.mysmtp2.com',
+  port: parseInt(process.env.EMAIL_SMTP_PORT || '587'),
+  secure: false, // true for 465, false for other ports (587 uses STARTTLS)
   auth: {
-    user: process.env.EMAIL_SERVER_USER,
-    pass: process.env.EMAIL_SERVER_PASSWORD,
+    user: process.env.EMAIL_SMTP_USER,
+    pass: process.env.EMAIL_SMTP_PASSWORD,
   },
 });
 
@@ -45,7 +47,7 @@ export async function PATCH(req: Request) {
     const email = updated.user.email;
 
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+      from: `"4money" <${process.env.EMAIL_FROM || 'office@4money.at'}>`,
       to: email, // or wherever you're getting the user's email
       subject: `Ihre QA-Sitzung wurde ${status === 'APPROVED' ? 'GENEHMIGT' : status === 'REJECTED' ? 'ABGELEHNT' : status}`, // e.g. APPROVED, REJECTED, etc.
       html: `

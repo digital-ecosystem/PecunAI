@@ -122,7 +122,7 @@ const buttonBackClass =
 
 // const riskMap: Record<string, string> = {
 //   KONSERVATIV: 'Konservativ',
-//   AUSGEWOHGEN: 'Ausgewogen',
+//   AUSGEWOGEN: 'Ausgewogen',
 //   GEWINNORIENTIERT: 'Gewinnorientiert',
 // };
 
@@ -205,9 +205,9 @@ const validationSchema = Yup.object({
     .min(2, "Branche muss mindestens 2 Zeichen lang sein")
     .required("Branche ist erforderlich"),
 
-  occupation: Yup.string()
-    .min(2, "Tätigkeit muss mindestens 2 Zeichen lang sein")
-    .required("Tätigkeit ist erforderlich"),
+  // occupation: Yup.string()
+  //   .min(2, "Tätigkeit muss mindestens 2 Zeichen lang sein")
+  //   .required("Tätigkeit ist erforderlich"),
 
   // documentType: Yup.string()
   //   .oneOf(
@@ -237,9 +237,9 @@ const validationSchema = Yup.object({
 
   country: Yup.string().required("Land ist erforderlich"),
 
-  bic: Yup.string()
-    .matches(/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/, "Ungültiges BIC-Format")
-    .required("BIC ist erforderlich"),
+  // bic: Yup.string()
+  //   .matches(/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/, "Ungültiges BIC-Format")
+  //   .required("BIC ist erforderlich"),
 
   bankName: Yup.string().required("Name der Bank ist erforderlich"),
 
@@ -302,8 +302,7 @@ export default function Stepper() {
   const [signingUrl, setSigningUrl] = useState<string | null>(null);
   // const [signTeqRequestId, setSignTeqRequestId] = useState<string | null>(null);
   // console.log("🚀 ~ Stepper ~ signTeqRequestId:", signTeqRequestId)
-  const [signTeqDocumentId, setSignTeqDocumentId] = useState<string | null>(null);
-  const [downloadedDocumentPath, setDownloadedDocumentPath] = useState<string | null>(null);
+  const [downloadedDocumentPath] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showDownloadPopup, setShowDownloadPopup] = useState(false);
   const [idvPdfBlob, setIdvPdfBlob] = useState<Blob | null>(null);
@@ -563,15 +562,35 @@ export default function Stepper() {
 
   // Convenience: (legacy single-question refs removed; use currentPageQuestions)
 
+  const isAnswerProvided = (value: unknown) => typeof value === 'string' && value.trim().length > 0;
+
   // Helper to check if the current page is fully answered and valid
+  // Special case: Q20 + Q21 -> at least one of them must be filled (either can be empty)
+  const pageQ20 = currentPageQuestions.find(q => q.questionOrder === 20);
+  const pageQ21 = currentPageQuestions.find(q => q.questionOrder === 21);
+  const hasQ20AndQ21OnPage = !!pageQ20 && !!pageQ21;
+  const hasEitherQ20OrQ21Answer = hasQ20AndQ21OnPage
+    ? (isAnswerProvided(answers[pageQ20!.id]) || isAnswerProvided(answers[pageQ21!.id]))
+    : false;
+
   const isCurrentPageValid = currentPageQuestions.length > 0 && currentPageQuestions.every((q) => {
     const answer = answers[q.id];
-    if (!answer) return false;
-    if (hasValidationError(q, answer)) return false;
-    /**
-     * Not need for now
-     */
-    // if (hasForbiddenSelection(q, answer)) return false;
+    const provided = isAnswerProvided(answer);
+
+    if (q.questionOrder === 20 || q.questionOrder === 21) {
+      if (hasQ20AndQ21OnPage) {
+        if (!hasEitherQ20OrQ21Answer) return false;
+        // If one of them is provided, the other may be empty
+        if (!provided) return true;
+      } else {
+        // Fallback: if only one is present on the page, keep it required
+        if (!provided) return false;
+      }
+    } else {
+      if (!provided) return false;
+    }
+
+    if (provided && hasValidationError(q, answer)) return false;
     return true;
   });
 
@@ -1423,20 +1442,21 @@ export default function Stepper() {
             // Set the appropriate sub-step for Phase 1
             if (phaseStep === 1) {
               if (data.currentPhase === 'TERMS1' || data.currentPhase === 'QUESTIONS1' || data.currentPhase === 'TERMS2' || data.currentPhase === 'QUESTIONS2') {
-                // setCurrentSubStep(data.currentPhase);
-                setCurrentSubStep('TERMS1'); // Default to first sub-step
+                setCurrentSubStep(data.currentPhase);
               } else {
                 setCurrentSubStep('TERMS1'); // Default to first sub-step
               }
             }
-            // Set the appropriate sub-step for Phase 5
-            else if (phaseStep > 4) {
-              // if (data.currentPhase === 'SIGN_DOCUMENT' || data.currentPhase === 'RESULT_PDF') {
-              //   setCurrentSubStep(data.currentPhase);
-              // } else {
-              //   setCurrentSubStep('SIGN_DOCUMENT'); // Default to first sub-step
-              // }
-              setStep(PHASES.PERSONAL_INFO);
+            // Set the appropriate sub-step for Phase 7
+            else if (phaseStep === 7) {
+              if (data.currentPhase === 'SIGN_DOCUMENT' || data.currentPhase === 'RESULT_PDF') {
+                setCurrentSubStep(data.currentPhase);
+              } else {
+                setCurrentSubStep('SIGN_DOCUMENT'); // Default to first sub-step
+              }
+            }
+            // For other phases (5, 6), clear sub-step
+            else {
               setCurrentSubStep('');
             }
           } else {
@@ -1565,6 +1585,7 @@ export default function Stepper() {
 
       fetchContractDocument();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, session_id, formik.values]);
 
   const onPersonalInfoSubmit = async (data: PersonalInfoFormData) => {
@@ -1883,59 +1904,6 @@ export default function Stepper() {
     setLoading(true);
 
     try {
-      // Helper function to read static PDF file and convert to base64
-      // const readStaticPDFToBase64 = async (pdfPath: string): Promise<string> => {
-      //   try {
-      //     // For files in public folder, use absolute path from public root
-      //     const response = await fetch(pdfPath);
-      //     if (!response.ok) {
-      //       throw new Error(`Failed to fetch PDF: ${response.statusText}`);
-      //     }
-      //     const arrayBuffer = await response.arrayBuffer();
-      //     const buffer = Buffer.from(arrayBuffer);
-      //     return buffer.toString('base64');
-      //   } catch (error) {
-      //     console.error('Error reading static PDF:', error);
-      //     throw error;
-      //   }
-      // };
-
-      // api call to fill the dynamic fields and create pdf for signing
-      // const responsePDF = await fetch('/api/pdf-form-fill', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     userInfo: formik.values,
-      //     sessionId: session_id,
-      //     options: {
-      //       flattenForm: true,
-      //       debugMode: true // Enable debug mode to save a copy for inspection
-      //     },
-      //     questionAnswers: answersByIndex,
-      //     additionalData: {
-      //       "vorname 69": suggestedProduct?.fullName || '',
-      //       "vorname 97": suggestedProduct?.fullName || '',
-      //     }
-      //   }),
-      // });
-
-      // if (!responsePDF.ok) {
-      //   throw new Error(`PDF API Error: ${responsePDF.status} ${responsePDF.statusText}`);
-      // }
-
-      // const dataPDF = await responsePDF.json();
-      // console.log("🚀 ~ generatePDF ~ dataPDF:", dataPDF)
-
-      // if (!dataPDF.success || !dataPDF.finalPath) {
-      //   const errorMsg = dataPDF.error || 'Failed to fill PDF form';
-      //   console.error('❌ PDF Form Fill Error:', errorMsg);
-      //   throw new Error(`PDF-Formular konnte nicht ausgefüllt werden: ${errorMsg}`);
-      // }
-
-      // const publicPdfBase64 = await readStaticPDFToBase64(dataPDF.finalPath);
-      // console.log("🚀 ~ generatePDF ~ publicPdfBase64:", publicPdfBase64)
 
       const finalMergeResponse = await fetch('/api/documents/merge', {
         method: 'POST',
@@ -1958,8 +1926,8 @@ export default function Stepper() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          subject: 'Test Document Signature',
-          documentName: 'test_document.pdf',
+          subject: 'Dokument zur Unterschrift',
+          documentName: `document-${session_id}.pdf`,
           documentBase64: finalMergeRes?.mergedPdfBase64 || '', // Use the filled PDF instead of the static one
           recipientEmail: formik.values.email,
           recipientName: `${formik.values.firstName} ${formik.values.lastName}`,
@@ -1982,10 +1950,6 @@ export default function Stepper() {
       if (data.success && data.signing_url) {
         setSigningUrl(data.signing_url);
         // setSignTeqRequestId(data.id);
-        // Extract document ID from the response data
-        if (data.data && data.data.documents && data.data.documents[0]) {
-          setSignTeqDocumentId(data.data.documents[0].id);
-        }
         console.log('✅ SignTeq session created successfully');
       } else {
         // Handle API errors with detailed messages
@@ -2026,64 +1990,10 @@ export default function Stepper() {
     setLoading(true);
 
     try {
-      // Download the signed document if we have the document ID
-      if (signTeqDocumentId) {
-        // console.log('📄 Downloading signed document...', signTeqDocumentId);
-
-        const downloadResponse = await fetch(
-          `/api/signteq/documents/${signTeqDocumentId}/download?type=completed`
-        );
-        // console.log("🚀 ~ handleSigningSuccess ~ downloadResponse:", downloadResponse)
-
-        if (!downloadResponse.ok) {
-          throw new Error(`Download failed: ${downloadResponse.status} ${downloadResponse.statusText}`);
-        }
-
-        const downloadData = await downloadResponse.json();
-
-        // console.log('Download Response:', {
-        //   success: downloadData.success,
-        //   hasBase64: !!downloadData.base64,
-        //   error: downloadData.error
-        // });
-
-        if (downloadData.success && downloadData.base64) {
-          // Save the downloaded document
-          const saveResponse = await fetch('/api/signteq/save-document', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              base64Data: downloadData.base64,
-              filename: `signed_document_${session_id}.pdf`,
-              sessionId: session_id,
-              documentId: signTeqDocumentId,
-            }),
-          });
-
-          if (!saveResponse.ok) {
-            throw new Error(`Save failed: ${saveResponse.status} ${saveResponse.statusText}`);
-          }
-
-          const saveData = await saveResponse.json();
-
-          if (saveData.success) {
-            setDownloadedDocumentPath(saveData.path);
-            // console.log('✅ Document saved successfully:', saveData.path);
-          } else {
-            const errorMsg = saveData.error || 'Failed to save document';
-            console.error('❌ Failed to save document:', errorMsg);
-            throw new Error(`Dokument konnte nicht gespeichert werden: ${errorMsg}`);
-          }
-        } else {
-          const errorMsg = downloadData.error || 'Failed to download document';
-          console.error('❌ Failed to download document:', errorMsg);
-          throw new Error(`Dokument konnte nicht heruntergeladen werden: ${errorMsg}`);
-        }
-      } else {
-        console.warn('⚠️ No document ID available for download');
-      }
+      // NOTE: We no longer download here.
+      // The document is only downloadable after all recipients have signed.
+      // SignTeq will notify our webhook (/api/webhook/signteq) with event=document_completed,
+      // and the backend will download+save the PDF then.
 
       // Update session status
       const statusResponse = await fetch('/api/user/update-status', {
@@ -2105,10 +2015,6 @@ export default function Stepper() {
 
     } catch (error) {
       console.error('❌ Error in post-signing process:', error);
-
-      // Show error to user but still redirect since signing was completed
-      const errorMsg = error instanceof Error ? error.message : 'Ein Fehler ist aufgetreten';
-      alert(`Warnung: ${errorMsg}\n\nDie Signatur wurde erfolgreich abgeschlossen, aber es gab ein Problem beim Speichern des Dokuments.`);
 
       setSuccess(true); // Still mark as success since signing completed
 

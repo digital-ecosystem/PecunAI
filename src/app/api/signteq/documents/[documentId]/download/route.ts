@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { CONFIG } from '@/config/constants';
 
-const SIGNTEQ_API_TOKEN = process.env.SIGNTEQ_API_KEY || process.env.SIGNTEQ_API_TOKEN || '';
+const SIGNTEQ_API_TOKEN = process.env.SIGNTEQ_API_KEY || '';
 
 export async function GET(
   request: NextRequest,

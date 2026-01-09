@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createFormDataForContactForm, PDFFormFiller } from '@/utils/pdfFormFiller';
+import { createFormDataForContactForm, PDFFormFiller, suggestedProduct, Partner } from '@/utils/pdfFormFiller';
+import { prisma } from '@/lib/prisma';
 import path from 'path';
 
 export async function POST(request: NextRequest) {
@@ -15,13 +16,6 @@ export async function POST(request: NextRequest) {
       sessionId,
     } = body;
 
-    // if (!pdfFileNames || pdfFileNames.length === 0) {
-    //     return NextResponse.json(
-    //         { success: false, error: 'PDF files are required' },
-    //         { status: 400 }
-    //     );
-    // }
-
     const pdfFileNames = [
       "Deckblatt_Vertragspaket.pdf",
       "Depoteröffnungsantrag.pdf",
@@ -30,7 +24,7 @@ export async function POST(request: NextRequest) {
       "Vermittlungsgebühr.pdf",
       "Vermögensverwaltungsvertrag.pdf",
       "Froots_Allgemeine_Informationsbroschüren.pdf",
-      "4money_protokoll_PecunAI_v3.pdf"
+      "4money_protokoll_PecunAI_v4.pdf"
     ];
 
     const finalPdfPaths: string[] = [];
@@ -49,6 +43,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // fetch session to verify it exists
+    const session = await prisma.qASession.findUnique({
+      where: { id: sessionId },
+      include: { 
+        partner: true,
+        productSuggestions: { include: { product: true } }
+      }
+    });
+
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Ungültige Sitzungs-ID' },
+        { status: 404 }
+      );
+    }
+
+
+    const suggestedProductData: suggestedProduct = {
+      id: session?.productSuggestions?.product?.id || '',
+      shortName: session?.productSuggestions?.product?.shortName || '',
+      name: session?.productSuggestions?.product?.name || '',
+      sri: session?.productSuggestions?.product?.sri || '',
+      maximumYear: session?.productSuggestions?.product?.maximumYear || 0,
+      minimumYear: session?.productSuggestions?.product?.minimumYear || 0,
+      startTime: session?.createdAt || '',
+    }
+
+    console.log("🚀 ~ POST ~ suggestedProductData:", suggestedProductData)
+
+    const partner: Partner = {
+      id: session.partner.id,
+      email: session.partner.email,
+      phone: session.partner.phone,
+      firstName: session.partner.firstName,
+      lastName: session.partner.lastName,
+      birthday: session.partner.birthday,
+      referralCode: session.partner.referralCode,
+      agentNumber: session.partner.agentNumber,
+      isActive: session.partner.isActive,
+    }
+    
     // PDF File Names is an array, join to create path
     for (const pdfFileName of pdfFileNames) {
       if (typeof pdfFileName !== 'string' || pdfFileName.trim() === '') {
@@ -62,7 +97,7 @@ export async function POST(request: NextRequest) {
       // Use provided path or default to the static PDF
       const finalPdfPath = path.join(process.cwd(), "public/static-pdf/" + pdfFileName);
 
-      console.log('📄 Filling PDF form:', finalPdfPath);
+      //console.log('📄 Filling PDF form:', finalPdfPath);
 
       // Load and fill the PDF
       const filler = await PDFFormFiller.loadFromFile(finalPdfPath, options);
@@ -73,8 +108,8 @@ export async function POST(request: NextRequest) {
         console.log('📝 Loaded form fields:', JSON.stringify(fieldNames));
       }
 
-      // Create form data from user info
-      const formData = createFormDataForContactForm(userInfo, pdfFileName, questions, answers);
+      // Create form data from user info with product information
+      const formData = createFormDataForContactForm(userInfo, pdfFileName, questions, answers, suggestedProductData, partner);
 
       // Fill the form
       filler.fillForm(formData);

@@ -3,9 +3,10 @@ import axios from 'axios';
 import { logger } from "@/lib/logger";
 import { handleApiError } from "@/lib/api-error";
 import { CONFIG } from "@/config/constants";
+import { prisma } from '@/lib/prisma';
 
 // You should store your SignTeq API token in environment variables
-const SIGNTEQ_API_TOKEN = process.env.SIGNTEQ_API_KEY || process.env.SIGNTEQ_API_TOKEN || '';
+const SIGNTEQ_API_TOKEN = process.env.SIGNTEQ_API_KEY || '';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
       documentBase64,
       recipientEmail,
       recipientName,
-      //   sessionId 
+      sessionId,
       signDSessionData,
     } = body;
     logger.debug("SignD session data:", signDSessionData);
@@ -43,6 +44,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!sessionId) {
+      return NextResponse.json(
+        { success: false, error: 'sessionId ist erforderlich' },
+        { status: 400 }
+      );
+    }
+
     // Ensure base64 data doesn't have data URL prefix
     let cleanBase64 = documentBase64;
     if (documentBase64.startsWith('data:')) {
@@ -62,13 +70,10 @@ export async function POST(request: NextRequest) {
         redirect_success_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/customer/success`,
         redirect_error_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/customer/error`
       },
-      // Meta information can be added here if needed - Right Check
-      // ...((signDSessionData.session_token && signDSessionData.id) && {
-      //   meta: {
-      //     session_token: signDSessionData.session_token,
-      //     session_id: signDSessionData.id,
-      //   },
-      // }),
+      // This meta is echoed back by SignTeq in webhooks so we can map events to our session.
+      meta: {
+        qaSessionId: sessionId,
+      },
       documents: [
         {
           name: documentName || "document.pdf",
@@ -84,6 +89,17 @@ export async function POST(request: NextRequest) {
               required: true,
               read_only: false,
               recipient_id: "1"
+            },
+            {
+              page: 1,
+              type: process.env.NEXT_PUBLIC_ENV === "production" ? "custom-stamp" : "signature",
+              width: 250,
+              height: 100,
+              x: 500,
+              y: 1300,
+              required: true,
+              read_only: false,
+              recipient_id: "2"
             },
             // {
             //   page: 24,
@@ -110,16 +126,28 @@ export async function POST(request: NextRequest) {
           ]
         }
       ],
-      recipients: [{
+      recipients: [
+        {
         id: "1",
         type: "signatory",
         email: recipientEmail,
         name: recipientName,
         do_not_notify: true,
-        language: "en",
+        language: "de",
         // QES - Right Check
         qes: process.env.NEXT_PUBLIC_ENV === "production" ? true : false
-      }]
+      },
+      {
+        id: "2",
+        type: "signatory",
+        email: "bassembinmahdi@gmail.com",
+        name: "bassem mahdi",
+        do_not_notify: false,
+        language: "de",
+        // QES - Right Check
+        qes: process.env.NEXT_PUBLIC_ENV === "production" ? true : false
+      }
+    ]
     };
     // Log the exact payload structure for debugging
     // console.log("🚀 ~ POST ~ payload structure:", {
@@ -161,6 +189,38 @@ export async function POST(request: NextRequest) {
 
     const data = response.data;
     logger.debug("SignTeq response data:", data);
+
+    // Persist mapping (best-effort). This enables webhook processing and troubleshooting.
+    try {
+      const documentId = data?.documents?.[0]?.id as string | undefined;
+      const requestId = data?.id as string | undefined;
+
+      if (requestId || documentId) {
+        const existing = await prisma.sessionWorkflowState.findUnique({
+          where: { qaSessionId: sessionId },
+          select: { stepData: true },
+        });
+
+        const existingStepData = (existing?.stepData ?? {}) as Record<string, unknown>;
+        const mergedStepData = {
+          ...existingStepData,
+          signteq: {
+            requestId,
+            documentId,
+            status: 'REQUEST_CREATED',
+            updatedAt: new Date().toISOString(),
+          },
+        };
+
+        await prisma.sessionWorkflowState.upsert({
+          where: { qaSessionId: sessionId },
+          create: { qaSessionId: sessionId, stepData: mergedStepData },
+          update: { stepData: mergedStepData },
+        });
+      }
+    } catch (err) {
+      logger.warn('Could not persist SignTeq mapping (continuing):', err);
+    }
 
     logger.info('SignTeq request created successfully:', {
       id: data.id,

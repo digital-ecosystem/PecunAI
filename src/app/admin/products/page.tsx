@@ -26,7 +26,7 @@ interface Product {
   fileName: string | null;
   minimumYear: number | null;
   maximumYear: number | null;
-  riskType: 'KONSERVATIV' | 'AUSGEWOHGEN' | 'GEWINNORIENTIERT' | null;
+  riskType: 'KONSERVATIV' | 'AUSGEWOGEN' | 'GEWINNORIENTIERT' | null;
   createdAt: string;
   updatedAt: string;
   _count: {
@@ -129,7 +129,7 @@ const ProductsPage = () => {
   // Risk type mapping to German
   const riskMap: Record<string, string> = {
     KONSERVATIV: 'Konservativ',
-    AUSGEWOHGEN: 'Ausgewogen',
+    AUSGEWOGEN: 'Ausgewogen',
     GEWINNORIENTIERT: 'Gewinnorientiert',
   };
 
@@ -137,7 +137,7 @@ const ProductsPage = () => {
   const getRiskTypeColor = (riskType: string | null) => {
     switch (riskType) {
       case 'KONSERVATIV': return 'bg-green-100 text-green-800';
-      case 'AUSGEWOHGEN': return 'bg-yellow-100 text-yellow-800';
+      case 'AUSGEWOGEN': return 'bg-yellow-100 text-yellow-800';
       case 'GEWINNORIENTIERT': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -243,7 +243,7 @@ const ProductsPage = () => {
                 >
                   <option value="all">Alle Risikotypen</option>
                   <option value="KONSERVATIV">Konservativ</option>
-                  <option value="AUSGEWOHGEN">Ausgewogen</option>
+                  <option value="AUSGEWOGEN">Ausgewogen</option>
                   <option value="GEWINNORIENTIERT">Gewinnorientiert</option>
                 </select>
               </div>

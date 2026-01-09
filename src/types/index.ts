@@ -132,7 +132,7 @@ export interface PersonalInfoFormData {
   issuedOn: string;
   validUntil: string;
   iban: string;
-  bic: string;
+  bic: string | null;
   bankName: string;
   isPEP: boolean | null;
   isTaxResidentAT: boolean | null;
@@ -181,6 +181,6 @@ export interface Answer {
 
 export enum RiskType {
   KONSERVATIV = "KONSERVATIV",
-  AUSGEWOHGEN = "AUSGEWOHGEN",
+  AUSGEWOGEN = "AUSGEWOGEN",
   GEWINNORIENTIERT = "GEWINNORIENTIERT"
 }

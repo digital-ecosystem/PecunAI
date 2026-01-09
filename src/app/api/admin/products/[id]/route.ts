@@ -10,7 +10,7 @@ const productUpdateSchema = z.object({
   fileName: z.string().optional(),
   minimumYear: z.number().int().min(0).max(1000).optional(),
   maximumYear: z.number().int().min(0).max(1000).optional(),
-  riskType: z.enum(['KONSERVATIV', 'AUSGEWOHGEN', 'GEWINNORIENTIERT']).optional(),
+  riskType: z.enum(['KONSERVATIV', 'AUSGEWOGEN', 'GEWINNORIENTIERT']).optional(),
   aiModel: z.string().min(1, 'KI-Modell ist erforderlich').optional(),
   aiPrompt: z.string().min(1, 'KI-Prompt ist erforderlich').optional(),
   firstMessage: z.string().min(1, 'Erste Nachricht ist erforderlich'),

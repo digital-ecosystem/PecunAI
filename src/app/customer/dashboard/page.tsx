@@ -6,6 +6,14 @@ import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import { Session, SessionStatus, User } from '@/types';
 import { Ban, CheckCircle, Clock, FileText, Hourglass, LogOut } from 'lucide-react';
+import {
+    Drawer,
+    DrawerContent,
+    DrawerDescription,
+    DrawerFooter,
+    DrawerHeader,
+    DrawerTitle,
+} from '@/components/ui/drawer';
 
 const Dashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -14,12 +22,37 @@ const Dashboard = () => {
     const [sessions, setSessions] = useState<Session[]>([]);
     const router = useRouter();
     const [loading, setLoading] = useState<boolean>(false);
+    const [isStartDrawerOpen, setIsStartDrawerOpen] = useState(false);
+    const [partnerCode, setPartnerCode] = useState('');
+    const [partnerLookupLoading, setPartnerLookupLoading] = useState(false);
+    const [partnerLookupError, setPartnerLookupError] = useState<string | null>(null);
+    const [partnerPreview, setPartnerPreview] = useState<{
+        id: string;
+        firstName: string;
+        lastName: string;
+        email: string;
+        referralCode: string;
+    } | null>(null);
+    const [startError, setStartError] = useState<string | null>(null);
+    const [didAutostart, setDidAutostart] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
     const [totalPages, setTotalPages] = useState(0);
     const [totalCount, setTotalCount] = useState(0);
     const [isLoadingSessions, setIsLoadingSessions] = useState(false);
     const [allSessionsForStats, setAllSessionsForStats] = useState<Session[]>([]);
+
+    const getCookieValue = (name: string) => {
+        if (typeof document === 'undefined') return '';
+        const match = document.cookie.match(new RegExp(`(?:^|; )${name.replace(/([.$?*|{}()\[\]\\\/\+^])/g, '\\$1')}=([^;]*)`));
+        return match ? decodeURIComponent(match[1]) : '';
+    };
+
+    const openSession = allSessionsForStats.find(
+        s => s.status === SessionStatus.DRAFT
+    );
+
+    console.log('🚀 ~ Dashboard ~ openSession:', allSessionsForStats);
     useEffect(() => {
         // Fetch login user
         const fetchUser = async () => {
@@ -143,40 +176,107 @@ const Dashboard = () => {
         }
     }
 
-    const handleStartNow = async () => {
-        // start loading
-        if (!user) {
-            console.log('User not found');
-            return;
-        }
-
+    const startSession = async (opts?: { partnerCode?: string }) => {
+        setStartError(null);
         setLoading(true);
 
+        let didNavigate = false;
+
         try {
-            const response = await fetch('/api/qa-session/create/', {
+            const response = await fetch('/api/qa-session/create', {
                 method: 'POST',
-                body: JSON.stringify({ userId: user?.id }),
+                body: JSON.stringify(opts?.partnerCode ? { partnerCode: opts.partnerCode } : {}),
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
+
             const res = await response.json();
-            if (res?.success) {
-                console.log("🚀 ~ handleStartNow ~ res:", res.session.id)
+
+            if (res?.success && res?.session?.id) {
+                setIsStartDrawerOpen(false);
+                didNavigate = true;
                 router.push('/customer/stepper/' + res.session.id);
-                // router.push('/customer/phase/' + res.session.id);
-                // customer/stepper
+                return;
+            }
+
+            if (response.status === 409 && res?.sessionId) {
+                setIsStartDrawerOpen(true);
+            }
+
+            if (res?.error === 'PARTNER_REQUIRED' || res?.error === 'PARTNER_INVALID') {
+                setIsStartDrawerOpen(true);
+            }
+
+            setStartError(res?.message || 'Sitzung konnte nicht erstellt werden');
+        } catch (error) {
+            console.log('error : ', error)
+            setStartError('Sitzung konnte nicht erstellt werden');
+        } finally {
+            if (!didNavigate) {
+                setLoading(false);
+            }
+        }
+    };
+
+    const handleLookupPartner = async () => {
+        const code = partnerCode.trim();
+        if (!code) return;
+
+        setPartnerLookupError(null);
+        setPartnerPreview(null);
+        setPartnerLookupLoading(true);
+
+        try {
+            const response = await fetch(`/api/partner/lookup?code=${encodeURIComponent(code)}`);
+            const data = await response.json();
+
+            if (data?.success && data?.partner) {
+                setPartnerPreview(data.partner);
             } else {
-                console.log('Failed to create session:', res.message);
+                setPartnerLookupError(data?.message || 'Partner nicht gefunden');
             }
         } catch (error) {
             console.log('error : ', error)
+            setPartnerLookupError('Partner konnte nicht abgerufen werden');
         } finally {
-            setTimeout(() => {
-                setLoading(false);
-            }, 3000);
+            setPartnerLookupLoading(false);
         }
-    }
+    };
+
+    const handleStartNow = async () => {
+        setStartError(null);
+        setPartnerLookupError(null);
+
+        if (openSession?.id) {
+            setIsStartDrawerOpen(true);
+            setStartError('Sie haben bereits eine offene Beratung. Bitte zuerst abschließen.');
+            return;
+        }
+
+        const referralCode = getCookieValue('referral_code');
+        if (referralCode) {
+            await startSession();
+            return;
+        }
+
+        setIsStartDrawerOpen(true);
+    };
+
+    // Auto-start after login when user came via partner link
+    useEffect(() => {
+        if (!user || didAutostart) return;
+        const shouldAutostart = getCookieValue('autostart_session') === '1';
+        if (!shouldAutostart) return;
+        setDidAutostart(true);
+        if (openSession?.id) {
+            setIsStartDrawerOpen(true);
+            setStartError('Sie haben bereits eine offene Beratung. Bitte zuerst abschließen.');
+            return;
+        }
+        startSession();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, didAutostart]);
 
     return (
         <>
@@ -247,6 +347,103 @@ const Dashboard = () => {
 
                             {/* Main Content */}
                             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+                                <Drawer open={isStartDrawerOpen} onOpenChange={setIsStartDrawerOpen}>
+                                    <DrawerContent>
+                                        <div className="mx-auto w-full max-w-2xl">
+                                            <DrawerHeader className="pb-2">
+                                                <DrawerTitle>Beratung beginnen</DrawerTitle>
+                                                <DrawerDescription>
+                                                    Für eine neue Beratung wird ein Partner benötigt.
+                                                </DrawerDescription>
+                                                {startError && (
+                                                    <p className="mt-2 text-sm text-red-600">{startError}</p>
+                                                )}
+                                            </DrawerHeader>
+
+                                            <div className="px-4 pb-4">
+                                            {openSession?.id ? (
+                                                <div className="flex flex-col gap-3">
+                                                    <p className="text-sm text-gray-700">
+                                                        Sie haben bereits eine offene Beratung. Bitte zuerst abschließen.
+                                                    </p>
+                                                    <button
+                                                        onClick={() => router.push('/customer/stepper/' + openSession.id)}
+                                                        className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                                    >
+                                                        Fortsetzen
+                                                    </button>
+                                                </div>
+                                            ) : getCookieValue('referral_code') ? (
+                                                <div className="flex flex-col gap-3">
+                                                    <p className="text-sm text-gray-700">Partner-Link erkannt. Sie können direkt starten.</p>
+                                                    <button
+                                                        onClick={() => startSession()}
+                                                        className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                                    >
+                                                        Starten
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <p className="text-sm text-gray-700">Bitte geben Sie den Partner-Code ein:</p>
+
+                                                    <div className="mt-3 flex flex-col sm:flex-row gap-3">
+                                                        <input
+                                                            value={partnerCode}
+                                                            onChange={(e) => setPartnerCode(e.target.value)}
+                                                            placeholder="Partner-Code"
+                                                            className="h-11 w-full px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        />
+                                                        <button
+                                                            onClick={handleLookupPartner}
+                                                            disabled={partnerLookupLoading || !partnerCode.trim()}
+                                                            className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${partnerLookupLoading || !partnerCode.trim()
+                                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                                                                }`}
+                                                        >
+                                                            {partnerLookupLoading ? 'Prüfe...' : 'Prüfen'}
+                                                        </button>
+                                                    </div>
+
+                                                    {partnerLookupError && (
+                                                        <p className="mt-2 text-sm text-red-600">{partnerLookupError}</p>
+                                                    )}
+
+                                                    {partnerPreview && (
+                                                        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                                            <p className="text-sm text-gray-700">
+                                                                <span className="font-medium">Partner:</span> {partnerPreview.firstName} {partnerPreview.lastName}
+                                                            </p>
+                                                            <p className="text-sm text-gray-700">
+                                                                <span className="font-medium">E-Mail:</span> {partnerPreview.email}
+                                                            </p>
+                                                            <div className="mt-3">
+                                                                <button
+                                                                    onClick={() => startSession({ partnerCode: partnerPreview.referralCode })}
+                                                                    className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                                                >
+                                                                    Weiter
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            </div>
+
+                                            <DrawerFooter className="pt-2">
+                                                <button
+                                                    onClick={() => setIsStartDrawerOpen(false)}
+                                                    className="w-full px-4 py-2.5 bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 rounded-lg transition-colors text-sm font-medium"
+                                                >
+                                                    Schließen
+                                                </button>
+                                            </DrawerFooter>
+                                        </div>
+                                    </DrawerContent>
+                                </Drawer>
 
                                 {/* Stats Cards */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
@@ -566,21 +763,21 @@ const Dashboard = () => {
                             {/* Floating Action Button */}
                             <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
                                 <button
-                                    onClick={handleStartNow}
+                                    onClick={openSession?.id ? () => router.push('/customer/stepper/' + openSession.id) : handleStartNow}
                                     className={
                                         'px-4 py-3 sm:px-6 sm:py-3 rounded-full shadow-lg transition-all duration-200 text-sm sm:text-base font-medium ' +
-                                        (allSessionsForStats.filter(s => s.status === SessionStatus.DRAFT).length === 0
+                                        (!openSession?.id
                                             ? 'cursor-pointer bg-blue-600 text-white hover:bg-blue-700 hover:shadow-xl transform hover:scale-105'
-                                            : 'bg-blue-300 text-white cursor-not-allowed opacity-60')
+                                            : 'cursor-pointer bg-blue-600 text-white hover:bg-blue-700 hover:shadow-xl transform hover:scale-105')
                                     }
-                                    disabled={allSessionsForStats.filter(s => s.status === SessionStatus.DRAFT).length !== 0}
+                                    disabled={false}
                                 >
                                     <span className="flex items-center space-x-2">
                                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                         </svg>
-                                        <span className="hidden sm:inline">Jetzt starten</span>
-                                        <span className="sm:hidden">Start</span>
+                                        <span className="hidden sm:inline">{openSession?.id ? 'Beratung fortsetzen' : 'Beratung beginnen'}</span>
+                                        <span className="sm:hidden">{openSession?.id ? 'Weiter' : 'Start'}</span>
                                     </span>
                                 </button>
                             </div>

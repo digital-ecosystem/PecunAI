@@ -31,7 +31,7 @@ model Admin {
   lastName    String
   birthday    DateTime? @db.Date
   agentNumber String?
-  password    String    // Hashed password
+  password    String // Hashed password
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -42,11 +42,12 @@ model Admin {
 model Partner {
   id           String      @id @default(cuid())
   email        String      @unique
+  phone        String
   firstName    String
   lastName     String
-  birthday     DateTime?   @db.Date
-  agentNumber  String?
-  password     String      // Hashed password
+  birthday     DateTime    @db.Date
+  agentNumber  String
+  password     String
   referralCode String      @unique // Unique code like "PARTNER123"
   isActive     Boolean     @default(true)
   createdAt    DateTime    @default(now())
@@ -58,17 +59,17 @@ model Partner {
 }
 
 model OTP {
-  id                  String    @id @default(cuid())
-  email               String    @unique
-  code                String
-  attempts            Int       @default(0)
-  used                Boolean   @default(false)
-  blockedUntil        DateTime?
-  createdAt           DateTime  @default(now())
-  expiresAt           DateTime
-  resendCount         Int       @default(0)
-  resendWindowStart   DateTime  // Explicit window start for resend rate limit
-  user                User      @relation(fields: [email], references: [email], onDelete: Cascade)
+  id                String    @id @default(cuid())
+  email             String    @unique
+  code              String
+  attempts          Int       @default(0)
+  used              Boolean   @default(false)
+  blockedUntil      DateTime?
+  createdAt         DateTime  @default(now())
+  expiresAt         DateTime
+  resendCount       Int       @default(0)
+  resendWindowStart DateTime // Explicit window start for resend rate limit
+  user              User      @relation(fields: [email], references: [email], onDelete: Cascade)
 
   @@map("otps")
 }
@@ -92,13 +93,12 @@ model QASession {
   updatedAt          DateTime                  @updatedAt
   userId             String
   status             SessionStatus?            @default(DRAFT)
-  // Partner referral tracking
-  partnerId          String?                   
-  referralCode       String?                   
+  partnerId          String
+  referralCode       String
   answers            Answer[]
   personalInfo       PersonalInfo?
   user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  partner            Partner?                  @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  partner            Partner                   @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   auditLogs          SessionAuditLog?
   productSuggestions SessionProductSuggestion?
   termsAcceptance    SessionTermsAcceptance[]
@@ -128,6 +128,7 @@ model Product {
   createdAt          DateTime                   @default(now())
   fileName           String?
   shortName          String?
+  sri                String?
   updatedAt          DateTime                   @updatedAt
   maximumYear        Int?
   minimumYear        Int?
@@ -139,19 +140,19 @@ model Product {
 }
 
 model Question {
-  id            String           @id @default(uuid())
-  text          String
-  createdAt     DateTime         @default(now())
-  isRequired    Boolean          @default(true)
-  questionOrder Int?             @default(1)
-  questionPhase QuestionPhase?
-  questionType  String?          @default("choice")
-  maxValue      Int?
-  minValue      Int?
-  footnote      String?
+  id               String           @id @default(uuid())
+  text             String
+  createdAt        DateTime         @default(now())
+  isRequired       Boolean          @default(true)
+  questionOrder    Int?             @default(1)
+  questionPhase    QuestionPhase?
+  questionType     String?          @default("choice")
+  maxValue         Int?
+  minValue         Int?
+  footnote         String?
   inputPlaceholder String?
-  answers       Answer[]
-  options       QuestionOption[]
+  answers          Answer[]
+  options          QuestionOption[]
 
   @@map("questions")
 }
@@ -248,31 +249,31 @@ model Thread {
 }
 
 model Message {
-  id           String   @id @default(uuid())
+  id           String     @id @default(uuid())
   role         Role
   content      String
-  createdAt    DateTime @default(now())
+  createdAt    DateTime   @default(now())
   messageIndex Int
   threadId     String
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime   @updatedAt
   audioFileId  String?
   audioFile    AudioFile? @relation(fields: [audioFileId], references: [id], onDelete: SetNull)
-  thread       Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  thread       Thread     @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
   @@map("messages")
 }
 
 model AudioFile {
-  id           String   @id @default(uuid())
-  fileName     String
-  filePath     String
-  mimeType     String   @default("audio/webm")
-  duration     Float?
-  size         Int
-  transcript   String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  messages     Message[]
+  id         String    @id @default(uuid())
+  fileName   String
+  filePath   String
+  mimeType   String    @default("audio/webm")
+  duration   Float?
+  size       Int
+  transcript String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  messages   Message[]
 
   @@map("audio_files")
 }
@@ -441,14 +442,14 @@ enum TermsType {
 
 enum RiskType {
   KONSERVATIV
-  AUSGEWOHGEN
+  AUSGEWOGEN
   GEWINNORIENTIERT
 }
 
 model HighRiskCountry {
   id        String   @id @default(uuid())
   name      String   @unique
-  code      String?  // ISO code if available
+  code      String? // ISO code if available
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

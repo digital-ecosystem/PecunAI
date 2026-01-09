@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(base64Data, 'base64');
     await writeFile(filePath, buffer);
 
-    // Create public URL path
-    const publicUrl = `/documents/signed/${finalFilename}`;
+    // Public URL served by the catch-all documents route
+    const publicUrl = `/api/documents/${sessionId}/signed/${finalFilename}`;
 
     console.log('✅ Signed document saved:', {
       sessionId,

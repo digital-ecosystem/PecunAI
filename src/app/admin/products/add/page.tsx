@@ -18,7 +18,7 @@ interface ProductFormData {
   fileName: string | null;
   minimumYear: number | null;
   maximumYear: number | null;
-  riskType: 'KONSERVATIV' | 'AUSGEWOHGEN' | 'GEWINNORIENTIERT' | null;
+  riskType: 'KONSERVATIV' | 'AUSGEWOGEN' | 'GEWINNORIENTIERT' | null;
   aiModel: string;
   aiPrompt: string;
   firstMessage: string;
@@ -234,13 +234,13 @@ const AddProductPage = () => {
                     value={formData.riskType || ''}
                     onChange={(e) => setFormData(prev => ({
                       ...prev,
-                      riskType: (e.target.value as 'KONSERVATIV' | 'AUSGEWOHGEN' | 'GEWINNORIENTIERT') || null
+                      riskType: (e.target.value as 'KONSERVATIV' | 'AUSGEWOGEN' | 'GEWINNORIENTIERT') || null
                     }))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   >
                     <option value="">Risikotyp auswählen</option>
                     <option value="KONSERVATIV">Konservativ</option>
-                    <option value="AUSGEWOHGEN">Ausgewogen</option>
+                    <option value="AUSGEWOGEN">Ausgewogen</option>
                     <option value="GEWINNORIENTIERT">Gewinnorientiert</option>
                   </select>
                 </div>
