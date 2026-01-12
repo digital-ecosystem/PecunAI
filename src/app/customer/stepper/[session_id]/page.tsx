@@ -1180,6 +1180,33 @@ export default function Stepper() {
             setThreadId(data.threadId);
           }
 
+          const effectiveThreadId = data.threadId || threadId;
+
+          // If chat already has messages (e.g. after reload), don't render the status string.
+          // Instead, fetch and display existing messages.
+          if (data.alreadyInitialized || data.message === 'Chat already initialized') {
+            if (effectiveThreadId) {
+              try {
+                const existingResponse = await fetch(
+                  `/api/phase/chat?threadId=${effectiveThreadId}&sessionId=${session_id}`
+                );
+                if (existingResponse.ok) {
+                  const existingData = await existingResponse.json();
+                  if (existingData.messages && Array.isArray(existingData.messages)) {
+                    const updatedMessages = existingData.messages.map((msg: Message) => ({
+                      ...msg,
+                      timestamp: new Date(msg.timestamp)
+                    }));
+                    setMessages(updatedMessages);
+                  }
+                }
+              } catch (error) {
+                console.error('Error fetching existing chat messages after init:', error);
+              }
+            }
+            return true;
+          }
+
           // Add the welcome message to the UI
           const welcomeMessage: Message = {
             role: Role.assistant,

@@ -287,7 +287,7 @@ export default function InvestmentForm(
             />
             <span className="text-sm text-gray-700">Alle bestätigen</span>
           </label> */}
-          <label className="flex flex-col sm:flex-row items-start gap-3 cursor-pointer group">
+          <label className="flex items-start gap-3 cursor-pointer group">
             <input
               type="checkbox"
               checked={investmentFormData.allConfirmed}

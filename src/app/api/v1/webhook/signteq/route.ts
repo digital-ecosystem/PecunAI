@@ -197,6 +197,17 @@ export async function POST(request: NextRequest) {
 			});
 			const existingStepData = (existing?.stepData ?? {}) as Record<string, unknown>;
 			const signteq = (existingStepData.signteq ?? {}) as Record<string, unknown>;
+			
+			// If status is already DOCUMENT_COMPLETED, don't overwrite it
+			if (signteq.status === 'DOCUMENT_COMPLETED') {
+				console.log('ℹ️ Webhook: Document already completed, ignoring event', {
+					qaSessionId,
+					documentId,
+					event,
+				});
+				return NextResponse.json({ success: true, processed: false, reason: 'already_completed' });
+			}
+			
 			let mergedStepData = null;
 
 			if (event === 'document_signed') {

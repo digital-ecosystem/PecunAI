@@ -343,7 +343,7 @@ export default function ContractDocuments(
 
         <div className="space-y-4">
           {/* Accept All */}
-          <label className="flex flex-col sm:flex-row items-start gap-3 cursor-pointer group">
+          <label className="flex items-start gap-3 cursor-pointer group">
             <input
               type="checkbox"
               checked={agreements.acceptAll}
@@ -356,7 +356,7 @@ export default function ContractDocuments(
           </label>
 
           {/* Data Protection */}
-          <label className="flex flex-col sm:flex-row items-start gap-3 cursor-pointer group">
+          <label className="flex items-start gap-3 cursor-pointer group">
             <input
               type="checkbox"
               checked={agreements.dataProtection}
@@ -371,7 +371,7 @@ export default function ContractDocuments(
           </label>
 
           {/* Vermögensverwaltung */}
-          <label className="flex flex-col sm:flex-row items-start gap-3 cursor-pointer group">
+          <label className="flex items-start gap-3 cursor-pointer group">
             <input
               type="checkbox"
               checked={agreements.vermoegensverwaltung}
@@ -386,7 +386,7 @@ export default function ContractDocuments(
           </label>
 
           {/* Bankenbedingungen */}
-          <label className="flex flex-col sm:flex-row items-start gap-3 cursor-pointer group">
+          <label className="flex items-start gap-3 cursor-pointer group">
             <input
               type="checkbox"
               checked={agreements.bankenbedingungen}
@@ -400,7 +400,7 @@ export default function ContractDocuments(
           </label>
 
           {/* Widerruf */}
-          <label className="flex flex-col sm:flex-row items-start gap-3 cursor-pointer group">
+          <label className="flex items-start gap-3 cursor-pointer group">
             <input
               type="checkbox"
               checked={agreements.widerruf}
@@ -429,7 +429,7 @@ export default function ContractDocuments(
           </label>
 
           {/* Einverständnis */}
-          <label className="flex flex-col sm:flex-row items-start gap-3 cursor-pointer group">
+          <label className="flex items-start gap-3 cursor-pointer group">
             <input
               type="checkbox"
               checked={agreements.einverstanden}
@@ -446,7 +446,7 @@ export default function ContractDocuments(
           </label>
 
           {/* EFSAEG */}
-          <label className="flex flex-col sm:flex-row items-start gap-3 cursor-pointer group">
+          <label className="flex items-start gap-3 cursor-pointer group">
             <input
               type="checkbox"
               checked={agreements.efsaeg}

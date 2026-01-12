@@ -125,15 +125,13 @@ export async function GET(request: NextRequest) {
       console.log('🔄 Remapping: 8-9y Conservative -> 4y Balanced');
     }
 
-    // Case 4: 5-7 Years + Balanced -> Cap duration at 4
-    // Target: VVKN3 (Balanced, 3-4y)
-    // Note: If we had a 5-7y Balanced product, we wouldn't need this. Assuming VVKN3 is the intended fallback.
-    if (durationValue >= 5 && durationValue <= 7 && riskType === 'AUSGEWOGEN') {
-      searchDuration = 4; // Force into VVKN3 range
-      console.log('🔄 Remapping: 5-7y Balanced -> 4y Balanced');
-    } else if (riskType === 'AUSGEWOGEN' && durationValue > 7) {
-      searchDuration = 4; // Force into VVKN3 range
-      console.log('🔄 Remapping: 8-9y Balanced -> 4y Balanced');
+    // Case 4: AUSGEWOGEN + 5+ years -> VVKN4 (Future)
+    // VVKN4 and VVKN5 are both stored as GEWINNORIENTIERT, but VVKN5 is the 7+ (Dream Big) product.
+    // To ensure AUSGEWOGEN never selects VVKN5, we force the duration into 5–6 when remapping.
+    if (riskType === 'AUSGEWOGEN' && durationValue >= 5) {
+      searchRisk = 'GEWINNORIENTIERT';
+      searchDuration = durationValue >= 7 ? 6 : durationValue;
+      console.log(`🔄 Remapping: ${durationValue}y Balanced -> ${searchDuration}y Growth (Future)`);
     }
 
     // Case 5: 8-9 Years + Growth (GEWINNORIENTIERT) -> Cap duration at 7

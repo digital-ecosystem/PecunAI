@@ -29,6 +29,7 @@ export async function POST(req: Request) {
     if (existingMessages.length > 0) {
       return NextResponse.json({
         message: 'Chat already initialized',
+        alreadyInitialized: true,
         threadId: thread.id,
         success: true
       });
