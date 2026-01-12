@@ -1,12 +1,36 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { LogOut, Package, BarChart3, MessageSquare } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
+
+interface AdminData {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
 
 const AdminHeader = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const [adminData, setAdminData] = useState<AdminData | null>(null);
+
+  useEffect(() => {
+    const fetchAdminData = async () => {
+      try {
+        const response = await fetch('/api/admin/me');
+        const data = await response.json();
+        if (data.success && data.admin) {
+          setAdminData(data.admin);
+        }
+      } catch (error) {
+        console.error('Failed to fetch admin data:', error);
+      }
+    };
+
+    fetchAdminData();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -64,11 +88,11 @@ const AdminHeader = () => {
             <div className="flex items-center space-x-2">
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-white text-xs sm:text-sm font-medium">
-                  {process.env.NEXT_PUBLIC_ADMIN_EMAIL ? process.env.NEXT_PUBLIC_ADMIN_EMAIL[0] : 'A'}
+                  {adminData?.firstName?.[0] || 'A'}
                 </span>
               </div>
               <span className="text-xs sm:text-sm text-gray-700 truncate max-w-[120px] sm:max-w-[160px]">
-                {process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@example.com'}
+                {adminData ? `${adminData.firstName} ${adminData.lastName}` : 'Loading...'}
               </span>
             </div>
             <button
@@ -85,11 +109,11 @@ const AdminHeader = () => {
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
-                  {process.env.NEXT_PUBLIC_ADMIN_EMAIL ? process.env.NEXT_PUBLIC_ADMIN_EMAIL[0] : 'A'}
+                  {adminData?.firstName?.[0] || 'A'}
                 </span>
               </div>
               <span className="text-sm text-gray-700">
-                {process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@example.com'}
+                {adminData ? `${adminData.firstName} ${adminData.lastName}` : 'Loading...'}
               </span>
             </div>
             <button

@@ -113,10 +113,6 @@ export default function SignInPage() {
               </svg>
             </button>
           </div>
-
-          <div className="mt-4 text-xs text-gray-500 text-center">
-            Demo-Zugangsdaten: {process.env.NEXT_PUBLIC_ADMIN_EMAIL} / {process.env.NEXT_PUBLIC_ADMIN_PASSWORD}
-          </div>
         </div>
       </div>
     </div>
