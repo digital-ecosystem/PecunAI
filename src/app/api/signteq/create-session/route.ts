@@ -6,7 +6,9 @@ import { CONFIG } from "@/config/constants";
 import { prisma } from '@/lib/prisma';
 
 // You should store your SignTeq API token in environment variables
-const SIGNTEQ_API_TOKEN = process.env.SIGNTEQ_API_KEY || '';
+const SIGNTEQ_API_TOKEN = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_API_KEY_PRO || '' : process.env.SIGNTEQ_API_KEY_DEV || '';
+const SIGNTEQ_ORG_ID = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_ORG_ID_PRO || '' : process.env.SIGNTEQ_ORG_ID_DEV || '';
+console.log("🚀 ~ SIGNTEQ_API_TOKEN:", SIGNTEQ_API_TOKEN);
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,13 +20,18 @@ export async function POST(request: NextRequest) {
       recipientEmail,
       recipientName,
       sessionId,
-      signDSessionData,
     } = body;
-    logger.debug("SignD session data:", signDSessionData);
 
     if (!SIGNTEQ_API_TOKEN) {
       return NextResponse.json(
         { success: false, error: 'SignTeq API-Token nicht konfiguriert' },
+        { status: 500 }
+      );
+    }
+
+    if (!SIGNTEQ_ORG_ID) {
+      return NextResponse.json(
+        { success: false, error: 'SignTeq Organization ID nicht konfiguriert' },
         { status: 500 }
       );
     }
@@ -51,6 +58,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const session = await prisma.qASession.findUnique({
+      where: {
+        id: sessionId
+      },
+      include: {
+        partner: true,
+        personalInfo: true
+      }
+    });
+
+    if (!session || !session.partner) {
+      return NextResponse.json(
+        { success: false, error: 'Session oder Partner nicht gefunden' },
+        { status: 404 }
+      );
+    }
+
     // Ensure base64 data doesn't have data URL prefix
     let cleanBase64 = documentBase64;
     if (documentBase64.startsWith('data:')) {
@@ -59,8 +83,20 @@ export async function POST(request: NextRequest) {
 
     const payload = {
       type: "signature",
-      subject: subject || "Document Signature Required",
-      message: "Please sign this document. If you have any questions, feel free to contact us.",
+      subject: subject || "Dokument zur Unterschrift",
+      message: `Hallo ${session.personalInfo?.firstName || recipientName},
+        Dein 4money Anlegerprozess wurde aktiviert und dein Vertragspaket steht jetzt für dich zur Unterschrift bereit. 
+        Folge dem untenstehenden Link, um das Vertragspaket als Berater (oder Kunde) zu unterschreiben
+
+        Anlegerprofil als Berater unterschreiben (Kunde)
+
+
+        Falls du Fragen zu dem Prozess haben solltest, kannst du dich jederzeit direkt an deinen 4money Ansprechpartner wenden.
+
+        Dein 4money Team
+        4money Financial Services GmbH 
+        Einspinnergasse 1/3.Stock, 8010 Graz 
+        https://4money.at | office@4money.at | +43 676 92 00 670`,
       settings: {
         auto_reminders: false,
         copy_document_completed: true,
@@ -76,8 +112,11 @@ export async function POST(request: NextRequest) {
       },
       documents: [
         {
-          name: documentName || "document.pdf",
+          name: `Vertragsunterlage-${session.personalInfo?.lastName}-${session.personalInfo?.firstName}.pdf`,
           base64: cleanBase64,
+          meta: {
+            qaSessionId: sessionId,
+          },
           fields: [
             {
               page: 1,
@@ -96,33 +135,11 @@ export async function POST(request: NextRequest) {
               width: 250,
               height: 100,
               x: 500,
-              y: 1300,
+              y: 1400,
               required: true,
               read_only: false,
               recipient_id: "2"
             },
-            // {
-            //   page: 24,
-            //   type: "signature", // custom-stamp
-            //   width: 250,
-            //   height: 100,
-            //   x: 75,
-            //   y: 725,
-            //   required: true,
-            //   read_only: false,
-            //   recipient_id: "1"
-            // },
-            // {
-            //   page: 25,
-            //   type: "signature", // custom-stamp
-            //   width: 250,
-            //   height: 100,
-            //   x: 75,
-            //   y: 1275,
-            //   required: true,
-            //   read_only: false,
-            //   recipient_id: "1"
-            // }
           ]
         }
       ],
@@ -134,58 +151,36 @@ export async function POST(request: NextRequest) {
         name: recipientName,
         do_not_notify: true,
         language: "de",
-        // QES - Right Check
-        qes: process.env.NEXT_PUBLIC_ENV === "production" ? true : false
+        qes: process.env.NEXT_PUBLIC_ENV === "production" ? true : false,
+        meta: {
+          qaSessionId: sessionId,
+        }
       },
       {
         id: "2",
         type: "signatory",
-        email: "bassembinmahdi@gmail.com",
-        name: "bassem mahdi",
+        email: process.env.NEXT_PUBLIC_ENV === "production" ? session.partner.email : process.env.DEV_TEST_RECIPIENT_EMAIL,
+        name: `${session.partner.firstName} ${session.partner.lastName}`,
         do_not_notify: false,
         language: "de",
-        // QES - Right Check
-        qes: process.env.NEXT_PUBLIC_ENV === "production" ? true : false
+        qes: process.env.NEXT_PUBLIC_ENV === "production" ? true : false,
+        meta: {
+          qaSessionId: sessionId,
+        }
       }
     ]
     };
-    // Log the exact payload structure for debugging
-    // console.log("🚀 ~ POST ~ payload structure:", {
-    //   payloadKeys: Object.keys(payload),
-    //   documentsStructure: payload.documents.map(doc => ({
-    //     keys: Object.keys(doc),
-    //     hasName: !!doc.name,
-    //     hasBase64: !!doc.base64,
-    //     base64Length: doc.base64?.length || 0,
-    //     fieldsCount: doc.fields?.length || 0
-    //   })),
-    //   recipientsStructure: payload.recipients.map(rec => ({
-    //     keys: Object.keys(rec),
-    //     hasEmail: !!rec.email,
-    //     hasName: !!rec.name,
-    //     id: rec.id
-    //   }))
-    // });
 
-    // console.log("🚀 ~ POST ~ full payload:", JSON.stringify(payload, null, 2))
-
-    // logger.info('Creating SignTeq signature request:', {
-    //   subject: payload.subject,
-    //   recipient: payload.recipients[0].email,
-    //   documentName: payload.documents[0].name,
-    //   base64Length: cleanBase64.length,
-    //   hasValidBase64: cleanBase64.length > 0
-    // });
-
-    const response = await axios.post(`${CONFIG.SIGNTEQ.API_URL}/requests`, payload, {
+    const response = await axios.post(`${CONFIG.SIGNTEQ.API_URL}/requests?organization_id=${SIGNTEQ_ORG_ID}`, payload, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Authorization': `Bearer ${SIGNTEQ_API_TOKEN}`,
         'User-Agent': CONFIG.SIGNTEQ.USER_AGENT
       },
-      timeout: 30000, // 30 second timeout
+      timeout: 30000,
     });
+
 
     const data = response.data;
     logger.debug("SignTeq response data:", data);
@@ -208,6 +203,8 @@ export async function POST(request: NextRequest) {
             requestId,
             documentId,
             status: 'REQUEST_CREATED',
+            recipients: data.recipients,
+            createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },
         };

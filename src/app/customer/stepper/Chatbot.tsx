@@ -591,7 +591,7 @@ export default function Chatbot({
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-gray-900">
-                          {message.role === Role.customer ? 'Du' : 'PecunAI Assistant'}
+                          {message.role === Role.customer ? 'Sie' : 'PecunAI Assistant'}
                         </span>
                         <span className="text-xs text-gray-400">
                           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -653,7 +653,7 @@ export default function Chatbot({
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-sm font-semibold text-gray-900">AI Assistant</span>
+                      <span className="text-sm font-semibold text-gray-900">PecunAI Assistant</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
@@ -661,7 +661,7 @@ export default function Chatbot({
                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                       </div>
-                      <span className="text-sm text-gray-500">Thinking...</span>
+                      <span className="text-sm text-gray-500">Denkt nach...</span>
                     </div>
                   </div>
                 </div>
@@ -682,7 +682,7 @@ export default function Chatbot({
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-sm font-semibold text-gray-900">AI Assistant</span>
+                      <span className="text-sm font-semibold text-gray-900">PecunAI Assistant</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
@@ -690,7 +690,7 @@ export default function Chatbot({
                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                       </div>
-                      <span className="text-sm text-gray-500">Thinking...</span>
+                      <span className="text-sm text-gray-500">Denkt nach...</span>
                     </div>
                   </div>
                 </div>

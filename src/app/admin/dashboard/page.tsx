@@ -109,6 +109,7 @@ const Dashboard = () => {
     };
 
     const handleSessionClick = (session: Session) => {
+        console.log("🚀 ~ handleSessionClick ~ session:", session)
         setSelectedSession(session);
         setIsDrawerOpen(true);
     };
@@ -177,6 +178,14 @@ const Dashboard = () => {
             month: 'short',
             day: 'numeric',
         });
+    };
+
+    const getRecipientName = (index: number): string | null => {
+        const recipients = selectedSession?.workflowState?.stepData?.signteq?.recipients;
+        if (!Array.isArray(recipients)) return null;
+        const recipient = recipients[index] as { name?: unknown } | undefined;
+        const name = recipient?.name;
+        return typeof name === 'string' && name.trim().length > 0 ? name : null;
     };
 
     return (
@@ -502,20 +511,26 @@ const Dashboard = () => {
                                     selectedSession.status != SessionStatus.DRAFT && (
                                         <div className="bg-white border border-gray-200 rounded-lg p-4">
                                             <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Sitzungs-PDF herunterladen</h3>
-                                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                                            {selectedSession?.workflowState?.stepData?.signteq?.status === "DOCUMENT_COMPLETED" ? (
+                                                <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
                                                 <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                                                     <a href={`/api/documents/${selectedSession.id}/signed/signature.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
                                                         <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
                                                         <span className="truncate">Unterschriebenes PDF herunterladen</span>
                                                     </a>
                                                 </button>
-                                                <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                                                    <a href={`/api/documents/${selectedSession.id}/signed/signD-identity-verification-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
-                                                        <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
-                                                        <span className="truncate">Identitätsprüfung</span>
-                                                    </a>
-                                                </button>
-                                            </div>
+                                            </div>) : (
+                                                <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                                                    <p className="text-sm text-gray-500">
+                                                        {(() => {
+                                                            const recipient1Name = getRecipientName(1);
+                                                            return recipient1Name
+                                                                ? `Berater ${recipient1Name} muss noch unterschreiben`
+                                                                : 'Berater muss noch unterschreiben';
+                                                        })()}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 }

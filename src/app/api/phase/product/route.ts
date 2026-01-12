@@ -218,8 +218,12 @@ export async function GET(request: NextRequest) {
         riskType === 'AUSGEWOGEN' ? 'Ausgewogen' : 'Gewinnorientiert',
       riskType: bestProduct.riskType,
       aiSettings: bestProduct.aiSettings[0] || null,
-      score: 100 // exact match
+      score: 100, // exact match
+      sri: bestProduct.sri,
+      duration: bestProduct.duration
     };
+
+    console.log('🚀 ~ GET ~ suggestion:', suggestion);
 
     return NextResponse.json({
       success: true,

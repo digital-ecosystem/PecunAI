@@ -1,18 +1,8 @@
 import { AuthService } from '@/lib/auth';
-import nodemailer from 'nodemailer';
 import { NextResponse } from 'next/server';
 import { CustomError } from '@/lib/customError';
+import { sendOtpEmail } from '@/lib/email';
 // import { SessionStatus } from '@/types';
-
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_SMTP_HOST || 'relay382.mysmtp2.com',
-  port: parseInt(process.env.EMAIL_SMTP_PORT || '587'),
-  secure: false, // true for 465, false for other ports (587 uses STARTTLS)
-  auth: {
-    user: process.env.EMAIL_SMTP_USER,
-    pass: process.env.EMAIL_SMTP_PASSWORD,
-  },
-});
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -85,40 +75,12 @@ export async function POST(request: Request) {
           }, { status: 429 })
         }
 
-        // Send email
-        await transporter.sendMail({
-          from: `"4money" <${process.env.EMAIL_FROM || 'office@4money.at'}>`,
+        await sendOtpEmail({
           to: normalizedEmail,
-          subject: 'Ihr Verifizierungscode für den Onboarding-Prozess',
-          html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #2563eb; margin-bottom: 10px;">Ihr Verifizierungscode</h1>
-              <p style="color: #666; font-size: 16px;">Verwenden Sie diesen Code, um Ihren Onboarding-Prozess zu starten.</p>
-            </div>
-            
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px; margin: 30px 0;">
-              <div style="background: white; padding: 20px; border-radius: 8px; display: inline-block;">
-                <h2 style="color: #2563eb; font-size: 36px; margin: 0; letter-spacing: 8px; font-family: 'Courier New', monospace;">${otp.code}</h2>
-              </div>
-            </div>
-            
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <p style="color: #666; margin: 0; font-size: 14px;">
-                <strong>⏰ Dieser Code läuft in 5 Minuten ab.</strong><br>
-                🔒 Wenn Sie diesen Code nicht angefordert haben, ignorieren Sie bitte diese E-Mail.<br>
-                💡 Aus Sicherheitsgründen dürfen Sie diesen Code niemals an andere Personen weitergeben.
-              </p>
-            </div>
-            
-            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-              <p style="color: #999; font-size: 12px;">
-                Diese E-Mail wurde automatisch von einem sicheren, überwachten System gesendet. Bitte antworten Sie nicht auf diese Nachricht.
-              </p>
-            </div>
-          </div>
-        `,
-      });
+          code: otp.code,
+          recipientName: name,
+          expiresInMinutes: 5,
+        });
 
       return NextResponse.json({
         message: 'OTP erfolgreich gesendet',

@@ -598,7 +598,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
               </label>
             </div> */}
 
-            {
+            {/* {
               process.env.NEXT_PUBLIC_ENV === 'development' && (
                 <div className="flex items-start space-x-3">
                   <input
@@ -615,7 +615,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                   </label>
                 </div>
               )
-            }
+            } */}
           </div>
         </div>
 

@@ -19,6 +19,8 @@ type Portfolio = {
     vectorId: string | null;
   } | null;
   score?: number;
+  sri?: string;
+  duration?: number;
 };
 export default function InvestmentForm(
   {
@@ -216,13 +218,17 @@ export default function InvestmentForm(
               <p className="text-xs text-gray-500 mb-1">Einmalige Einzahlung</p>
               <p className="text-sm font-semibold">
                 {
-                  formatEuro(parseFloat(answers[questions[19].id])) || '0.00 €'
+                  formatEuro(parseFloat(answers[questions[19].id] || '0')) || '0.00 €'
                 }
               </p>
             </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">monatliche Zahlung</p>
-              <p className="text-sm">-</p>
+              <p className="text-sm font-semibold">
+                {
+                  formatEuro(parseFloat(answers[questions[20].id] || '0')) || '0.00 €'
+                }
+              </p>
             </div>
           </div>
         </div>
@@ -257,22 +263,16 @@ export default function InvestmentForm(
                   <td className="p-3 text-sm">{suggestedProduct?.fullName}
                   </td>
                   <td className="p-3 text-sm">
-                    {/* Assuming SRI is derived from riskType for demonstration */}
-                    {/* {suggestedProduct?.riskType === 'KONSERVATIV' ? 'Low' : 
-                     suggestedProduct?.riskType === 'AUSGEWOGEN' ? 'Medium' : 'High'}     */}
-                    {suggestedProduct?.from}
+                    {suggestedProduct?.sri || ''}
                   </td>
                   <td className="p-3 text-sm">
-                    {suggestedProduct?.to === 7 ? (7 + '+') : suggestedProduct?.to}
+                    {suggestedProduct?.duration  || ''} Jahre
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
-
-        <p className="font-semibold text-sm text-gray-600 mb-2">Zusammenfassung</p>
-        <p className="text-sm text-gray-700 mb-4">-</p>
       </div>
 
       {/* Confirmation Checkboxes Section */}
@@ -321,7 +321,7 @@ export default function InvestmentForm(
             <span className="text-sm text-gray-700 break-words">
               Bestätigungserklärung: Ich bestätige alle Hinweise zur Kenntnis genommen zu haben und bestätige die
               Richtigkeit und Vollständigkeit des vorliegenden Kund:innen- und Anleger:innenprofils. Auf Grundlage dieser
-              Informationen führt das WPDLU Nicht-unabhängige Anlageberatung durch und erteilt Empfehlungen bzgl.
+              Informationen führt das WPDLU nicht-unabhängige Anlageberatung durch und erteilt Empfehlungen bzgl.
               angemessener bzw. geeigneter Produkte. Die Empfehlungen basieren auf deinen Kenntnissen und
               Erfahrungen im Wertpapierbereich, auf den Anlagezielen (des/der Kund:in (angedachte Anlagedauer,
               Ertragserwartungen, Präferenzen bezüglich bestimmter Investments), auf deiner Risikobereitschaft und

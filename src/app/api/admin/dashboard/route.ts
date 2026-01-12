@@ -14,7 +14,7 @@ export async function GET() {
     }
 
     const sessions = await prisma.qASession.findMany({
-      include: { user: true, answers: true, personalInfo: true },
+      include: { user: true, answers: true, personalInfo: true, workflowState: true },
       orderBy: { createdAt: "desc" }
     });
 

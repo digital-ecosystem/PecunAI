@@ -4,8 +4,11 @@ import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { prisma } from '@/lib/prisma';
 import { CONFIG } from '@/config/constants';
+import crypto from 'crypto';
 
-const SIGNTEQ_API_TOKEN = process.env.SIGNTEQ_API_KEY || '';
+const SIGNTEQ_API_TOKEN = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_API_KEY_PRO || '' : process.env.SIGNTEQ_API_KEY_DEV || '';
+const SIGNTEQ_ORG_ID = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_ORG_ID_PRO || '' : process.env.SIGNTEQ_ORG_ID_DEV || '';
+const SIGNTEQ_WEBHOOK_SECRET = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_WEBHOOK_SECRET_PRO || '' : process.env.SIGNTEQ_WEBHOOK_SECRET_DEV || '';
 
 type SignTeqWebhookPayload = {
 	event?: string;
@@ -18,6 +21,30 @@ type SignTeqWebhookPayload = {
 // Health check / webhook verification endpoint
 export async function GET() {
 	return NextResponse.json({ success: true });
+}
+
+function verifyWebhookSignature(payload: string, signature: string | null): boolean {
+	if (!signature) {
+		console.warn('⚠️ Webhook: No signature header provided');
+		return false;
+	}
+
+	if (!SIGNTEQ_WEBHOOK_SECRET) {
+		console.warn('⚠️ Webhook: No webhook secret configured');
+		return false;
+	}
+
+	try {
+		const expectedSignature = crypto
+			.createHmac('sha256', SIGNTEQ_WEBHOOK_SECRET)
+			.update(payload)
+			.digest('hex');
+
+		return signature === expectedSignature;
+	} catch (error) {
+		console.error('❌ Webhook: Signature verification error:', error);
+		return false;
+	}
 }
 
 function extractQaSessionId(meta: unknown): string | null {
@@ -82,7 +109,7 @@ async function downloadCompletedDocumentBase64(documentId: string): Promise<stri
 	}
 
 	const response = await axios.get(
-		`${CONFIG.SIGNTEQ.API_URL}/documents/${documentId}/download`,
+		`${CONFIG.SIGNTEQ.API_URL}/documents/${documentId}/download?organization_id=${SIGNTEQ_ORG_ID}`,
 		{
 			params: { type: 'completed' },
 			headers: {
@@ -116,11 +143,22 @@ async function saveSignedPdfToSession(params: {
 
 export async function POST(request: NextRequest) {
 	let payload: SignTeqWebhookPayload;
+	let rawBody: string;
+
+	console.log("this is the event")
 
 	try {
-		payload = (await request.json()) as SignTeqWebhookPayload;
+		rawBody = await request.text();
+		payload = JSON.parse(rawBody) as SignTeqWebhookPayload;
 	} catch {
 		return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+	}
+
+	// Verify webhook signature for security
+	const signature = request.headers.get('Signature');
+	if (!verifyWebhookSignature(rawBody, signature)) {
+		console.error('❌ Webhook: Invalid signature');
+		return NextResponse.json({ success: false, error: 'Invalid signature' }, { status: 401 });
 	}
 
 	console.log('📬 SignTeq webhook received:', JSON.stringify(payload, null, 2));
@@ -130,7 +168,7 @@ export async function POST(request: NextRequest) {
 	const documentId = payload.document_id;
 
 	// Always respond 200 for unknown/ignored events to avoid endless retries
-	if (event !== 'document_completed') {
+	if (event !== 'document_completed' && event !== 'document_signed') {
 		return NextResponse.json({ success: true, ignored: true, event });
 	}
 
@@ -140,9 +178,7 @@ export async function POST(request: NextRequest) {
 
 	try {
 		const qaSessionIdFromMeta = extractQaSessionId(payload.meta);
-		const qaSessionId =
-			qaSessionIdFromMeta ??
-			(await resolveQaSessionIdFromWorkflowState({ requestId, documentId }));
+		const qaSessionId = qaSessionIdFromMeta ??(await resolveQaSessionIdFromWorkflowState({ requestId, documentId }));
 
 		if (!qaSessionId) {
 			console.warn('⚠️ Webhook: document_completed but could not resolve qaSessionId', {
@@ -153,9 +189,6 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ success: true, processed: false, reason: 'unknown_session' });
 		}
 
-		const base64 = await downloadCompletedDocumentBase64(documentId);
-		const saved = await saveSignedPdfToSession({ qaSessionId, base64Data: base64 });
-
 		// Best-effort status update
 		try {
 			const existing = await prisma.sessionWorkflowState.findUnique({
@@ -164,19 +197,42 @@ export async function POST(request: NextRequest) {
 			});
 			const existingStepData = (existing?.stepData ?? {}) as Record<string, unknown>;
 			const signteq = (existingStepData.signteq ?? {}) as Record<string, unknown>;
+			let mergedStepData = null;
 
-			const mergedStepData = {
-				...existingStepData,
-				signteq: {
-					...signteq,
-					requestId: (signteq.requestId as string | undefined) ?? requestId,
-					documentId: (signteq.documentId as string | undefined) ?? documentId,
-					status: 'DOCUMENT_COMPLETED',
-					completedAt: payload.timestamp ?? new Date().toISOString(),
-					savedUrl: saved.publicUrl,
-					savedSize: saved.size,
-				},
-			};
+			if (event === 'document_signed') {
+				mergedStepData = {
+					...existingStepData,
+					signteq: {
+						...signteq,
+						requestId: (signteq.requestId as string | undefined) ?? requestId,
+						documentId: (signteq.documentId as string | undefined) ?? documentId,
+						status: 'FIRST_SIGNED',
+						completedAt: payload.timestamp ?? new Date().toISOString(),
+						savedUrl: null,
+						savedSize: null,
+					},
+				};
+			} else if (event === 'document_completed') {
+				const base64 = await downloadCompletedDocumentBase64(documentId);
+				const saved = await saveSignedPdfToSession({ qaSessionId, base64Data: base64 });
+				mergedStepData = {
+					...existingStepData,
+					signteq: {
+						...signteq,
+						requestId: (signteq.requestId as string | undefined) ?? requestId,
+						documentId: (signteq.documentId as string | undefined) ?? documentId,
+						status: 'DOCUMENT_COMPLETED',
+						completedAt: payload.timestamp ?? new Date().toISOString(),
+						savedUrl: saved.publicUrl,
+						savedSize: saved.size,
+					},
+				};
+			}
+
+			if (!mergedStepData) {
+				console.error('⚠️ Webhook: no stepData to update for event:', event);
+				return NextResponse.json({ success: true, processed: false, reason: 'no meta data' });
+			}
 
 			await prisma.sessionWorkflowState.upsert({
 				where: { qaSessionId },
@@ -187,14 +243,12 @@ export async function POST(request: NextRequest) {
 			console.warn('⚠️ Webhook: failed to update workflow state (continuing):', err);
 		}
 
-		console.log('✅ Webhook: saved completed SignTeq document', {
+		console.log('✅ Webhook: processed SignTeq document event', {
 			qaSessionId,
 			documentId,
-			url: saved.publicUrl,
-			size: saved.size,
 		});
 
-		return NextResponse.json({ success: true, processed: true, url: saved.publicUrl });
+		return NextResponse.json({ success: true, processed: true });
 	} catch (error) {
 		console.error('❌ Webhook processing error:', error);
 		// Return 200 to avoid aggressive retries; you can change to 500 if you prefer retries.

@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       },
     });
 
-    response.cookies.set('partner_session', sessionString, {
+    response.cookies.set('advisor_session', sessionString, {
       httpOnly: true,
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days

@@ -228,7 +228,7 @@ const Dashboard = () => {
         setPartnerLookupLoading(true);
 
         try {
-            const response = await fetch(`/api/partner/lookup?code=${encodeURIComponent(code)}`);
+            const response = await fetch(`/api/advisor/lookup?code=${encodeURIComponent(code)}`);
             const data = await response.json();
 
             if (data?.success && data?.partner) {
@@ -777,7 +777,7 @@ const Dashboard = () => {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                         </svg>
                                         <span className="hidden sm:inline">{openSession?.id ? 'Beratung fortsetzen' : 'Beratung beginnen'}</span>
-                                        <span className="sm:hidden">{openSession?.id ? 'Weiter' : 'Start'}</span>
+                                        <span className="sm:hidden">{openSession?.id ? 'Weiter' : 'Beratung beginnen'}</span>
                                     </span>
                                 </button>
                             </div>
@@ -789,64 +789,5 @@ const Dashboard = () => {
         </>
     );
 };
-
-// export const getServerSideProps: GetServerSideProps = async (context) => {
-//   const session = await getSession(context);
-
-//   if (!session) {
-//     return {
-//       redirect: {
-//         destination: '/login',
-//         permanent: false,
-//       },
-//     };
-//   }
-
-//   try {
-//     // eslint-disable-next-line @typescript-eslint/no-require-imports
-//     const { Pool } = require('pg');
-//     const pool = new Pool({
-//       connectionString: process.env.DATABASE_URL,
-//     });
-
-//     const result = await pool.query(
-//       `SELECT 
-//         *
-//       FROM sessions s
-//       WHERE s.user_id = $1
-//       ORDER BY s.created_at DESC`,
-//       [session.user?.email as string]
-//     );
-
-//     const sessions = result.rows.map((row: any) => ({
-//       ...row,
-//       created_at: row.created_at.toISOString(),
-//       updated_at: row.updated_at.toISOString(),
-//     }));
-
-//     return {
-//       props: {
-//         sessions,
-//         user: {
-//           id: session.user.id,
-//           name: session.user.name,
-//           email: session.user.email,
-//         },
-//       },
-//     };
-//   } catch (error) {
-//     console.error('Database error:', error);
-//     return {
-//       props: {
-//         sessions: [],
-//         user: {
-//           id: session.user.id,
-//           name: session.user.name,
-//           email: session.user.email,
-//         },
-//       },
-//     };
-//   }
-// };
 
 export default Dashboard;

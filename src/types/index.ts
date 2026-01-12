@@ -2,12 +2,37 @@ export interface Session {
   id: string
   userId: string
   status: SessionStatus
-  token: string
-  expiresAt: string
+  phase?: string
   createdAt: string
   updatedAt: string
-  user: User,
-  personalInfo: PersonalInfo
+  partnerId?: string
+  referralCode?: string
+  user: User
+  answers?: Answer[]
+  personalInfo?: PersonalInfo | null
+  workflowState?: WorkflowState | null
+}
+
+export interface WorkflowState {
+  qaSessionId: string
+  currentStep: number
+  totalSteps: number
+  stepData: {
+    signteq?: {
+      status?: 'FIRST_SIGNED' | 'DOCUMENT_COMPLETED' | string
+      savedUrl?: string | null
+      savedSize?: number | null
+      requestId?: string | null
+      documentId?: string | null
+      completedAt?: string | null
+      createdAt?: string
+      updatedAt?: string
+      recipients?: unknown[]
+    }
+    [key: string]: unknown
+  }
+  lastActivity?: string
+  updatedAt?: string
 }
 
 export interface PersonalInfo {
@@ -21,7 +46,7 @@ export interface User {
   email: string
   name: string
   isActive: boolean
-  created_at: string
+  createdAt?: string
   updatedAt: string
   sessionStatus: SessionStatus // Optional, if not always present
 }

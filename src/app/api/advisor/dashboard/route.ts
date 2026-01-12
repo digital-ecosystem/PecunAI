@@ -5,7 +5,7 @@ import { decrypt } from '@/lib/session';
 
 export async function GET() {
   try {
-    const cookie = (await cookies()).get('partner_session')?.value;
+    const cookie = (await cookies()).get('advisor_session')?.value;
     const session = await decrypt(cookie);
 
     if (!session?.userId || session?.role !== 'partner') {
@@ -23,6 +23,8 @@ export async function GET() {
       include: {
         user: true,
         personalInfo: true,
+        answers: true,
+        workflowState: true,
       },
       orderBy: { createdAt: 'desc' },
     });

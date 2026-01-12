@@ -129,6 +129,7 @@ model Product {
   fileName           String?
   shortName          String?
   sri                String?
+  duration           Int?
   updatedAt          DateTime                   @updatedAt
   maximumYear        Int?
   minimumYear        Int?
@@ -287,6 +288,7 @@ model PersonalInfo {
   education              String
   email                  String
   firstName              String
+  fullName               String?
   houseNumber            String
   industry               String
   isPep                  Boolean          @default(false)

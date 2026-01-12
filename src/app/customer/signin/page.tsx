@@ -333,6 +333,11 @@ function OTPAuthPostgresContent() {
                   id="otp"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !loading && otp.length === 6) {
+                      handleVerifyOTP(e as React.FormEvent<HTMLButtonElement>);
+                    }
+                  }}
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-center text-2xl font-mono tracking-widest"
                   placeholder="000000"
@@ -342,6 +347,7 @@ function OTPAuthPostgresContent() {
 
               <button
                 onClick={handleVerifyOTP}
+
                 disabled={loading || otp.length !== 6}
                 className="w-full bg-gradient-to-r from-green-600 to-emerald-600 cursor-pointer text-white py-3 px-4 rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
@@ -380,9 +386,9 @@ function OTPAuthPostgresContent() {
                     : 'Code erneut senden'}
                 </button>
               </div>
-              {resendLimit !== null && resendCount !== null && (
+              {/* {resendLimit !== null && resendCount !== null && (
                 <div className="text-xs text-gray-500 mt-2">{`${resendCount}/${resendLimit} Sendungen verwendet`}</div>
-              )}
+              )} */}
               {blockedUntil && (
                 <div className="text-xs text-red-600 mt-2">Sie haben den Code zu oft angefordert. Versuchen Sie es erneut in {countdown ?? '00:00'}.</div>
               )}

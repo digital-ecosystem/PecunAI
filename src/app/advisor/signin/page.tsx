@@ -30,7 +30,7 @@ export default function PartnerSignInPage() {
     }
 
     try {
-      const res = await fetch('/api/partner/login', {
+      const res = await fetch('/api/advisor/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -38,7 +38,7 @@ export default function PartnerSignInPage() {
       const data = await res.json();
 
       if (data.success) {
-        router.push('/partner/dashboard');
+        router.push('/advisor/dashboard');
       } else {
         setError(data.message || 'Ungültige E-Mail oder Passwort');
       }
@@ -63,7 +63,7 @@ export default function PartnerSignInPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-600 rounded-2xl mb-4">
             <Users className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Partner Portal</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Berater Portal</h1>
           <p className="text-gray-600 mt-2">Melden Sie sich an, um Ihre Empfehlungen zu verwalten</p>
         </div>
 
@@ -148,8 +148,8 @@ export default function PartnerSignInPage() {
           <p>Probleme beim Anmelden?</p>
           <p className="mt-1">
             Kontaktieren Sie uns unter{' '}
-            <a href="mailto:support@pecunai.com" className="text-emerald-600 hover:underline">
-              support@pecunai.com
+            <a href="mailto:office@4money.at" className="text-emerald-600 hover:underline">
+              office@4money.at
             </a>
           </p>
         </div>
