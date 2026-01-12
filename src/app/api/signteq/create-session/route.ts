@@ -84,11 +84,11 @@ export async function POST(request: NextRequest) {
     const payload = {
       type: "signature",
       subject: subject || "Dokument zur Unterschrift",
-      message: `Hallo ${session.personalInfo?.firstName || recipientName},
+      message: `Hallo ${session.partner.firstName} ${session.partner.lastName},
         Dein 4money Anlegerprozess wurde aktiviert und dein Vertragspaket steht jetzt für dich zur Unterschrift bereit. 
-        Folge dem untenstehenden Link, um das Vertragspaket als Berater (oder Kunde) zu unterschreiben
+        Folge dem untenstehenden Link, um das Vertragspaket als Berater zu unterschreiben
 
-        Anlegerprofil als Berater unterschreiben (Kunde)
+        Anlegerprofil als Berater unterschreiben
 
 
         Falls du Fragen zu dem Prozess haben solltest, kannst du dich jederzeit direkt an deinen 4money Ansprechpartner wenden.
