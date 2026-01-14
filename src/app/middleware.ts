@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { decrypt } from '@/lib/session';
 
 // Define which routes are protected
-const protectedRoutes = ['/customer/dashboard', '/customer/phase', '/admin/dashboard', '/customer/stepper'];
+const protectedRoutes = ['/customer/dashboard', '/customer/phase', '/admin/dashboard', '/advisor/dashboard', '/customer/stepper'];
 const adminSignInRoute = '/admin/signin';
 const customerSignInRoute = '/customer/signin';
 
@@ -51,5 +51,7 @@ export default async function middleware(req: NextRequest) {
 
 // Apply middleware to all routes except static files and API
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|.*\\.(png|jpg|jpeg|svg|ico)$).*)'],
+  matcher: [
+    '/((?!api|_next/static|_next/image|.*\\.(png|jpg|jpeg|gif|webp|avif|svg|ico|pdf|css|js|map|txt|xml|webmanifest|woff2?|ttf|eot)$).*)',
+  ],
 };
