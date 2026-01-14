@@ -45,6 +45,8 @@ export async function POST(request: NextRequest) {
     const fileName = `${timestamp}_${originalName}`;
     const filePath = path.join(productsDir, fileName);
 
+    console.log('Saving file to:', filePath);
+
     // Convert file to buffer and save
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
