@@ -471,12 +471,10 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                     type="radio"
                     name="isTaxResidentOther"
                     value="true"
-                    checked={formik.values.isTaxResidentOther == true}
-                    onChange={(e) => {
-                      formik.setFieldValue("isTaxResidentOther", e.target.value === "true");
-                      formik.setFieldTouched("isTaxResidentOther", true, false);
+                    checked={formik.values.isTaxResidentOther === true}
+                    onChange={() => {
+                      formik.setFieldValue("isTaxResidentOther", true);
                     }}
-                    onBlur={formik.handleBlur}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
                   <span className="ml-2 text-sm text-gray-700">Ja</span>
@@ -486,21 +484,17 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                     type="radio"
                     name="isTaxResidentOther"
                     value="false"
-                    checked={formik.values.isTaxResidentOther == false}
-                    onChange={(e) => {
-                      formik.setFieldValue("isTaxResidentOther", e.target.value === "true");
-                      formik.setFieldTouched("isTaxResidentOther", true, false);
-                      if (e.target.value === "false") {
-                        formik.setFieldValue("taxResidencyCountry", "");
-                      }
+                    checked={formik.values.isTaxResidentOther === false}
+                    onChange={() => {
+                      formik.setFieldValue("isTaxResidentOther", false);
+                      formik.setFieldValue("taxResidencyCountry", "");
                     }}
-                    onBlur={formik.handleBlur}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
                   <span className="ml-2 text-sm text-gray-700">Nein</span>
                 </label>
               </div>
-              {formik.touched.isTaxResidentOther && formik.errors.isTaxResidentOther && (
+              {(formik.touched.isTaxResidentOther || formik.submitCount > 0) && formik.errors.isTaxResidentOther && (
                 <p className="text-red-500 text-xs mt-1">{formik.errors.isTaxResidentOther}</p>
               )}
             </div>

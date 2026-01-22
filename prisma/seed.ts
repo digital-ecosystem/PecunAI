@@ -8,257 +8,20 @@ import { duration } from "html2canvas/dist/types/css/property-descriptors/durati
 
 async function main() {
 
+  // Delete all existing questions before seeding
   await prisma.question.deleteMany();
 
-  // const questions = [
-  //   {
-  //     text: "Anlageziele – Welches Ziel verfolgen Sie mit Ihrer geplanten Veranlagung?",
-  //     options: [
-  //       { label: "Allgemeiner Vermögensaufbau", value: "general_wealth_building" },
-  //       { label: "Altersvorsorge", value: "retirement_planning" },
-  //       { label: "Diversifikation des Gesamtvermögens", value: "diversification_total_assets" },
-  //       { label: "Sonstiges", value: "other" },
-  //     ],
-  //     questionOrder: 1,
-  //     footnote: `Bitte wählen Sie aus, welches Hauptziel Sie mit Ihrer geplanten Anlage verfolgen. Dies hilft uns zu verstehen, ob Sie langfristig Vermögen aufbauen möchten, für das Alter vorsorgen wollen oder Ihr bestehendes Vermögen breiter streuen möchten`,
-  //   },
-  //   {
-  //     text: "Angedachte Anlagedauer – Wie lange möchten Sie voraussichtlich investieren?",
-  //     questionType: "number",
-  //     questionOrder: 2,
-  //     minValue: 3,
-  //     inputPlaceholder: "Bitte Anzahl in Jahren eingeben…",
-  //     footnote: `Geben Sie bitte an, wie viele Jahre Sie planen, Ihr Kapital investiert zu lassen. Die Anlagedauer beeinflusst maßgeblich, welche Produkte und Strategien für Sie geeignet sind.`,
-  //   },
-  //   {
-  //     text: "Nachhaltigkeitsinformation – Wurden Ihnen die erforderlichen Informationen zum Thema Nachhaltigkeit zur Kenntnis gebracht?",
-  //     options: [
-  //       { label: "Ja", value: "yes" },
-  //       { label: "Nein", value: "no" },
-  //     ],
-  //     questionOrder: 3,
-  //     footnote: `Im Rahmen der Anlageberatung müssen wir Sie über nachhaltigkeitsbezogene Informationen informieren. Bitte bestätigen Sie, ob Sie diese Informationen bereits erhalten und zur Kenntnis genommen haben.`,
-  //   },
-  //   {
-  //     text: 'Nachhaltigkeitspräferenzen – Möchten Sie Nachhaltigkeitsaspekte bei Ihrer Investition berücksichtigen?',
-  //     options: [
-  //       { label: "Ja", value: "yes" },
-  //       { label: "Nein", value: "no" },
-  //       { label: "Ich bin nachhaltigkeitsneutral", value: "neutral" },
-  //     ],
-  //     questionOrder: 4,
-  //     footnote: `Hier geben Sie an, ob Nachhaltigkeitsaspekte (z. B. ökologische oder soziale Kriterien) für Ihre Anlageentscheidung relevant sind. Diese Auswahl beeinflusst, welche Produkte Ihnen empfohlen werden dürfen.`,
-  //   },
-  //   {
-  //     text: "Risikoneigung – Wie würden Sie Ihre persönliche Risikobereitschaft einschätzen?",
-  //     options: [
-  //       { label: "Konservativ", value: "KONSERVATIV" },
-  //       { label: "Chancenorientiert", value: "GEWINNORIENTIERT" },
-  //       { label: "Risikobewusst", value: "AUSGEWOGEN" },
-  //     ],
-  //     questionOrder: 5,
-  //     footnote: `Ihre Risikoneigung hilft uns, eine geeignete Anlagestrategie für Sie zu bestimmen. Je nach Risikoprofil können Chancen und Risiken einer möglichen Investition variieren.`
-  //   },
-  //   {
-  //     text: "Finanzielle Verhältnisse – Monatliches Nettoeinkommen",
-  //     questionType: "number",
-  //     questionOrder: 6,
-  //     inputPlaceholder: "Bitte Betrag in Euro eingeben…",
-  //     footnote: `Bitte geben Sie Ihr durchschnittliches monatliches Nettoeinkommen an. Diese Information hilft uns, Ihre finanzielle Situation einzuschätzen und eine geeignete Empfehlung im Rahmen der Anlageberatung zu erstellen.`
-  //   },
-  //   {
-  //     text: "Finanzielle Verhältnisse – Monatliche Ausgaben",
-  //     questionType: "number",
-  //     questionOrder: 7,
-  //     inputPlaceholder: "Bitte Betrag in Euro eingeben…",
-  //     footnote: `Tragen Sie hier Ihre durchschnittlichen monatlichen Ausgaben ein. So können wir beurteilen, welcher Teil Ihres Einkommens tatsächlich für eine Investition zur Verfügung steht.`
-  //   },
-  //   {
-  //     text: "Aktuelles Nettogesamtvermögen – Wie hoch ist Ihr derzeitiges Vermögen?",
-  //     questionType: "number",
-  //     questionOrder: 8,
-  //     inputPlaceholder: "Bitte Betrag in Euro eingeben…",
-  //     footnote: `Bitte geben Sie den aktuellen Gesamtwert Ihres Vermögens abzüglich bestehender Verbindlichkeiten an. Diese Angabe ist wichtig, um Ihre finanzielle Gesamtsituation korrekt zu berücksichtigen.`
-  //   },
-  //   {
-  //     text: "Aktuell veranlagtes Vermögen – Aktien, Aktienfonds und Aktien ETFs",
-  //     questionOrder: 9,
-  //     footnote: `Bitte geben Sie an, wie viel Ihres veranlagten Vermögens derzeit in Aktien, Aktienfonds oder Aktien-ETFs investiert ist.`,
-  //     options: [
-  //       { label: "0", value: "0" },
-  //       { label: "bis 10.000 €", value: "up_to_10000" },
-  //       { label: "10.000–50.000 €", value: "10000_to_50000" },
-  //       { label: "50.000–500.000 €", value: "50000_to_500000" },
-  //       { label: "über 500.000 €", value: "above_500000" },
-  //       { label: "Sparplan", value: "savings_plan" },
-  //     ],
-  //   },
-  //   {
-  //     text: "Aktuell veranlagtes Vermögen – Anleihen, Anleihenfonds und Anleihen ETFs",
-  //     questionOrder: 10,
-  //     footnote: `Bitte geben Sie an, wie viel Ihres veranlagten Vermögens derzeit in Anleihen, Anleihenfonds oder Anleihen-ETFs investiert ist.`,
-  //     options: [
-  //       { label: "0", value: "0" },
-  //       { label: "bis 10.000 €", value: "up_to_10000" },
-  //       { label: "10.000–50.000 €", value: "10000_to_50000" },
-  //       { label: "50.000–500.000 €", value: "50000_to_500000" },
-  //       { label: "über 500.000 €", value: "above_500000" },
-  //       { label: "Sparplan", value: "savings_plan" },
-  //     ],
-  //   },
-  //   {
-  //     text: "Aktuell veranlagtes Vermögen – Rohstoffe (z. B. Gold)",
-  //     questionOrder: 11,
-  //     footnote: `Bitte geben Sie an, wie viel Ihres veranlagten Vermögens derzeit in Rohstoffe (z. B. Gold) investiert ist.`,
-  //     options: [
-  //       { label: "0", value: "0" },
-  //       { label: "bis 10.000 €", value: "up_to_10000" },
-  //       { label: "10.000–50.000 €", value: "10000_to_50000" },
-  //       { label: "50.000–500.000 €", value: "50000_to_500000" },
-  //       { label: "über 500.000 €", value: "above_500000" },
-  //       { label: "Sparplan", value: "savings_plan" },
-  //     ],
-  //   },
-  //   {
-  //     text: "Erfahrungen & Kenntnisse – Aktien, Aktienfonds und Aktien-ETFs",
-  //     options: [
-  //       { label: "Gute", value: "good" },
-  //       { label: "Durchschnittliche", value: "average" },
-  //       { label: "Keine", value: "none" },
-  //     ],
-  //     questionOrder: 12,
-  //     footnote: `Bitte geben Sie an, welche Erfahrungen und Kenntnisse Sie im Umgang mit Aktien, Aktienfonds oder aktienbasierten ETFs besitzen. Diese Angaben helfen uns zu beurteilen, ob diese Anlageformen für Sie geeignet sind`
-  //   },
-  //   {
-  //     text: "Erfahrungen & Kenntnisse – Anleihen, Anleihenfonds und Anleihen-ETFs",
-  //     options: [
-  //       { label: "Gute", value: "good" },
-  //       { label: "Durchschnittliche", value: "average" },
-  //       { label: "Keine", value: "none" },
-  //     ],
-  //     questionOrder: 13,
-  //     footnote: `Hier erfassen wir, wie vertraut Sie mit Anleihen und anleihenbasierten Produkten sind. Je nach Erfahrungsstand können bestimmte Produkte empfohlen oder ausgeschlossen werden.`
-  //   },
-  //   {
-  //     text: "Erfahrungen & Kenntnisse – Edelmetalle",
-  //     options: [
-  //       { label: "Gute", value: "good" },
-  //       { label: "Durchschnittliche", value: "average" },
-  //       { label: "Keine", value: "none" },
-  //     ],
-  //     questionOrder: 14,
-  //     footnote: `Bitte teilen Sie uns mit, wie viel Erfahrung Sie im Bereich Edelmetalle besitzen. Diese Information ist wichtig, um Ihre Kenntnisse über Chancen und Risiken dieser Anlageklasse einschätzen zu können.`
-  //   },
-  //   {
-  //     text: "Haben Sie bereits Erfahrungen mit Vermögensverwaltung oder professionellen Anlageformen gesammelt?",
-  //     options: [
-  //       {
-  //         label: "Ja, ich habe bereits eine Vermögensverwaltung in Anspruch genommen und gute Erfahrungen gemacht.",
-  //         value: "experienced_positive",
-  //       },
-  //       {
-  //         label: "Ja, ich habe bereits eine Vermögensverwaltung in Anspruch genommen, aber keine guten Erfahrungen gemacht.",
-  //         value: "experienced_negative",
-  //       },
-  //       {
-  //         label: "Nein, ich habe noch nie eine Vermögensverwaltung in Anspruch genommen oder Geld professionell anlegen lassen.",
-  //         value: "no_experience",
-  //       },
-  //     ],
-  //     questionOrder: 15,
-  //     footnote: `Bitte geben Sie an, ob Sie bereits Erfahrungen mit vermögensverwaltenden Dienstleistungen gesammelt haben. Diese Information hilft uns, Ihre Kenntnisse in Bezug auf professionell gesteuerte Anlageformen einzuschätzen.`
-  //   },
-  //   {
-  //     text: "Erfahrungen – Aktien, Aktienfonds und Aktien ETFs",
-  //     questionOrder: 16,
-  //     footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie bereits mit Aktien, Aktienfonds oder Aktien-ETFs gesammelt haben.`,
-  //     options: [
-  //       { label: "Kenne ich nicht", value: "none" },
-  //       { label: "Verstehe ich", value: "average" },
-  //       { label: "Habe ich genutzt", value: "good" },
-  //     ],
-  //   },
-  //   {
-  //     text: "Transaktionen letzte 3 Jahre – Aktien, Aktienfonds und Aktien ETFs",
-  //     questionOrder: 17,
-  //     footnote: `Bitte geben Sie an, wie viele Transaktionen Sie in den vergangenen drei Jahren mit Aktien, Aktienfonds oder ETFs durchgeführt haben.`,
-  //     options: [
-  //       { label: "0", value: "0" },
-  //       { label: "1-10", value: "1-10" },
-  //       { label: "+10", value: "+10" },
-  //     ],
-  //   },
-  //   {
-  //     text: "Erfahrungen – Anleihen, Anleihenfonds und Anleihen ETFs",
-  //     questionOrder: 18,
-  //     footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie mit Anleihen, Anleihenfonds oder Anleihen-ETFs gesammelt haben.`,
-  //     options: [
-  //       { label: "Kenne ich nicht", value: "none" },
-  //       { label: "Verstehe ich", value: "average" },
-  //       { label: "Habe ich genutzt", value: "good" },
-  //     ],
-  //   },
-  //   {
-  //     text: "Transaktionen letzte 3 Jahre – Anleihen, Anleihenfonds und Anleihen ETFs",
-  //     questionOrder: 19,
-  //     footnote: `Bitte geben Sie an, wie viele Transaktionen Sie in den letzten drei Jahren mit Anleihenprodukten durchgeführt haben.`,
-  //     options: [
-  //       { label: "0", value: "0" },
-  //       { label: "1-10", value: "1-10" },
-  //       { label: "+10", value: "+10" },
-  //     ],
-  //   },
-  //   {
-  //     text: "Erfahrungen – Rohstoffe (z. B. Gold)",
-  //     questionOrder: 20,
-  //     footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie mit Rohstoffen wie Gold gesammelt haben.`,
-  //     options: [
-  //       { label: "Kenne ich nicht", value: "none" },
-  //       { label: "Verstehe ich", value: "average" },
-  //       { label: "Habe ich genutzt", value: "good" },
-  //     ],
-  //   },
-  //   {
-  //     text: "Transaktionen letzte 3 Jahre – Rohstoffe (z. B. Gold)",
-  //     questionOrder: 21,
-  //     footnote: `Bitte geben Sie an, wie viele Transaktionen Sie in den letzten drei Jahren mit Rohstoffen durchgeführt haben.`,
-  //     options: [
-  //       { label: "0", value: "0" },
-  //       { label: "1-10", value: "1-10" },
-  //       { label: "+10", value: "+10" },
-  //     ],
-  //   },
-  //   {
-  //     text: "Herkunft der Vermögenswerte – Woher stammen die Mittel für Ihre geplante Veranlagung?",
-  //     options: [
-  //       { label: "Berufliche Tätigkeit", value: "employment_income" },
-  //       { label: "Ersparnisse", value: "savings" },
-  //       { label: "Staatliche Zuwendungen (Pension, Familienbeihilfe o.Ä.)", value: "pension" },
-  //       { label: "Erbschaft", value: "inheritance" },
-  //       { label: "Miete / Pacht", value: "rental_income" },
-  //       { label: "Verkauf von Vermögenswerten (Autoverkauf, Hausverkauf o.Ä.)", value: "sale_of_assets" },
-  //       { label: "Sonstiges", value: "other" },
-  //     ],
-  //     questionOrder: 22,
-  //     footnote: `Bitte wählen Sie aus, aus welcher Quelle die für die Veranlagung vorgesehenen Gelder stammen. Diese Angabe ist aus rechtlichen Gründen erforderlich und unterstützt die Beurteilung der finanziellen Hintergründe.`
-  //   },
-  //   {
-  //     text: "Beabsichtigte Einmalveranlagung – Welchen Betrag möchten Sie einmalig investieren?",
-  //     questionType: "number",
-  //     maxValue: 5000,
-  //     questionOrder: 23,
-  //     inputPlaceholder: "Bitte Betrag in Euro eingeben…",
-  //     footnote: `Bitte geben Sie den Betrag an, den Sie einmalig investieren möchten. Diese Angabe hilft uns, Ihre geplante Investitionshöhe und deren Eignung im Rahmen der Anlageberatung einzuschätzen.`
-  //   },
-  //   {
-  //     text: "Beabsichtigte monatliche Veranlagung – Welchen Betrag möchten Sie regelmäßig pro Monat investieren?",
-  //     questionType: "number",
-  //     maxValue: 500,
-  //     questionOrder: 24,
-  //     inputPlaceholder: "Bitte Betrag in Euro eingeben…",
-  //     footnote: `Bitte geben Sie an, welchen Betrag Sie monatlich investieren möchten. Laufende Investitionen beeinflussen die langfristige Vermögensentwicklung und sind relevant für die geeignete Produktauswahl.`
-  //   }
-  // ];
+  // Delete all existing products and AI settings before seeding
+  /*await prisma.sessionProductSuggestion.deleteMany();
+  await prisma.aISettings.deleteMany();
+  await prisma.product.deleteMany();
+  await prisma.termsAndConditions.deleteMany();
+  await prisma.highRiskCountry.deleteMany();
+  await prisma.mainProductPrompt.deleteMany();
+  await prisma.admin.deleteMany();
+  await prisma.partner.deleteMany();*/
+
+
   const questions = [
     {
       text: "Anlageziele – Welches Ziel verfolgen Sie mit Ihrer geplanten Veranlagung?",
@@ -292,9 +55,9 @@ async function main() {
     {
       text: 'Nachhaltigkeitspräferenzen – Möchten Sie Nachhaltigkeitsaspekte bei Ihrer Investition berücksichtigen?',
       options: [
-        { label: "Ja", value: "yes" },
-        { label: "Nein", value: "no" },
-        { label: "Ich bin nachhaltigkeitsneutral", value: "neutral" },
+        { label: "ja, ich möchte unbedingte nachhaltige Produkte in meinem Portfolio haben", value: "yes" },
+        { label: "nein, ich möchte auf gar keinen Fall nachhaltige Produkte in meinem Portfolio haben", value: "no" },
+        { label: "ich bin nachhaltigkeitsneutral, mir geht es nur darum, dass beste Risiko-Rendite Verhältnis zu bekommen", value: "neutral" },
       ],
       questionOrder: 4,
       footnote: `Hier geben Sie an, ob Nachhaltigkeitsaspekte (z. B. ökologische oder soziale Kriterien) für Ihre Anlageentscheidung relevant sind. Diese Auswahl beeinflusst, welche Produkte Ihnen empfohlen werden dürfen.`,
@@ -387,18 +150,9 @@ async function main() {
       questionOrder: 12,
       footnote: `Bitte geben Sie an, welche Erfahrungen und Kenntnisse Sie im Umgang mit Aktien, Aktienfonds oder aktienbasierten ETFs besitzen. Diese Angaben helfen uns zu beurteilen, ob diese Anlageformen für Sie geeignet sind`
     },
-    // {
-    //   text: "Haben Sie bereits praktische Transaktionen mit Aktien, Aktienfonds oder Aktien-ETFs durchgeführt?",
-    //   options: [
-    //     { label: "Ja, ich habe Transaktionen durchgeführt.", value: "yes" },
-    //     { label: "Nein, ich habe keine Transaktionen durchgeführt.", value: "no" }
-    //   ],
-    //   questionOrder: 13,
-    //   footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie bereits mit Aktien, Aktienfonds oder Aktien-ETFs gesammelt haben.`
-    // },
     {
       text: "Wie viele Transaktionen haben Sie in den letzten 3 Jahren durchgeführt?",
-      questionOrder: 13,
+      questionOrder: 12.1,
       footnote: `Bitte geben Sie an, wie viele Transaktionen Sie in den vergangenen drei Jahren mit Aktien, Aktienfonds oder ETFs durchgeführt haben.`,
       options: [
         { label: "0", value: "0" },
@@ -416,21 +170,12 @@ async function main() {
         { label: "Verstehe ich", value: "average" },
         { label: "Kenne ich nicht", value: "none" },
       ],
-      questionOrder: 14,
+      questionOrder: 13,
       footnote: `Hier erfassen wir, wie vertraut Sie mit Anleihen und anleihenbasierten Produkten sind. Je nach Erfahrungsstand können bestimmte Produkte empfohlen oder ausgeschlossen werden.`
     },
-    // {
-    //   text: "Haben Sie bereits praktische Transaktionen mit Anleihen und Anleihenfonds durchgeführt?",
-    //   questionOrder: 15,
-    //   footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie mit Anleihen, Anleihenfonds oder Anleihen-ETFs gesammelt haben.`,
-    //   options: [
-    //     { label: "Ja, ich habe Transaktionen durchgeführt.", value: "yes" },
-    //     { label: "Nein, ich habe keine Transaktionen durchgeführt.", value: "no" }
-    //   ],
-    // },
     {
       text: "Wie viele Transaktionen haben Sie in den letzten 3 Jahren durchgeführt?",
-      questionOrder: 15,
+      questionOrder: 13.1,
       footnote: `Bitte geben Sie an, wie viele Transaktionen Sie in den letzten drei Jahren mit Anleihenprodukten durchgeführt haben.`,
       options: [
         { label: "0", value: "0" },
@@ -443,7 +188,7 @@ async function main() {
     // =======================================================
     {
       text: "Wie schätzen Sie Ihre Kenntnisse zu Edelmetallen ein?",
-      questionOrder: 16,
+      questionOrder: 14,
       footnote: `Bitte teilen Sie uns mit, wie viel Erfahrung Sie im Bereich Edelmetalle besitzen. Diese Information ist wichtig, um Ihre Kenntnisse über Chancen und Risiken dieser Anlageklasse einschätzen zu können.`,
       options: [
         { label: `Habe ich genutzt`, value: "good" },
@@ -451,18 +196,9 @@ async function main() {
         { label: "Kenne ich nicht", value: "none" },
       ],
     },
-    // {
-    //   text: "Haben Sie bereits praktische Transaktionen mit Edelmetallen durchgeführt?",
-    //   questionOrder: 19,
-    //   footnote: `Bitte wählen Sie aus, welche praktische Erfahrung Sie mit Rohstoffen wie Gold gesammelt haben.`,
-    //   options: [
-    //     { label: "Ja, ich habe Transaktionen durchgeführt.", value: "yes" },
-    //     { label: "Nein, ich habe keine Transaktionen durchgeführt.", value: "no" }
-    //   ],
-    // },
     {
       text: "Wie viele Transaktionen haben Sie in den letzten 3 Jahren durchgeführt?",
-      questionOrder: 17,
+      questionOrder: 14.1,
       footnote: `Bitte geben Sie an, wie viele Transaktionen Sie in den letzten drei Jahren mit Rohstoffen durchgeführt haben.`,
       options: [
         { label: "0", value: "0" },
@@ -489,7 +225,7 @@ async function main() {
           value: "no_experience",
         },
       ],
-      questionOrder: 18,
+      questionOrder: 15,
       footnote: `Bitte geben Sie an, ob Sie bereits Erfahrungen mit vermögensverwaltenden Dienstleistungen gesammelt haben. Diese Information hilft uns, Ihre Kenntnisse in Bezug auf professionell gesteuerte Anlageformen einzuschätzen.`
     },
     // ------------------------------
@@ -506,14 +242,24 @@ async function main() {
         { label: "Verkauf von Vermögenswerten (Autoverkauf, Hausverkauf o.Ä.)", value: "sale_of_assets" },
         { label: "Sonstiges", value: "other" },
       ],
-      questionOrder: 19,
+      questionOrder: 16,
       footnote: `Bitte wählen Sie aus, aus welcher Quelle die für die Veranlagung vorgesehenen Gelder stammen. Diese Angabe ist aus rechtlichen Gründen erforderlich und unterstützt die Beurteilung der finanziellen Hintergründe.`
+    },
+    {
+      text: "Wie hat der Auftraggeber bisherige Anlageentscheidungen getroffen?",
+      options: [
+        { label: "Mit professioneller Hilfe (persönliche Beratung durch eine Bank bzw. einen Anlageberater oder Inanspruchnahme einer Vermögensverwaltung)", value: "with_professional_help" },
+        { label: "Eigenständig und ohne professionelle Beratung", value: "independently" },
+        { label: " Der Auftraggeber hat noch keine Anlageentscheidung getroffen", value: "other_method" },
+      ],
+      questionOrder: 17,
     },
     {
       text: "Beabsichtigte Einmalveranlagung – Welchen Betrag möchten Sie einmalig investieren?",
       questionType: "number",
       maxValue: 5000,
-      questionOrder: 20,
+      minValue: 1500,
+      questionOrder: 18,
       inputPlaceholder: "Bitte Betrag in Euro eingeben…",
       footnote: `Bitte geben Sie den Betrag an, den Sie einmalig investieren möchten. Diese Angabe hilft uns, Ihre geplante Investitionshöhe und deren Eignung im Rahmen der Anlageberatung einzuschätzen.`
     },
@@ -521,73 +267,12 @@ async function main() {
       text: "Beabsichtigte monatliche Veranlagung – Welchen Betrag möchten Sie regelmäßig pro Monat investieren?",
       questionType: "number",
       maxValue: 500,
-      questionOrder: 21,
+      minValue:  75,
+      questionOrder: 19,
       inputPlaceholder: "Bitte Betrag in Euro eingeben…",
       footnote: `Bitte geben Sie an, welchen Betrag Sie monatlich investieren möchten. Laufende Investitionen beeinflussen die langfristige Vermögensentwicklung und sind relevant für die geeignete Produktauswahl.`
-    }
+    },
   ];
-
-  for (const q of questions) {
-    await prisma.question.create({
-      data: {
-        text: q.text,
-        questionOrder: q.questionOrder,
-        questionType: q.questionType || 'choice',
-        maxValue: q.maxValue || null,
-        minValue: q.minValue || null,
-        options: {
-          create: q.options || []
-        },
-        footnote: q.footnote || null,
-        inputPlaceholder: q.inputPlaceholder || null,
-      }
-    });
-  }
-
-  // Delete all existing products and AI settings before seeding
-  await prisma.termsAndConditions.deleteMany();
-
-  const initialTerms = await prisma.termsAndConditions.upsert({
-    where: { id: 'terms-initial-v1' },
-    update: {},
-    create: {
-      id: 'terms-initial-v1',
-      title: 'Initial Terms and Conditions',
-      content: `Die 4money Financial Services GmbH (kurz 4money), mit der Geschäftsanschrift Einspinnergasse 1/3.OG, 8010 Graz, ist ein von der österreichischen Finanzmarktaufsicht (FMA) konzessioniertes Wertpapierdienstleistungsunternehmen (kurz WPDLU) gemäß §4 Abs. 1 WAG 2018. Das WPDLU ist zur Anlageberatung (gemäß § 3 Abs. 2 Z 1 &amp; WAG 2018) und Annahme und Übermittlung von Aufträgen (§ 3 Abs 2 Z 3 WAG 2018) im Hinblick auf Fondsanteile (gemäß § 1 Z 7 lit c WAG 2018) auch über natürliche Personen gemäß §1 Z45 WAG 2018 berechtigt. Das WPDLU ist nicht Mitglied einer Anleger:innenentschädigungseinrichtung, sondern über eine Vermögensschadenhaftpflichtversicherung mit einer Versicherungssumme von 1.500.000€ pro Jahr und 1.000.000€ pro Schadensfall abgesichert. Das Halten von Kund:innengeldern ist dem WPDLU gesetzlich untersagt.
-        Es wird darauf hingewiesen, dass das WPDLU lediglich über einen Geschäftsleiter verfügt. Das WPDLU bietet in Bezug auf Wertpapierdienstleistungen nicht unabhängige Vermittlung- bzw. Beratung auf Provisions- und/oder Honorarbasis an. Das WPDLU hat zwar eine breite Palette von Produkten, kann aber nicht den gesamten Markt abbilden. Eine umfassende Marktuntersuchung, welche sämtliche auf dem Markt befindliche Produkte beinhaltet ist daher nicht geschuldet. Eigenprodukte werden nicht angeboten.
-        Seitens des WPDLU besteht keine Pflicht Kund:innenportfolios laufend zu überwachen bzw. die Kund:innen über Veränderungen zu informieren. Daher ist das für das WPDLU nicht möglich laufend festzustellen ob bestimmte Produkte oder Wertpapierdienstleistungen weiterhin angemessen oder geeignet sind. Diesbezügliche Eignungstests können auch ohne Neuveranlagung auf Initiative der Kund:innen einmal jährlich unentgeltlich beim WPDLU gemacht werden. Den Kund:innen wird das Angebot gemacht einmal pro Jahr die Geeignetheit der vermittelten Finanzinstrumente und der damit in Zusammenhang stehenden Portfoliostruktur zu überprüfen.
-        Gemäß Wertpapieraufsichtsgesetz 2018 ist das Wertpapierdienstleistungsunternehmen dazu verpflichtet von Kund:innen außer persönlichen Daten auch Informationen über finanziellen Verhältnisse, Kenntnisse und Erfahrungen im Wertpapierbereich, Risikoneigung und Anlageziele im allgemeinen sowie Anlagezweck und Anlagedauer hinsichtlich der beabsichtigten Geschäfte einzuholen und aufzuzeichnen, um ordnungsgemäß beraten und geeignete Produkte vermitteln zu können. Dies soll eine gleichbleibend hohe Servicequalität für Kund:innen sicherstellen und dient nicht zuletzt auch zu deren Schutz. Auch wenn manche Fragen sehr weit gehend erscheinen mögen, ist es zur Gewährleistung einer bestmöglichen Beratung gesetzlich zwingend erforderlich, dass alle Angaben richtig und vollständig sind. Gemäß Art. 54 Abs 8 del VO (EU) 2017/565 in Verbindung mit Richtlinie 2014/65 Artikel 25 Abs. 2 darf das WPDLU keine Anlageberatung machen oder eine Empfehlung für ein geeignetes Produkt abgeben, wenn nicht alle erforderlichen Informationen vorliegen. Treffen Angabe nicht mehr zu, sollten Kund:innen das Wertpapierdienstleistungsunternehmen unverzüglich darüber informieren, damit die Änderungen berücksichtigt werden können.
-        Das WPDLU ist kein Steuerberater und überprüft nicht, ob die gewählte Anlageform, die steuerlich günstigste ist. Es wird empfohlen steuerliche Fragen zur Veranlagung mit einem Steuerberater zu besprechen.
-        Das Wertpapierdienstleistungsunternehmen ist nicht befugt Zusicherungen zu geben oder Angaben zu machen die von den Verkaufsunterlagen abweichen. Das WPDLU stellt die vereinfachten Verkaufsprospekte bzw. die Basisinformationsblätter sowie alle sonstigen Gesprächsunterlagen kostenlos zur Verfügung. Grundsätzlich werden dem/der Kund:in die Informationen in elektronischer Form zur Verfügung gestellt, auf Anfrage der Kundin bzw. des Kunden werden diese auch in Papierform kostenlos zur Verfügung gestellt.
-        Anlageergebnisse in der Vergangenheit sind keine Garantie für zukünftige Ergebnisse.
-        Bevor eine Entscheidung für eine bestimmte Anlage getroffen wird, sollten sich Kund:innen anhand der angebotenen Unterlagen und Informationen genau über Eigenheiten, Funktionsweisen und Risiken der Anlagen informieren und ggf. beim WPDLU nachfragen.
-        Die Daten von Kund:innen werden absolut vertraulich behandelt und ausschließlich im Sinne der gegenständlichen Kund:innenbeziehung verwendet. Gemäß § 8 WAG 2018 ist das WPDLU sowie für sie tätige Personen zur Verschwiegenheit verpflichtet. Die Verschwiegenheitspflicht darf nur in gesetzlich definierten (Ausnahme)fällen durchbrochen werden.
-      `,
-      version: 'v1.0',
-      termsType: 'INITIAL',
-      isActive: true
-    }
-  })
-  console.log("🚀 ~ main ~ initialTerms:", initialTerms)
-
-  const productTerms = await prisma.termsAndConditions.upsert({
-    where: { id: 'terms-product-v1' },
-    update: {},
-    create: {
-      id: 'terms-product-v1',
-      title: 'Investment Product Terms',
-      content: 'Investment products carry inherent risks. Past performance does not guarantee future results. You may lose some or all of your invested capital. Please ensure you understand the risks before proceeding.',
-      version: 'v1.0',
-      termsType: 'PRODUCT_SPECIFIC',
-      isActive: true
-    }
-  })
-  console.log("🚀 ~ main ~ productTerms:", productTerms)
-
-  // Delete all existing products and AI settings before seeding
-  await prisma.sessionProductSuggestion.deleteMany();
-  await prisma.aISettings.deleteMany();
-  await prisma.product.deleteMany();
 
   const productsWithAI = [
     // ---------------------------------------------------------
@@ -804,7 +489,7 @@ ABSCHLUSS:
         fileName: "/products/vvkn4_product_guide.pdf",
         minimumYear: 5,
         maximumYear: 7,
-        sri : "3",
+        sri: "3",
         duration: 5,
         riskType: RiskType.GEWINNORIENTIERT,
       },
@@ -881,7 +566,7 @@ ABSCHLUSS:
         fileName: "/products/vvkn5_product_guide.pdf",
         minimumYear: 7,
         maximumYear: 7,
-        sri : "4",
+        sri: "4",
         duration: 7,
         riskType: RiskType.GEWINNORIENTIERT,
       },
@@ -956,7 +641,7 @@ ABSCHLUSS:
         fileName: "/products/vvkn6_product_guide.pdf",
         minimumYear: 0,
         maximumYear: 0,
-        sri : "1",
+        sri: "1",
         duration: 0,
         riskType: RiskType.KONSERVATIV,
       },
@@ -1009,35 +694,6 @@ ABSCHLUSS:
     },
   ];
 
-  // Create products with AI settings
-  for (const item of productsWithAI) {
-    const createdProduct = await prisma.product.create({
-      data: {
-        name: item.product.name,
-        shortName: item.product.shortName,
-        description: item.product.description,
-        fileName: item.product.fileName,
-        sri: item.product.sri,
-        duration: item.product.duration,
-        minimumYear: item.product.minimumYear,
-        maximumYear: item.product.maximumYear,
-        riskType: item.product.riskType as "KONSERVATIV" | "AUSGEWOGEN" | "GEWINNORIENTIERT",
-      },
-    });
-
-    await prisma.aISettings.create({
-      data: {
-        model: item.ai.model,
-        prompt: item.ai.prompt,
-        firstMessage: item.ai.firstMessage,
-        vectorId: item.ai.vectorId,
-        productId: createdProduct.id,
-        isActive: true,
-      },
-    });
-  }
-
-  await prisma.highRiskCountry.deleteMany();
 
   const highRiskCountries = [
     "Afghanistan",
@@ -1070,16 +726,6 @@ ABSCHLUSS:
     "Jemen"
   ];
 
-  console.log('Seeding high-risk countries...');
-  for (const country of highRiskCountries) {
-    await prisma.highRiskCountry.upsert({
-      where: { name: country },
-      update: {},
-      create: { name: country },
-    });
-  }
-
-  await prisma.mainProductPrompt.deleteMany();
 
   const mainProductPrompts = [
     {
@@ -1356,21 +1002,6 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
     },
   ];
 
-  for (const item of mainProductPrompts) {
-    await prisma.mainProductPrompt.create({
-      data: {
-        mcpUrl: item.mcpUrl,
-        aiModel: item.aiModel,
-        vectorId: item.vectorId,
-        mainPrompt: item.mainPrompt,
-      },
-    });
-  }
-
-  // ==================== SEED ADMINS ====================
-  console.log('🔐 Seeding Admins...');
-
-  await prisma.admin.deleteMany();
 
   const admins = [
     {
@@ -1391,6 +1022,272 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
     },
   ];
 
+
+  const partners = [
+    {
+      email: 'alexander.bracic@finova.at',
+      phone: '+436769061716',
+      firstName: 'Alexander',
+      lastName: 'Bracic',
+      birthday: new Date('1991-12-16'),
+      agentNumber: '24020007',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'lukas.hochsteger@finova.at',
+      phone: '+436603409741',
+      firstName: 'Lukas',
+      lastName: 'Hochsteger',
+      birthday: new Date('2000-11-10'),
+      agentNumber: '24020020',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'franz.resch@finova.at',
+      phone: '+4366+43518878',
+      firstName: 'Franz',
+      lastName: 'Resch',
+      birthday: new Date('1984-12-09'),
+      agentNumber: '24020012',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'sedin.cehajic@finova.at',
+      phone: '+436604967939',
+      firstName: 'Sedin',
+      lastName: 'Cehajic',
+      birthday: new Date('1993-10-28'),
+      agentNumber: '24020015',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'leonhard.ogris@finova.at',
+      phone: '+436642111429',
+      firstName: 'Leonhard',
+      lastName: 'Ogris',
+      birthday: new Date('1994-02-05'),
+      agentNumber: '24020014',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'filip.bonat@finova.at',
+      phone: '+436767857277',
+      firstName: 'Filip',
+      lastName: 'Bonat',
+      birthday: new Date('1998-08-11'),
+      agentNumber: '24020098',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'gerald.puntigam@finova.at',
+      phone: '+436606162633',
+      firstName: 'Gerald',
+      lastName: 'Puntigam',
+      birthday: new Date('1985-04-09'),
+      agentNumber: '24020022',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'erwin.buerger@finova.at',
+      phone: '+436507772332',
+      firstName: 'Erwin',
+      lastName: 'Bürger',
+      birthday: new Date('1989-07-31'),
+      agentNumber: '24020013',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'aldin.mujanic@finova.at',
+      phone: '+4366+43806916',
+      firstName: 'Aldin',
+      lastName: 'Mujanic',
+      birthday: new Date('1992-02-12'),
+      agentNumber: '24020027',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'marco.puntigam@finova.at',
+      phone: '+436764026060',
+      firstName: 'Marco',
+      lastName: 'Puntigam',
+      birthday: new Date('1991-11-03'),
+      agentNumber: '24020011',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'marco.schober@finova.at',
+      phone: '+436766774502',
+      firstName: 'Marco',
+      lastName: 'Schober',
+      birthday: new Date('1985-06-15'),
+      agentNumber: '24020010',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'guenter.moser@finova.at',
+      phone: '+436645314077',
+      firstName: 'Günter',
+      lastName: 'Moser',
+      birthday: new Date('1985-06-17'),
+      agentNumber: '24020009',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'christian.leski@finova.at',
+      phone: '+436645440636',
+      firstName: 'Christian',
+      lastName: 'Leski',
+      birthday: new Date('1986-03-04'),
+      agentNumber: '24020008',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'gernot.fasching@finova.at',
+      phone: '+436648962909',
+      firstName: 'Gernot',
+      lastName: 'Fasching',
+      birthday: new Date('1994-07-10'),
+      agentNumber: '24020005',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'hamza.hamzic@finova.at',
+      phone: '+4366047+43825',
+      firstName: 'Hamza',
+      lastName: 'Hamzic',
+      birthday: new Date('1993-09-24'),
+      agentNumber: '24020002',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+    {
+      email: 'heiko.juritsch@finova.at',
+      phone: '+436644276749',
+      firstName: 'Heiko',
+      lastName: 'Juritsch',
+      birthday: new Date('1990-06-13'),
+      agentNumber: '24020001',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },
+  ];
+
+  for (const q of questions) {
+    await prisma.question.create({
+      data: {
+        text: q.text,
+        questionOrder: q.questionOrder,
+        questionType: q.questionType || 'choice',
+        maxValue: q.maxValue || null,
+        minValue: q.minValue || null,
+        options: {
+          create: q.options || []
+        },
+        footnote: q.footnote || null,
+        inputPlaceholder: q.inputPlaceholder || null,
+      }
+    });
+  }
+
+/*
+  const initialTerms = await prisma.termsAndConditions.upsert({
+    where: { id: 'terms-initial-v1' },
+    update: {},
+    create: {
+      id: 'terms-initial-v1',
+      title: 'Initial Terms and Conditions',
+      content: `Die 4money Financial Services GmbH (kurz 4money), mit der Geschäftsanschrift Einspinnergasse 1/3.OG, 8010 Graz, ist ein von der österreichischen Finanzmarktaufsicht (FMA) konzessioniertes Wertpapierdienstleistungsunternehmen (kurz WPDLU) gemäß §4 Abs. 1 WAG 2018. Das WPDLU ist zur Anlageberatung (gemäß § 3 Abs. 2 Z 1 &amp; WAG 2018) und Annahme und Übermittlung von Aufträgen (§ 3 Abs 2 Z 3 WAG 2018) im Hinblick auf Fondsanteile (gemäß § 1 Z 7 lit c WAG 2018) auch über natürliche Personen gemäß §1 Z45 WAG 2018 berechtigt. Das WPDLU ist nicht Mitglied einer Anleger:innenentschädigungseinrichtung, sondern über eine Vermögensschadenhaftpflichtversicherung mit einer Versicherungssumme von 1.500.000€ pro Jahr und 1.000.000€ pro Schadensfall abgesichert. Das Halten von Kund:innengeldern ist dem WPDLU gesetzlich untersagt.
+        Es wird darauf hingewiesen, dass das WPDLU lediglich über einen Geschäftsleiter verfügt. Das WPDLU bietet in Bezug auf Wertpapierdienstleistungen nicht unabhängige Vermittlung- bzw. Beratung auf Provisions- und/oder Honorarbasis an. Das WPDLU hat zwar eine breite Palette von Produkten, kann aber nicht den gesamten Markt abbilden. Eine umfassende Marktuntersuchung, welche sämtliche auf dem Markt befindliche Produkte beinhaltet ist daher nicht geschuldet. Eigenprodukte werden nicht angeboten.
+        Seitens des WPDLU besteht keine Pflicht Kund:innenportfolios laufend zu überwachen bzw. die Kund:innen über Veränderungen zu informieren. Daher ist das für das WPDLU nicht möglich laufend festzustellen ob bestimmte Produkte oder Wertpapierdienstleistungen weiterhin angemessen oder geeignet sind. Diesbezügliche Eignungstests können auch ohne Neuveranlagung auf Initiative der Kund:innen einmal jährlich unentgeltlich beim WPDLU gemacht werden. Den Kund:innen wird das Angebot gemacht einmal pro Jahr die Geeignetheit der vermittelten Finanzinstrumente und der damit in Zusammenhang stehenden Portfoliostruktur zu überprüfen.
+        Gemäß Wertpapieraufsichtsgesetz 2018 ist das Wertpapierdienstleistungsunternehmen dazu verpflichtet von Kund:innen außer persönlichen Daten auch Informationen über finanziellen Verhältnisse, Kenntnisse und Erfahrungen im Wertpapierbereich, Risikoneigung und Anlageziele im allgemeinen sowie Anlagezweck und Anlagedauer hinsichtlich der beabsichtigten Geschäfte einzuholen und aufzuzeichnen, um ordnungsgemäß beraten und geeignete Produkte vermitteln zu können. Dies soll eine gleichbleibend hohe Servicequalität für Kund:innen sicherstellen und dient nicht zuletzt auch zu deren Schutz. Auch wenn manche Fragen sehr weit gehend erscheinen mögen, ist es zur Gewährleistung einer bestmöglichen Beratung gesetzlich zwingend erforderlich, dass alle Angaben richtig und vollständig sind. Gemäß Art. 54 Abs 8 del VO (EU) 2017/565 in Verbindung mit Richtlinie 2014/65 Artikel 25 Abs. 2 darf das WPDLU keine Anlageberatung machen oder eine Empfehlung für ein geeignetes Produkt abgeben, wenn nicht alle erforderlichen Informationen vorliegen. Treffen Angabe nicht mehr zu, sollten Kund:innen das Wertpapierdienstleistungsunternehmen unverzüglich darüber informieren, damit die Änderungen berücksichtigt werden können.
+        Das WPDLU ist kein Steuerberater und überprüft nicht, ob die gewählte Anlageform, die steuerlich günstigste ist. Es wird empfohlen steuerliche Fragen zur Veranlagung mit einem Steuerberater zu besprechen.
+        Das Wertpapierdienstleistungsunternehmen ist nicht befugt Zusicherungen zu geben oder Angaben zu machen die von den Verkaufsunterlagen abweichen. Das WPDLU stellt die vereinfachten Verkaufsprospekte bzw. die Basisinformationsblätter sowie alle sonstigen Gesprächsunterlagen kostenlos zur Verfügung. Grundsätzlich werden dem/der Kund:in die Informationen in elektronischer Form zur Verfügung gestellt, auf Anfrage der Kundin bzw. des Kunden werden diese auch in Papierform kostenlos zur Verfügung gestellt.
+        Anlageergebnisse in der Vergangenheit sind keine Garantie für zukünftige Ergebnisse.
+        Bevor eine Entscheidung für eine bestimmte Anlage getroffen wird, sollten sich Kund:innen anhand der angebotenen Unterlagen und Informationen genau über Eigenheiten, Funktionsweisen und Risiken der Anlagen informieren und ggf. beim WPDLU nachfragen.
+        Die Daten von Kund:innen werden absolut vertraulich behandelt und ausschließlich im Sinne der gegenständlichen Kund:innenbeziehung verwendet. Gemäß § 8 WAG 2018 ist das WPDLU sowie für sie tätige Personen zur Verschwiegenheit verpflichtet. Die Verschwiegenheitspflicht darf nur in gesetzlich definierten (Ausnahme)fällen durchbrochen werden.
+      `,
+      version: 'v1.0',
+      termsType: 'INITIAL',
+      isActive: true
+    }
+  })
+  console.log("🚀 ~ main ~ initialTerms:", initialTerms)
+
+    // Create products with AI settings
+    for (const item of productsWithAI) {
+      const createdProduct = await prisma.product.create({
+        data: {
+          name: item.product.name,
+          shortName: item.product.shortName,
+          description: item.product.description,
+          fileName: item.product.fileName,
+          sri: item.product.sri,
+          duration: item.product.duration,
+          minimumYear: item.product.minimumYear,
+          maximumYear: item.product.maximumYear,
+          riskType: item.product.riskType as "KONSERVATIV" | "AUSGEWOGEN" | "GEWINNORIENTIERT",
+        },
+      });
+  
+      await prisma.aISettings.create({
+        data: {
+          model: item.ai.model,
+          prompt: item.ai.prompt,
+          firstMessage: item.ai.firstMessage,
+          vectorId: item.ai.vectorId,
+          productId: createdProduct.id,
+          isActive: true,
+        },
+      });
+    }
+  const productTerms = await prisma.termsAndConditions.upsert({
+    where: { id: 'terms-product-v1' },
+    update: {},
+    create: {
+      id: 'terms-product-v1',
+      title: 'Investment Product Terms',
+      content: 'Investment products carry inherent risks. Past performance does not guarantee future results. You may lose some or all of your invested capital. Please ensure you understand the risks before proceeding.',
+      version: 'v1.0',
+      termsType: 'PRODUCT_SPECIFIC',
+      isActive: true
+    }
+  })
+  console.log("🚀 ~ main ~ productTerms:", productTerms)
+
+  console.log('Seeding high-risk countries...');
+  for (const country of highRiskCountries) {
+    await prisma.highRiskCountry.upsert({
+      where: { name: country },
+      update: {},
+      create: { name: country },
+    });
+  }
+
+  for (const item of mainProductPrompts) {
+    await prisma.mainProductPrompt.create({
+      data: {
+        mcpUrl: item.mcpUrl,
+        aiModel: item.aiModel,
+        vectorId: item.vectorId,
+        mainPrompt: item.mainPrompt,
+      },
+    });
+  }
+
   for (const admin of admins) {
     const hashedPassword = await bcrypt.hash(admin.password, 10);
     await prisma.admin.create({
@@ -1406,173 +1303,6 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
     console.log(`  ✅ Admin created: ${admin.email} (password: ${admin.password})`);
   }
 
-  // ==================== SEED PARTNERS ====================
-  console.log('🤝 Seeding Partners...');
-
-  await prisma.partner.deleteMany();
-
-  const partners = [
-    {
-      email: 'alexander.bracic@finova.at',
-      phone: '+436769061716',
-      firstName: 'Alexander',
-      lastName: 'Bracic',
-      birthday: new Date('1991-12-16'),
-      agentNumber: '24020007',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'lukas.hochsteger@finova.at',
-      phone: '+436603409741',
-      firstName: 'Lukas',
-      lastName: 'Hochsteger',
-      birthday: new Date('2000-11-10'),
-      agentNumber: '24020020',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'franz.resch@finova.at',
-      phone: '+4366+43518878',
-      firstName: 'Franz',
-      lastName: 'Resch',
-      birthday: new Date('1984-12-09'),
-      agentNumber: '24020012',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'sedin.cehajic@finova.at',
-      phone: '+436604967939',
-      firstName: 'Sedin',
-      lastName: 'Cehajic',
-      birthday: new Date('1993-10-28'),
-      agentNumber: '24020015',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'leonhard.ogris@finova.at',
-      phone: '+436642111429',
-      firstName: 'Leonhard',
-      lastName: 'Ogris',
-      birthday: new Date('1994-02-05'),
-      agentNumber: '24020014',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'filip.bonat@finova.at',
-      phone: '+436767857277',
-      firstName: 'Filip',
-      lastName: 'Bonat',
-      birthday: new Date('1998-08-11'),
-      agentNumber: '24020098',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'gerald.puntigam@finova.at',
-      phone: '+436606162633',
-      firstName: 'Gerald',
-      lastName: 'Puntigam',
-      birthday: new Date('1985-04-09'),
-      agentNumber: '24020022',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'erwin.buerger@finova.at',
-      phone: '+436507772332',
-      firstName: 'Erwin',
-      lastName: 'Bürger',
-      birthday: new Date('1989-07-31'),
-      agentNumber: '24020013',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'aldin.mujanic@finova.at',
-      phone: '+4366+43806916',
-      firstName: 'Aldin',
-      lastName: 'Mujanic',
-      birthday: new Date('1992-02-12'),
-      agentNumber: '24020027',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'marco.puntigam@finova.at',
-      phone: '+436764026060',
-      firstName: 'Marco',
-      lastName: 'Puntigam',
-      birthday: new Date('1991-11-03'),
-      agentNumber: '24020011',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'marco.schober@finova.at',
-      phone: '+436766774502',
-      firstName: 'Marco',
-      lastName: 'Schober',
-      birthday: new Date('1985-06-15'),
-      agentNumber: '24020010',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'guenter.moser@finova.at',
-      phone: '+436645314077',
-      firstName: 'Günter',
-      lastName: 'Moser',
-      birthday: new Date('1985-06-17'),
-      agentNumber: '24020009',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'christian.leski@finova.at',
-      phone: '+436645440636',
-      firstName: 'Christian',
-      lastName: 'Leski',
-      birthday: new Date('1986-03-04'),
-      agentNumber: '24020008',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'gernot.fasching@finova.at',
-      phone: '+436648962909',
-      firstName: 'Gernot',
-      lastName: 'Fasching',
-      birthday: new Date('1994-07-10'),
-      agentNumber: '24020005',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'hamza.hamzic@finova.at',
-      phone: '+4366047+43825',
-      firstName: 'Hamza',
-      lastName: 'Hamzic',
-      birthday: new Date('1993-09-24'),
-      agentNumber: '24020002',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-    {
-      email: 'heiko.juritsch@finova.at',
-      phone: '+436644276749',
-      firstName: 'Heiko',
-      lastName: 'Juritsch',
-      birthday: new Date('1990-06-13'),
-      agentNumber: '24020001',
-      password: 'Partner@2024!',
-      referralCode: await  generateUniqueReferralCode(),
-    },
-  ];
 
   for (const partner of partners) {
     const hashedPassword = await bcrypt.hash(partner.password, 10);
@@ -1590,7 +1320,7 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
     });
     console.log(`  ✅ Partner created: ${partner.email} (password: ${partner.password}, referralCode: ${partner.referralCode})`);
   }
-
+*/
   console.log('✅ Seed complete!');
 }
 

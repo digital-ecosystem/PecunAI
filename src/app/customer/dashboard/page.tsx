@@ -33,6 +33,8 @@ const Dashboard = () => {
         email: string;
         referralCode: string;
     } | null>(null);
+    const [showOnboardingWelcomePopup, setShowOnboardingWelcomePopup] = useState(false);
+    const [pendingStartPartnerCode, setPendingStartPartnerCode] = useState<string | null>(null);
     const [startError, setStartError] = useState<string | null>(null);
     const [didAutostart, setDidAutostart] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -219,6 +221,19 @@ const Dashboard = () => {
         }
     };
 
+    const openWelcomeAndQueueStart = (opts?: { partnerCode?: string }) => {
+        setIsStartDrawerOpen(false);
+        setPendingStartPartnerCode(opts?.partnerCode || null);
+        setShowOnboardingWelcomePopup(true);
+    };
+
+    const handleWelcomeContinue = async () => {
+        const queuedPartnerCode = pendingStartPartnerCode;
+        setShowOnboardingWelcomePopup(false);
+        setPendingStartPartnerCode(null);
+        await startSession(queuedPartnerCode ? { partnerCode: queuedPartnerCode } : undefined);
+    };
+
     const handleLookupPartner = async () => {
         const code = partnerCode.trim();
         if (!code) return;
@@ -274,7 +289,9 @@ const Dashboard = () => {
             setStartError('Sie haben bereits eine offene Beratung. Bitte zuerst abschließen.');
             return;
         }
-        startSession();
+        // Require explicit confirmation before starting the stepper
+        setIsStartDrawerOpen(true);
+        openWelcomeAndQueueStart();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, didAutostart]);
 
@@ -378,7 +395,7 @@ const Dashboard = () => {
                                                 <div className="flex flex-col gap-3">
                                                     <p className="text-sm text-gray-700">Partner-Link erkannt. Sie können direkt starten.</p>
                                                     <button
-                                                        onClick={() => startSession()}
+                                                        onClick={() => openWelcomeAndQueueStart()}
                                                         className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                                                     >
                                                         Starten
@@ -421,7 +438,7 @@ const Dashboard = () => {
                                                             </p>
                                                             <div className="mt-3">
                                                                 <button
-                                                                    onClick={() => startSession({ partnerCode: partnerPreview.referralCode })}
+                                                                    onClick={() => openWelcomeAndQueueStart({ partnerCode: partnerPreview.referralCode })}
                                                                     className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                                                                 >
                                                                     Weiter
@@ -444,6 +461,48 @@ const Dashboard = () => {
                                         </div>
                                     </DrawerContent>
                                 </Drawer>
+
+                                {showOnboardingWelcomePopup && (
+                                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-5 sm:p-8">
+                                            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3">
+                                                Willkommen bei PecunAI.
+                                            </h2>
+                                            <div className="max-h-[60vh] overflow-y-auto pr-1 text-sm sm:text-base text-gray-700 space-y-3">
+                                                <p>
+                                                    Diese Onboarding-Strecke ist der erste Schritt Ihrer KI-gestützten Finanzberatung. In den nächsten Schritten erfassen wir gemeinsam relevante Informationen wie Ihre Ziele, Erfahrungen, finanzielle Situation und Risikoneigung. Daraus entsteht ein persönliches Anlegerprofil.
+                                                </p>
+                                                <p>
+                                                    Auf Basis dieses Profils wird ein Anlagevorschlag erstellt, der aus konkreten Vermögensverwaltungsstrategien von froots besteht. Diese Strategien sind darauf ausgelegt, langfristig und strukturiert zu investieren und werden individuell auf Ihr Profil abgestimmt.
+                                                </p>
+                                                <p>
+                                                    PecunAI begleitet Sie dabei digital durch den gesamten Prozess. Die Anlageberatung und Vermittlung erfolgt durch 4money Financial Services GmbH, die Vermögensverwaltung übernimmt froots. Ihr Wertpapierdepot wird auf Ihren Namen bei der Schelhammer Capital Bank geführt.
+                                                </p>
+                                                <p>
+                                                    Ihre Angaben werden vertraulich behandelt und ausschließlich im Rahmen dieser Beratung verwendet.
+                                                </p>
+                                            </div>
+
+                                            <div className="mt-5 flex flex-col sm:flex-row justify-end gap-3">
+                                                <button
+                                                    onClick={() => {
+                                                        setShowOnboardingWelcomePopup(false);
+                                                        setPendingStartPartnerCode(null);
+                                                    }}
+                                                    className="w-full sm:w-auto px-4 py-2.5 bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 rounded-lg transition-colors text-sm font-medium"
+                                                >
+                                                    Abbrechen
+                                                </button>
+                                                <button
+                                                    onClick={handleWelcomeContinue}
+                                                    className="w-full sm:w-auto px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                                >
+                                                    Weiter
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Stats Cards */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">

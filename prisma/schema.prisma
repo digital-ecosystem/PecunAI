@@ -145,7 +145,7 @@ model Question {
   text             String
   createdAt        DateTime         @default(now())
   isRequired       Boolean          @default(true)
-  questionOrder    Int?             @default(1)
+  questionOrder    Float?           @default(1)
   questionPhase    QuestionPhase?
   questionType     String?          @default("choice")
   maxValue         Int?
@@ -415,6 +415,7 @@ enum SessionStatus {
 
 enum SessionPhase {
   TERMS1
+  TERMS_FROOTS
   QUESTIONS1
   TERMS2
   QUESTIONS2

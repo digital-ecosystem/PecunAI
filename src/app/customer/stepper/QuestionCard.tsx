@@ -62,7 +62,7 @@ const QuestionCard = ({
   const hasMaxValidationError = isNumberInput && selected && maxValue !== undefined && selectedNum !== null && selectedNum > maxValue;
   const hasValidationError = hasMinValidationError || hasMaxValidationError;
 
-  // Check if there's a custom error message passed from parent (e.g., Q24 monthly investment validation)
+  // Check if there's a custom error message passed from parent (e.g., Q18 monthly investment validation)
   const hasCustomError = isNumberInput && selected && !!errorMessage;
 
   // Check for forbidden values (e.g., "none" or "keine")
@@ -136,6 +136,10 @@ const QuestionCard = ({
             />
             {maxValue !== undefined && (
               <p className="text-xs sm:text-sm text-gray-500">Maximaler Wert: {questionOrder == 2 ? maxValue : formatEuro(maxValue)}</p>
+            )}
+
+            {minValue !== undefined && (
+              <p className="text-xs sm:text-sm text-gray-500">Minimaler Wert: {questionOrder == 2 ? minValue : formatEuro(minValue)}</p>
             )}
           </div>
           {(hasValidationError || hasCustomError) && (

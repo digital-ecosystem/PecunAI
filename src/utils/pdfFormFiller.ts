@@ -929,6 +929,7 @@ const baseNationalityFields = (userInfo: UserInfo): FormFieldData => ({
 // Helper to get dynamic answer based on question type
 const getDynamicAnswer = (question: Question | undefined, answers: Record<string, string>, value?: boolean): string | number | boolean => {
   if (!question) return "";
+  
   const answer = answers[question.id];
   if (answer === undefined || answer === null) return "";
 
@@ -936,11 +937,9 @@ const getDynamicAnswer = (question: Question | undefined, answers: Record<string
   if (question.options && question.options.length > 0) {
     const selectedOption = question.options.find(opt => opt.value === answer);
     if (selectedOption) {
-      console.log("Question No : " + question.questionOrder + "Answer: ", value ? selectedOption.value : selectedOption.label);
       return value ? selectedOption.value : selectedOption.label;
     }
   }
-  console.log("Question No : " + question.questionOrder + "Answer: ", answer);
   return answer;
 };
 
@@ -1021,7 +1020,10 @@ const initializeFinancialKnowledgeFields = (questions: Question[], answers: Reco
   const fields: FormFieldData = {};
 
   categories.forEach(category => {
+
+    console.log("answers for 17 and 18 questions:", getDynamicAnswer(questions[14], answers, true), getDynamicAnswer(questions[15], answers, true));
     // Question 9
+    
     knowledgeTypes.forEach(type => {
       if (category == "Equities") {
         if (type == "NoKnowledge") {
@@ -1082,7 +1084,8 @@ const initializeFinancialKnowledgeFields = (questions: Question[], answers: Reco
     tradeTypes.forEach(type => {
       if (category == "Equities") {
         if (type == "ZeroTrades") {
-          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[12], answers, true) == "0" ? true : false;
+          const knowledgeAnswer = getDynamicAnswer(questions[11], answers, true);
+          fields[`UserFinancialKnowledge${category}${type}`] = (knowledgeAnswer == "none" || knowledgeAnswer == "average") ? true : false;
         } else if (type == "TenTrades") {
           fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[12], answers, true) == "1-10" ? true : false;
         } else if (type == "MoreTenTrades") {
@@ -1093,7 +1096,8 @@ const initializeFinancialKnowledgeFields = (questions: Question[], answers: Reco
 
       } else if (category == "Bonds") {
         if (type == "ZeroTrades") {
-          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[14], answers, true) == "0" ? true : false;
+          const knowledgeAnswer = getDynamicAnswer(questions[13], answers, true);
+          fields[`UserFinancialKnowledge${category}${type}`] = (knowledgeAnswer == "none" || knowledgeAnswer == "average") ? true : false;
         } else if (type == "TenTrades") {
           fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[14], answers, true) == "1-10" ? true : false;
         } else if (type == "MoreTenTrades") {
@@ -1103,7 +1107,8 @@ const initializeFinancialKnowledgeFields = (questions: Question[], answers: Reco
         }
       } else {
         if (type == "ZeroTrades") {
-          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[16], answers, true) == "0" ? true : false;
+          const knowledgeAnswer = getDynamicAnswer(questions[15], answers, true);
+          fields[`UserFinancialKnowledge${category}${type}`] = (knowledgeAnswer == "none" || knowledgeAnswer == "average") ? true : false;
         } else if (type == "TenTrades") {
           fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[16], answers, true) == "1-10" ? true : false;
         } else if (type == "MoreTenTrades") {
@@ -1177,8 +1182,6 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
 
   // Question 18
   UserPreviousFinancialActivitiesProfessional: getDynamicAnswer(questions[17], answers, true) == "experienced_positive" ? true : false,
-  UserPreviousFinancialActivitiesPrivate: getDynamicAnswer(questions[17], answers, true) == "experienced_negative" ? true : false,
-  UserPreviousFinancialActivitiesNo: getDynamicAnswer(questions[17], answers, true) == "no_experience" ? true : false,
 
   GoalRiskScoreFrootsConservative: getDynamicAnswer(questions[4], answers, true) == "KONSERVATIV" ? true : false,
   GoalRiskScoreFrootsBalanced: getDynamicAnswer(questions[4], answers, true) == "GEWINNORIENTIERT" ? true : false,
@@ -1197,6 +1200,10 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
   UserSourceOfIncomeOther: getDynamicAnswer(questions[18], answers, true) == "other" ? true : false,
   UserSourceOfIncomeOtherText: "",
 
+  UserPreviousFinancialActivitiesBoth0: getDynamicAnswer(questions[21], answers, true) == "with_professional_help" ? true : false,
+  UserPreviousFinancialActivitiesPrivate: getDynamicAnswer(questions[21], answers, true) == "independently" ? true : false,
+  UserPreviousFinancialActivitiesNo: getDynamicAnswer(questions[21], answers, true) == "other_method" ? true : false,
+
   UserFullName1: getFullName(userInfo),
   UserCity1: userInfo.city || "",
   UserGoalRiskScoreName0: getDynamicAnswer(questions[4], answers),
@@ -1209,7 +1216,6 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
 });
 
 const moneyProtokollMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>, suggestedProduct: suggestedProduct, partner: Partner): FormFieldData => {
-  console.log("🚀 ~ moneyProtokollMapper ~ userInfo:", userInfo)
   const questionAnswers: Record<number, AnswerWithOptions> = {};
 
   questions.forEach(q => {

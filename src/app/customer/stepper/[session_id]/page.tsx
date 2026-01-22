@@ -41,6 +41,10 @@ import { useParams, useRouter } from "next/navigation";
 // import { generatePDF as GenerateSimplePDF } from "@/utils/pdfGenerator";
 import { SignTeqIframe } from "@/components/SignTeqIframe";
 import { SustainabilityStopPopup } from "@/components/popup";
+import { TermsScreen } from "@/components/terms/TermsScreen";
+import { FourMoneyInfo } from "@/components/terms/FourMoneyInfo";
+import { FrootsCustomerInfo } from "@/components/terms/FrootsCustomerInfo";
+import { SustainabilityRisksInfo } from "@/components/terms/SustainabilityRisksInfo";
 // import { pdfBlobToBase64 } from "@/utils/pdfUtils";
 // import { pdfBlobToBase64 } from "@/utils/pdfUtils";
 import { CONFIG } from "@/config/constants";
@@ -50,6 +54,7 @@ import { CONFIG } from "@/config/constants";
  * 
  * Phase 1: Combined intro and initial questions
  *   - Sub-step: TERMS1 (4Money Information)
+ *   - Sub-step: TERMS_FROOTS (froots Customer Information)
  *   - Sub-step: QUESTIONS1 (2 questions)
  *   - Sub-step: TERMS2 (Sustainability Risks)
  *   - Sub-step: QUESTIONS2 (13 questions)
@@ -64,6 +69,7 @@ import { CONFIG } from "@/config/constants";
 
 const PHASES = {
   TERMS1: 1,
+  TERMS_FROOTS: 1,
   QUESTIONS1: 1,
   TERMS2: 1,
   QUESTIONS2: 1,
@@ -264,8 +270,8 @@ const validationSchema = Yup.object({
 });
 
 // Constants for minimum investment values
-const Q23_MIN_VALUE = 1500; // Minimum one-time investment
-const Q24_MIN_VALUE = 75;   // Minimum monthly investment
+const Q18_MIN_VALUE = 1500; // Minimum one-time investment (Question 18)
+const Q19_MIN_VALUE = 75;   // Minimum monthly investment (Question 19)
 
 export default function Stepper() {
   const [loading, setLoading] = useState(true);
@@ -555,26 +561,29 @@ export default function Stepper() {
   const isAnswerProvided = (value: unknown) => typeof value === 'string' && value.trim().length > 0;
 
   // Helper to check if the current page is fully answered and valid
-  // Special case: Q20 + Q21 -> at least one of them must be filled (either can be empty)
-  const pageQ20 = currentPageQuestions.find(q => q.questionOrder === 20);
-  const pageQ21 = currentPageQuestions.find(q => q.questionOrder === 21);
-  const hasQ20AndQ21OnPage = !!pageQ20 && !!pageQ21;
-  const hasEitherQ20OrQ21Answer = hasQ20AndQ21OnPage
-    ? (isAnswerProvided(answers[pageQ20!.id]) || isAnswerProvided(answers[pageQ21!.id]))
+  // Special case: Q18 + Q19 -> at least one of them must be filled (either can be empty)
+  const pageQ18 = currentPageQuestions.find(q => q.questionOrder === 18);
+  const pageQ19 = currentPageQuestions.find(q => q.questionOrder === 19);
+  const hasQ18AndQ19OnPage = !!pageQ18 && !!pageQ19;
+  const hasEitherQ18OrQ19Answer = hasQ18AndQ19OnPage
+    ? (isAnswerProvided(answers[pageQ18!.id]) || isAnswerProvided(answers[pageQ19!.id]))
     : false;
 
   const isCurrentPageValid = currentPageQuestions.length > 0 && currentPageQuestions.every((q) => {
     const answer = answers[q.id];
     const provided = isAnswerProvided(answer);
 
-    if (q.questionOrder === 20 || q.questionOrder === 21) {
-      if (hasQ20AndQ21OnPage) {
-        if (!hasEitherQ20OrQ21Answer) return false;
+    if (q.questionOrder === 18 || q.questionOrder === 19) {
+      // Both Q18 and Q19 are optional individually, but at least one must be filled overall
+      // This check happens at the page level - if both are on the page, at least one must be filled
+      if (hasQ18AndQ19OnPage) {
+        if (!hasEitherQ18OrQ19Answer) return false;
         // If one of them is provided, the other may be empty
         if (!provided) return true;
       } else {
-        // Fallback: if only one is present on the page, keep it required
-        if (!provided) return false;
+        // If only one is on the page, it's optional (can be empty)
+        // The global check will ensure at least one is filled before proceeding
+        if (!provided) return true;
       }
     } else {
       if (!provided) return false;
@@ -583,6 +592,14 @@ export default function Stepper() {
     if (provided && hasValidationError(q, answer)) return false;
     return true;
   });
+
+  // Mapping of parent questions to their dependent child questions
+  // When parent answer is NOT 'good', the child question should be reset
+  const dependentQuestionsMap: Record<number, number> = {
+    12: 12.1,  // Question 12 -> 12.1
+    13: 13.1,  // Question 13 -> 13.1
+    14: 14.1,  // Question 14 -> 14.1
+  };
 
   // Handler for selecting an option for any question on a page
   const handleSelectQuestion = async (q: Question, opt: string) => {
@@ -596,6 +613,25 @@ export default function Stepper() {
 
       // Persist the answer
       await saveAnswer(q.id, opt, q.text, q.questionType, q.options);
+
+      // Check if this is a parent question with a dependent child question
+      const childQuestionOrder = dependentQuestionsMap[q.questionOrder];
+      if (childQuestionOrder !== undefined && opt !== 'good') {
+        // Find the child question and reset its answer
+        const childQuestion = questions.find(cq => cq.questionOrder === childQuestionOrder);
+        if (childQuestion) {
+          // Clear the child question's answer in local state
+          const clearedAnswers = { ...newAnswers };
+          delete clearedAnswers[childQuestion.id];
+          setAnswers(clearedAnswers);
+
+          // Sync the cleared answer
+          syncAnswers(childQuestion.id, '', childQuestionOrder, childQuestion.options || []);
+
+          // Persist the cleared answer to the database
+          await saveAnswer(childQuestion.id, '', childQuestion.text, childQuestion.questionType, childQuestion.options);
+        }
+      }
 
       // Do not auto-advance — allow user to answer all visible questions and use Next
       // Page validity is handled by `isCurrentPageValid` which controls the Next button
@@ -652,16 +688,23 @@ export default function Stepper() {
   const handleConfirm = async () => {
     setConfirmed(true);
     // await saveUpdatedTermsStatus(); // Call API to save acceptance
+
     setTimeout(() => {
       setConfirmed(false);
 
       // Navigate within Phase 1 sub-steps
       if (currentSubStep === 'TERMS1') {
+        setCurrentSubStep('TERMS_FROOTS');
+        setQuestionIndex(1);
+        savePhase(1, 'TERMS_FROOTS');
+      } else if (currentSubStep === 'TERMS_FROOTS') {
         setCurrentSubStep('QUESTIONS1');
         setQuestionIndex(1);
+        savePhase(1, 'QUESTIONS1');
       } else if (currentSubStep === 'TERMS2') {
         setCurrentSubStep('QUESTIONS2');
         setQuestionIndex(1);
+        savePhase(1, 'QUESTIONS2');
       }
     }, 2000);
   };
@@ -679,7 +722,7 @@ export default function Stepper() {
         phaseName = Object.keys(PHASES).find(key => {
           const phaseValue = PHASES[key as keyof typeof PHASES];
           return phaseValue === newStep &&
-            key !== 'TERMS1' && key !== 'QUESTIONS1' && key !== 'TERMS2' && key !== 'QUESTIONS2' &&
+            key !== 'TERMS1' && key !== 'TERMS_FROOTS' && key !== 'QUESTIONS1' && key !== 'TERMS2' && key !== 'QUESTIONS2' &&
             key !== 'RESULT_PDF';
         });
       }
@@ -762,6 +805,10 @@ export default function Stepper() {
     // Handle Phase 1 sub-steps navigation
     if (step === 1) {
       if (currentSubStep === 'QUESTIONS1' && questionIndex === 1) {
+        setCurrentSubStep('TERMS_FROOTS');
+        savePhase(1, 'TERMS_FROOTS');
+        return;
+      } else if (currentSubStep === 'TERMS_FROOTS') {
         setCurrentSubStep('TERMS1');
         savePhase(1, 'TERMS1');
         return;
@@ -850,6 +897,21 @@ export default function Stepper() {
       setQuestionIndex(1);
       savePhase(1, 'TERMS2');
     } else if (currentSubStep === 'QUESTIONS2') {
+      // Check that at least one of Q18 (one-time investment) or Q19 (monthly investment) is filled
+      const q18 = questions.find(q => q.questionOrder === 18);
+      const q19 = questions.find(q => q.questionOrder === 19);
+      const hasQ18Answer = q18 && isAnswerProvided(answers[q18.id]);
+      const hasQ19Answer = q19 && isAnswerProvided(answers[q19.id]);
+      
+      if (!hasQ18Answer && !hasQ19Answer) {
+        // At least one investment question must be answered
+        alert("Bitte geben Sie entweder eine Einmalanlage (Frage 18) oder eine monatliche Anlage (Frage 19) an. Mindestens eine von beiden muss ausgefüllt werden.");
+        return;
+      }
+      
+      // Clear any previous errors
+      setError(null);
+      
       // Move to Phase 2 (SUGGESTIONS)
       setStep(PHASES.SUGGESTIONS);
       setCurrentSubStep('');
@@ -888,15 +950,15 @@ export default function Stepper() {
     return netAssetsVal;
   }
 
-  // Helper function to check if one-time investment (Q23) has errors
+  // Helper function to check if one-time investment (Q18) has errors
   function hasOneTimeInvestmentError(q: Question | undefined, answerValue: string | undefined): boolean {
-    if (!q || !answerValue || q.questionOrder !== 20) return false;
+    if (!q || !answerValue || q.questionOrder !== 18) return false;
 
     const numValue = parseFloat(answerValue);
     if (isNaN(numValue)) return false;
 
     // Check minimum value
-    if (numValue < Q23_MIN_VALUE) return true;
+    if (numValue < Q18_MIN_VALUE) return true;
 
     // Check against total net assets (Q8)
     const totalNetAssets = getTotalNetAssets();
@@ -905,14 +967,14 @@ export default function Stepper() {
 
   // Get error message for one-time investment validation
   function getOneTimeInvestmentErrorMessage(q: Question | undefined, answerValue: string | undefined): string | undefined {
-    if (!q || !answerValue || q.questionOrder !== 20) return undefined;
+    if (!q || !answerValue || q.questionOrder !== 18) return undefined;
 
     const numValue = parseFloat(answerValue);
     if (isNaN(numValue)) return undefined;
 
     // Check minimum value first
-    if (numValue < Q23_MIN_VALUE) {
-      return `Der Mindestbetrag für eine Einmalanlage beträgt ${Q23_MIN_VALUE.toLocaleString('de-DE')} €.`;
+    if (numValue < Q18_MIN_VALUE) {
+      return `Der Mindestbetrag für eine Einmalanlage beträgt ${Q18_MIN_VALUE.toLocaleString('de-DE')} €.`;
     }
 
     // Check against total net assets
@@ -924,15 +986,15 @@ export default function Stepper() {
     return undefined;
   }
 
-  // Helper function to check if monthly investment has errors
+  // Helper function to check if monthly investment (Q19) has errors
   function hasMonthlyInvestmentError(q: Question | undefined, answerValue: string | undefined): boolean {
-    if (!q || !answerValue || q.questionOrder !== 21) return false;
+    if (!q || !answerValue || q.questionOrder !== 19) return false;
 
     const numValue = parseFloat(answerValue);
     if (isNaN(numValue)) return false;
 
     // Check minimum value
-    if (numValue < Q24_MIN_VALUE) return true;
+    if (numValue < Q19_MIN_VALUE) return true;
 
     // Check against available income (income - expenses)
     const availableIncome = getAvailableIncome();
@@ -941,14 +1003,14 @@ export default function Stepper() {
 
   // Get error message for monthly investment validation
   function getMonthlyInvestmentErrorMessage(q: Question | undefined, answerValue: string | undefined): string | undefined {
-    if (!q || !answerValue || q.questionOrder !== 21) return undefined;
+    if (!q || !answerValue || q.questionOrder !== 19) return undefined;
 
     const numValue = parseFloat(answerValue);
     if (isNaN(numValue)) return undefined;
 
     // Check minimum value first
-    if (numValue < Q24_MIN_VALUE) {
-      return `Der Mindestbetrag für eine monatliche Anlage beträgt ${Q24_MIN_VALUE} €.`;
+    if (numValue < Q19_MIN_VALUE) {
+      return `Der Mindestbetrag für eine monatliche Anlage beträgt ${Q19_MIN_VALUE} €.`;
     }
 
     // Check against available income
@@ -971,13 +1033,13 @@ export default function Stepper() {
     if (q.minValue !== null && q.minValue !== undefined && numValue < q.minValue) return true;
     if (q.maxValue !== null && q.maxValue !== undefined && numValue > q.maxValue) return true;
 
-    // Check Q23 (one-time investment) against Q8 (total net assets)
-    if (q.questionOrder === 20) {
+    // Check Q18 (one-time investment) against Q8 (total net assets)
+    if (q.questionOrder === 18) {
       if (hasOneTimeInvestmentError(q, answerValue)) return true;
     }
 
-    // Check Q24 (monthly investment) against (income - expenses)
-    if (q.questionOrder === 21) {
+    // Check Q19 (monthly investment) against (income - expenses)
+    if (q.questionOrder === 19) {
       if (hasMonthlyInvestmentError(q, answerValue)) return true;
     }
 
@@ -1402,9 +1464,9 @@ export default function Stepper() {
             //   20: { questionOrder: 19, condition: 'equals', value: 'yes' },
             // };
             const rules: Record<number, Record<string, string | number>> = {
-              13: { questionOrder: 12, condition: 'equals', value: 'good' },
-              15: { questionOrder: 14, condition: 'equals', value: 'good' },
-              17: { questionOrder: 16, condition: 'equals', value: 'good' },
+              12.1: { questionOrder: 12, condition: 'equals', value: 'good' },
+              13.1: { questionOrder: 13, condition: 'equals', value: 'good' },
+              14.1: { questionOrder: 14, condition: 'equals', value: 'good' },
             };
             if (rules[q.questionOrder]) {
               return { ...q, showIf: rules[q.questionOrder] };
@@ -1438,7 +1500,7 @@ export default function Stepper() {
 
             // Set the appropriate sub-step for Phase 1
             if (phaseStep === 1) {
-              if (normalizedPhase === 'TERMS1' || normalizedPhase === 'QUESTIONS1' || normalizedPhase === 'TERMS2' || normalizedPhase === 'QUESTIONS2') {
+              if (normalizedPhase === 'TERMS1' || normalizedPhase === 'TERMS_FROOTS' || normalizedPhase === 'QUESTIONS1' || normalizedPhase === 'TERMS2' || normalizedPhase === 'QUESTIONS2') {
                 setCurrentSubStep(normalizedPhase);
               } else {
                 setCurrentSubStep('TERMS1'); // Default to first sub-step
@@ -1872,194 +1934,33 @@ export default function Stepper() {
           <div className={cardClass}>
             <div ref={currentSubStep === 'QUESTIONS2' ? questionSectionRef : null} className="flex-1 flex flex-col min-h-0 overflow-y-auto">
               {step === PHASES.TERMS1 && currentSubStep === 'TERMS1' && (
-                <div className="flex flex-col h-full p-4 sm:p-6 lg:p-6 ">
-                  {/* Header */}
-                  <div className="mb-4 sm:mb-6 flex-shrink-0">
-                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-                      4MONEY
-                    </h1>
-                    <p className="text-sm sm:text-base text-gray-600">
-                      Information über das Wertpapierdienstleistungsunternehmen
-                    </p>
-                  </div>
+                <TermsScreen
+                  title="4MONEY"
+                  subtitle="Information über das Wertpapierdienstleistungsunternehmen"
+                  confirmed={confirmed}
+                >
+                  <FourMoneyInfo />
+                </TermsScreen>
+              )}
 
-                  {/* Description Container */}
-                  <div className="bg-gray-50 rounded-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6 flex-1 overflow-y-auto border border-gray-200 min-h-0">
-                    <div className="prose prose-xs sm:prose-sm lg:prose max-w-none text-gray-700 space-y-3 sm:space-y-4">
-                      {/* Render terms and conditions content here */}
-                      <p>Die 4money Financial Services GmbH (kurz 4money) ist ein von der österreichischen Finanzmarktaufsicht (FMA) konzessioniertes Wertpapierdienstleistungsunternehmen (kurz WPDLU) gemäß §4 Abs. 1 WAG 2018. Das WPDLU ist zur Anlageberatung (gemäß § 3 Abs. 2 Z 1 & WAG 2018) und Annahme und Übermittlung von Aufträgen (§ 3 Abs 2 Z 3 WAG 2018) im Hinblick auf Fondsanteile (gemäß § 1 Z 7 lit c WAG 2018) auch über natürliche Personen gemäß §1 Z45 WAG 2018 berechtigt.</p>
-
-                      <p>Das WPDLU ist nicht Mitglied einer Anleger:innenentschädigungseinrichtung, sondern über eine Vermögensschadenhaftpflichtversicherung mit einer Versicherungssumme von 1.500.000€ pro Jahr und 1.000.000€ pro Schadensfall abgesichert. Das Halten von Kund:innengeldern ist dem WPDLU gesetzlich untersagt.</p>
-
-                      <p>Es wird darauf hingewiesen, dass das WPDLU lediglich über einen Geschäftsleiter verfügt. Das WPDLU bietet in Bezug auf Wertpapierdienstleistungen nicht unabhängige Vermittlung- bzw. Beratung auf Provisions- und/oder Honorarbasis an. Das WPDLU hat zwar eine breite Palette von Produkten, kann aber nicht den gesamten Markt abbilden. Eine umfassende Marktuntersuchung, welche sämtliche auf dem Markt befindliche Produkte beinhaltet ist daher nicht geschuldet. Eigenprodukte werden nicht angeboten.</p>
-
-                      <p>Seitens des WPDLU besteht keine Pflicht Kund:innenportfolios laufend zu überwachen bzw. die Kund:innen über Veränderungen zu informieren. Daher ist es für das WPDLU nicht möglich laufend festzustellen ob bestimmte Produkte oder Wertpapierdienstleistungen weiterhin angemessen oder geeignet sind. Diesbezügliche Eignungstests können auch ohne Neuveranlagung auf Initiative der Kund:innen einmal jährlich unentgeltlich beim WPDLU gemacht werden.</p>
-
-                      <p>Den Kund:innen wird das Angebot gemacht einmal pro Jahr die Geeignetheit der vermittelten Finanzinstrumente und der damit in Zusammenhang stehenden Portfoliostruktur zu überprüfen.</p>
-
-                      <p>Gemäß Wertpapieraufsichtsgesetz 2018 ist das Wertpapierdienstleistungsunternehmen dazu verpflichtet von Kund:innen außer persönlichen Daten auch Informationen über finanzielle Verhältnisse, Kenntnisse und Erfahrungen im Wertpapierbereich, Risikoneigung und Anlageziele im Allgemeinen sowie Anlagezweck und Anlagedauer hinsichtlich der beabsichtigten Geschäfte einzuholen und aufzuzeichnen, um ordnungsgemäß beraten und geeignete Produkte vermitteln zu können. Dies soll eine gleichbleibend hohe Servicequalität für Kund:innen sicherstellen und dient nicht zuletzt auch zu deren Schutz.</p>
-
-                      <p>Auch wenn manche Fragen sehr weit gehend erscheinen mögen, ist es zur Gewährleistung einer bestmöglichen Beratung gesetzlich zwingend erforderlich, dass alle Angaben richtig und vollständig sind. Gemäß Art. 54 Abs 8 del VO (EU) 2017/565 in Verbindung mit Richtlinie 2014/65 Artikel 25 Abs. 2 darf das WPDLU keine Anlageberatung machen oder eine Empfehlung für ein geeignetes Produkt abgeben, wenn nicht alle erforderlichen Informationen vorliegen. Treffen Angaben nicht mehr zu, sollten Kund:innen das Wertpapierdienstleistungsunternehmen unverzüglich darüber informieren, damit die Änderungen berücksichtigt werden können.</p>
-
-                      <h2>Kontaktinformationen:</h2>
-                      <ul>
-                        <li><strong>Adresse:</strong> Einspinnergasse 1, A-8010 Graz</li>
-                        <li><strong>Telefon:</strong> +43 (676) 92 00 670</li>
-                        <li><strong>Email:</strong> <a href="mailto:office@4money.at">office@4money.at</a></li>
-                        <li><strong>Website:</strong> <a href={CONFIG.EXTERNAL.WEBSITE_URL} target="_blank">{CONFIG.EXTERNAL.WEBSITE_URL.replace('https://', 'www.')}</a></li>
-                      </ul>
-
-                      <h2>Weitere Hinweise:</h2>
-                      <p>Konzessioniertes Wertpapierdienstleistungsunternehmen gem. §4 Abs. 1 WAG 2018 | Firmenbuchgericht: LG f. ZRS Graz | FN 618973 f 02</p>
-
-                      <p>Das WPDLU ist kein Steuerberater und überprüft nicht, ob die gewählte Anlageform, die steuerlich günstigste ist. Es wird empfohlen steuerliche Fragen zur Veranlagung mit einem Steuerberater zu besprechen. Das Wertpapierdienstleistungsunternehmen ist nicht befugt Zusicherungen zu geben oder Angaben zu machen, die von den Verkaufsunterlagen abweichen.</p>
-
-                      <p>Das WPDLU stellt die vereinfachten Verkaufsprospekte bzw. die Basisinformationsblätter sowie alle sonstigen Gesprächsunterlagen kostenlos zur Verfügung. Grundsätzlich werden dem/der Kund:in die Informationen in elektronischer Form zur Verfügung gestellt, auf Anfrage der Kundin bzw. des Kunden werden diese auch in Papierform kostenlos zur Verfügung gestellt.</p>
-
-                      <p>Anlageergebnisse in der Vergangenheit sind keine Garantie für zukünftige Ergebnisse. Bevor eine Entscheidung für eine bestimmte Anlage getroffen wird, sollten sich Kund:innen anhand der angebotenen Unterlagen und Informationen genau über Eigenheiten, Funktionsweisen und Risiken der Anlagen informieren und ggf. beim WPDLU nachfragen.</p>
-
-                      <p>Die Daten von Kund:innen werden absolut vertraulich behandelt und ausschließlich im Sinne der gegenständlichen Kund:innenbeziehung verwendet. Gemäß § 8 WAG 2018 ist das WPDLU sowie für sie tätige Personen zur Verschwiegenheit verpflichtet. Die Verschwiegenheitspflicht darf nur in gesetzlich definierten (Ausnahme)fällen durchbrochen werden.</p>
-                    </div>
-                  </div>
-
-                  {/* Status Message */}
-                  {confirmed && (
-                    <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-center animate-pulse flex-shrink-0">
-                      <p className="text-sm sm:text-base">Vielen Dank für die Bestätigung!</p>
-                    </div>
-                  )}
-                </div>
+              {step === PHASES.TERMS1 && currentSubStep === 'TERMS_FROOTS' && (
+                <TermsScreen
+                  title="froots"
+                  subtitle="Kundeninformationen"
+                  confirmed={confirmed}
+                >
+                  <FrootsCustomerInfo />
+                </TermsScreen>
               )}
 
               {step === PHASES.TERMS2 && currentSubStep === 'TERMS2' && (
-                <div className="flex flex-col h-full p-4 sm:p-6 lg:p-6">
-                  {/* Header */}
-                  <div className="mb-4 sm:mb-6 flex-shrink-0">
-                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-                      Nachhaltigkeitsrisiken
-                    </h1>
-                    <p className="text-sm sm:text-base text-gray-600">
-                      Bitte lesen Sie sorgfältig, bevor Sie bestätigen
-                    </p>
-                  </div>
-
-                  {/* Description Container */}
-                  <div className="bg-gray-50 rounded-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6 flex-1 overflow-y-auto border border-gray-200 min-h-0">
-                    <div className="prose prose-xs sm:prose-sm lg:prose max-w-none text-gray-700 space-y-3 sm:space-y-4">
-                      {/* Render terms and conditions content here */}
-                      <h4>Informationen zur Nachhaltigkeit im Zusammenhang mit der Abfrage von Nachhaltigkeitspräferenzen</h4>
-
-                      <h4>Präambel</h4>
-                      <p>Der europäische Aktionsplan für ein nachhaltiges Finanzsystem sieht vor, dass die europäische Finanzindustrie bei der Konzeption und dem Vertrieb von Finanzprodukten ökologische (Environment), soziale (Social) und verantwortungsvolle Unternehmensführungs- (Governance) Kriterien zu berücksichtigen hat (sogenannte ESG-Kriterien). Anleger:innen erhalten dadurch die Möglichkeit, nachhaltige Geldanlagen zu tätigen, indem ihnen transparent dargelegt wird, wie sich investiertes Kapital auf die Umwelt und Gesellschaft auswirkt.</p>
-
-                      <h4>Übersicht: ESG Kriterien</h4>
-                      <ul>
-                        <li><strong>E - Umwelt (Environment)</strong></li>
-                        <li><strong>S - Soziales (Social)</strong></li>
-                        <li><strong>G - Unternehmensführung (Governance)</strong></li>
-                      </ul>
-
-                      <p>Um einen einheitlichen Standard zu schaffen, was als nachhaltige Geldanlage gilt, hat der Europäische Gesetzgeber die Offenlegungs-Verordnung<sup>1</sup> und die Taxonomie-Verordnung<sup>2</sup> erlassen. Die Offenlegungs-Verordnung definiert nachhaltige Investitionen im Allgemeinen, während die Taxonomie-Verordnung die Offenlegungs-Verordnung bezüglich ökologisch nachhaltige Investitionen konkretisiert.</p>
-
-                      <p>In diesem Informationsblatt erhalten Sie Informationen zu den unterschiedlichen, rechtlichen Bedeutungen der Nachhaltigkeit, inwiefern Sie Nachhaltigkeitskriterien bei Ihrer Investition berücksichtigen können, und woran Sie erkennen können, in welchen Ausmaß Ihre Investition nachhaltig ist.</p>
-
-                      <h4>1. Was gilt als nachhaltige Investition?</h4>
-                      <p>Die Offenlegungs-Verordnung orientiert sich an den zuvor genannten ESG-Kriterien und legt fest, dass eine Investition dann als nachhaltig gilt, wenn:</p>
-
-                      <ul>
-                        <li><strong>E</strong> - die Investition zur Erreichung eines Umweltziels beiträgt (siehe hierzu Punkt 2. zu ökologisch nachhaltigen Investitionen) <strong>oder</strong></li>
-                        <li><strong>S</strong> - die Investition zur Erreichung eines sozialen Ziels beiträgt, insbesondere eine Investition, die zur Bekämpfung von Ungleichheiten beiträgt oder den sozialen Zusammenhalt, die soziale Integration und die Arbeitsbeziehungen fördert oder eine Investition in Humankapital oder zugunsten wirtschaftlich oder sozial benachteiligter Bevölkerungsgruppen <strong>und</strong> die Investition kein Umweltziel oder soziales Ziel erheblich beeinträchtigt <strong>und</strong></li>
-                        <li><strong>G</strong> - die Unternehmen, in die investiert wird, Verfahrensweisen einer guten Unternehmensführung anwenden, insbesondere bei soliden Managementstrukturen, den Beziehungen zu den Arbeitnehmern, der Vergütung von Mitarbeiter:innen sowie der Einhaltung der Steuervorschriften.</li>
-                      </ul>
-
-                      <h4>2. Was gilt als ökologisch nachhaltige Investition?</h4>
-                      <p>Nach der Taxonomie-Verordnung gilt eine Investition in eine wirtschaftliche Tätigkeit dann als ökologisch nachhaltig, wenn</p>
-
-                      <ul>
-                        <li>die wirtschaftliche Tätigkeit zumindest einem Umweltziel dient und einen wesentlichen Beitrag zur Erreichung dieses Ziels leistet,</li>
-                        <li>die wirtschaftliche Tätigkeit nicht gleichzeitig zu einer erheblichen Beeinträchtigung eines oder mehrerer Umweltziele führt,</li>
-                        <li>die wirtschaftliche Tätigkeit unter Einhaltung des festgelegten Mindestschutzes ausgeübt wird (betrifft Menschen- und Arbeitnehmerrechte, Leitsätze in der Unternehmensführung etc.), sowie</li>
-                        <li>dabei die entsprechenden technischen Vorgaben, die an Kennzahlen gemessen werden, eingehalten werden (z.B. Schwellenwerte für Emissionen oder CO2-Fußabdruck).</li>
-                      </ul>
-
-                      <p>Sind diese Punkte erfüllt, handelt es sich um eine ökologisch nachhaltige Investition. Die Taxonomie-Verordnung nennt dabei sechs Umweltziele.</p>
-
-                      <h4>Sechs Umweltziele</h4>
-
-                      <h4>1. Klimaschutz:</h4>
-                      <p>Darunter versteht man Beiträge zur Stabilisierung von Treibhausgasemissionen, also eine Vorgehensweise, die den Anstieg der durchschnittlichen Erdtemperatur auf deutlich unter 2 °C zu halten versucht. Da es einige Wirtschaftstätigkeiten gibt, die sich negativ auf die Umwelt auswirken, kann ein wesentlicher Beitrag zu einem Umweltziel auch darin bestehen, solche negativen Auswirkungen zu verringern. Beispiele hierfür sind der Ausbau klimaneutraler Mobilität oder die Erzeugung sauberer Kraftstoffe aus erneuerbaren Quellen.</p>
-
-                      <h4>2. Anpassung an den Klimawandel:</h4>
-                      <p>Darunter versteht man Tätigkeiten, welche nachteilige Auswirkungen des derzeitigen oder künftigen Klimas oder die Gefahr nachteiliger Auswirkungen auf die Tätigkeit selbst, Menschen, die Natur oder Vermögenswerte verringern oder vermeiden soll.</p>
-
-                      <h4>3. Die nachhaltige Nutzung und der Schutz von Wasser- und Meeresressourcen:</h4>
-                      <p>Hierzu zählt z.B. der Schutz vor den nachteiligen Auswirkungen der Einleitung von städtischem und industriellem Abwasser.</p>
-
-                      <h4>4. Der Übergang zu einer Kreislaufwirtschaft:</h4>
-                      <p>Recycling, aber auch die Verbesserung der Haltbarkeit und Reparaturfähigkeit von Produkten.</p>
-
-                      <h4>5. Vermeidung und Verminderung der Umweltverschmutzung:</h4>
-                      <p>z.B. Verbesserung der Luft-, Wasser- oder Bodenqualität in den Gebieten, in denen die Wirtschaftstätigkeit stattfindet, aber auch die Beseitigung von Abfall.</p>
-
-                      <h4>6. Der Schutz und die Wiederherstellung der Artenvielfalt (Biodiversität) und der Ökosysteme:</h4>
-                      <p>Gemeint sind hier unter anderem nachhaltige Landnutzung und -bewirtschaftung oder die nachhaltige Waldbewirtschaftung.</p>
-
-                      <h4>3. Berücksichtigung von ökologischen, sozialen und ethischen Nachhaltigkeitskriterien bei Ihrer Investition</h4>
-                      <p>Im Zuge einer Anlageberatung sind wir als Anlageberater:in verpflichtet, zu erheben, ob und inwiefern wir bei der Veranlagung Ihres Kapitals die Nachhaltigkeit von Finanzinstrumenten berücksichtigen sollen.</p>
-
-                      <h4>Bei dieser Erhebung können Sie zunächst folgende Angaben zu Ihrer Nachhaltigkeitspräferenz machen:</h4>
-                      <ol type="a">
-                        <li>Sie präferieren ökologisch nachhaltige Finanzinstrumente im Sinne der Taxonomie-Verordnung (siehe Punkt 2.).</li>
-                        <li>Sie präferieren (insbesondere sozial und unternehmerisch) nachhaltige Finanzinstrumente im Sinne der Offenlegungsverordnung (siehe Punkt 1.).</li>
-                        <li>Sie präferieren Finanzinstrumente, die weder als ökologisch nachhaltig im Sinne der Taxonomie-Verordnung noch als nachhaltig im Sinne der Offenlegungs-Verordnung eingestuft werden, bei denen aber die für Sie wichtigsten nachteiligen Auswirkungen auf Nachhaltigkeitsfaktoren berücksichtigt werden. Als Nachhaltigkeitsfaktoren gelten Umwelt-, Sozial- und Arbeitnehmerbelange, die Achtung der Menschenrechte und die Bekämpfung von Korruption und Bestechung.</li>
-                        <li>Sie präferieren eine Kombination aus den vorgenannten Finanzinstrumenten.</li>
-                        <li>Sie haben keine Präferenz für nachhaltige Finanzinstrumente.</li>
-                      </ol>
-
-                      <p>Anschließend können Sie bei Vorliegen einer Präferenz auch angeben, welchen Mindestanteil diese Investition ausmachen soll, sowie welche Parameter (z.B. quantitative Werte) herangezogen werden sollen, um die nachteiligen Auswirkungen auf Nachhaltigkeitsfaktoren zu ermitteln. Derartige Parameter können etwa Indikatoren aus dem Umweltbereich (z.B. Energieintensität eines Unternehmens/einer Branche, CO2-Fußabdruck usw.) oder Indikatoren aus dem gesellschaftlichen Bereich (z.B. Gender-Diversity im Vorstand, Umgang mit kontroversen Waffen usw.) sein.</p>
-
-                      <p>Wenn Sie Nachhaltigkeitspräferenzen nennen, wird Ihnen ein Finanzprodukt empfohlen, welches Ihren Nachhaltigkeitspräferenzen (Offenlegungs-Verordnung, Taxonomie-Verordnung und/oder nachteilige Auswirkungen auf Nachhaltigkeitsfaktoren) entspricht.</p>
-
-                      <h4>4. Wie erkenne ich, ob eine Investition diesen Nachhaltigkeitskriterien entspricht?</h4>
-                      <p>Wir dürfen Ihnen als Anlageberater:in nur Investitionen empfehlen, die Ihren Präferenzen entsprechen. Dies gilt für alle Finanzinstrumente und auch konkret i.Z.m. Ihren Nachhaltigkeitspräferenzen.</p>
-
-                      <p>Zusätzlich dazu normieren die Offenlegungs- und die Taxonomie-Verordnung für Finanzmarktteilnehmer, bspw. Hersteller und Anbieter von Finanzprodukten, und Finanzberater umfassende Offenlegungspflichten zu Nachhaltigkeitsrisiken. Diese umfassen insbesondere die Art und Weise, wie Nachhaltigkeitsrisiken bei ihren Investitionsentscheidungen bzw. bei ihrer Beratung einbezogen werden und die Ergebnisse der Bewertung der zu erwartenden Auswirkungen von Nachhaltigkeitsrisiken auf die Rendite von Finanzprodukten, die sie zur Verfügung stellen bzw. die von ihnen beraten werden.</p>
-
-                      <p>Darüber hinaus sind Finanzmarktteilnehmer und Finanzberater bei gewissen Finanzprodukten, die gemäß den Verordnungen als nachhaltig und ökologisch nachhaltig bezeichnet werden dürfen, verpflichtet, weitere Informationen zu diesen Finanzprodukten auf deren Internetseiten offenzulegen. Diese zusätzlichen Informationspflichten betreffen aber nur folgende Finanzprodukte: Verwaltete Wertpapierportfolios, Investmentfonds (OGAW), alternative Investmentfonds (AIF), Versicherungsanlageprodukte (IBIPs), Paneuropäische Private Pensionsprodukte (PEPPs) sowie Altersvorsorgeprodukte und -systeme.</p>
-
-                      <h4>Für diese Finanzprodukte gibt es drei Kategorien:</h4>
-
-                      <h4>a) Dunkelgrüne Finanzprodukte (Art 9)</h4>
-                      <p>Finanzprodukte, die eine nachhaltige Investition anstreben - bei diesen Finanzprodukten ist die Nachhaltigkeit am stärksten sichergestellt und die Informationspflichten am umfangreichsten.</p>
-
-                      <h4>b) Hellgrüne Finanzprodukte (Art 8)</h4>
-                      <p>Finanzprodukte, die ökologische oder soziale (oder eine Kombination beider) Merkmale bewerben. Bei diesen Finanzprodukten werden ökologische oder soziale Merkmale lediglich berücksichtigt, während dunkelgrüne Finanzprodukte ein Umweltziel explizit anstreben.</p>
-
-                      <h4>Sonstige Finanzprodukte</h4>
-                      <p>Finanzprodukte, die Nachhaltigkeitskriterien gemäß Offenlegungs- bzw. Taxonomie-Verordnung nicht oder in geringem Umfang berücksichtigen.</p>
-
-                      <p><strong>ACHTUNG:</strong> Diese zusätzlichen Informationspflichten gelten nur für gewisse Finanzinstrumente. Andere Finanzinstrumente, wie z.B. Unternehmensanleihen, lösen diese zusätzlichen Informationspflichten nicht aus. Unabhängig davon werden Ihre Nachhaltigkeitspräferenzen aber bei allen Finanzinstrumenten, die wir Ihnen empfehlen, berücksichtigt.</p>
-
-                      <h4>Fazit</h4>
-                      <p>Der Begriff der Nachhaltigkeit deckt im europäischen Rechtsrahmen verschiedene Aspekte ab - insbesondere ökologische, soziale und unternehmerische Nachhaltigkeit. In welchem Ausmaß und in welcher Ausprägung die Nachhaltigkeit bei den Finanzprodukten im Rahmen der Anlageberatung berücksichtigt wird, hängt von Ihren Präferenzen ab, die Sie Ihrem/Ihrer Anlageberater:in bei Ihrem Beratungsgespräch offenlegen.</p>
-
-                      <p><strong>Wenn Sie uns Nachhaltigkeitspräferenzen nennen</strong>, empfehlen wir Ihnen im Rahmen der Anlageberatung nur Finanzinstrumente, die Ihren konkreten Nachhaltigkeitspräferenzen entsprechen.</p>
-
-                      <p><strong>Wenn Sie uns keine Nachhaltigkeitspräferenzen nennen</strong>, stufen wir Sie als nachhaltigkeitsneutral ein. Das heißt, dass wir in die Eignungsbeurteilung bzw. in die Auswahl jener Finanzinstrumente, die wir Ihnen gegebenenfalls empfehlen oder im Rahmen der Portfolioverwaltung einsetzen, Ihre sonstigen Anlagepräferenzen (z.B. Risikotoleranz, Erfahrungen und Kenntnisse, Vermögensverhältnisse) einbeziehen. Die Nachhaltigkeit ist dann allerdings kein Auswahl- bzw. Ausschlusskriterium.</p>
-
-                      <p>Als Anlageberater:in beziehen wir die Informationen über die Nachhaltigkeit in Finanzinstrumenten aus den offengelegten Informationen der jeweiligen Produkthersteller, z.B. aus den regelmäßigen Berichten zu den Finanzinstrumenten. Diese sind auch für Sie, z.B. auf den jeweiligen Internetseiten der Produktanbieter, einsehbar. Dort finden Sie unter anderem eine Beschreibung der ökologischen oder sozialen Merkmale oder des nachhaltigen Investitionsziels, Angaben zu den Methoden, die angewandt werden, um die ökologischen oder sozialen Merkmale der für das Finanzprodukt ausgewählten nachhaltigen Investitionen zu bewerten, zu messen und zu überwachen sowie Informationen über die wichtigsten nachteiligen Auswirkungen auf die Nachhaltigkeitsfaktoren von Finanzinstrumenten. Bedenken Sie, dass es sich dabei um Informationen handeln kann, die sich auf Zeiträume beziehen, die in der Vergangenheit liegen.</p>
-
-                      {/* <hr /> */}
-                    </div>
-                  </div>
-
-                  {/* Status Message */}
-                  {confirmed && (
-                    <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-center animate-pulse flex-shrink-0">
-                      <p className="text-sm sm:text-base">Vielen Dank für die Bestätigung!</p>
-                    </div>
-                  )}
-                </div>
+                <TermsScreen
+                  title="Nachhaltigkeitsrisiken"
+                  subtitle="Bitte lesen Sie sorgfältig, bevor Sie bestätigen"
+                  confirmed={confirmed}
+                >
+                  <SustainabilityRisksInfo />
+                </TermsScreen>
               )}
 
               {step === PHASES.QUESTIONS1 && currentSubStep === 'QUESTIONS1' && (
@@ -2084,9 +1985,9 @@ export default function Stepper() {
                         maxValue={q?.maxValue || undefined}
                         minValue={q?.minValue || undefined}
                         errorMessage={
-                          q?.questionOrder === 20
+                          q?.questionOrder === 18
                             ? getOneTimeInvestmentErrorMessage(q, answers[q?.id])
-                            : q?.questionOrder === 21
+                            : q?.questionOrder === 19
                               ? getMonthlyInvestmentErrorMessage(q, answers[q?.id])
                               : (q?.minValue && answers[q?.id] && parseInt(answers[q?.id], 10) < q.minValue)
                                 ? "Wir haben derzeit kein Produkt für diese Laufzeit."
@@ -2125,9 +2026,9 @@ export default function Stepper() {
                         maxValue={q?.maxValue || undefined}
                         minValue={q?.minValue || undefined}
                         errorMessage={
-                          q?.questionOrder === 20
+                          q?.questionOrder === 18
                             ? getOneTimeInvestmentErrorMessage(q, answers[q?.id])
-                            : q?.questionOrder === 21
+                            : q?.questionOrder === 19
                               ? getMonthlyInvestmentErrorMessage(q, answers[q?.id])
                               : (q?.minValue && answers[q?.id] && parseInt(answers[q?.id], 10) < q.minValue)
                                 ? "Wir haben derzeit kein Produkt für diese Laufzeit."
@@ -2359,8 +2260,8 @@ export default function Stepper() {
                 onClick={() => {
                   if (step === 1 && currentSubStep === 'QUESTIONS1') {
                     if (questionIndex === 1) {
-                      setCurrentSubStep('TERMS1');
-                      savePhase(1, 'TERMS1');
+                      setCurrentSubStep('TERMS_FROOTS');
+                      savePhase(1, 'TERMS_FROOTS');
                     } else {
                       setQuestionIndex((s) => s - 1);
                     }
@@ -2381,7 +2282,7 @@ export default function Stepper() {
                 <span>Zurück</span>
               </button>
               <div className="flex justify-end order-1 sm:order-2">
-                {(step === 1 && (currentSubStep === 'TERMS1' || currentSubStep === 'TERMS2')) ? (
+                {(step === 1 && (currentSubStep === 'TERMS1' || currentSubStep === 'TERMS_FROOTS' || currentSubStep === 'TERMS2')) ? (
                   <button
                     onClick={handleConfirm}
                     disabled={confirmed}
