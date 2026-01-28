@@ -218,7 +218,9 @@ export default function InvestmentForm(
               <p className="text-xs text-gray-500 mb-1">Einmalige Einzahlung</p>
               <p className="text-sm font-semibold">
                 {
-                  formatEuro(parseFloat(answers[questions[19].id] || '0')) || '0.00 €'
+                  isNaN(parseFloat(answers[questions[20].id]))
+                    ? '0.00 €'
+                    : formatEuro(parseFloat(answers[questions[20].id]))
                 }
               </p>
             </div>
@@ -226,7 +228,36 @@ export default function InvestmentForm(
               <p className="text-xs text-gray-500 mb-1">monatliche Zahlung</p>
               <p className="text-sm font-semibold">
                 {
-                  formatEuro(parseFloat(answers[questions[20].id] || '0')) || '0.00 €'
+                  isNaN(parseFloat(answers[questions[21].id]))
+                    ? '0.00 €'
+                    : formatEuro(parseFloat(answers[questions[21].id] || '0'))
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Vermittlungskosten */}
+        <div className="mb-6">
+          <p className="font-semibold mb-3">Vermittlungskosten</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Kosten Einmalerlag (5%)</p>
+              <p className="text-sm font-semibold">
+                {
+                  isNaN(parseFloat(answers[questions[20].id])) || parseFloat(answers[questions[20].id]) === 0
+                    ? '0.00 €'
+                    : formatEuro(parseFloat(answers[questions[20].id]) * 0.05)
+                }
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Sparplan Set-up Fee</p>
+              <p className="text-sm font-semibold">
+                {
+                  isNaN(parseFloat(answers[questions[21].id])) || parseFloat(answers[questions[21].id]) === 0
+                    ? '0.00 €'
+                    : formatEuro(parseFloat(answers[questions[21].id] || '0') * 0.25)
                 }
               </p>
             </div>
@@ -241,7 +272,6 @@ export default function InvestmentForm(
               <thead>
                 <tr className="bg-gray-100">
                   <th className="text-left text-xs font-semibold text-gray-600 p-3 border-b">PRODUKT</th>
-                  <th className="text-left text-xs font-semibold text-gray-600 p-3 border-b">RISIKOTYP</th>
                   <th className="text-left text-xs font-semibold text-gray-600 p-3 border-b">VVKN / ISIN</th>
                   <th className="text-left text-xs font-semibold text-gray-600 p-3 border-b">NAME</th>
                   <th className="text-left text-xs font-semibold text-gray-600 p-3 border-b">SRI</th>
@@ -252,10 +282,6 @@ export default function InvestmentForm(
                 <tr className="border-b">
                   <td className="p-3 text-sm">
                     {suggestedProduct?.name}
-                  </td>
-                  <td className="p-3 text-sm">
-                    {suggestedProduct?.riskType === 'KONSERVATIV' ? 'Konservativ' :
-                      suggestedProduct?.riskType === 'AUSGEWOGEN' ? 'Ausgewogen' : 'Gewinnorientiert'}
                   </td>
                   <td className="p-3 text-sm">
                     {suggestedProduct?.name || 'N/A'}

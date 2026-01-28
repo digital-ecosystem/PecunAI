@@ -108,6 +108,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    if (!suggestion.product) {
+      return NextResponse.json({
+        success: false,
+        error: "Produkt nicht gefunden"
+      }, { status: 404 });
+    }
+
     // Transform to match Portfolio type if needed, or just return as is
     // The frontend expects a Portfolio-like object
     const portfolio = {
@@ -115,9 +122,19 @@ export async function GET(request: NextRequest) {
       // For now, returning the suggestion data which includes product details
       ...suggestion,
       id: suggestion.product.id,
-      name: suggestion.name,
+      name: suggestion.name || suggestion.product.shortName || suggestion.product.name,
       // Ensure we pass the product ID correctly
-      productId: suggestion.productId
+      productId: suggestion.productId,
+      // Include sri and duration from the product
+      sri: suggestion.product.sri || null,
+      duration: suggestion.product.duration || null,
+      // Include other product fields that might be needed
+      fullName: suggestion.product.name,
+      description: suggestion.product.description,
+      fileName: suggestion.product.fileName,
+      riskType: suggestion.product.riskType,
+      from: suggestion.product.minimumYear || 0,
+      to: suggestion.product.maximumYear || 100,
     };
 
     return NextResponse.json({

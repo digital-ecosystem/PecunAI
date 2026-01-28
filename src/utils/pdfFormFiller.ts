@@ -398,8 +398,8 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
 
     // Question 5
     "Kontrollkästchen 86": questionAnswers[5]?.selectedOption == "KONSERVATIV" || false,
-    "Kontrollkästchen 87": questionAnswers[5]?.selectedOption == "GEWINNORIENTIERT" || false,
-    "Kontrollkästchen 88": questionAnswers[5]?.selectedOption == "AUSGEWOGEN" || false,
+    "Kontrollkästchen 88": questionAnswers[5]?.selectedOption == "GEWINNORIENTIERT" || false,
+    "Kontrollkästchen 87": questionAnswers[5]?.selectedOption == "AUSGEWOGEN" || false,
 
     // "Kontrollkästchen 33": true,
     // "Kontrollkästchen 34": true,
@@ -432,15 +432,15 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     "vorname 13": manageAnswer(questionAnswers[8]),
     "vorname 14": manageAnswer(questionAnswers[7]),
     "vorname 16": (parseInt(manageAnswer(questionAnswers[6])) - parseInt(manageAnswer(questionAnswers[7]))).toString() || '',
-    "Kontrollkästchen 100": questionAnswers[19]?.selectedOption == "employment_income" ? true : false,
-    "Kontrollkästchen 102": (questionAnswers[19]?.selectedOption == "savings" || questionAnswers[19]?.selectedOption == "pension" || questionAnswers[19]?.selectedOption == "sale_of_assets") ? true : false,
-    "Kontrollkästchen 103": questionAnswers[19]?.selectedOption == "inheritance" ? true : false,
-    "Kontrollkästchen 104": questionAnswers[19]?.selectedOption == "rental_income" ? true : false,
-    "Kontrollkästchen 101": questionAnswers[19]?.selectedOption == "other" ? true : false,
+    "Kontrollkästchen 100": questionAnswers[16]?.selectedOption == "employment_income" ? true : false,
+    "Kontrollkästchen 102": (questionAnswers[16]?.selectedOption == "savings" || questionAnswers[16]?.selectedOption == "pension" || questionAnswers[16]?.selectedOption == "sale_of_assets") ? true : false,
+    "Kontrollkästchen 103": questionAnswers[16]?.selectedOption == "inheritance" ? true : false,
+    "Kontrollkästchen 104": questionAnswers[16]?.selectedOption == "rental_income" ? true : false,
+    "Kontrollkästchen 101": questionAnswers[16]?.selectedOption == "other" ? true : false,
     // "vorname 16": "vorname 16",
     // "vorname 26": "vorname 26",
-    "vorname 150": manageAnswer(questionAnswers[20]) || '',
-    "vorname 157": manageAnswer(questionAnswers[21]) || '',
+    "vorname 150": manageAnswer(questionAnswers[18]) || '',
+    "vorname 157": manageAnswer(questionAnswers[19]) || '',
 
     // "vorname 52": "vorname 52",
     "vorname 54": date.getDay().toString().padStart(2, '0'),
@@ -744,34 +744,34 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     "Kontrollkästchen 554": questionAnswers[12]?.selectedOption == "average",
     "Kontrollkästchen 555": questionAnswers[12]?.selectedOption == "good",
 
-    "Kontrollkästchen 556": questionAnswers[12]?.selectedOption == "none",
-    "Kontrollkästchen 557": questionAnswers[12]?.selectedOption == "average",
-    "Kontrollkästchen 558": questionAnswers[12]?.selectedOption == "good",
+    "Kontrollkästchen 556": questionAnswers[13]?.selectedOption == "none",
+    "Kontrollkästchen 557": questionAnswers[13]?.selectedOption == "average",
+    "Kontrollkästchen 558": questionAnswers[13]?.selectedOption == "good",
 
-    "Kontrollkästchen 559": questionAnswers[14]?.selectedOption == "none",
-    "Kontrollkästchen 560": questionAnswers[14]?.selectedOption == "average",
-    "Kontrollkästchen 561": questionAnswers[14]?.selectedOption == "good",
+    "Kontrollkästchen 559": questionAnswers[13]?.selectedOption == "none",
+    "Kontrollkästchen 560": questionAnswers[13]?.selectedOption == "average",
+    "Kontrollkästchen 561": questionAnswers[13]?.selectedOption == "good",
 
-    "Kontrollkästchen 562": questionAnswers[16]?.selectedOption == "none",
-    "Kontrollkästchen 563": questionAnswers[16]?.selectedOption == "average",
-    "Kontrollkästchen 564": questionAnswers[16]?.selectedOption == "good",
+    "Kontrollkästchen 562": questionAnswers[14]?.selectedOption == "none",
+    "Kontrollkästchen 563": questionAnswers[14]?.selectedOption == "average",
+    "Kontrollkästchen 564": questionAnswers[14]?.selectedOption == "good",
 
-    "Kontrollkästchen 565": questionAnswers[16]?.selectedOption == "none",
-    "Kontrollkästchen 566": questionAnswers[16]?.selectedOption == "average",
-    "Kontrollkästchen 567": questionAnswers[16]?.selectedOption == "good",
+    "Kontrollkästchen 565": questionAnswers[14]?.selectedOption == "none",
+    "Kontrollkästchen 566": questionAnswers[14]?.selectedOption == "average",
+    "Kontrollkästchen 567": questionAnswers[14]?.selectedOption == "good",
 
     // 0, 1-10, +10 Transaktion
-    "Kontrollkästchen 568": questionAnswers[13]?.selectedOption == "0",
-    "Kontrollkästchen 569": questionAnswers[15]?.selectedOption == "0",
-    "Kontrollkästchen 570": questionAnswers[17]?.selectedOption == "0",
+    "Kontrollkästchen 568": questionAnswers[12.1]?.selectedOption == "0",
+    "Kontrollkästchen 569": questionAnswers[13.1]?.selectedOption == "0",
+    "Kontrollkästchen 570": questionAnswers[14.1]?.selectedOption == "0",
 
-    "Kontrollkästchen 571": questionAnswers[13]?.selectedOption == "1-10",
-    "Kontrollkästchen 572": questionAnswers[15]?.selectedOption == "1-10",
-    "Kontrollkästchen 573": questionAnswers[17]?.selectedOption == "1-10",
+    "Kontrollkästchen 571": questionAnswers[12.1]?.selectedOption == "1-10",
+    "Kontrollkästchen 572": questionAnswers[13.1]?.selectedOption == "1-10",
+    "Kontrollkästchen 573": questionAnswers[14.1]?.selectedOption == "1-10",
 
-    "Kontrollkästchen 574": questionAnswers[13]?.selectedOption == "+10",
-    "Kontrollkästchen 575": questionAnswers[15]?.selectedOption == "+10",
-    "Kontrollkästchen 576": questionAnswers[17]?.selectedOption == "+10",
+    "Kontrollkästchen 574": questionAnswers[12.1]?.selectedOption == "+10",
+    "Kontrollkästchen 575": questionAnswers[13.1]?.selectedOption == "+10",
+    "Kontrollkästchen 576": questionAnswers[14.1]?.selectedOption == "+10",
 
     "Kontrollkästchen 577": false,
     "Kontrollkästchen 578": false,
@@ -977,10 +977,12 @@ const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[],
   UserAnnualIncome: formatCurrency(Number(getDynamicAnswer(questions[6], answers)) * 14),
 });
 
-const deckblattVertragspaketMapper = (userInfo: UserInfo): FormFieldData => ({
+const deckblattVertragspaketMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>, suggestedProduct: suggestedProduct, partner: Partner): FormFieldData => ({
   UserLastName: userInfo.lastName || "",
   UserEmail: userInfo.email || "",
   UserFirstName: userInfo.firstName || "",
+  //BeraterName: `${partner.firstName} ${partner.lastName}` || "",
+  //Datum: getCurrentDate(),
 });
 
 const serviceentgeltMapper = (userInfo: UserInfo): FormFieldData => ({
@@ -1001,8 +1003,8 @@ const servicegebuehrMapper = (userInfo: UserInfo): FormFieldData => ({
 });
 
 const vermittlungsgebuehrMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => ({
-  DepotAgencyFee: Number(getDynamicAnswer(questions[19], answers)) > 0 ? '5' : '-',
-  DepotSetupFee: Number(getDynamicAnswer(questions[20], answers)) > 0 ? Math.round(Number(getDynamicAnswer(questions[20], answers)) * 2.5) : '-',
+  DepotAgencyFee: Number(getDynamicAnswer(questions[20], answers)) > 0 ? '5' : '-',
+  DepotSetupFee: Number(getDynamicAnswer(questions[21], answers)) > 0 ? Math.round(Number(getDynamicAnswer(questions[21], answers)) * 2.5) : '-',
   UserFirstName: userInfo.firstName || "",
   UserLastName: userInfo.lastName || "",
   UserCity: userInfo.city || "",
@@ -1020,10 +1022,6 @@ const initializeFinancialKnowledgeFields = (questions: Question[], answers: Reco
   const fields: FormFieldData = {};
 
   categories.forEach(category => {
-
-    console.log("answers for 17 and 18 questions:", getDynamicAnswer(questions[14], answers, true), getDynamicAnswer(questions[15], answers, true));
-    // Question 9
-    
     knowledgeTypes.forEach(type => {
       if (category == "Equities") {
         if (type == "NoKnowledge") {
@@ -1084,8 +1082,7 @@ const initializeFinancialKnowledgeFields = (questions: Question[], answers: Reco
     tradeTypes.forEach(type => {
       if (category == "Equities") {
         if (type == "ZeroTrades") {
-          const knowledgeAnswer = getDynamicAnswer(questions[11], answers, true);
-          fields[`UserFinancialKnowledge${category}${type}`] = (knowledgeAnswer == "none" || knowledgeAnswer == "average") ? true : false;
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[12], answers, true) == "0" ? true : false;
         } else if (type == "TenTrades") {
           fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[12], answers, true) == "1-10" ? true : false;
         } else if (type == "MoreTenTrades") {
@@ -1096,8 +1093,7 @@ const initializeFinancialKnowledgeFields = (questions: Question[], answers: Reco
 
       } else if (category == "Bonds") {
         if (type == "ZeroTrades") {
-          const knowledgeAnswer = getDynamicAnswer(questions[13], answers, true);
-          fields[`UserFinancialKnowledge${category}${type}`] = (knowledgeAnswer == "none" || knowledgeAnswer == "average") ? true : false;
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[14], answers, true) == "0" ? true : false;
         } else if (type == "TenTrades") {
           fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[14], answers, true) == "1-10" ? true : false;
         } else if (type == "MoreTenTrades") {
@@ -1107,8 +1103,7 @@ const initializeFinancialKnowledgeFields = (questions: Question[], answers: Reco
         }
       } else {
         if (type == "ZeroTrades") {
-          const knowledgeAnswer = getDynamicAnswer(questions[15], answers, true);
-          fields[`UserFinancialKnowledge${category}${type}`] = (knowledgeAnswer == "none" || knowledgeAnswer == "average") ? true : false;
+          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[16], answers, true) == "0" ? true : false;
         } else if (type == "TenTrades") {
           fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[16], answers, true) == "1-10" ? true : false;
         } else if (type == "MoreTenTrades") {
@@ -1165,7 +1160,8 @@ const initializeFinancialKnowledgeFields = (questions: Question[], answers: Reco
   return fields;
 };
 
-const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => ({
+const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => (
+  {
   ...basePersonalFields(userInfo),
   ...baseAddressFields(userInfo),
   ...baseContactFields(userInfo),
@@ -1181,14 +1177,19 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
   UserEducation: userInfo.education || "",
 
   // Question 18
-  UserPreviousFinancialActivitiesProfessional: getDynamicAnswer(questions[17], answers, true) == "experienced_positive" ? true : false,
+  UserPreviousFinancialActivitiesProfessional: getDynamicAnswer(questions[19], answers, true) == "experienced_positive" ? true : false,
+  
+  
+  UserPreviousFinancialActivitiesBoth0: getDynamicAnswer(questions[19], answers, true) == "with_professional_help" ? true : false,
+  UserPreviousFinancialActivitiesPrivate: getDynamicAnswer(questions[19], answers, true) == "independently" ? true : false,
+  UserPreviousFinancialActivitiesNo: getDynamicAnswer(questions[19], answers, true) == "other_method" ? true : false,
 
   GoalRiskScoreFrootsConservative: getDynamicAnswer(questions[4], answers, true) == "KONSERVATIV" ? true : false,
-  GoalRiskScoreFrootsBalanced: getDynamicAnswer(questions[4], answers, true) == "GEWINNORIENTIERT" ? true : false,
-  GoalRiskScoreFrootsProfitOrientated: getDynamicAnswer(questions[4], answers, true) == "AUSGEWOGEN" ? true : false,
+  GoalRiskScoreFrootsBalanced: getDynamicAnswer(questions[4], answers, true) == "AUSGEWOGEN" ? true : false,
+  GoalRiskScoreFrootsProfitOrientated: getDynamicAnswer(questions[4], answers, true) == "GEWINNORIENTIERT" ? true : false,
   UserReferenceAccountIban: userInfo.iban || "",
   ...initializeFinancialKnowledgeFields(questions, answers),
-  UserMonthlyAvailableIncome: formatCurrency(Number(getDynamicAnswer(questions[5], answers))),
+  UserMonthlyAvailableIncome: formatCurrency(Number(getDynamicAnswer(questions[5], answers)) - Number(getDynamicAnswer(questions[6], answers))),
   UserMonthlyExpenditures: formatCurrency(Number(getDynamicAnswer(questions[6], answers))),
   UserTotalNetAssets: formatCurrency(Number(getDynamicAnswer(questions[7], answers))),
   // Question 19
@@ -1199,10 +1200,6 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
   UserSourceOfIncomeAssetSale: getDynamicAnswer(questions[18], answers, true) == "sale_of_assets" ? true : false,
   UserSourceOfIncomeOther: getDynamicAnswer(questions[18], answers, true) == "other" ? true : false,
   UserSourceOfIncomeOtherText: "",
-
-  UserPreviousFinancialActivitiesBoth0: getDynamicAnswer(questions[21], answers, true) == "with_professional_help" ? true : false,
-  UserPreviousFinancialActivitiesPrivate: getDynamicAnswer(questions[21], answers, true) == "independently" ? true : false,
-  UserPreviousFinancialActivitiesNo: getDynamicAnswer(questions[21], answers, true) == "other_method" ? true : false,
 
   UserFullName1: getFullName(userInfo),
   UserCity1: userInfo.city || "",
@@ -1243,7 +1240,7 @@ const FORM_MAPPERS: Record<string, (userInfo: UserInfo, questions: Question[], a
   // Done
   "Vermittlungsgebühr.pdf": vermittlungsgebuehrMapper,
   "Vermögensverwaltungsvertrag.pdf": vermoegensverwaltungsvertragMapper,
-  "4money_protokoll_PecunAI_v4.pdf": moneyProtokollMapper,
+  "4money_protokoll_PecunAI_v.pdf": moneyProtokollMapper,
 };
 
 

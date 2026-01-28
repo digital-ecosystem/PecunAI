@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       "Servicegebühr.pdf",
       "Vermittlungsgebühr.pdf",
       "Vermögensverwaltungsvertrag.pdf",
-      "4money_protokoll_PecunAI_v4.pdf",
+      "4money_protokoll_PecunAI_v.pdf",
       "Froots_Allgemeine_Informationsbroschüren.pdf"
     ];
 

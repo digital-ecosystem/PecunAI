@@ -98,8 +98,8 @@ type Portfolio = {
     vectorId: string | null;
   } | null;
   score?: number;
-  sir: string,
-  duration: number
+  sri?: string;
+  duration?: number;
 };
 
 // Interface for answer with options

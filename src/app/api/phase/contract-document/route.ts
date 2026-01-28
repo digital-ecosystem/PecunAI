@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       "Vermittlungsgebühr.pdf",
       "Vermögensverwaltungsvertrag.pdf",
       "Froots_Allgemeine_Informationsbroschüren.pdf",
-      "4money_protokoll_PecunAI_v4.pdf"
+      "4money_protokoll_PecunAI_v.pdf"
     ];
 
     const finalPdfPaths: string[] = [];

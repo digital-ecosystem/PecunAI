@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
               width: 250,
               height: 100,
               x: 500,
-              y: 1100,
+              y: 1050,
               required: true,
               read_only: false,
               recipient_id: "1"

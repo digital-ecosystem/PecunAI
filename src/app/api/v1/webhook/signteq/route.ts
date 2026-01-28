@@ -153,6 +153,7 @@ export async function POST(request: NextRequest) {
 	} catch {
 		return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
 	}
+	console.log('📬 SignTeq webhook received:', JSON.stringify(payload, null, 2));
 
 	// Verify webhook signature for security
 	const signature = request.headers.get('Signature');
@@ -161,7 +162,6 @@ export async function POST(request: NextRequest) {
 		return NextResponse.json({ success: false, error: 'Invalid signature' }, { status: 401 });
 	}
 
-	console.log('📬 SignTeq webhook received:', JSON.stringify(payload, null, 2));
 
 	const event = payload.event;
 	const requestId = payload.request_id;

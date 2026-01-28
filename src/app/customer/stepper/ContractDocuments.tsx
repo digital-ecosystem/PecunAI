@@ -201,7 +201,7 @@ export default function ContractDocuments(
                   </button>
                   {/* 4money Protokoll */}
                   <button
-                    onClick={() => openPDF('4money_protokoll_PecunAI_v4.pdf')}
+                    onClick={() => openPDF('4money_protokoll_PecunAI_v.pdf')}
                     className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 hover:bg-gray-50 rounded transition-colors group text-left"
                   >
                     <svg className="w-5 h-5 text-teal-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
