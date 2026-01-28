@@ -130,6 +130,7 @@ const QuestionCard = ({
                 // Allow any input, validation happens in parent
                 onSelect(value);
               }}
+              onWheel={(e) => e.currentTarget.blur()}
               placeholder={inputPlaceholder || "Geben Sie eine Zahl ein..."}
               min="0"
               className="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
