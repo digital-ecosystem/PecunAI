@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { mergePDFs } from '@/utils/pdfMerge';
 import path from 'path';
 import { readdir, writeFile, mkdir } from 'fs/promises';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,8 +81,15 @@ export async function POST(request: NextRequest) {
     // Merge all PDFs
     const mergedPdfBuffer = await mergePDFs(pdfPaths, { debugMode });
 
+    const session = await prisma.qASession.findUnique({
+      where: { id: sessionId },
+      select: { 
+        personalInfo: true,
+       }
+    });
+
     // Save the merged PDF to private-documents
-    const mergedFileName = `merged-contracts.pdf`;
+    const mergedFileName = `Vertragsunterlage-${session?.personalInfo?.firstName}-${session?.personalInfo?.lastName}.pdf`;
     const mergedFilePath = path.join(
       process.cwd(),
       `private-documents/${sessionId}/merge-document/${mergedFileName}`

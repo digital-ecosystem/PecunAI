@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import PDFModal from '@/components/PDFModal';
 
+
 export default function ContractDocuments(
   {
     expandedSections,
@@ -52,7 +53,7 @@ export default function ContractDocuments(
   }
 ) {
   const [selectedPDF, setSelectedPDF] = useState<{ url: string; fileName: string } | null>(null);
-  // const [isMerging, setIsMerging] = useState(false);
+  const [isMerging, setIsMerging] = useState(false);
 
   const openPDF = (fileName: string) => {
     const pdfUrl = `/api/documents/${sessionId}/contract-document/${fileName}`;
@@ -63,37 +64,39 @@ export default function ContractDocuments(
     setSelectedPDF(null);
   };
 
-  // const handleMergePDFs = async () => {
-  //   setIsMerging(true);
-  //   try {
-  //     const response = await fetch('/api/documents/merge', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({ sessionId }),
-  //     });
+  const handleMergePDFs = async () => {
+    setIsMerging(true);
+    try {
+      const response = await fetch('/api/documents/merge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId }),
+      });
 
-  //     if (!response.ok) {
-  //       throw new Error('Failed to merge PDFs');
-  //     }
+      if (!response.ok) {
+        throw new Error('Failed to merge PDFs');
+      }
 
-  //     // Get the merged PDF blob
-  //     const blob = await response.blob();
-  //     const url = window.URL.createObjectURL(blob);
+      const fileName = response.headers.get('Content-Disposition')?.split('filename=')[1] || 'merged-contracts.pdf';
 
-  //     // Open in modal
-  //     setSelectedPDF({
-  //       url,
-  //       fileName: `merged-contracts.pdf`,
-  //     });
-  //   } catch (error) {
-  //     console.error('❌ Error merging PDFs:', error);
-  //     alert('Failed to merge PDFs. Please try again.');
-  //   } finally {
-  //     setIsMerging(false);
-  //   }
-  // };
+      // Get the merged PDF blob
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      // Open in modal
+      setSelectedPDF({
+        url,
+        fileName: fileName.replace(/"/g, ''),
+      });
+    } catch (error) {
+      console.error('❌ Error merging PDFs:', error);
+      alert('Failed to merge PDFs. Please try again.');
+    } finally {
+      setIsMerging(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 bg-gray-50 lg:min-h-screen min-h-0">
@@ -101,13 +104,13 @@ export default function ContractDocuments(
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Vertragsdokumente</h1>
-          {/* <button
+          <button
             onClick={handleMergePDFs}
             disabled={isMerging}
-            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium whitespace-nowrap"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium whitespace-nowrap"
           >
-            {isMerging ? 'Merging...' : 'Alle PDFs zusammenführen'}
-          </button> */}
+            {isMerging ? 'Vertrag Exportieren...' : 'Vertrag Exportieren'}
+          </button>
         </div>
         <p className="text-sm sm:text-base text-gray-600 mb-6">
           Akzeptiere die Vertragsbedingungen, um deine Depoteröffnung im nächsten Schritt mit einem
