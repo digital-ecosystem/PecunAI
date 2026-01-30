@@ -257,7 +257,7 @@ export default function InvestmentForm(
                 {
                   isNaN(parseFloat(answers[questions[21].id])) || parseFloat(answers[questions[21].id]) === 0
                     ? '0.00 €'
-                    : formatEuro(parseFloat(answers[questions[21].id] || '0') * 0.25)
+                    : formatEuro(parseFloat(answers[questions[21].id] || '0') * 2.5)
                 }
               </p>
             </div>

@@ -761,9 +761,9 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     "Kontrollkästchen 567": questionAnswers[14]?.selectedOption == "good",
 
     // 0, 1-10, +10 Transaktion
-    "Kontrollkästchen 568": questionAnswers[12.1]?.selectedOption == "0",
-    "Kontrollkästchen 569": questionAnswers[13.1]?.selectedOption == "0",
-    "Kontrollkästchen 570": questionAnswers[14.1]?.selectedOption == "0",
+    "Kontrollkästchen 568": (questionAnswers[12.1]?.selectedOption ?? "0") == "0",
+    "Kontrollkästchen 569": (questionAnswers[13.1]?.selectedOption ?? "0") == "0",
+    "Kontrollkästchen 570": (questionAnswers[14.1]?.selectedOption ?? "0") == "0",
 
     "Kontrollkästchen 571": questionAnswers[12.1]?.selectedOption == "1-10",
     "Kontrollkästchen 572": questionAnswers[13.1]?.selectedOption == "1-10",
@@ -943,7 +943,8 @@ const getDynamicAnswer = (question: Question | undefined, answers: Record<string
   return answer;
 };
 
-const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>, suggestedProduct: suggestedProduct, partner: Partner): FormFieldData => ({
+const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>, suggestedProduct: suggestedProduct, partner: Partner): FormFieldData => (  
+  {
   ...basePersonalFieldsDepoter(userInfo),
   ...baseAddressFields(userInfo),
   ...baseContactFields(userInfo),
@@ -952,7 +953,7 @@ const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[],
   UserCityOfOrigin: userInfo.birthPlace || "",
   UserProfession: userInfo.currentJob || "",
   UserSector: userInfo.industry || "",
-  GoalMonthlyPayment: formatCurrency(Number(getDynamicAnswer(questions[20], answers))),
+  GoalMonthlyPayment: formatCurrency(Number(getDynamicAnswer(questions[21], answers))),
   // Next Month From Today
   //NextMonthFromToday: getNextMonthFromToday(),
   //YearOfNextMonthFromToday: getNextMonthYear(),
@@ -974,7 +975,7 @@ const depoteroeffnungsantragMapper = (userInfo: UserInfo, questions: Question[],
   UserPepYes: userInfo.isPEP ? true : false,
   AdvisorPhone: partner.phone || "",
   AdvisorFullName: `${partner.agentNumber} ${partner.firstName} ${partner.lastName}` || "",
-  UserAnnualIncome: formatCurrency(Number(getDynamicAnswer(questions[6], answers)) * 14),
+  UserAnnualIncome: formatCurrency(Number(getDynamicAnswer(questions[5], answers)) * 14),
 });
 
 const deckblattVertragspaketMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>, suggestedProduct: suggestedProduct, partner: Partner): FormFieldData => ({
@@ -1081,33 +1082,36 @@ const initializeFinancialKnowledgeFields = (questions: Question[], answers: Reco
 
     tradeTypes.forEach(type => {
       if (category == "Equities") {
+        const q12 = getDynamicAnswer(questions[12], answers, true) || "0";
         if (type == "ZeroTrades") {
-          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[12], answers, true) == "0" ? true : false;
+          fields[`UserFinancialKnowledge${category}${type}`] = q12 == "0" ? true : false;
         } else if (type == "TenTrades") {
-          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[12], answers, true) == "1-10" ? true : false;
+          fields[`UserFinancialKnowledge${category}${type}`] = q12 == "1-10" ? true : false;
         } else if (type == "MoreTenTrades") {
-          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[12], answers, true) == "+10" ? true : false;
+          fields[`UserFinancialKnowledge${category}${type}`] = q12 == "+10" ? true : false;
         } else {
           fields[`UserFinancialKnowledge${category}${type}`] = false
         }
 
       } else if (category == "Bonds") {
+        const q14 = getDynamicAnswer(questions[14], answers, true) || "0";
         if (type == "ZeroTrades") {
-          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[14], answers, true) == "0" ? true : false;
+          fields[`UserFinancialKnowledge${category}${type}`] = q14 == "0" ? true : false;
         } else if (type == "TenTrades") {
-          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[14], answers, true) == "1-10" ? true : false;
+          fields[`UserFinancialKnowledge${category}${type}`] = q14 == "1-10" ? true : false;
         } else if (type == "MoreTenTrades") {
-          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[14], answers, true) == "+10" ? true : false;
+          fields[`UserFinancialKnowledge${category}${type}`] = q14 == "+10" ? true : false;
         } else {
           fields[`UserFinancialKnowledge${category}${type}`] = false
         }
       } else {
+        const q16 = getDynamicAnswer(questions[16], answers, true) || "0";
         if (type == "ZeroTrades") {
-          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[16], answers, true) == "0" ? true : false;
+          fields[`UserFinancialKnowledge${category}${type}`] = q16 == "0" ? true : false;
         } else if (type == "TenTrades") {
-          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[16], answers, true) == "1-10" ? true : false;
+          fields[`UserFinancialKnowledge${category}${type}`] = q16 == "1-10" ? true : false;
         } else if (type == "MoreTenTrades") {
-          fields[`UserFinancialKnowledge${category}${type}`] = getDynamicAnswer(questions[16], answers, true) == "+10" ? true : false;
+          fields[`UserFinancialKnowledge${category}${type}`] = q16 == "+10" ? true : false;
         } else {
           fields[`UserFinancialKnowledge${category}${type}`] = false
         }
