@@ -231,7 +231,7 @@ function OTPAuthPostgresContent() {
               <Users className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-sm font-medium text-emerald-800">Partner-Einladung</p>
+              <p className="text-sm font-medium text-emerald-800">Berater-Einladung</p>
               <p className="text-xs text-emerald-600">Sie wurden von einem Berater eingeladen</p>
             </div>
           </div>

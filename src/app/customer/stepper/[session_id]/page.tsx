@@ -155,8 +155,14 @@ const validationSchema = Yup.object({
     .required("Nationalität ist erforderlich"),
 
   birthDate: Yup.date()
+    .required("Geburtsdatum ist erforderlich")
     .max(new Date(), "Geburtsdatum darf nicht in der Zukunft liegen")
-    .required("Geburtsdatum ist erforderlich"),
+    .test("minAge", "Sie müssen mindestens 18 Jahre alt sein", (value) => {
+      if (!value) return true;
+      const cutoff = new Date();
+      cutoff.setFullYear(cutoff.getFullYear() - 18);
+      return value <= cutoff;
+    }),
 
   maritalStatus: Yup.string()
     .oneOf(

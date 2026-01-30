@@ -53,7 +53,7 @@ export default function InvestmentForm(
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
           <div>
-            <p className="text-xs text-gray-500 mb-1">Ansprechpartner Name</p>
+            <p className="text-xs text-gray-500 mb-1">Ansprechberater Name</p>
             <p className="font-semibold">Anlageprofil</p>
             <p className="text-sm text-gray-600">Digitale Signatur</p>
           </div>

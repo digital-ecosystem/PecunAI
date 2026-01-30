@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
       firstName: session.partner.firstName,
       lastName: session.partner.lastName,
       birthday: session.partner.birthday,
+      signatureLocation: session.partner.signatureLocation,
       referralCode: session.partner.referralCode,
       agentNumber: session.partner.agentNumber,
       isActive: session.partner.isActive,

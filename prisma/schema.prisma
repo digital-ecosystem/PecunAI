@@ -45,6 +45,7 @@ model Partner {
   phone        String
   firstName    String
   lastName     String
+  signatureLocation    String  @default("Wien")
   birthday     DateTime    @db.Date
   agentNumber  String
   password     String

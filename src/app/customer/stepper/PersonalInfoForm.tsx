@@ -65,6 +65,14 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
     const combined = Array.from(new Set([...GERMAN_COUNTRIES, ...highRiskCountries]));
     return combined.sort((a, b) => a.localeCompare(b, 'de'));
   }, [highRiskCountries]);
+
+  // Latest birth date for 18+ (18 years ago from today), as YYYY-MM-DD for input max
+  const maxBirthDateFor18 = React.useMemo(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 18);
+    return d.toISOString().substring(0, 10);
+  }, []);
+
   const renderField = (
     name: string,
     label: string,
@@ -145,7 +153,32 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                 <p className="text-red-500 text-xs mt-1">{formik.errors.birthCountry}</p>
               )}
             </div>
-            {renderField("birthDate", "Geburtsdatum", "date")}
+            {/* Birth date: max = 18 years ago so only 18+ can be selected */}
+            <div className="w-full">
+              <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 mb-1">
+                Geburtsdatum
+              </label>
+              <input
+                id="birthDate"
+                name="birthDate"
+                type="date"
+                max={maxBirthDateFor18}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={
+                  formik.values.birthDate
+                    ? new Date(formik.values.birthDate as string).toISOString().substring(0, 10)
+                    : ""
+                }
+                className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-colors duration-200 ease-in-out
+                           disabled:bg-gray-50 disabled:text-gray-500"
+              />
+              {formik.touched.birthDate && formik.errors.birthDate && (
+                <p className="text-red-500 text-xs mt-1">{formik.errors.birthDate}</p>
+              )}
+            </div>
 
             {/* Nationality dropdown */}
             <div className="w-full">

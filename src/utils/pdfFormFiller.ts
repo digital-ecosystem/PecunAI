@@ -29,6 +29,7 @@ export interface Partner {
   firstName: string;
   lastName: string;
   birthday: Date;
+  signatureLocation: string;
   referralCode: string;
   agentNumber: string;
   isActive: boolean;
@@ -446,12 +447,12 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     "vorname 54": date.getDay().toString().padStart(2, '0'),
     "vorname 55": (date.getMonth() + 1).toString().padStart(2, '0'),
     "vorname 56": date.getFullYear().toString(),
-    "vorname 57": sessionTime.getMinutes().toString().padStart(2, '0'),
-    "vorname 58": sessionTime.getHours().toString().padStart(2, '0'),
-    "vorname 59": date.getMinutes().toString().padStart(2, '0'),
-    "vorname 60": date.getHours().toString().padStart(2, '0'),
+    "vorname 58": sessionTime.getMinutes().toString().padStart(2, '0'),
+    "vorname 57": sessionTime.getHours().toString().padStart(2, '0'),
+    "vorname 60": date.getMinutes().toString().padStart(2, '0'),
+    "vorname 59": date.getHours().toString().padStart(2, '0'),
     "vorname 158": "online",
-    "vorname 63": new Date().toLocaleDateString('de-DE'),
+    "vorname 63": `${userInfo.city || ''}  ${new Date().toLocaleDateString('de-DE')}`,
     // "vorname 62": "vorname 62",
     // "vorname 64": "vorname 64",
     // "vorname 65": "vorname 65",
@@ -525,12 +526,12 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     "vorname 133": date.getDay().toString().padStart(2, '0'),
     "vorname 134": (date.getMonth() + 1).toString().padStart(2, '0'),
     "vorname 135": date.getFullYear().toString(),
-    "vorname 136": sessionTime.getMinutes().toString().padStart(2, '0'),
-    "vorname 137": sessionTime.getHours().toString().padStart(2, '0'),
-    "vorname 138": date.getMinutes().toString().padStart(2, '0'),
-    "vorname 139": date.getHours().toString().padStart(2, '0'),
+    "vorname 137": sessionTime.getMinutes().toString().padStart(2, '0'),
+    "vorname 136": sessionTime.getHours().toString().padStart(2, '0'),
+    "vorname 139": date.getMinutes().toString().padStart(2, '0'),
+    "vorname 138": date.getHours().toString().padStart(2, '0'),
     "vorname 140": "online",
-    "vorname 141": new Date().toLocaleDateString('de-DE'),
+    "vorname 141": partner.signatureLocation || '',
     // "vorname 142": "vorname 142",
     // "vorname 143": "vorname 143",
     // "vorname 144": "vorname 144",
@@ -986,19 +987,19 @@ const deckblattVertragspaketMapper = (userInfo: UserInfo, questions: Question[],
   //Datum: getCurrentDate(),
 });
 
-const serviceentgeltMapper = (userInfo: UserInfo): FormFieldData => ({
+const serviceentgeltMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>, suggestedProduct: suggestedProduct, partner: Partner): FormFieldData => ({
   UserFullName: getFullName(userInfo),
   UserCity: userInfo.city || "",
   DateToday: getCurrentDate(),
-  AdvisorPhone: "06769061716",
+  AdvisorPhone: partner.phone || "",
   YesByDefault: true,
-  AdviserFullName: "14020007	ALEXANDER BRACIC",
+  AdviserFullName: `${partner.agentNumber} ${partner.firstName} ${partner.lastName}`,
 });
 
 const servicegebuehrMapper = (userInfo: UserInfo): FormFieldData => ({
   ...baseAddressFields(userInfo),
   UserFullName: getFullName(userInfo),
-  UserReferenceAccountIban: "",
+  UserReferenceAccountIban: userInfo.iban || "",
   DateToday: getCurrentDate(),
   UserCity1: userInfo.city || "",
 });
@@ -1165,6 +1166,7 @@ const initializeFinancialKnowledgeFields = (questions: Question[], answers: Reco
 };
 
 const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => (
+  console.log(getDynamicAnswer(questions[19], answers, true) == "independently" ? true : false,),
   {
   ...basePersonalFields(userInfo),
   ...baseAddressFields(userInfo),
@@ -1185,7 +1187,7 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
   
   
   UserPreviousFinancialActivitiesBoth0: getDynamicAnswer(questions[19], answers, true) == "with_professional_help" ? true : false,
-  UserPreviousFinancialActivitiesPrivate: getDynamicAnswer(questions[19], answers, true) == "independently" ? true : false,
+  UserPreviousFinancialActivitiesBoth1: getDynamicAnswer(questions[19], answers, true) == "independently" ? true : false,
   UserPreviousFinancialActivitiesNo: getDynamicAnswer(questions[19], answers, true) == "other_method" ? true : false,
 
   GoalRiskScoreFrootsConservative: getDynamicAnswer(questions[4], answers, true) == "KONSERVATIV" ? true : false,
