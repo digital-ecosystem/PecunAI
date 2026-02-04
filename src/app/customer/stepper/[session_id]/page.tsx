@@ -1951,7 +1951,7 @@ export default function Stepper() {
 
               {step === PHASES.TERMS1 && currentSubStep === 'TERMS_FROOTS' && (
                 <TermsScreen
-                  title="froots"
+                  title="Asset Management by froots GmbH"
                   subtitle="Kundeninformationen"
                   confirmed={confirmed}
                 >

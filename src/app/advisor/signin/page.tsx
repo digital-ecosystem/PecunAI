@@ -116,6 +116,11 @@ export default function PartnerSignInPage() {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              <div className="mt-2 text-right">
+                <a href="/advisor/forgot-password" className="text-sm text-emerald-600 hover:underline">
+                  Passwort vergessen?
+                </a>
+              </div>
             </div>
 
             {error && (

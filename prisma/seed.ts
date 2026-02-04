@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { RiskType } from "@/types";
 import bcrypt from "bcrypt";
 import { generateUniqueReferralCode } from "@/utils/referralCodeGenerator";
-import { duration } from "html2canvas/dist/types/css/property-descriptors/duration";
 
 
 async function main() {
@@ -12,14 +11,14 @@ async function main() {
   await prisma.question.deleteMany();
 
   // Delete all existing products and AI settings before seeding
-  /*await prisma.sessionProductSuggestion.deleteMany();
+  await prisma.sessionProductSuggestion.deleteMany();
   await prisma.aISettings.deleteMany();
   await prisma.product.deleteMany();
   await prisma.termsAndConditions.deleteMany();
   await prisma.highRiskCountry.deleteMany();
   await prisma.mainProductPrompt.deleteMany();
   await prisma.admin.deleteMany();
-  await prisma.partner.deleteMany();*/
+  await prisma.partner.deleteMany();
 
 
   const questions = [
@@ -1020,6 +1019,14 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
       agentNumber: 'ADM-002',
       password: 'Admin@Clara2024!',
     },
+    {
+      email: 'b.mahdi@adana.group',
+      firstName: 'Bassem',
+      lastName: 'Mahdi',
+      birthday: new Date('1990-05-27'),
+      agentNumber: 'ADM-003',
+      password: 'Admin@4Money2024!',
+    },
   ];
 
 
@@ -1031,6 +1038,15 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
       lastName: 'Bracic',
       birthday: new Date('1991-12-16'),
       agentNumber: '24020007',
+      password: 'Partner@2024!',
+      referralCode: await generateUniqueReferralCode(),
+    },{
+      email: 'b.mahdi@adana.group',
+      phone: '++4368181520584',
+      firstName: 'Bassem',
+      lastName: 'Mahdi',
+      birthday: new Date('1990-05-27'),
+      agentNumber: 'ADM-003',
       password: 'Partner@2024!',
       referralCode: await generateUniqueReferralCode(),
     },
@@ -1203,7 +1219,7 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
     });
   }
 
-/*
+
   const initialTerms = await prisma.termsAndConditions.upsert({
     where: { id: 'terms-initial-v1' },
     update: {},
@@ -1320,7 +1336,6 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
     });
     console.log(`  ✅ Partner created: ${partner.email} (password: ${partner.password}, referralCode: ${partner.referralCode})`);
   }
-*/
   console.log('✅ Seed complete!');
 }
 

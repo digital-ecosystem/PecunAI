@@ -277,3 +277,77 @@ export async function sendSessionStatusEmail(input: SessionStatusEmailInput) {
 		text,
 	});
 }
+
+type PasswordResetEmailInput = {
+	to: string;
+	resetUrl: string;
+	recipientName?: string | null;
+	expiresInMinutes?: number;
+	portalName?: string; // e.g. "Admin" or "Berater Portal"
+};
+
+function buildPasswordResetEmail(params: Omit<PasswordResetEmailInput, 'to'>): {
+	subject: string;
+	html: string;
+	text: string;
+} {
+	const recipient = (params.recipientName ?? '').trim();
+	const greeting = recipient ? `Hallo ${escapeHtml(recipient)},` : 'Guten Tag,';
+	const expiresInMinutes = params.expiresInMinutes ?? 60;
+	const portalName = params.portalName ?? 'Portal';
+	const safeUrl = escapeHtml(params.resetUrl);
+
+	const subject = `${getBrandName()} – Passwort zurücksetzen (${portalName})`;
+
+	const contentHtml = `
+		<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;line-height:26px;color:#374151;">
+			<p style="margin:0 0 20px;font-size:16px;">${greeting}</p>
+			<p style="margin:0 0 28px;font-size:16px;">Sie haben eine Anfrage zum Zurücksetzen Ihres Passworts für das ${escapeHtml(portalName)} gestellt. Klicken Sie auf den folgenden Link, um ein neues Passwort zu setzen:</p>
+			
+			<div style="text-align:center;margin:0 0 28px;">
+				<a href="${safeUrl}" style="display:inline-block;padding:14px 32px;background:#1e40af;color:#ffffff;text-decoration:none;border-radius:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;font-weight:600;box-shadow:0 2px 4px 0 rgba(30,64,175,0.3);">Passwort zurücksetzen</a>
+			</div>
+			<div style="background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;padding:20px;margin:0 0 28px;">
+				<div style="font-size:14px;line-height:22px;color:#92400e;">
+					<div style="font-weight:700;margin:0 0 8px;font-size:15px;color:#78350f;">Hinweis</div>
+					<ul style="margin:0;padding:0 0 0 20px;">
+						<li style="margin:0 0 6px;">Der Link ist ${escapeHtml(String(expiresInMinutes))} Minuten gültig</li>
+						<li style="margin:0 0 6px;">Falls Sie diese Anfrage nicht gestellt haben, ignorieren Sie diese E-Mail</li>
+						<li style="margin:0;">Aus Sicherheitsgründen den Link nicht an Dritte weitergeben</li>
+					</ul>
+				</div>
+			</div>
+
+			<div style="margin:32px 0 0;padding:20px 0 0;border-top:1px solid #e5e7eb;">
+				<p style="margin:0;font-size:15px;color:#6b7280;">Mit freundlichen Grüßen<br /><span style="color:#111827;font-weight:600;">Ihr ${escapeHtml(getBrandName())} Team</span></p>
+			</div>
+			<p style="margin:20px 0 0;font-size:12px;line-height:18px;color:#9ca3af;">Falls der Button nicht funktioniert: <span style="word-break:break-all;">${safeUrl}</span></p>
+		</div>
+	`;
+
+	const html = buildEmailLayout({
+		preheader: `Link zum Zurücksetzen Ihres Passworts für das ${portalName}. Gültig für ${expiresInMinutes} Minuten.`,
+		title: 'Passwort zurücksetzen',
+		contentHtml,
+	});
+
+	const text = `${greeting}\n\nSie haben eine Anfrage zum Zurücksetzen Ihres Passworts gestellt. Öffnen Sie den folgenden Link in Ihrem Browser:\n\n${params.resetUrl}\n\nDer Link ist ${expiresInMinutes} Minuten gültig.\n\nMit freundlichen Grüßen\nIhr ${getBrandName()} Team`;
+
+	return { subject, html, text };
+}
+
+export async function sendPasswordResetEmail(input: PasswordResetEmailInput) {
+	const { subject, html, text } = buildPasswordResetEmail({
+		resetUrl: input.resetUrl,
+		recipientName: input.recipientName,
+		expiresInMinutes: input.expiresInMinutes,
+		portalName: input.portalName,
+	});
+
+	return sendEmail({
+		to: input.to,
+		subject,
+		html,
+		text,
+	});
+}

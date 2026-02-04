@@ -333,7 +333,7 @@ export default function InvestmentForm(
               className="w-5 h-5 text-teal-600 rounded mt-1 flex-shrink-0"
             />
             <span className="text-sm text-gray-700 break-words">
-              Ich/wir erteile/n die Einwilligung, dass meine Daten von WPDLU zu Werbezwecken verwendet werden dürfen.
+              Ich erteile die Einwilligung, dass meine Daten von WPDLU zu Werbezwecken verwendet werden dürfen.
             </span>
           </label>
 
@@ -348,10 +348,10 @@ export default function InvestmentForm(
               Bestätigungserklärung: Ich bestätige alle Hinweise zur Kenntnis genommen zu haben und bestätige die
               Richtigkeit und Vollständigkeit des vorliegenden Kund:innen- und Anleger:innenprofils. Auf Grundlage dieser
               Informationen führt das WPDLU nicht-unabhängige Anlageberatung durch und erteilt Empfehlungen bzgl.
-              angemessener bzw. geeigneter Produkte. Die Empfehlungen basieren auf deinen Kenntnissen und
-              Erfahrungen im Wertpapierbereich, auf den Anlagezielen (des/der Kund:in (angedachte Anlagedauer,
-              Ertragserwartungen, Präferenzen bezüglich bestimmter Investments), auf deiner Risikobereitschaft und
-              berücksichtigen deiner finanziellen Verhältnisse sowie die Fähigkeit Verlust zu tragen.
+              angemessener bzw. geeigneter Produkte. Die Empfehlungen basieren auf meinen Kenntnissen und
+              Erfahrungen im Wertpapierbereich, auf meinen Anlagezielen (angedachte Anlagedauer,
+              Ertragserwartungen, Präferenzen bezüglich bestimmter Investments), auf meiner Risikobereitschaft und
+              berücksichtigen meine finanziellen Verhältnisse sowie meine Fähigkeit, Verlust zu tragen.
             </span>
           </label>
 
@@ -363,7 +363,7 @@ export default function InvestmentForm(
               className="w-5 h-5 text-teal-600 rounded mt-1 flex-shrink-0"
             />
             <span className="text-sm text-gray-700 break-words">
-              Der/die Kund:in wurde über die Kosten, des Ausgabeaufschlages in Höhe von einem bis ca. sieben Prozent
+              Ich wurde über die Kosten, des Ausgabeaufschlages in Höhe von einem bis ca. sieben Prozent
               und/oder Set Up Fee und/oder Servicegebühr, entsprechend hingewiesen und aufgeklärt. Des Weiteren ist
               je nach Produktauswahl, z.B. bei geschlossenen Fonds ein höherer Provisionsanteil durch eine zusätzliche
               innere Provision möglich. Die geschätzten Kosten wurden anhand der exante Kostenvoraussschau und den
@@ -381,8 +381,8 @@ export default function InvestmentForm(
               className="w-5 h-5 text-teal-600 rounded mt-1 flex-shrink-0"
             />
             <span className="text-sm text-gray-700 break-words">
-              Der/die Kund:in bestätigt, dass kein zusätzlicher Liquiditätsbedarf bei den bestehenden oder neu zu
-              investierenden Anlagen besteht. Der/die Kund:in bestätigt, dass in der nächsten Zeit kein unmittelbarer
+              Ich bestätige, dass kein zusätzlicher Liquiditätsbedarf bei den bestehenden oder neu zu
+              investierenden Anlagen besteht. Ich bestätige, dass in der nächsten Zeit kein unmittelbarer
               Liquiditätsbedarf geplant ist.
             </span>
           </label>

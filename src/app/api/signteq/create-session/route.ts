@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { handleApiError } from "@/lib/api-error";
 import { CONFIG } from "@/config/constants";
 import { prisma } from '@/lib/prisma';
+import { signteqHandshake, saveHandshakeInfo } from '@/utils/signteqHandshake';
 
 // You should store your SignTeq API token in environment variables
 const SIGNTEQ_API_TOKEN = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_API_KEY_PRO || '' : process.env.SIGNTEQ_API_KEY_DEV || '';
@@ -57,6 +58,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const handshake: {sessionToken: string, signatureId: string} = await signteqHandshake();
+
+    console.log("🚀 ~ handshake:", handshake);
 
     const session = await prisma.qASession.findUnique({
       where: {
@@ -120,7 +125,7 @@ export async function POST(request: NextRequest) {
           fields: [
             {
               page: 1,
-              type: process.env.NEXT_PUBLIC_ENV === "production" ? "custom-stamp" : "signature",
+              type: process.env.NEXT_PUBLIC_ENV === "production" ? "custom-stamp" : "custom-stamp",
               width: 250,
               height: 100,
               x: 500,
@@ -151,7 +156,11 @@ export async function POST(request: NextRequest) {
         name: recipientName,
         do_not_notify: true,
         language: "de",
-        qes: process.env.NEXT_PUBLIC_ENV === "production" ? true : false,
+        qes_session: {
+          signature_id: handshake.signatureId,
+          session_token: handshake.sessionToken
+        },
+        qes: process.env.NEXT_PUBLIC_ENV === "production" ? true : true,
         meta: {
           qaSessionId: sessionId,
         }
@@ -184,6 +193,8 @@ export async function POST(request: NextRequest) {
 
     const data = response.data;
     logger.debug("SignTeq response data:", data);
+
+    await saveHandshakeInfo(handshake.sessionToken, handshake.signatureId, sessionId, session.userId);
 
     // Persist mapping (best-effort). This enables webhook processing and troubleshooting.
     try {

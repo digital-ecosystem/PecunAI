@@ -189,7 +189,7 @@ const QuestionCard = ({
       )}
 
       {/* Special message for neutral sustainability selection */}
-      {isNeutralSelected && (
+      {/*isNeutralSelected && (
         <div className="mb-2 sm:mb-2 p-2 sm:p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
           <div className="flex items-start gap-3">
             <div className="w-5 h-5 mt-0.5 flex-shrink-0">
@@ -207,7 +207,7 @@ const QuestionCard = ({
             </div>
           </div>
         </div>
-      )}
+      )*/}
 
       {/* Error message for forbidden values */}
       {hasForbiddenValueError && forbiddenErrorMessage && (

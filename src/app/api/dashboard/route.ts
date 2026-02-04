@@ -12,6 +12,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
     }
 
+    
+
     const user = await AuthService.getUserFromToken(token);
     // console.log("🚀 ~ GET ~ user:", user)
     if (!user) {

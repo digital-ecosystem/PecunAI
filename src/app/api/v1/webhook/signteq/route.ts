@@ -5,6 +5,7 @@ import { join } from 'path';
 import { prisma } from '@/lib/prisma';
 import { CONFIG } from '@/config/constants';
 import crypto from 'crypto';
+import { downloadLegtitationPDF } from '@/utils/downloadVerfiyPersonPDF';
 
 const SIGNTEQ_API_TOKEN = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_API_KEY_PRO || '' : process.env.SIGNTEQ_API_KEY_DEV || '';
 const SIGNTEQ_ORG_ID = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_ORG_ID_PRO || '' : process.env.SIGNTEQ_ORG_ID_DEV || '';
@@ -254,11 +255,12 @@ export async function POST(request: NextRequest) {
 			console.warn('⚠️ Webhook: failed to update workflow state (continuing):', err);
 		}
 
+		await downloadLegtitationPDF(qaSessionId);
+
 		console.log('✅ Webhook: processed SignTeq document event', {
 			qaSessionId,
 			documentId,
 		});
-
 		return NextResponse.json({ success: true, processed: true });
 	} catch (error) {
 		console.error('❌ Webhook processing error:', error);

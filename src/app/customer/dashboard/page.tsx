@@ -470,13 +470,16 @@ const Dashboard = () => {
                                             </h2>
                                             <div className="max-h-[60vh] overflow-y-auto pr-1 text-sm sm:text-base text-gray-700 space-y-3">
                                                 <p>
-                                                    Diese Onboarding-Strecke ist der erste Schritt Ihrer KI-gestützten Finanzberatung. In den nächsten Schritten erfassen wir gemeinsam relevante Informationen wie Ihre Ziele, Erfahrungen, finanzielle Situation und Risikoneigung. Daraus entsteht ein persönliches Anlegerprofil.
+                                                    Diese Onboarding-Strecke ist der erste Schritt Ihrer Finanzberatung. In den nächsten Schritten erfassen wir gemeinsam relevante Informationen wie Ihre Ziele, Erfahrungen, finanzielle Situation und Risikoneigung. Daraus entsteht ein persönliches Anlegerprofil.
                                                 </p>
                                                 <p>
-                                                    Auf Basis dieses Profils wird ein Anlagevorschlag erstellt, der aus konkreten Vermögensverwaltungsstrategien von froots besteht. Diese Strategien sind darauf ausgelegt, langfristig und strukturiert zu investieren und werden individuell auf Ihr Profil abgestimmt.
+                                                    Auf Basis dieses Profils wird ein Anlagevorschlag erstellt, der aus konkreten Vermögensverwaltungsstrategien von froots (Asset Management by froots GmbH) besteht. Diese Strategien sind darauf ausgelegt, langfristig und strukturiert zu investieren und werden individuell auf Ihr Profil abgestimmt.
                                                 </p>
                                                 <p>
-                                                    PecunAI begleitet Sie dabei digital durch den gesamten Prozess. Die Anlageberatung und Vermittlung erfolgt durch 4money Financial Services GmbH, die Vermögensverwaltung übernimmt froots. Ihr Wertpapierdepot wird auf Ihren Namen bei der Schelhammer Capital Bank geführt.
+                                                    Die Anlageberatung und Vermittlung erfolgt durch 4money Financial Services GmbH, die Vermögensverwaltung übernimmt froots (Asset Management by froots GmbH). Ihr Wertpapierdepot wird auf Ihren Namen bei der Schelhammer Capital Bank geführt.
+                                                </p>
+                                                <p>
+                                                    Am Ende der Beratungsstrecke steht Ihnen PecunAI – unser digitaler KI-Assistent – zur Verfügung, um Ihre Fragen zu beantworten und Sie bei der Entscheidungsfindung zu unterstützen.
                                                 </p>
                                                 <p>
                                                     Ihre Angaben werden vertraulich behandelt und ausschließlich im Rahmen dieser Beratung verwendet.

@@ -264,7 +264,7 @@ export default function ContractDocuments(
                         <td className="py-3 px-2 text-gray-700">0 €</td>
                       </tr>
                       <tr>
-                        <td className="py-3 px-2 text-gray-700">Vermögensverwaltungsgebühr p.a. (froots)</td>
+                        <td className="py-3 px-2 text-gray-700">Vermögensverwaltungsgebühr p.a. (Asset Management by froots GmbH)</td>
                         <td className="py-3 px-2 text-gray-700">0,39 %</td>
                         <td className="py-3 px-2 text-gray-700">39 €</td>
                         <td className="py-3 px-2 text-gray-700">0,24 %</td>
@@ -440,7 +440,7 @@ export default function ContractDocuments(
               className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
             />
             <span className="text-sm text-gray-700 leading-relaxed break-words">
-              Ich bin einverstanden, dass ich in Zukunft alle Informationen von froots 
+              Ich bin einverstanden, dass ich in Zukunft alle Informationen von froots (Asset Management by froots GmbH), 
               (Asset Management by froots GmbH), 4money (4money Financial Services GmbH) und 
               persönlich an mich gerichtete Informationen nach WAG und Mitteilungen der Partnerbank Die Plattform 
               (Schelhammer Capital Bank AG) auf elektronischem Weg oder per Onlinezugang erhalte und verstehe, 
@@ -487,10 +487,10 @@ export default function ContractDocuments(
               className="w-5 h-5 text-teal-600 rounded mt-0.5 flex-shrink-0 cursor-pointer"
             />
             <span className="text-sm text-gray-700 leading-relaxed">
-              Der Auftraggeber stimmt hiermit zu, dass die froots alle betreffenden Daten aus der Geschäftsverbindung mit froots, 
+              Ich stimme hiermit zu, dass Asset Management by froots GmbH alle betreffenden Daten aus der Geschäftsverbindung mit Asset Management by froots GmbH, 
               die im Zusammenhang mit der Portfolioverwaltung stehen, wie etwa Informationen zur Veranlagung 
               (Performance, Asset-Allocation), gegenüber der 4money zum Zweck der Erbringung von eigenen 
-              Wertpapierdienstleistungen (Anlageberatung) durch 4money offenlegt und entbindet froots insoweit von 
+              Wertpapierdienstleistungen (Anlageberatung) durch 4money offenlegt und entbinde Asset Management by froots GmbH insoweit von 
               der Verschwiegenheitspflicht nach § 8 Abs 1 WAG 2018.
             </span>
           </label>
