@@ -274,7 +274,7 @@ const ViewProductPage = () => {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Produktdokument</h2>
               {product.fileName ? (
                 <a
-                  href={product.fileName}
+                  href={`/api/products/file/${product.fileName.replace(/^\/products\//, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"

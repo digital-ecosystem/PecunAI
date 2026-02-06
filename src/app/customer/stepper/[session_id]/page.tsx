@@ -2066,7 +2066,7 @@ export default function Stepper() {
                                 fileUrl={
                                   suggestedProduct.fileName.startsWith("http")
                                     ? suggestedProduct.fileName
-                                    : `${process.env.NEXT_PUBLIC_FRONTEND_URL}${suggestedProduct.fileName}`
+                                    : `${process.env.NEXT_PUBLIC_FRONTEND_URL || ''}/api/products/file/${suggestedProduct.fileName.replace(/^\/products\//, '')}`
                                 }
                                 defaultScale={SpecialZoomLevel.PageWidth}
                               />

@@ -31,8 +31,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create products directory if it doesn't exist
-    const productsDir = path.join(process.cwd(), 'public', 'products');
+    // Organize by year/month for monthly product updates
+    const now = new Date();
+    const year = now.getFullYear().toString();
+    const month = now.getMonth() + 1;
+    const monthStr = month < 10 ? `0${month}` : month.toString();
+
+    const productsDir = path.join(process.cwd(), 'public', 'products', year, monthStr);
     try {
       await mkdir(productsDir, { recursive: true });
     } catch (error) {
@@ -52,8 +57,8 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     await writeFile(filePath, buffer);
 
-    // Return the file path relative to public directory
-    const relativePath = `/products/${fileName}`;
+    // Return path relative to public: /products/YYYY/MM/filename
+    const relativePath = `/products/${year}/${monthStr}/${fileName}`;
 
     return NextResponse.json({
       success: true,

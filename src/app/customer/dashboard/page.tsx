@@ -1,7 +1,7 @@
 'use client';
 
 // pages/dashboard.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import { Session, SessionStatus, User } from '@/types';
@@ -43,6 +43,7 @@ const Dashboard = () => {
     const [totalCount, setTotalCount] = useState(0);
     const [isLoadingSessions, setIsLoadingSessions] = useState(false);
     const [allSessionsForStats, setAllSessionsForStats] = useState<Session[]>([]);
+    const drawerScrollRef = useRef<HTMLDivElement>(null);
 
     const getCookieValue = (name: string) => {
         if (typeof document === 'undefined') return '';
@@ -259,6 +260,19 @@ const Dashboard = () => {
         }
     };
 
+    useEffect(() => {
+        if (!partnerPreview) return;
+
+        try {
+            const el = document.getElementById('partner-preview');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        } catch (error) {
+            console.error('Error scrolling to partner preview', error);
+        }
+    }, [partnerPreview]);
+
     const handleStartNow = async () => {
         setStartError(null);
         setPartnerLookupError(null);
@@ -365,7 +379,7 @@ const Dashboard = () => {
                             {/* Main Content */}
                             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
-                                <Drawer open={isStartDrawerOpen} onOpenChange={setIsStartDrawerOpen}>
+                                <Drawer open={isStartDrawerOpen} onOpenChange={setIsStartDrawerOpen} repositionInputs={false}>
                                     <DrawerContent>
                                         <div className="mx-auto w-full max-w-2xl">
                                             <DrawerHeader className="pb-2">
@@ -378,7 +392,7 @@ const Dashboard = () => {
                                                 )}
                                             </DrawerHeader>
 
-                                            <div className="px-4 pb-4">
+                                            <div ref={drawerScrollRef} className="px-4 pb-4 max-h-[65vh] overflow-y-auto sm:max-h-none">
                                             {openSession?.id ? (
                                                 <div className="flex flex-col gap-3">
                                                     <p className="text-sm text-gray-700">
@@ -407,6 +421,16 @@ const Dashboard = () => {
 
                                                     <div className="mt-3 flex flex-col sm:flex-row gap-3">
                                                         <input
+                                                            onFocus={() => {
+                                                                const scrollEl = drawerScrollRef.current;
+                                                                if (!scrollEl) return;
+                                                                const saved = scrollEl.scrollTop;
+                                                                requestAnimationFrame(() => {
+                                                                    requestAnimationFrame(() => {
+                                                                        scrollEl.scrollTop = saved;
+                                                                    });
+                                                                });
+                                                            }}
                                                             value={partnerCode}
                                                             onChange={(e) => setPartnerCode(e.target.value)}
                                                             placeholder="Partner-Code"
@@ -429,7 +453,10 @@ const Dashboard = () => {
                                                     )}
 
                                                     {partnerPreview && (
-                                                        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                                        <div
+                                                            id="partner-preview"
+                                                            className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4"
+                                                        >
                                                             <p className="text-sm text-gray-700">
                                                                 <span className="font-medium">Partner:</span> {partnerPreview.firstName} {partnerPreview.lastName}
                                                             </p>
