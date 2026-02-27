@@ -412,25 +412,22 @@ const Dashboard = () => {
                                                     className={`flex ${message.role === 'customer' ? 'justify-end' : 'justify-start'}`}
                                                 >
                                                     <div className={`flex items-start gap-2 max-w-[85%] ${message.role === 'customer' ? 'flex-row-reverse' : ''}`}>
-                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                                            message.role === 'customer' 
-                                                                ? 'bg-blue-100' 
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === 'customer'
+                                                                ? 'bg-blue-100'
                                                                 : 'bg-purple-100'
-                                                        }`}>
-                                                            {message.role === 'customer' 
+                                                            }`}>
+                                                            {message.role === 'customer'
                                                                 ? <User className="w-4 h-4 text-blue-600" />
                                                                 : <Bot className="w-4 h-4 text-purple-600" />
                                                             }
                                                         </div>
-                                                        <div className={`rounded-2xl px-4 py-2 ${
-                                                            message.role === 'customer'
+                                                        <div className={`rounded-2xl px-4 py-2 ${message.role === 'customer'
                                                                 ? 'bg-blue-600 text-white'
                                                                 : 'bg-gray-100 text-gray-900'
-                                                        }`}>
-                                                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                                                            <p className={`text-xs mt-1 ${
-                                                                message.role === 'customer' ? 'text-blue-200' : 'text-gray-400'
                                                             }`}>
+                                                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                                            <p className={`text-xs mt-1 ${message.role === 'customer' ? 'text-blue-200' : 'text-gray-400'
+                                                                }`}>
                                                                 {new Date(message.createdAt).toLocaleTimeString('de-DE', {
                                                                     hour: '2-digit',
                                                                     minute: '2-digit'
@@ -444,190 +441,201 @@ const Dashboard = () => {
                                     </div>
                                 </div>
                             ) : (
-                            /* Drawer Content */
-                            <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
-                                {/* User Information */}
-                                <div className="bg-gray-50 rounded-lg p-4">
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Benutzerinformationen</h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                        <div>
-                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">Name</label>
-                                            <p className="text-sm text-gray-900">{selectedSession?.personalInfo?.firstName && selectedSession?.personalInfo?.lastName ? selectedSession?.personalInfo?.firstName + ' ' + selectedSession?.personalInfo?.lastName : ''}</p>
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">E-Mail</label>
-                                            <p className="text-sm text-gray-900 break-all">{selectedSession.user.email || ''}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Session Status */}
-                                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Sitzungsstatus</h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                        <div>
-                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">Aktueller Status</label>
-                                            <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(selectedSession.status)}`}>
-                                                {/* {selectedSession.status} */}
-                                                {selectedSession.status === SessionStatus.DRAFT && (
-                                                    <span className="text-xs text-gray-500">Entwurf</span>
-                                                )}
-                                                {selectedSession.status === SessionStatus.PENDING && (
-                                                    <span className="text-xs text-gray-500">Anfrage</span>
-                                                )}
-                                                {selectedSession.status === SessionStatus.REJECTED && (
-                                                    <span className="text-xs text-gray-500">Abgelehnt</span>
-                                                )}
-                                                {selectedSession.status === SessionStatus.APPROVED && (
-                                                    <span className="text-xs text-gray-500">Genehmigt</span>
-                                                )}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs sm:text-sm font-medium text-gray-600">Erstellungsdatum</label>
-                                            <p className="text-sm text-gray-900">{formatDate(selectedSession.createdAt)}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* KI Unterhaltung Button */}
-                                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                    <button
-                                        onClick={openChatView}
-                                        disabled={isChatLoading}
-                                        className="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                                    >
-                                        {isChatLoading ? (
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                        ) : (
-                                            <MessageSquare className="w-5 h-5" />
-                                        )}
-                                        <span className="font-medium">KI Unterhaltung</span>
-                                    </button>
-                                </div>
-
-                                {/* Download the session PDF */}
-                                {
-                                    selectedSession.status != SessionStatus.DRAFT && (
-                                        <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Sitzungs-PDF herunterladen</h3>
-                                            {selectedSession?.workflowState?.stepData?.signteq?.status === "DOCUMENT_COMPLETED" ? (
-                                                <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
-                                                <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                                                    <a href={`/api/documents/${selectedSession.id}/signed/signature.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
-                                                        <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
-                                                        <span className="truncate">Unterschriebenes PDF herunterladen</span>
-                                                    </a>
-                                                </button>
-                                            </div>) : (
-                                                <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
-                                                    <p className="text-sm text-gray-500">
-                                                        {(() => {
-                                                            const recipient1Name = getRecipientName(1);
-                                                            return recipient1Name
-                                                                ? `Berater ${recipient1Name} muss noch unterschreiben`
-                                                                : 'Berater muss noch unterschreiben';
-                                                        })()}
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )
-                                }
-
-                                {/* Action Buttons */}
-                                {selectedSession.status === SessionStatus.PENDING &&
+                                /* Drawer Content */
+                                <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+                                    {/* User Information */}
                                     <div className="bg-gray-50 rounded-lg p-4">
-                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Aktionen</h3>
-                                        <div className="flex flex-col sm:flex-row gap-3">
-                                            {selectedSession.status === SessionStatus.PENDING && (
-                                                <>
-                                                    <button
-                                                        onClick={() => {
-                                                            handleStatusChange(selectedSession.id, SessionStatus.APPROVED);
-                                                        }}
-                                                        className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-                                                    >
-                                                        <CheckCircle className="w-4 h-4 mr-2 flex-shrink-0" />
-                                                        <span>Sitzung genehmigen</span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            handleStatusChange(selectedSession.id, SessionStatus.REJECTED);
-                                                        }}
-                                                        className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
-                                                    >
-                                                        <X className="w-4 h-4 mr-2 flex-shrink-0" />
-                                                        <span>Sitzung ablehnen</span>
-                                                    </button>
-                                                </>
-                                            )}
+                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Benutzerinformationen</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                            <div>
+                                                <label className="block text-xs sm:text-sm font-medium text-gray-600">Name</label>
+                                                <p className="text-sm text-gray-900">{selectedSession?.personalInfo?.firstName && selectedSession?.personalInfo?.lastName ? selectedSession?.personalInfo?.firstName + ' ' + selectedSession?.personalInfo?.lastName : ''}</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs sm:text-sm font-medium text-gray-600">E-Mail</label>
+                                                <p className="text-sm text-gray-900 break-all">{selectedSession.user.email || ''}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                }
 
-                                {/* Question and Options */}
-                                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Frage & Antwort</h3>
-
-                                    {questionAnswer?.length > 0 &&
-                                        questionAnswer.map((item, index) => {
-                                            return (
-                                                <React.Fragment key={index}>
-                                                    {/* Question */}
-                                                    <div className="mb-4">
-                                                        <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Frage</label>
-                                                        <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
-                                                            <p className="text-sm sm:text-base text-gray-900">{item.text}</p>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Available Options - only show if there are options */}
-                                                    {item.options && item.options.length > 0 && (
-                                                        <div className="mb-4">
-                                                            <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Verfügbare Optionen</label>
-                                                            <div className="space-y-2">
-                                                                {item.options.map((option, optIndex) => {
-                                                                    const isSelected = option.value === item.selectedValue
-                                                                    return (
-                                                                        <div
-                                                                            key={optIndex}
-                                                                            className={`flex items-center p-3 rounded-lg border ${isSelected ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
-                                                                                }`}
-                                                                        >
-                                                                            <div
-                                                                                className={`w-2 h-2 rounded-full mr-3 flex-shrink-0 ${isSelected ? 'bg-green-500' : 'bg-gray-300'
-                                                                                    }`}
-                                                                            />
-                                                                            <span
-                                                                                className={`text-xs sm:text-sm flex-1 ${isSelected ? 'text-green-900 font-medium' : 'text-gray-700'
-                                                                                    }`}
-                                                                            >
-                                                                                {option.label}
-                                                                            </span>
-                                                                            {isSelected && <ChevronRight className="w-4 h-4 text-green-600 flex-shrink-0" />}
-                                                                        </div>
-                                                                    )
-                                                                })}
-                                                            </div>
-                                                        </div>
+                                    {/* Session Status */}
+                                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Sitzungsstatus</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                            <div>
+                                                <label className="block text-xs sm:text-sm font-medium text-gray-600">Aktueller Status</label>
+                                                <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(selectedSession.status)}`}>
+                                                    {/* {selectedSession.status} */}
+                                                    {selectedSession.status === SessionStatus.DRAFT && (
+                                                        <span className="text-xs text-gray-500">Entwurf</span>
                                                     )}
+                                                    {selectedSession.status === SessionStatus.PENDING && (
+                                                        <span className="text-xs text-gray-500">Anfrage</span>
+                                                    )}
+                                                    {selectedSession.status === SessionStatus.REJECTED && (
+                                                        <span className="text-xs text-gray-500">Abgelehnt</span>
+                                                    )}
+                                                    {selectedSession.status === SessionStatus.APPROVED && (
+                                                        <span className="text-xs text-gray-500">Genehmigt</span>
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs sm:text-sm font-medium text-gray-600">Erstellungsdatum</label>
+                                                <p className="text-sm text-gray-900">{formatDate(selectedSession.createdAt)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                                    {/* Selected Answer Highlight */}
-                                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
-                                                        <label className="block text-xs sm:text-sm font-medium text-green-800 mb-1">Ausgewählte Antwort</label>
-                                                        <p className="text-sm sm:text-base text-green-900 font-semibold">
-                                                            {item.options && item.options.length > 0
-                                                                ? item.options.find(option => option.value === item.selectedValue)?.label || item.selectedValue || 'N/V'
-                                                                : item.selectedValue || 'N/V'
-                                                            }
+                                    {/* KI Unterhaltung Button */}
+                                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                                        <button
+                                            onClick={openChatView}
+                                            disabled={isChatLoading}
+                                            className="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                        >
+                                            {isChatLoading ? (
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                            ) : (
+                                                <MessageSquare className="w-5 h-5" />
+                                            )}
+                                            <span className="font-medium">KI Unterhaltung</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Download the session PDF */}
+                                    {
+                                        selectedSession.status != SessionStatus.DRAFT && (
+                                            <div className="bg-white border border-gray-200 rounded-lg p-4">
+                                                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Sitzungs-PDF herunterladen</h3>
+                                                {selectedSession?.workflowState?.stepData?.signteq?.status === "DOCUMENT_COMPLETED" ? (
+                                                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                                                        <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                                            <a href={`/api/documents/${selectedSession.id}/signed/signature.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
+                                                                <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                                <span className="truncate">Unterschriebenes PDF herunterladen</span>
+                                                            </a>
+                                                        </button>
+                                                        <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                                            <a
+                                                                href={`/api/documents/${selectedSession.id}/signed/legitimation.pdf`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center justify-center"
+                                                            >
+                                                                <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                                <span className="truncate">Legetimitation herunterladen</span>
+                                                            </a>
+                                                        </button>
+                                                    </div>) : (
+                                                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                                                        <p className="text-sm text-gray-500">
+                                                            {(() => {
+                                                                const recipient1Name = getRecipientName(1);
+                                                                return recipient1Name
+                                                                    ? `Berater ${recipient1Name} muss noch unterschreiben`
+                                                                    : 'Berater muss noch unterschreiben';
+                                                            })()}
                                                         </p>
                                                     </div>
-                                                </React.Fragment>
-                                            );
-                                        })}
+                                                )}
+                                            </div>
+                                        )
+                                    }
+
+                                    {/* Action Buttons */}
+                                    {selectedSession.status === SessionStatus.PENDING &&
+                                        <div className="bg-gray-50 rounded-lg p-4">
+                                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Aktionen</h3>
+                                            <div className="flex flex-col sm:flex-row gap-3">
+                                                {selectedSession.status === SessionStatus.PENDING && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => {
+                                                                handleStatusChange(selectedSession.id, SessionStatus.APPROVED);
+                                                            }}
+                                                            className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+                                                        >
+                                                            <CheckCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                            <span>Sitzung genehmigen</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                handleStatusChange(selectedSession.id, SessionStatus.REJECTED);
+                                                            }}
+                                                            className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
+                                                        >
+                                                            <X className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                            <span>Sitzung ablehnen</span>
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    }
+
+                                    {/* Question and Options */}
+                                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Frage & Antwort</h3>
+
+                                        {questionAnswer?.length > 0 &&
+                                            questionAnswer.map((item, index) => {
+                                                return (
+                                                    <React.Fragment key={index}>
+                                                        {/* Question */}
+                                                        <div className="mb-4">
+                                                            <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Frage</label>
+                                                            <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
+                                                                <p className="text-sm sm:text-base text-gray-900">{item.text}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Available Options - only show if there are options */}
+                                                        {item.options && item.options.length > 0 && (
+                                                            <div className="mb-4">
+                                                                <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Verfügbare Optionen</label>
+                                                                <div className="space-y-2">
+                                                                    {item.options.map((option, optIndex) => {
+                                                                        const isSelected = option.value === item.selectedValue
+                                                                        return (
+                                                                            <div
+                                                                                key={optIndex}
+                                                                                className={`flex items-center p-3 rounded-lg border ${isSelected ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
+                                                                                    }`}
+                                                                            >
+                                                                                <div
+                                                                                    className={`w-2 h-2 rounded-full mr-3 flex-shrink-0 ${isSelected ? 'bg-green-500' : 'bg-gray-300'
+                                                                                        }`}
+                                                                                />
+                                                                                <span
+                                                                                    className={`text-xs sm:text-sm flex-1 ${isSelected ? 'text-green-900 font-medium' : 'text-gray-700'
+                                                                                        }`}
+                                                                                >
+                                                                                    {option.label}
+                                                                                </span>
+                                                                                {isSelected && <ChevronRight className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                                                                            </div>
+                                                                        )
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Selected Answer Highlight */}
+                                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
+                                                            <label className="block text-xs sm:text-sm font-medium text-green-800 mb-1">Ausgewählte Antwort</label>
+                                                            <p className="text-sm sm:text-base text-green-900 font-semibold">
+                                                                {item.options && item.options.length > 0
+                                                                    ? item.options.find(option => option.value === item.selectedValue)?.label || item.selectedValue || 'N/V'
+                                                                    : item.selectedValue || 'N/V'
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                    </React.Fragment>
+                                                );
+                                            })}
+                                    </div>
                                 </div>
-                            </div>
                             )}
                         </div>
                     </>
