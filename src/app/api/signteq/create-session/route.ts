@@ -114,13 +114,16 @@ export async function POST(request: NextRequest) {
       // This meta is echoed back by SignTeq in webhooks so we can map events to our session.
       meta: {
         qaSessionId: sessionId,
+        partnerId: session.partner.id,
+        request: "first_signature_request"
       },
       documents: [
         {
-          name: `Vertragsunterlage-${session.personalInfo?.lastName}-${session.personalInfo?.firstName}.pdf`,
+          name: `Vertragsunterlage-${session.personalInfo?.lastName}-${session.personalInfo?.firstName}-(kunde).pdf`,
           base64: cleanBase64,
           meta: {
             qaSessionId: sessionId,
+            partnerId: session.partner.id,
           },
           fields: [
             {
@@ -128,23 +131,12 @@ export async function POST(request: NextRequest) {
               type: process.env.NEXT_PUBLIC_ENV === "production" ? "custom-stamp" : "custom-stamp",
               width: 250,
               height: 100,
-              x: 500,
+              x: 400,
               y: 1050,
               required: true,
               read_only: false,
               recipient_id: "1"
-            },
-            {
-              page: 1,
-              type: process.env.NEXT_PUBLIC_ENV === "production" ? "custom-stamp" : "signature",
-              width: 250,
-              height: 100,
-              x: 500,
-              y: 1400,
-              required: true,
-              read_only: false,
-              recipient_id: "2"
-            },
+            }
           ]
         }
       ],
@@ -163,20 +155,9 @@ export async function POST(request: NextRequest) {
         qes: process.env.NEXT_PUBLIC_ENV === "production" ? true : true,
         meta: {
           qaSessionId: sessionId,
+          partnerId: session.partner.id,
         }
       },
-      {
-        id: "2",
-        type: "signatory",
-        email: process.env.NEXT_PUBLIC_ENV === "production" ? session.partner.email : process.env.DEV_TEST_RECIPIENT_EMAIL,
-        name: `${session.partner.firstName} ${session.partner.lastName}`,
-        do_not_notify: false,
-        language: "de",
-        qes: process.env.NEXT_PUBLIC_ENV === "production" ? true : false,
-        meta: {
-          qaSessionId: sessionId,
-        }
-      }
     ]
     };
 

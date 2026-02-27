@@ -560,8 +560,7 @@ ABSCHLUSS:
       product: {
         name: "Dream Big",
         shortName: "VVKN5",
-        description:
-          "Offensiv ausgerichtetes Portfolio mit sehr hohem Aktienanteil und höchsten langfristigen Wachstumschancen. Geeignet für Kund:innen mit gewinnorientiertem Risikoprofil und einem Anlagehorizont ab 7 Jahren.",
+        description: "Offensiv ausgerichtetes Portfolio mit sehr hohem Aktienanteil und höchsten langfristigen Wachstumschancen. Geeignet für Kund:innen mit gewinnorientiertem Risikoprofil und einem Anlagehorizont ab 7 Jahren.",
         fileName: "/products/vvkn5_product_guide.pdf",
         minimumYear: 7,
         maximumYear: 7,
@@ -634,7 +633,7 @@ ABSCHLUSS:
     {
       product: {
         name: "Liquidity+",
-        shortName: "VVKN0",
+        shortName: "VVKN6",
         description:
           "Ultra-konservatives Portfolio zur kurzfristigen Veranlagung liquider Mittel. Sehr geringe Schwankungen, tägliche Liquidität und Fokus auf Kapitalerhalt.",
         fileName: "/products/vvkn6_product_guide.pdf",

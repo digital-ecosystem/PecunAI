@@ -204,7 +204,7 @@ export default function AdvisorSessionDrawer({
                   Sitzungs-PDF herunterladen
                 </h3>
                 {selectedSession?.workflowState?.stepData?.signteq?.status === 'DOCUMENT_COMPLETED' ? (
-                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
                     <button className="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors">
                       <a
                         href={`/api/documents/${selectedSession.id}/signed/signature.pdf`}
@@ -216,7 +216,19 @@ export default function AdvisorSessionDrawer({
                         <span className="truncate">Unterschriebenes PDF herunterladen</span>
                       </a>
                     </button>
+                    <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                      <a
+                        href={`/api/documents/${selectedSession.id}/signed/legitimation.pdf`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center"
+                      >
+                        <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <span className="truncate">Legetimitation herunterladen</span>
+                      </a>
+                    </button>
                   </div>
+                  
                 ) : (
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
                     <p className="text-sm text-gray-500">Sie müssen das Dokument noch vollständig unterschreiben.</p>

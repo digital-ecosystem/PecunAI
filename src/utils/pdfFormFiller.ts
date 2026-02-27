@@ -983,8 +983,8 @@ const deckblattVertragspaketMapper = (userInfo: UserInfo, questions: Question[],
   UserLastName: userInfo.lastName || "",
   UserEmail: userInfo.email || "",
   UserFirstName: userInfo.firstName || "",
-  //BeraterName: `${partner.firstName} ${partner.lastName}` || "",
-  //Datum: getCurrentDate(),
+  BeraterName: `${partner.firstName} ${partner.lastName}` || "",
+  Datum: getCurrentDate(),
 });
 
 const serviceentgeltMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>, suggestedProduct: suggestedProduct, partner: Partner): FormFieldData => ({

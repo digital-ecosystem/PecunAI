@@ -14,7 +14,7 @@
 /coverage
 
 # next.js
-/.next/
+.next
 /out/
 
 # production
@@ -51,4 +51,5 @@ next-env.d.ts
 
 /private-documents
 
+Zugangsdaten-für-Finova.pdf
 .yarn.lock
