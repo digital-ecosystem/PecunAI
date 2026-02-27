@@ -1006,7 +1006,7 @@ const servicegebuehrMapper = (userInfo: UserInfo): FormFieldData => ({
 
 const vermittlungsgebuehrMapper = (userInfo: UserInfo, questions: Question[], answers: Record<string, string>): FormFieldData => ({
   DepotAgencyFee: Number(getDynamicAnswer(questions[20], answers)) > 0 ? '5' : '-',
-  DepotSetupFee: Number(getDynamicAnswer(questions[21], answers)) > 0 ? Math.round(Number(getDynamicAnswer(questions[21], answers)) * 2.5) : '-',
+  DepotSetupFee: Number(getDynamicAnswer(questions[21], answers)) > 0 ? Math.round(Number(getDynamicAnswer(questions[21], answers)) * 3) : '-',
   UserFirstName: userInfo.firstName || "",
   UserLastName: userInfo.lastName || "",
   UserCity: userInfo.city || "",
