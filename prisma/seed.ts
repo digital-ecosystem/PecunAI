@@ -1303,38 +1303,38 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
     });
   }
 
-  for (const admin of admins) {
-    const hashedPassword = await bcrypt.hash(admin.password, 10);
-    await prisma.admin.create({
-      data: {
-        email: admin.email,
-        firstName: admin.firstName,
-        lastName: admin.lastName,
-        birthday: admin.birthday,
-        agentNumber: admin.agentNumber,
-        password: hashedPassword,
-      },
-    });
-    console.log(`  ✅ Admin created: ${admin.email} (password: ${admin.password})`);
-  }
+  // for (const admin of admins) {
+  //   const hashedPassword = await bcrypt.hash(admin.password, 10);
+  //   await prisma.admin.create({
+  //     data: {
+  //       email: admin.email,
+  //       firstName: admin.firstName,
+  //       lastName: admin.lastName,
+  //       birthday: admin.birthday,
+  //       agentNumber: admin.agentNumber,
+  //       password: hashedPassword,
+  //     },
+  //   });
+  //   console.log(`  ✅ Admin created: ${admin.email} (password: ${admin.password})`);
+  // }
 
 
-  for (const partner of partners) {
-    const hashedPassword = await bcrypt.hash(partner.password, 10);
-    await prisma.partner.create({
-      data: {
-        email: partner.email,
-        phone: partner.phone,
-        firstName: partner.firstName,
-        lastName: partner.lastName,
-        birthday: partner.birthday,
-        agentNumber: partner.agentNumber,
-        password: hashedPassword,
-        referralCode: partner.referralCode,
-      },
-    });
-    console.log(`  ✅ Partner created: ${partner.email} (password: ${partner.password}, referralCode: ${partner.referralCode})`);
-  }
+  // for (const partner of partners) {
+  //   const hashedPassword = await bcrypt.hash(partner.password, 10);
+  //   await prisma.partner.create({
+  //     data: {
+  //       email: partner.email,
+  //       phone: partner.phone,
+  //       firstName: partner.firstName,
+  //       lastName: partner.lastName,
+  //       birthday: partner.birthday,
+  //       agentNumber: partner.agentNumber,
+  //       password: hashedPassword,
+  //       referralCode: partner.referralCode,
+  //     },
+  //   });
+  //   console.log(`  ✅ Partner created: ${partner.email} (password: ${partner.password}, referralCode: ${partner.referralCode})`);
+  // }
   console.log('✅ Seed complete!');
 }
 
