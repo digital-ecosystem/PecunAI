@@ -1,7 +1,184 @@
+'use client';
+
 import { Question } from '@/types';
 import { formatEuro } from '@/utils/helper';
 import React from 'react';
-// import { ChevronLeft, ChevronRight } from 'lucide-react';
+import * as Popover from '@radix-ui/react-popover';
+import { HelpCircle } from 'lucide-react';
+
+function FeeInfoTooltip({ content }: { content: React.ReactNode }) {
+  return (
+    <Popover.Root>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center justify-center w-5 h-5 rounded-full text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+          aria-label="Mehr Informationen"
+        >
+          <HelpCircle className="w-4 h-4" />
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          side="top"
+          sideOffset={6}
+          className="z-50 max-w-xs rounded-lg bg-gray-900 text-white text-sm p-3 shadow-xl data-[state=open]:data-[side=top]:animate-in data-[state=closed]:data-[side=top]:animate-out"
+        >
+          <div className="leading-relaxed">{content}</div>
+          <Popover.Arrow className="fill-gray-900" />
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
+const GEBUEHREN_DATA = [
+  {
+    label: 'Vermögensverwaltungsgebühr p.a. (Asset Management by froots GmbH)',
+    pct: 0.39,
+    description: 'Laufende Gebühr für die Verwaltung des Portfolios.',
+  },
+  {
+    label: 'Beratungshonorar p.a. (Servicegebühr 4money)',
+    pct: 1.11,
+    description:
+      'Laufende Gebühr für das zur Verfügung stellen von qualifizierten Vor-Ort Beratern. Weiters erhält der Kunde die Möglichkeit die Geeignetheit der vermittelten Veranlagungsstrategie sowie Portfoliostruktur, auf Initiative des Kunden, ein Mal pro Jahr überprüfen zu lassen.',
+  },
+  {
+    label: 'Produktkosten p.a.',
+    pct: 0.17,
+    description:
+      'Laufende Kosten der in der Portfolioverwaltung enthaltenen Wertpapiere (z.B. ETFs oder Investmentfonds). Annahme auf Grund vergangener Erfahrungswerte.',
+  },
+  {
+    label: 'Transaktionskosten p.a. (die Plattform)',
+    pct: 0.0,
+    description:
+      'Spesen der depotführenden Lagerstelle die Plattform für die Durchführung von Transaktionen. Annahme: Weniger als 50 Transaktionen pro Jahr auf Grund vergangener Erfahrungswerte.',
+  },
+  {
+    label: 'Depotgebühr (die Plattform) p.a.',
+    pct: 0.24,
+    description:
+      'Gebühr für Verwahrung/Depotführung bei der depotführenden Lagerstelle die Plattform.',
+  },
+  {
+    label: 'Vermögensverwaltungsabwicklungsgebühr (die Plattform) p.a.',
+    pct: 0.14,
+    min: 24,
+    max: 360,
+    description:
+      'Abwicklungsgebühr seitens der depotführenden Lagerstelle die Plattform. Mindestens €24,– max. €360,–.',
+  },
+  {
+    label: 'Verrechnungskontogebühr (die Plattform) p.a.',
+    fixed: 20.5,
+    description:
+      'Kontoführungsgebühr für das Verrechnungskonto bei der depotführenden Lagerstelle die Plattform.',
+  },
+] as const;
+
+function getRowEur(row: (typeof GEBUEHREN_DATA)[number], volume: number) {
+  const calcPct = (pct: number) => (volume * pct) / 100;
+  const applyMinMax = (val: number) => {
+    if ('min' in row && 'max' in row && row.min != null && row.max != null) {
+      return Math.max(row.min, Math.min(row.max, val));
+    }
+    return val;
+  };
+  if ('fixed' in row && row.fixed) return row.fixed;
+  if ('pct' in row) return applyMinMax(calcPct(row.pct));
+  return 0;
+}
+
+/** Average invested volume: einmalig + (jährliches Sparvolumen × Laufzeit / 2) */
+function getAvgVolume(oneTime: number, monthly: number, years: number): number {
+  const annualSavings = monthly * 12;
+  return oneTime + annualSavings * years;
+}
+
+function GebuehrenTable({
+  oneTimeInvestment,
+  monthlyInvestment,
+}: {
+  oneTimeInvestment: number;
+  monthlyInvestment: number;
+}) {
+  const vol1 = getAvgVolume(oneTimeInvestment, monthlyInvestment, 1);
+  const vol2 = getAvgVolume(oneTimeInvestment, monthlyInvestment, 2);
+  const vol10 = getAvgVolume(oneTimeInvestment, monthlyInvestment, 10);
+
+  const jahr1 = GEBUEHREN_DATA.reduce((sum, row) => sum + getRowEur(row, vol1), 0);
+  const jahr2 = GEBUEHREN_DATA.reduce((sum, row) => sum + getRowEur(row, vol2), 0);
+  const jahr10 = GEBUEHREN_DATA.reduce((sum, row) => sum + getRowEur(row, vol10), 0);
+
+  const yearlyFees = [jahr1, jahr2];
+  for (let y = 3; y <= 9; y++) {
+    const vol = getAvgVolume(oneTimeInvestment, monthlyInvestment, y);
+    yearlyFees.push(GEBUEHREN_DATA.reduce((sum, row) => sum + getRowEur(row, vol), 0));
+  }
+  yearlyFees.push(jahr10);
+  const durchschnitt = yearlyFees.reduce((a, b) => a + b, 0) / 10;
+
+  return (
+    <div className="overflow-x-auto border border-gray-200 rounded-lg">
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr className="bg-gray-50/80 border-b border-gray-200">
+            <th className="text-left py-2.5 px-3 font-medium text-gray-600 text-xs">Kosten und Gebühren (inkl. USt.)</th>
+            <th className="text-right py-2.5 px-3 font-medium text-gray-600 text-xs w-16">%</th>
+            <th className="text-right py-2.5 px-3 font-medium text-gray-600 text-xs w-20">€ Jahr 1</th>
+            <th className="text-right py-2.5 px-3 font-medium text-gray-600 text-xs w-20">€ Jahr 2</th>
+            <th className="text-right py-2.5 px-3 font-medium text-gray-600 text-xs w-20">€ Jahr 10</th>
+            <th className="text-right py-2.5 px-3 font-medium text-gray-600 text-xs w-20">Durchschnitt</th>
+            <th className="w-8 py-2.5" />
+          </tr>
+        </thead>
+        <tbody>
+          {GEBUEHREN_DATA.map((row, idx) => {
+            const pctVal = 'fixed' in row && row.fixed ? null : ('pct' in row ? row.pct : null);
+            const eur1 = getRowEur(row, vol1);
+            const eur2 = getRowEur(row, vol2);
+            const eur10 = getRowEur(row, vol10);
+            const rowYearlyFees = [eur1, eur2];
+            for (let y = 3; y <= 9; y++) {
+              const vol = getAvgVolume(oneTimeInvestment, monthlyInvestment, y);
+              rowYearlyFees.push(getRowEur(row, vol));
+            }
+            rowYearlyFees.push(eur10);
+            const avg = rowYearlyFees.reduce((a, b) => a + b, 0) / 10;
+            const content = <p>{row.description}</p>;
+            return (
+              <tr key={idx} className="border-b border-gray-100 last:border-b-0">
+                <td className="py-2.5 px-3 text-gray-700">{row.label}</td>
+                <td className="py-2.5 px-3 text-right text-gray-600 whitespace-nowrap">
+                  {typeof pctVal === 'number' ? `${pctVal.toFixed(2)}%` : '—'}
+                </td>
+                <td className="py-2.5 px-3 text-right text-gray-700">{formatEuro(eur1)}</td>
+                <td className="py-2.5 px-3 text-right text-gray-700">{formatEuro(eur2)}</td>
+                <td className="py-2.5 px-3 text-right text-gray-700">{formatEuro(eur10)}</td>
+                <td className="py-2.5 px-3 text-right text-gray-700">{formatEuro(avg)}</td>
+                <td className="py-2.5 px-2">
+                  <FeeInfoTooltip content={content} />
+                </td>
+              </tr>
+            );
+          })}
+          <tr className="bg-gray-50/80 border-t border-gray-200 font-medium">
+            <td className="py-2.5 px-3 text-gray-900">Kosten laufend gesamt</td>
+            <td className="py-2.5 px-3 text-right text-gray-900 whitespace-nowrap">—</td>
+            <td className="py-2.5 px-3 text-right text-gray-900">{formatEuro(jahr1)}</td>
+            <td className="py-2.5 px-3 text-right text-gray-900">{formatEuro(jahr2)}</td>
+            <td className="py-2.5 px-3 text-right text-gray-900">{formatEuro(jahr10)}</td>
+            <td className="py-2.5 px-3 text-right text-gray-900">{formatEuro(durchschnitt)}</td>
+            <td className="w-8" />
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 type Portfolio = {
   id?: string;
   from: number;
@@ -46,7 +223,6 @@ export default function InvestmentForm(
     answers: Record<string, string>;
   }
 ) {
-  console.log('suggestedProduct : ', suggestedProduct)
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 bg-gray-50 lg:min-h-screen min-h-0">
       {/* Header Section */}
@@ -237,9 +413,10 @@ export default function InvestmentForm(
           </div>
         </div>
 
-        {/* Vermittlungskosten */}
+        {/* Einmalige Kosten */}
         <div className="mb-6">
-          <p className="font-semibold mb-3">Vermittlungskosten</p>
+          <h2 className="text-lg font-bold text-gray-900 mb-3">Einmalige Kosten</h2>
+          <p className="text-sm font-semibold text-gray-700 mb-3">Vermittlungskosten bzw. Eröffnungsgebühr (4money)</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-gray-500 mb-1">Kosten Einmalerlag (5%)</p>
@@ -262,6 +439,21 @@ export default function InvestmentForm(
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Laufende Kosten - direkt unter Einmalige Kosten */}
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-2">Laufende Kosten</h2>
+          <GebuehrenTable
+            oneTimeInvestment={
+              !isNaN(parseFloat(answers[questions[20]?.id] ?? '')) && parseFloat(answers[questions[20]?.id] ?? '') > 0
+                ? parseFloat(answers[questions[20]?.id] ?? '')
+                : 10000
+            }
+            monthlyInvestment={
+              !isNaN(parseFloat(answers[questions[21]?.id] ?? '')) ? parseFloat(answers[questions[21]?.id] ?? '0') : 0
+            }
+          />
         </div>
 
         {/* Investmentprodukte Table */}

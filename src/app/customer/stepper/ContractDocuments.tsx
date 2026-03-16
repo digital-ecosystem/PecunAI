@@ -16,13 +16,11 @@ export default function ContractDocuments(
   }: {
     expandedSections: {
       vertraege: boolean;
-      gebuehren: boolean;
       weitereInfo: boolean;
     };
     sessionId: string;
     toggleSection: (section: keyof {
       vertraege: boolean;
-      gebuehren: boolean;
       weitereInfo: boolean;
     }) => void;
     agreements: {
@@ -214,101 +212,6 @@ export default function ContractDocuments(
                       4money Protokoll
                     </span>
                   </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <button
-              onClick={() => toggleSection('gebuehren')}
-              className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <span className="font-medium text-gray-900">Gebühren</span>
-              <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${expandedSections.gebuehren ? 'rotate-90' : ''}`} />
-            </button>
-            {expandedSections.gebuehren && (
-              <div className="p-4 bg-white mt-1 rounded-lg border border-gray-200">
-                <p className="text-sm sm:text-base text-gray-600 mb-4">
-                  Im Folgenden werden die relevanten Kosten und Gebühren dargestellt. Nähere Details befinden sich außerdem auf dem Konditionsblatt der Partnerbank und in den Produktunterlagen des Fonds.
-                </p>
-
-                <p>
-                  <strong>
-                    Beispielrechnung der Kosten bei einer Einmalzahlung von 10.000 €
-                  </strong>
-                </p>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-2 font-semibold text-gray-700"></th>
-                        <th className="text-left py-3 px-2 font-semibold text-gray-700" colSpan={2}>Vermögensverwaltung allgemein</th>
-                        <th className="text-left py-3 px-2 font-semibold text-gray-700" colSpan={2}>Liquidität</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      <tr>
-                        <td className="py-3 px-2 text-gray-700">Kosten und Gebühren (inkl. USt.)</td>
-                        <td className="py-3 px-2 text-gray-700">in %</td>
-                        <td className="py-3 px-2 text-gray-700">in €</td>
-                        <td className="py-3 px-2 text-gray-700">in %</td>
-                        <td className="py-3 px-2 text-gray-700">in €</td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 px-2 text-gray-700">Einstiegskosten (4money)</td>
-                        <td className="py-3 px-2 text-gray-700">3,00 %</td>
-                        <td className="py-3 px-2 text-gray-700">300 €</td>
-                        <td className="py-3 px-2 text-gray-700">0,00 %</td>
-                        <td className="py-3 px-2 text-gray-700">0 €</td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 px-2 text-gray-700">Vermögensverwaltungsgebühr p.a. (Asset Management by froots GmbH)</td>
-                        <td className="py-3 px-2 text-gray-700">0,39 %</td>
-                        <td className="py-3 px-2 text-gray-700">39 €</td>
-                        <td className="py-3 px-2 text-gray-700">0,24 %</td>
-                        <td className="py-3 px-2 text-gray-700">24 €</td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 px-2 text-gray-700">Depot- & Kontoführungsgebühren p.a. (die Plattform)</td>
-                        <td className="py-3 px-2 text-gray-700">0,37 %</td>
-                        <td className="py-3 px-2 text-gray-700">37 €</td>
-                        <td className="py-3 px-2 text-gray-700">0,37 %</td>
-                        <td className="py-3 px-2 text-gray-700">37 €</td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 px-2 text-gray-700">Beratungshonorar p.a. (Servicegebühr 4money)</td>
-                        <td className="py-3 px-2 text-gray-700">1,11 %</td>
-                        <td className="py-3 px-2 text-gray-700">111 €</td>
-                        <td className="py-3 px-2 text-gray-700">0,60 %</td>
-                        <td className="py-3 px-2 text-gray-700">60 €</td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 px-2 text-gray-700">Produktkosten p.a.</td>
-                        <td className="py-3 px-2 text-gray-700">0,17 %</td>
-                        <td className="py-3 px-2 text-gray-700">17 €</td>
-                        <td className="py-3 px-2 text-gray-700">0,12 %</td>
-                        <td className="py-3 px-2 text-gray-700">12 €</td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 px-2 text-gray-700">Transaktionskosten p.a.</td>
-                        <td className="py-3 px-2 text-gray-700">0,05 %</td>
-                        <td className="py-3 px-2 text-gray-700">5 €</td>
-                        <td className="py-3 px-2 text-gray-700">0,05 %</td>
-                        <td className="py-3 px-2 text-gray-700">5 €</td>
-                      </tr>
-                      <tr className="font-semibold bg-gray-50">
-                        <td className="py-3 px-2 text-gray-900">Summe Gesamtkostenquote (p.a.)</td>
-                        <td className="py-3 px-2 text-gray-900">
-                          5,09 %
-                        </td>
-                        <td className="py-3 px-2 text-gray-900">509 €</td>
-                        <td className="py-3 px-2 text-gray-900">1,38 %</td>
-                        <td className="py-3 px-2 text-gray-900">138 €</td>
-                      </tr>
-                    </tbody>
-                  </table>
                 </div>
               </div>
             )}

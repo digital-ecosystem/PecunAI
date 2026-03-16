@@ -395,7 +395,6 @@ export default function Stepper() {
 
   const [expandedSections, setExpandedSections] = useState({
     vertraege: false,
-    gebuehren: false,
     weitereInfo: false
   });
 
@@ -417,7 +416,6 @@ export default function Stepper() {
       const isCurrentlyOpen = prev[section];
       return {
         vertraege: false,
-        gebuehren: false,
         weitereInfo: false,
         [section]: !isCurrentlyOpen
       };
