@@ -72,7 +72,7 @@ const GEBUEHREN_DATA = [
   },
   {
     label: 'Verrechnungskontogebühr (die Plattform) p.a.',
-    fixed: 20.5,
+    fixed: 20.8,
     description:
       'Kontoführungsgebühr für das Verrechnungskonto bei der depotführenden Lagerstelle die Plattform.',
   },
