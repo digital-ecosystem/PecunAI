@@ -97,6 +97,12 @@ function getAvgVolume(oneTime: number, monthly: number, years: number): number {
   return oneTime + annualSavings * years;
 }
 
+function getEinmaligeKosten(oneTimeInvestment: number, monthlyInvestment: number): number {
+  const einmalerlag = oneTimeInvestment > 0 ? oneTimeInvestment * 0.05 : 0;
+  const sparplanFee = monthlyInvestment > 0 ? monthlyInvestment * 3 : 0;
+  return einmalerlag + sparplanFee;
+}
+
 function GebuehrenTable({
   oneTimeInvestment,
   monthlyInvestment,
@@ -107,6 +113,8 @@ function GebuehrenTable({
   const vol1 = getAvgVolume(oneTimeInvestment, monthlyInvestment, 1);
   const vol2 = getAvgVolume(oneTimeInvestment, monthlyInvestment, 2);
   const vol10 = getAvgVolume(oneTimeInvestment, monthlyInvestment, 10);
+
+  const einmalig = getEinmaligeKosten(oneTimeInvestment, monthlyInvestment);
 
   const jahr1 = GEBUEHREN_DATA.reduce((sum, row) => sum + getRowEur(row, vol1), 0);
   const jahr2 = GEBUEHREN_DATA.reduce((sum, row) => sum + getRowEur(row, vol2), 0);
@@ -119,6 +127,11 @@ function GebuehrenTable({
   }
   yearlyFees.push(jahr10);
   const durchschnitt = yearlyFees.reduce((a, b) => a + b, 0) / 10;
+
+  const kostenGesamtJahr1 = jahr1 + einmalig;
+  const kostenGesamtJahr2 = jahr2;
+  const kostenGesamtJahr10 = jahr10;
+  const kostenGesamtDurchschnitt = durchschnitt;
 
   return (
     <div className="overflow-x-auto border border-gray-200 rounded-lg">
@@ -171,6 +184,15 @@ function GebuehrenTable({
             <td className="py-2.5 px-3 text-right text-gray-900">{formatEuro(jahr2)}</td>
             <td className="py-2.5 px-3 text-right text-gray-900">{formatEuro(jahr10)}</td>
             <td className="py-2.5 px-3 text-right text-gray-900">{formatEuro(durchschnitt)}</td>
+            <td className="w-8" />
+          </tr>
+          <tr className="bg-gray-50/80 border-t border-gray-200 font-medium">
+            <td className="font-bold py-2.5 px-3 text-gray-900">Kosten gesamt</td>
+            <td className="py-2.5 px-3 text-right text-gray-900 whitespace-nowrap">—</td>
+            <td className="py-2.5 px-3 text-right text-gray-900">{formatEuro(kostenGesamtJahr1)}</td>
+            <td className="py-2.5 px-3 text-right text-gray-900">{formatEuro(kostenGesamtJahr2)}</td>
+            <td className="py-2.5 px-3 text-right text-gray-900">{formatEuro(kostenGesamtJahr10)}</td>
+            <td className="py-2.5 px-3 text-right text-gray-900">{formatEuro(kostenGesamtDurchschnitt)}</td>
             <td className="w-8" />
           </tr>
         </tbody>
