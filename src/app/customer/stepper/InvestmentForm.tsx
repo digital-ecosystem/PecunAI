@@ -4,7 +4,7 @@ import { Question } from '@/types';
 import { formatEuro } from '@/utils/helper';
 import React from 'react';
 import * as Popover from '@radix-ui/react-popover';
-import { HelpCircle } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 function FeeInfoTooltip({ content }: { content: React.ReactNode }) {
   return (
@@ -15,7 +15,7 @@ function FeeInfoTooltip({ content }: { content: React.ReactNode }) {
           className="inline-flex items-center justify-center w-5 h-5 rounded-full text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/30"
           aria-label="Mehr Informationen"
         >
-          <HelpCircle className="w-4 h-4" />
+          <Info className="w-4 h-4" />
         </button>
       </Popover.Trigger>
       <Popover.Portal>
@@ -187,7 +187,7 @@ function GebuehrenTable({
             <td className="w-8" />
           </tr>
           <tr className="bg-gray-50/80 border-t border-gray-200 font-medium">
-            <td className="font-bold py-2.5 px-3 text-gray-900">Kosten gesamt</td>
+            <td className="font-bold text-lg py-2.5 px-3 text-gray-900">Kosten gesamt (einmalig + laufend)</td>
             <td className="py-2.5 px-3 text-right text-gray-900 whitespace-nowrap">—</td>
             <td className="py-2.5 px-3 text-right text-gray-900">{formatEuro(kostenGesamtJahr1)}</td>
             <td className="py-2.5 px-3 text-right text-gray-900">{formatEuro(kostenGesamtJahr2)}</td>
