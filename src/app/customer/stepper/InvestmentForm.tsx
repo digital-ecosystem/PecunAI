@@ -131,7 +131,7 @@ function GebuehrenTable({
   const kostenGesamtJahr1 = jahr1 + einmalig;
   const kostenGesamtJahr2 = jahr2;
   const kostenGesamtJahr10 = jahr10;
-  const kostenGesamtDurchschnitt = durchschnitt;
+  const kostenGesamtDurchschnitt = durchschnitt + (einmalig / 10);
 
   return (
     <div className="overflow-x-auto border border-gray-200 rounded-lg">
