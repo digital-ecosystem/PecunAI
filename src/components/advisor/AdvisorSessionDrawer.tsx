@@ -9,6 +9,7 @@ import {
   FileText,
   Loader2,
   MessageSquare,
+  RefreshCw,
   User as UserIcon,
   X,
 } from 'lucide-react';
@@ -26,6 +27,7 @@ type Props = {
   isStatusUpdating: boolean;
   isChatOpen: boolean;
   isChatLoading: boolean;
+  isResendingAdvisorLink?: boolean;
   selectedSession: Session | null;
   chatMessages: ChatMessage[];
   questionAnswer: DashboardQuestions[];
@@ -33,6 +35,7 @@ type Props = {
   onCloseChat: () => void;
   onOpenChat: () => void;
   onStatusChange: (sessionId: string, status: SessionStatus) => void;
+  onResendAdvisorLink?: (sessionId: string) => void;
   formatDate: (dateString: string) => string;
   getStatusColor: (status: string) => string;
   getStatusLabel: (status: string) => string;
@@ -43,6 +46,7 @@ export default function AdvisorSessionDrawer({
   isStatusUpdating,
   isChatOpen,
   isChatLoading,
+  isResendingAdvisorLink,
   selectedSession,
   chatMessages,
   questionAnswer,
@@ -50,6 +54,7 @@ export default function AdvisorSessionDrawer({
   onCloseChat,
   onOpenChat,
   onStatusChange,
+  onResendAdvisorLink,
   formatDate,
   getStatusColor,
   getStatusLabel,
@@ -230,8 +235,22 @@ export default function AdvisorSessionDrawer({
                   </div>
                   
                 ) : (
-                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                  <div className="flex flex-col gap-3">
                     <p className="text-sm text-gray-500">Sie müssen das Dokument noch vollständig unterschreiben.</p>
+                    {selectedSession?.workflowState?.stepData?.signteq?.status === 'FIRST_DOCUMENT_COMPLETED' && onResendAdvisorLink && (
+                      <button
+                        onClick={() => onResendAdvisorLink(selectedSession.id)}
+                        disabled={isResendingAdvisorLink}
+                        className="flex items-center justify-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+                      >
+                        {isResendingAdvisorLink ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
+                        <span>Signaturlink erneut senden</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

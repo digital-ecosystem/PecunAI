@@ -45,6 +45,7 @@ export default function AdvisorDashboardLayout({ children }: { children: React.R
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
+  const [isResendingAdvisorLink, setIsResendingAdvisorLink] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -177,6 +178,27 @@ export default function AdvisorDashboardLayout({ children }: { children: React.R
       console.error('Error fetching chat messages:', error);
     } finally {
       setIsChatLoading(false);
+    }
+  };
+
+  const handleResendAdvisorLink = async (sessionId: string) => {
+    setIsResendingAdvisorLink(true);
+    try {
+      const res = await fetch('/api/signteq/resend-advisor-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ sessionId }),
+      });
+      const data = await res.json();
+      if (!data?.success) {
+        alert(data?.error || 'Fehler beim Senden des Signaturlinks');
+      }
+    } catch (error) {
+      console.error('Error resending advisor link:', error);
+      alert('Fehler beim Senden des Signaturlinks');
+    } finally {
+      setIsResendingAdvisorLink(false);
     }
   };
 
@@ -316,6 +338,8 @@ export default function AdvisorDashboardLayout({ children }: { children: React.R
           onCloseChat={closeChatView}
           onOpenChat={openChatView}
           onStatusChange={handleStatusChange}
+          onResendAdvisorLink={handleResendAdvisorLink}
+          isResendingAdvisorLink={isResendingAdvisorLink}
           formatDate={formatDate}
           getStatusColor={getStatusColor}
           getStatusLabel={getStatusLabel}
