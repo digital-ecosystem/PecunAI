@@ -9,23 +9,23 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const sessionId = searchParams.get('sessionId');
-    const cookie = (await cookies()).get('session')?.value;
+    const cookie = (await cookies()).get('admin_session')?.value;
     const session = await decrypt(cookie);
 
     if (!session?.userId || session?.role !== 'admin') {
-        return NextResponse.json({ message: 'Not authenticated', success: false }, { status: 401 });
+        return NextResponse.json({ message: 'Nicht authentifiziert', success: false }, { status: 401 });
     }
 
     if (!sessionId) {
       return NextResponse.json(
-        { success: false, error: 'Missing sessionId' },
+        { success: false, error: 'Fehlende Sitzungs-ID' },
         { status: 400 }
       );
     }
 
     // Fetch all questions with their options and selected answer for this session
     const questions = await prisma.question.findMany({
-      orderBy: { id: 'asc' },
+      orderBy: { questionOrder: 'asc' },
       include: {
         options: {
           orderBy: { id: 'asc' },
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error('[GET /api/questions]', error);
     return NextResponse.json(
-      { success: false, error: 'Server error' },
+      { success: false, error: 'Serverfehler' },
       { status: 500 }
     );
   }

@@ -15,13 +15,13 @@ export default function SignInPage() {
     setError('');
 
     if (!email || !password) {
-      setError('Email and password are required');
+      setError('E-Mail und Passwort sind erforderlich');
       return;
     }
 
     const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailPattern.test(email)) {
-      setError('Please enter a valid email address');
+      setError('Bitte geben Sie eine gültige E-Mail-Adresse ein');
       return;
     }
 
@@ -34,7 +34,7 @@ export default function SignInPage() {
     if (data.success) {
       router.push('/admin/dashboard');
     } else {
-      setError(data.message || 'Invalid email or password');
+      setError(data.message || 'Ungültige E-Mail oder Passwort');
     }
   };
 
@@ -46,8 +46,8 @@ export default function SignInPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4">
             <Lock className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Sign In</h1>
-          <p className="text-gray-600 mt-2">Enter your details to receive a verification code</p>
+          <h1 className="text-2xl font-bold text-gray-900">Anmelden</h1>
+          <p className="text-gray-600 mt-2">Geben Sie Ihre Daten ein, um sich anzumelden</p>
         </div>
 
         {/* Login Form */}
@@ -55,7 +55,7 @@ export default function SignInPage() {
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                E-Mail-Adresse
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -65,7 +65,7 @@ export default function SignInPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  placeholder="Geben Sie Ihre E-Mail ein"
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
@@ -73,7 +73,7 @@ export default function SignInPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+                Passwort
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -83,7 +83,7 @@ export default function SignInPage() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Geben Sie Ihr Passwort ein"
                   className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 />
                 <button
@@ -94,6 +94,11 @@ export default function SignInPage() {
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
+              </div>
+              <div className="mt-2 text-right">
+                <a href="/admin/forgot-password" className="text-sm text-blue-600 hover:underline">
+                  Passwort vergessen?
+                </a>
               </div>
             </div>
 
@@ -107,15 +112,11 @@ export default function SignInPage() {
               onClick={handleLogin}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center cursor-pointer"
             >
-              Login
+              Anmelden
               <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
-          </div>
-
-          <div className="mt-4 text-xs text-gray-500 text-center">
-            Demo credentials: {process.env.NEXT_PUBLIC_ADMIN_EMAIL} / {process.env.NEXT_PUBLIC_ADMIN_PASSWORD}
           </div>
         </div>
       </div>

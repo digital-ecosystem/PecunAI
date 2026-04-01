@@ -1,9 +1,17 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Search, CheckCircle, Clock, FileText, ChevronRight, X, Loader2, LogOut, Hourglass, Ban } from 'lucide-react';
+import { Search, CheckCircle, Clock, FileText, ChevronRight, X, Loader2, Hourglass, Ban, MessageSquare, ArrowLeft, Bot, User } from 'lucide-react';
 import { DashboardQuestions, Session, SessionStatus } from '@/types';
 import { useRouter } from 'next/navigation';
+import AdminHeader from '@/components/AdminHeader';
+
+interface ChatMessage {
+    id: string;
+    role: 'customer' | 'assistant';
+    content: string;
+    createdAt: string;
+}
 
 const Dashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -14,6 +22,9 @@ const Dashboard = () => {
     const [questionAnswer, setQuestionAnswer] = useState<DashboardQuestions[]>([]);
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+    const [isChatLoading, setIsChatLoading] = useState(false);
 
 
     useEffect(() => {
@@ -34,7 +45,7 @@ const Dashboard = () => {
             }
         }
         fetchSession();
-    }, [])
+    }, [router])
 
     useEffect(() => {
         if (selectedSession?.id) {
@@ -52,20 +63,20 @@ const Dashboard = () => {
             }
             fetchQuestionAnswer();
         }
-    }, [selectedSession])
+    }, [selectedSession, router])
 
 
-    const handleLogout = async () => {
-        try {
-            const response = await fetch('/api/auth/logout', {
-                method: 'POST'
-            });
-            await response.json();
-            router.push('/admin/signin')
-        } catch (error) {
-            console.log('error : ', error)
-        }
-    }
+    // const handleLogout = async () => {
+    //     try {
+    //         const response = await fetch('/api/auth/logout', {
+    //             method: 'POST'
+    //         });
+    //         await response.json();
+    //         router.push('/admin/signin')
+    //     } catch (error) {
+    //         console.log('error : ', error)
+    //     }
+    // }
 
     const filteredSessions = sessions.filter(session => {
         const matchesSearch = session?.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -98,6 +109,7 @@ const Dashboard = () => {
     };
 
     const handleSessionClick = (session: Session) => {
+        console.log("🚀 ~ handleSessionClick ~ session:", session)
         setSelectedSession(session);
         setIsDrawerOpen(true);
     };
@@ -105,6 +117,33 @@ const Dashboard = () => {
     const closeDrawer = () => {
         setIsDrawerOpen(false);
         setSelectedSession(null);
+        setIsChatOpen(false);
+        setChatMessages([]);
+    };
+
+    const openChatView = async () => {
+        if (!selectedSession?.id) return;
+        setIsChatLoading(true);
+        try {
+            const response = await fetch(`/api/admin/dashboard/chat-messages?sessionId=${selectedSession.id}`, {
+                method: 'GET',
+                credentials: 'include',
+            });
+            const data = await response.json();
+            if (data?.success) {
+                setChatMessages(data.messages || []);
+                setIsChatOpen(true);
+            }
+        } catch (error) {
+            console.error('Error fetching chat messages:', error);
+        } finally {
+            setIsChatLoading(false);
+        }
+    };
+
+    const closeChatView = () => {
+        setIsChatOpen(false);
+        setChatMessages([]);
     };
 
     const handleStatusChange = async (sessionId: string, status: SessionStatus) => {
@@ -134,107 +173,85 @@ const Dashboard = () => {
     }
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
+        return new Date(dateString).toLocaleDateString('de-DE', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
         });
     };
 
+    const getRecipientName = (index: number): string | null => {
+        const recipients = selectedSession?.workflowState?.stepData?.signteq?.recipients;
+        if (!Array.isArray(recipients)) return null;
+        const recipient = recipients[index] as { name?: unknown } | undefined;
+        const name = recipient?.name;
+        return typeof name === 'string' && name.trim().length > 0 ? name : null;
+    };
+
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-4">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-                            <p className="text-gray-600">Welcome back!</p>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            {/* <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                                Start Now
-                            </button> */}
-                            <div className="flex items-center space-x-2">
-                                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                                    <span className="text-white text-sm font-medium">{process.env.NEXT_PUBLIC_ADMIN_EMAIL ? process.env.NEXT_PUBLIC_ADMIN_EMAIL[0] : 'A'}</span>
-                                </div>
-                                <span className="text-sm text-gray-700">{process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@example.com'}</span>
-                            </div>
-                            <button
-                                onClick={handleLogout}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 hover:text-red-700 transition-colors text-sm font-medium shadow-sm"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                Logout
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <AdminHeader />
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
                 {/* Stats Cards */}
-
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-                    <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
                         <div className="flex items-center">
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                                <FileText className="w-5 h-5 text-blue-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+                                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Total Sessions</p>
-                                <p className="text-2xl font-bold text-gray-900">{totalSessions}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Gesamtsitzungen</p>
+                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{totalSessions}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
                         <div className="flex items-center">
-                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4">
-                                <CheckCircle className="w-5 h-5 text-green-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+                                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Approved</p>
-                                <p className="text-2xl font-bold text-gray-900">{approvedSessions}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Genehmigt</p>
+                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{approvedSessions}</p>
                             </div>
                         </div>
                     </div>
 
 
 
-                    <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
                         <div className="flex items-center">
-                            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-4">
-                                <Ban className="w-5 h-5 text-red-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+                                <Ban className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Rejected</p>
-                                <p className="text-2xl font-bold text-gray-900">{rejectedSessions}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Abgelehnt</p>
+                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{rejectedSessions}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
                         <div className="flex items-center">
-                            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
-                                <Hourglass className="w-5 h-5 text-orange-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+                                <Hourglass className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Pending</p>
-                                <p className="text-2xl font-bold text-gray-900">{pendingSessions}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Ausstehend</p>
+                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{pendingSessions}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
                         <div className="flex items-center">
-                            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-4">
-                                <Clock className="w-5 h-5 text-yellow-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
+                                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Draft</p>
-                                <p className="text-2xl font-bold text-gray-900">{draftSessions}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm text-gray-600 truncate">Entwurf</p>
+                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{draftSessions}</p>
                             </div>
                         </div>
                     </div>
@@ -244,32 +261,32 @@ const Dashboard = () => {
                 {/* Sessions Table */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                     {/* Search and Filter */}
-                    <div className="p-6 border-b border-gray-200">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div className="relative">
+                    <div className="p-4 sm:p-6 border-b border-gray-200">
+                        <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:space-x-4">
+                            <div className="relative flex-1 max-w-md">
                                 <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                 <input
                                     type="text"
-                                    placeholder="Search sessions..."
+                                    placeholder="Sitzungen suchen..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
                                 />
                             </div>
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
                                 >
-                                    <option value="all">All Status</option>
-                                    <option value="DRAFT">{SessionStatus.DRAFT}</option>
-                                    <option value="PENDING">{SessionStatus.PENDING}</option>
-                                    <option value="REJECTED">{SessionStatus.REJECTED}</option>
-                                    <option value="APPROVED">{SessionStatus.APPROVED}</option>
+                                    <option value="all">Alle Status</option>
+                                    <option value="DRAFT">Entwurf</option>
+                                    <option value="PENDING">Ausstehend</option>
+                                    <option value="REJECTED">Abgelehnt</option>
+                                    <option value="APPROVED">Genehmigt</option>
                                 </select>
-                                <span className="text-sm text-gray-500 ml-4">
-                                    {filteredSessions.length} of {totalSessions} sessions
+                                <span className="text-xs sm:text-sm text-gray-500 whitespace-nowrap">
+                                    {filteredSessions.length} von {totalSessions} Sitzungen
                                 </span>
                             </div>
                         </div>
@@ -280,37 +297,56 @@ const Dashboard = () => {
                         <table className="w-full">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        SESSION
+                                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        SITZUNG
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         STATUS
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        CREATED
+                                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                                        ERSTELLT
                                     </th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {filteredSessions.map((session) => (
                                     <tr key={session.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleSessionClick(session)}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
-                                                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                                                    <FileText className="w-4 h-4 text-blue-600" />
+                                                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
+                                                    <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
                                                 </div>
-                                                <div>
-                                                    <div className="text-sm font-medium text-gray-900">{session?.personalInfo?.firstName} {session?.personalInfo?.lastName}</div>
-                                                    <div className="text-sm text-gray-500">{session.user.email}</div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="text-sm font-medium text-gray-900 truncate">
+                                                        {session?.personalInfo?.firstName} {session?.personalInfo?.lastName}
+                                                    </div>
+                                                    <div className="text-xs sm:text-sm text-gray-500 truncate">
+                                                        {session.user.email}
+                                                    </div>
+                                                    <div className="text-xs text-gray-400 sm:hidden mt-1">
+                                                        {formatDate(session.createdAt)}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(session.status)}`}>
-                                                {session.status}
+                                                {/* {session.status} */}
+                                                {session.status === SessionStatus.DRAFT && (
+                                                    <span className="text-xs text-gray-500">Entwurf</span>
+                                                )}
+                                                {session.status === SessionStatus.PENDING && (
+                                                    <span className="text-xs text-gray-500">Anfrage</span>
+                                                )}
+                                                {session.status === SessionStatus.REJECTED && (
+                                                    <span className="text-xs text-gray-500">Abgelehnt</span>
+                                                )}
+                                                {session.status === SessionStatus.APPROVED && (
+                                                    <span className="text-xs text-gray-500">Genehmigt</span>
+                                                )}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
                                             {formatDate(session.createdAt)}
                                         </td>
                                     </tr>
@@ -320,8 +356,8 @@ const Dashboard = () => {
                     </div>
 
                     {filteredSessions.length === 0 && (
-                        <div className="text-center py-12">
-                            <p className="text-gray-500">No sessions found matching your criteria.</p>
+                        <div className="text-center py-8 sm:py-12 px-4">
+                            <p className="text-sm sm:text-base text-gray-500">Keine Sitzungen gefunden, die Ihren Kriterien entsprechen.</p>
                         </div>
                     )}
                 </div>
@@ -330,8 +366,8 @@ const Dashboard = () => {
             {/* Session Details Drawer */}
             {isDrawerOpen && selectedSession && (
                 isLoading ? (
-                    <div className="flex justify-center items-center h-40">
-                        <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                    <div className="fixed inset-0 z-50 flex justify-center items-center bg-black/20 backdrop-blur-sm">
+                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                     </div>
                 ) : (
                     <>
@@ -341,179 +377,266 @@ const Dashboard = () => {
                             onClick={closeDrawer}
                         />
                         {/* Drawer */}
-                        <div className="fixed inset-y-0 right-0 w-full max-w-4xl bg-white shadow-xl z-50 transform transition-transform overflow-y-auto">
+                        <div className="fixed inset-y-0 right-0 w-full sm:max-w-md md:max-w-2xl lg:max-w-4xl bg-white shadow-xl z-50 transform transition-transform overflow-y-auto">
                             {/* Drawer Header */}
-                            <div className="bg-white border-b border-gray-200 px-6 py-4">
+                            <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
                                 <div className="flex items-center justify-between">
-                                    <div>
-                                        <h2 className="text-xl font-bold text-gray-900">Session Details</h2>
-                                        <p className="text-sm text-gray-600">Session ID: #{selectedSession?.personalInfo?.qaSessionId}</p>
+                                    <div className="min-w-0 flex-1 mr-4">
+                                        <h2 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
+                                            {isChatOpen ? 'KI Unterhaltung' : 'Sitzungsdetails'}
+                                        </h2>
+                                        <p className="text-xs sm:text-sm text-gray-600 truncate">Sitzungs-ID: #{selectedSession?.personalInfo?.qaSessionId}</p>
                                     </div>
                                     <button
-                                        onClick={closeDrawer}
-                                        className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors"
+                                        onClick={isChatOpen ? closeChatView : closeDrawer}
+                                        className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors flex-shrink-0"
                                     >
-                                        <X className="w-4 h-4 text-gray-600" />
+                                        {isChatOpen ? <ArrowLeft className="w-4 h-4 text-gray-600" /> : <X className="w-4 h-4 text-gray-600" />}
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Drawer Content */}
-                            <div className="px-6 py-6 space-y-6">
-                                {/* User Information */}
-                                <div className="bg-gray-50 rounded-lg p-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-3">User Information</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-600">Name</label>
-                                            <p className="text-sm text-gray-900">{selectedSession?.personalInfo?.firstName && selectedSession?.personalInfo?.lastName ? selectedSession?.personalInfo?.firstName + ' ' + selectedSession?.personalInfo?.lastName : ''}</p>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-600">Email</label>
-                                            <p className="text-sm text-gray-900">{selectedSession.user.email || ''}</p>
-                                        </div>
-                                        {/* <div>
-                                            <label className="block text-sm font-medium text-gray-600">Duration</label>
-                                            <p className="text-sm text-gray-900">{formatDate(selectedSession.expiresAt)}</p>
-                                        </div> */}
+                            {/* Chat View */}
+                            {isChatOpen ? (
+                                <div className="flex flex-col h-[calc(100vh-80px)]">
+                                    <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
+                                        {chatMessages.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                                                <MessageSquare className="w-12 h-12 mb-4 text-gray-300" />
+                                                <p className="text-sm">Keine Nachrichten in dieser Unterhaltung</p>
+                                            </div>
+                                        ) : (
+                                            chatMessages.map((message) => (
+                                                <div
+                                                    key={message.id}
+                                                    className={`flex ${message.role === 'customer' ? 'justify-end' : 'justify-start'}`}
+                                                >
+                                                    <div className={`flex items-start gap-2 max-w-[85%] ${message.role === 'customer' ? 'flex-row-reverse' : ''}`}>
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === 'customer'
+                                                                ? 'bg-blue-100'
+                                                                : 'bg-purple-100'
+                                                            }`}>
+                                                            {message.role === 'customer'
+                                                                ? <User className="w-4 h-4 text-blue-600" />
+                                                                : <Bot className="w-4 h-4 text-purple-600" />
+                                                            }
+                                                        </div>
+                                                        <div className={`rounded-2xl px-4 py-2 ${message.role === 'customer'
+                                                                ? 'bg-blue-600 text-white'
+                                                                : 'bg-gray-100 text-gray-900'
+                                                            }`}>
+                                                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                                            <p className={`text-xs mt-1 ${message.role === 'customer' ? 'text-blue-200' : 'text-gray-400'
+                                                                }`}>
+                                                                {new Date(message.createdAt).toLocaleTimeString('de-DE', {
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit'
+                                                                })}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
                                 </div>
-
-                                {/* Session Status */}
-                                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Session Status</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-600">Current Status</label>
-                                            <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(selectedSession.status)}`}>
-                                                {selectedSession.status}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-600">Created Date</label>
-                                            <p className="text-sm text-gray-900">{formatDate(selectedSession.createdAt)}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Download the session PDF */}
-                                {
-                                    selectedSession.status != SessionStatus.DRAFT && (
-                                        <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-3">Download Session PDF</h3>
-                                            <div className="flex justify-start items-center">
-                                                <button
-                                                    // onClick={() => router.push(`/customer/phase/${selectedSession.id}/pdf`)}
-                                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center me-2"
-                                                >
-                                                    <a href={`/documents/session-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                                                        <FileText className="w-4 h-4 mr-2" />
-                                                        Download PDF
-                                                    </a>
-                                                </button>
-                                                <button
-                                                    // onClick={() => router.push(`/customer/phase/${selectedSession.id}/pdf`)}
-                                                    className="ms-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                                                >
-                                                    <a href={`/documents/session-signTeq-${selectedSession.id}.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                                                        <FileText className="w-4 h-4 mr-2" />
-                                                        Download SignD PDF
-                                                    </a>
-                                                </button>
+                            ) : (
+                                /* Drawer Content */
+                                <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+                                    {/* User Information */}
+                                    <div className="bg-gray-50 rounded-lg p-4">
+                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Benutzerinformationen</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                            <div>
+                                                <label className="block text-xs sm:text-sm font-medium text-gray-600">Name</label>
+                                                <p className="text-sm text-gray-900">{selectedSession?.personalInfo?.firstName && selectedSession?.personalInfo?.lastName ? selectedSession?.personalInfo?.firstName + ' ' + selectedSession?.personalInfo?.lastName : ''}</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs sm:text-sm font-medium text-gray-600">E-Mail</label>
+                                                <p className="text-sm text-gray-900 break-all">{selectedSession.user.email || ''}</p>
                                             </div>
                                         </div>
-                                    )
-                                }
+                                    </div>
 
-                                {/* Action Buttons */}
-                                {selectedSession.status === SessionStatus.PENDING &&
-                                    <div className="bg-gray-50 rounded-lg p-4">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-3">Actions</h3>
-                                        <div className="flex space-x-3">
-                                            {selectedSession.status === SessionStatus.PENDING && (
-                                                <>
-                                                    <button
-                                                        onClick={() => {
-                                                            handleStatusChange(selectedSession.id, SessionStatus.APPROVED);
-                                                            // closeDrawer();
-                                                        }}
-                                                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
-                                                    >
-                                                        <CheckCircle className="w-4 h-4 mr-2" />
-                                                        Approve Session
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            handleStatusChange(selectedSession.id, SessionStatus.REJECTED);
-                                                            // closeDrawer();
-                                                        }}
-                                                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center"
-                                                    >
-                                                        <X className="w-4 h-4 mr-2" />
-                                                        Reject Session
-                                                    </button>
-                                                </>
-                                            )}
+                                    {/* Session Status */}
+                                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Sitzungsstatus</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                            <div>
+                                                <label className="block text-xs sm:text-sm font-medium text-gray-600">Aktueller Status</label>
+                                                <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(selectedSession.status)}`}>
+                                                    {/* {selectedSession.status} */}
+                                                    {selectedSession.status === SessionStatus.DRAFT && (
+                                                        <span className="text-xs text-gray-500">Entwurf</span>
+                                                    )}
+                                                    {selectedSession.status === SessionStatus.PENDING && (
+                                                        <span className="text-xs text-gray-500">Anfrage</span>
+                                                    )}
+                                                    {selectedSession.status === SessionStatus.REJECTED && (
+                                                        <span className="text-xs text-gray-500">Abgelehnt</span>
+                                                    )}
+                                                    {selectedSession.status === SessionStatus.APPROVED && (
+                                                        <span className="text-xs text-gray-500">Genehmigt</span>
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs sm:text-sm font-medium text-gray-600">Erstellungsdatum</label>
+                                                <p className="text-sm text-gray-900">{formatDate(selectedSession.createdAt)}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                }
 
-                                {/* Question and Options */}
-                                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Question & Response</h3>
+                                    {/* KI Unterhaltung Button */}
+                                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                                        <button
+                                            onClick={openChatView}
+                                            disabled={isChatLoading}
+                                            className="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                        >
+                                            {isChatLoading ? (
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                            ) : (
+                                                <MessageSquare className="w-5 h-5" />
+                                            )}
+                                            <span className="font-medium">KI Unterhaltung</span>
+                                        </button>
+                                    </div>
 
-                                    {questionAnswer?.length > 0 &&
-                                        questionAnswer.map((item, index) => (
-                                            <React.Fragment key={index}>
-                                                {/* Question */}
-                                                <div className="mb-4">
-                                                    <label className="block text-sm font-medium text-gray-600 mb-2">Question</label>
-                                                    <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
-                                                        <p className="text-gray-900">{item.text}</p>
+                                    {/* Download the session PDF */}
+                                    {
+                                        selectedSession.status != SessionStatus.DRAFT && (
+                                            <div className="bg-white border border-gray-200 rounded-lg p-4">
+                                                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Sitzungs-PDF herunterladen</h3>
+                                                {selectedSession?.workflowState?.stepData?.signteq?.status === "DOCUMENT_COMPLETED" ? (
+                                                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                                                        <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                                            <a href={`/api/documents/${selectedSession.id}/signed/signature.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
+                                                                <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                                <span className="truncate">Unterschriebenes PDF herunterladen</span>
+                                                            </a>
+                                                        </button>
+                                                        <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                                            <a
+                                                                href={`/api/documents/${selectedSession.id}/signed/legitimation.pdf`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center justify-center"
+                                                            >
+                                                                <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                                <span className="truncate">Legetimitation herunterladen</span>
+                                                            </a>
+                                                        </button>
+                                                    </div>) : (
+                                                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                                                        <p className="text-sm text-gray-500">
+                                                            {(() => {
+                                                                const recipient1Name = getRecipientName(1);
+                                                                return recipient1Name
+                                                                    ? `Berater ${recipient1Name} muss noch unterschreiben`
+                                                                    : 'Berater muss noch unterschreiben';
+                                                            })()}
+                                                        </p>
                                                     </div>
-                                                </div>
+                                                )}
+                                            </div>
+                                        )
+                                    }
 
-                                                {/* Available Options */}
-                                                <div className="mb-4">
-                                                    <label className="block text-sm font-medium text-gray-600 mb-2">Available Options</label>
-                                                    <div className="space-y-2">
-                                                        {item.options.map((option, optIndex) => {
-                                                            const isSelected = option.value === item.selectedValue
-                                                            return (
-                                                                <div
-                                                                    key={optIndex}
-                                                                    className={`flex items-center p-3 rounded-lg border ${isSelected ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
-                                                                        }`}
-                                                                >
-                                                                    <div
-                                                                        className={`w-2 h-2 rounded-full mr-3 ${isSelected ? 'bg-green-500' : 'bg-gray-300'
-                                                                            }`}
-                                                                    />
-                                                                    <span
-                                                                        className={`text-sm ${isSelected ? 'text-green-900 font-medium' : 'text-gray-700'
-                                                                            }`}
-                                                                    >
-                                                                        {option.label}
-                                                                    </span>
-                                                                    {isSelected && <ChevronRight className="w-4 h-4 text-green-600 ml-auto" />}
+                                    {/* Action Buttons */}
+                                    {selectedSession.status === SessionStatus.PENDING &&
+                                        <div className="bg-gray-50 rounded-lg p-4">
+                                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Aktionen</h3>
+                                            <div className="flex flex-col sm:flex-row gap-3">
+                                                {selectedSession.status === SessionStatus.PENDING && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => {
+                                                                handleStatusChange(selectedSession.id, SessionStatus.APPROVED);
+                                                            }}
+                                                            className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+                                                        >
+                                                            <CheckCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                            <span>Sitzung genehmigen</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                handleStatusChange(selectedSession.id, SessionStatus.REJECTED);
+                                                            }}
+                                                            className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
+                                                        >
+                                                            <X className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                            <span>Sitzung ablehnen</span>
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    }
+
+                                    {/* Question and Options */}
+                                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Frage & Antwort</h3>
+
+                                        {questionAnswer?.length > 0 &&
+                                            questionAnswer.map((item, index) => {
+                                                return (
+                                                    <React.Fragment key={index}>
+                                                        {/* Question */}
+                                                        <div className="mb-4">
+                                                            <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Frage</label>
+                                                            <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
+                                                                <p className="text-sm sm:text-base text-gray-900">{item.text}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Available Options - only show if there are options */}
+                                                        {item.options && item.options.length > 0 && (
+                                                            <div className="mb-4">
+                                                                <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Verfügbare Optionen</label>
+                                                                <div className="space-y-2">
+                                                                    {item.options.map((option, optIndex) => {
+                                                                        const isSelected = option.value === item.selectedValue
+                                                                        return (
+                                                                            <div
+                                                                                key={optIndex}
+                                                                                className={`flex items-center p-3 rounded-lg border ${isSelected ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
+                                                                                    }`}
+                                                                            >
+                                                                                <div
+                                                                                    className={`w-2 h-2 rounded-full mr-3 flex-shrink-0 ${isSelected ? 'bg-green-500' : 'bg-gray-300'
+                                                                                        }`}
+                                                                                />
+                                                                                <span
+                                                                                    className={`text-xs sm:text-sm flex-1 ${isSelected ? 'text-green-900 font-medium' : 'text-gray-700'
+                                                                                        }`}
+                                                                                >
+                                                                                    {option.label}
+                                                                                </span>
+                                                                                {isSelected && <ChevronRight className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                                                                            </div>
+                                                                        )
+                                                                    })}
                                                                 </div>
-                                                            )
-                                                        })}
-                                                    </div>
-                                                </div>
+                                                            </div>
+                                                        )}
 
-                                                {/* Selected Answer Highlight */}
-                                                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
-                                                    <label className="block text-sm font-medium text-green-800 mb-1">Selected Answer</label>
-                                                    <p className="text-green-900 font-semibold">
-                                                        {item.options.find(option => option.value === item.selectedValue)?.label || 'N/A'}
-                                                    </p>
-                                                </div>
-
-                                            </React.Fragment>
-                                        ))}
+                                                        {/* Selected Answer Highlight */}
+                                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
+                                                            <label className="block text-xs sm:text-sm font-medium text-green-800 mb-1">Ausgewählte Antwort</label>
+                                                            <p className="text-sm sm:text-base text-green-900 font-semibold">
+                                                                {item.options && item.options.length > 0
+                                                                    ? item.options.find(option => option.value === item.selectedValue)?.label || item.selectedValue || 'N/V'
+                                                                    : item.selectedValue || 'N/V'
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                    </React.Fragment>
+                                                );
+                                            })}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </>
                 )

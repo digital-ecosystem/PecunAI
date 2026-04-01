@@ -17,13 +17,13 @@ export async function POST(request: NextRequest) {
         .digest('hex');
       
       if (signature !== expectedSignature) {
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+        return NextResponse.json({ error: 'Ungültige Signatur' }, { status: 401 });
       }
     }
 
     // Verify user agent
     if (userAgent !== 'signteq.io API') {
-      return NextResponse.json({ error: 'Invalid user agent' }, { status: 401 });
+      return NextResponse.json({ error: 'Ungültiger User-Agent' }, { status: 401 });
     }
 
     // Parse the webhook data
@@ -38,6 +38,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Webhook processing error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Interner Serverfehler' }, { status: 500 });
   }
 }

@@ -40,7 +40,7 @@ export interface SignDCredentials {
     data?: {
       height?: number;
       signature_token?: string;
-      [key: string]: any;
+      [key: string]: string | number | undefined | object;
     };
   }
   

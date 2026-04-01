@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Product, Question, UserUpdate } from '@/types';
+import { Product, Question, SessionStatus, UserUpdate } from '@/types';
 import { generatePDF } from '@/utils/pdfGenerator';
 import { useParams, useRouter } from 'next/navigation';
-import { SessionStatus } from '@/generated/prisma';
+// import { SessionStatus } from '@/generated/prisma';
 import dynamic from 'next/dynamic';
 // import Chatbot from './chatbot';
 
@@ -32,7 +32,7 @@ const Phase = () => {
     const [userInfo, setUserInfo] = useState<UserUpdate>({
         first_name: '',
         last_name: '',
-        age: 0,
+        // age: 0,
         dob: ''
     });
     // const [sessionId, setSessionId] = useState<string | null>(null);
@@ -46,6 +46,8 @@ const Phase = () => {
     const [displayProduct, setDisplayProduct] = useState<Product>();
     const [threadId, setThreadId] = useState(null);
     const [showSignature, setShowSignature] = useState(false);
+    const [termsAndConditions, setTermsAndConditions] = useState({});
+    console.log("🚀 ~ Phase ~ termsAndConditions:", termsAndConditions)
 
     // Mock data for demonstration - replace with your API call
     useEffect(() => {
@@ -71,7 +73,7 @@ const Phase = () => {
         };
 
         fetchQuestions();
-    }, []);
+    }, [router, sessionId]);
 
     // Fetch user info
     useEffect(() => {
@@ -86,7 +88,8 @@ const Phase = () => {
                         ...prev,
                         first_name: data.user?.firstName || '',
                         last_name: data.user?.lastName || '',
-                        age: data.user?.age || 0,
+                        // age: data.user?.age || 0,
+                        age: 0,
                         dob: data.user?.dob || '',
                     } as UserUpdate));
                     setQaSessionStatus(data.user?.qaSession?.status || SessionStatus.DRAFT);
@@ -99,7 +102,30 @@ const Phase = () => {
         };
 
         fetchUserInfo();
-    }, []);
+    }, [sessionId]);
+
+    useEffect(() => {
+        const fetchTermsAndConditions = async () => {
+            try {
+                const response = await fetch('/api/terms-conditions' , {
+                    method: 'GET',
+                });
+                const data = await response.json();
+                if (data?.success) {
+                    setTermsAndConditions(data.data);
+                } else {
+                    // router.push('/customer/signin')
+                }
+            } catch (error) {
+                console.error('Error fetching questions:', error);
+                setLoading(false);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTermsAndConditions()
+     }, []);
 
     useEffect(() => {
         if (showConfirmationModal) {
@@ -143,6 +169,9 @@ const Phase = () => {
         const newAnswers = { ...answers, [questionId]: optionValue };
         setAnswers(newAnswers);
 
+        // Find the full question object and its options
+        const question = questions.find(q => q.id === questionId);
+
         // Persist answer immediately (optimistic update)
         try {
             await fetch('/api/answers?id=' + sessionId, {
@@ -152,7 +181,9 @@ const Phase = () => {
                 },
                 body: JSON.stringify({
                     questionId,
-                    answer: optionValue
+                    answer: optionValue,
+                    question: question?.text,
+                    options: question?.options || []
                 })
             });
         } catch (error) {
@@ -188,16 +219,16 @@ const Phase = () => {
     const handlePhase2Submit = async () => {
 
         // Validate user info
-        if (!userInfo.first_name || !userInfo.last_name || !userInfo.age) {
+        if (!userInfo.first_name || !userInfo.last_name ) {
             setError('Please fill in all fields before proceeding.');
             return;
         }
 
         // Age validation accepts 18-100
-        if (userInfo.age < 18 || userInfo.age > 100) {
-            setError('Please enter a valid age between 18 and 100.');
-            return;
-        }
+        // if (userInfo.age < 18 || userInfo.age > 100) {
+        //     setError('Please enter a valid age between 18 and 100.');
+        //     return;
+        // }
 
         // Minimum 2 and Maximum characters for first and last name
         if (userInfo.first_name.length < 2 || userInfo.last_name.length < 2
@@ -293,19 +324,19 @@ const Phase = () => {
         }
     }
 
-    const calculateAge = (dob: string) => {
-        const birthDate = new Date(dob);
-        const today = new Date();
+    // const calculateAge = (dob: string) => {
+    //     const birthDate = new Date(dob);
+    //     const today = new Date();
 
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
+    //     let age = today.getFullYear() - birthDate.getFullYear();
+    //     const monthDiff = today.getMonth() - birthDate.getMonth();
 
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--; // hasn’t had birthday yet this year
-        }
+    //     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    //         age--; // hasn’t had birthday yet this year
+    //     }
 
-        return age;
-    };
+    //     return age;
+    // };
 
     const redirectDashboard = () => {
         router.push('/customer/dashboard');
@@ -422,7 +453,7 @@ const Phase = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
-                            <input
+                            {/* <input
                                 type="date"
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 value={userInfo.dob || ''}
@@ -435,12 +466,12 @@ const Phase = () => {
                                     });
                                 }}
                                 disabled={qaSessionStatus !== SessionStatus.DRAFT}
-                            />
+                            /> */}
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
-                            <input
+                            {/* <input
                                 type="number"
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 placeholder="Enter your age"
@@ -448,7 +479,7 @@ const Phase = () => {
                                 onChange={(e) => setUserInfo({ ...userInfo, age: parseInt(e.target.value) })}
                                 disabled={qaSessionStatus !== SessionStatus.DRAFT} // Disable if not in draft status
                                 readOnly
-                            />
+                            /> */}
                         </div>
 
                         {error && (

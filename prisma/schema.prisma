@@ -1,126 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-// generator client {
-//   provider = "prisma-client-js"
-//   output   = "../src/generated/prisma"
-// }
-
-// datasource db {
-//   provider = "postgresql"
-//   url      = env("DATABASE_URL")
-// }
-// model User {
-//   id        String   @id @default(cuid())
-//   email     String   @unique
-//   name      String?
-//   age       Int?
-//   isActive  Boolean  @default(true)
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-//   otps      OTP[]
-//   sessions  Session[]
-  
-// }
-
-// model OTP {
-//   id        String   @id @default(cuid())
-//   email     String
-//   code      String
-//   attempts  Int      @default(0)
-//   expiresAt DateTime
-//   used      Boolean  @default(false)
-//   createdAt DateTime @default(now())
-//   user      User     @relation(fields: [email], references: [email], onDelete: Cascade)
-// }
-
-// model Session {
-//   id        String     @id @default(uuid())
-//   userId    String
-//   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-//   status    SessionStatus @default(DRAFT)
-//   token     String     @unique
-//   expiresAt DateTime
-//   createdAt DateTime   @default(now())
-//   updatedAt DateTime   @updatedAt
-//   answers   Answer[]
-//   thread    Thread?
-//   document  Document?
-// }
-
-// model Question {
-//   id         String           @id @default(uuid())
-//   text       String
-//   createdAt  DateTime         @default(now())
-//   options    QuestionOption[]
-//   answers    Answer[]
-// }
-
-// model QuestionOption {
-//   id         String    @id @default(uuid())
-//   questionId String
-//   question   Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
-//   label      String
-//   value      String
-//   createdAt  DateTime  @default(now())
-// }
-
-// model Answer {
-//   id         String    @id @default(uuid())
-//   sessionId  String
-//   questionId String
-//   value      String
-//   createdAt  DateTime  @default(now())
-//   session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-//   question   Question  @relation(fields: [questionId], references: [id])
-// }
-
-// model Thread {
-//   id         String     @id @default(uuid())
-//   sessionId  String     @unique
-//   session    Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-//   createdAt  DateTime   @default(now())
-//   messages   Message[]
-// }
-
-// model Message {
-//   id         String    @id @default(uuid())
-//   threadId   String
-//   thread     Thread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
-//   role       Role
-//   content    String
-//   index      Int
-//   createdAt  DateTime  @default(now())
-//   updatedAt  DateTime  @updatedAt
-// }
-
-// model Document {
-//   id         String    @id @default(uuid())
-//   sessionId  String    @unique
-//   session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-//   url        String
-//   signedAt   DateTime  @default(now())
-// }
-
-// enum SessionStatus {
-//   DRAFT
-//   PENDING
-//   APPROVED
-//   REJECTED
-// }
-
-// enum Role {
-//   customer
-//   assistant
-// }
-
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  output   = "./src/generated/prisma"
 }
 
 datasource db {
@@ -129,158 +9,434 @@ datasource db {
 }
 
 model User {
-  id         String      @id @default(cuid())
-  email      String      @unique
+  id         String            @id @default(cuid())
+  email      String            @unique
   name       String?
   age        Int?
-  isActive   Boolean     @default(true)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  otps       OTP[]
-  sessions   Session[]
+  createdAt  DateTime          @default(now())
+  isActive   Boolean           @default(true)
+  updatedAt  DateTime          @updatedAt
+  otps       OTP?
   qaSessions QASession[]
+  auditLogs  SessionAuditLog[]
+  sessions   Session[]
+  signteqHandshakeInfo SignteqHandshakeInfo[]
 
   @@map("users")
 }
 
-model OTP {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  code         String
-  attempts     Int        @default(0)
-  expiresAt    DateTime
-  used         Boolean    @default(false)
-  resendCount  Int        @default(0)
-  blockedUntil DateTime?
-  createdAt    DateTime   @default(now())
+model Admin {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  firstName   String
+  lastName    String
+  birthday    DateTime? @db.Date
+  agentNumber String?
+  password    String // Hashed password
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  user         User       @relation(fields: [email], references: [email], onDelete: Cascade)
+  @@map("admins")
+}
+
+model PasswordResetToken {
+  id        String              @id @default(cuid())
+  token     String              @unique
+  email     String
+  userType  PasswordResetUserType
+  used      Boolean             @default(false)
+  expiresAt DateTime
+  createdAt DateTime            @default(now())
+
+  @@index([token, userType])
+  @@index([email, userType])
+  @@map("password_reset_tokens")
+}
+
+model Partner {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  phone        String
+  firstName    String
+  lastName     String
+  signatureLocation    String  @default("Wien")
+  birthday     DateTime    @db.Date
+  agentNumber  String
+  password     String
+  referralCode String      @unique // Unique code like "PARTNER123"
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  // Sessions referred by this partner
+  qaSessions   QASession[]
+
+  @@map("partners")
+}
+
+model OTP {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  code              String
+  attempts          Int       @default(0)
+  used              Boolean   @default(false)
+  blockedUntil      DateTime?
+  createdAt         DateTime  @default(now())
+  expiresAt         DateTime
+  resendCount       Int       @default(0)
+  resendWindowStart DateTime // Explicit window start for resend rate limit
+  user              User      @relation(fields: [email], references: [email], onDelete: Cascade)
 
   @@map("otps")
 }
 
-
 model Session {
-  id         String     @id @default(uuid())
-  userId     String
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token      String     @unique
-  expiresAt  DateTime
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id        String   @id @default(uuid())
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
 
 model QASession {
-  id          String         @id @default(uuid())
-  userId      String
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status      SessionStatus  @default(DRAFT)
-  phase       SessionPhase   @default(DISCOVERY)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  answers     Answer[]
-  thread      Thread?
-  document    Document?
-  personalInfo PersonalInfo?
+  id                 String                    @id @default(uuid())
+  phase              SessionPhase              @default(TERMS1)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  userId             String
+  status             SessionStatus?            @default(DRAFT)
+  partnerId          String
+  referralCode       String
+  answers            Answer[]
+  personalInfo       PersonalInfo?
+  user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partner            Partner                   @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  auditLogs          SessionAuditLog?
+  productSuggestions SessionProductSuggestion?
+  termsAcceptance    SessionTermsAcceptance[]
+  workflowState      SessionWorkflowState?
+  signedDocuments    SignedDocument?
+  thread             Thread?
+  signteqHandshakeInfo SignteqHandshakeInfo?
 
   @@map("qa_sessions")
 }
 
+model SessionWorkflowState {
+  qaSessionId  String    @id @unique
+  currentStep  Int       @default(1)
+  totalSteps   Int       @default(8)
+  stepData     Json      @default("{}")
+  lastActivity DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  qaSession    QASession @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
+
+  @@map("session_workflow_state")
+}
+
+model Product {
+  id                 String                     @id @default(uuid())
+  name               String
+  description        String?
+  createdAt          DateTime                   @default(now())
+  fileName           String?
+  shortName          String?
+  sri                String?
+  duration           Int?
+  updatedAt          DateTime                   @updatedAt
+  maximumYear        Int?
+  minimumYear        Int?
+  riskType           RiskType?
+  aiSettings         AISettings[]
+  productSuggestions SessionProductSuggestion[]
+
+  @@map("products")
+}
+
 model Question {
-  id         String           @id @default(uuid())
-  text       String
-  createdAt  DateTime         @default(now())
-  options    QuestionOption[]
-  answers    Answer[]
+  id               String           @id @default(uuid())
+  text             String
+  createdAt        DateTime         @default(now())
+  isRequired       Boolean          @default(true)
+  questionOrder    Float?           @default(1)
+  questionPhase    QuestionPhase?
+  questionType     String?          @default("choice")
+  maxValue         Int?
+  minValue         Int?
+  footnote         String?
+  inputPlaceholder String?
+  answers          Answer[]
+  options          QuestionOption[]
 
   @@map("questions")
 }
 
 model QuestionOption {
-  id         String    @id @default(uuid())
-  questionId String
-  question   Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
   label      String
   value      String
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime @default(now())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@map("question_options")
 }
 
 model Answer {
-  id          String     @id @default(uuid())
-  qaSessionId String
-  questionId  String
-  value       String
-  createdAt   DateTime   @default(now())
-  qaSession   QASession  @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
-  question    Question   @relation(fields: [questionId], references: [id])
+  id              String    @id @default(uuid())
+  value           String
+  answeredAt      DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  qaSessionId     String
+  questionId      String
+  questionOptions Json?
+  questionText    String?
+  questionType    String?
+  qaSession       QASession @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
+  question        Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
+  @@unique([qaSessionId, questionId], name: "qaSessionId_questionId")
   @@map("answers")
 }
 
+model TermsAndConditions {
+  id                 String                   @id @default(uuid())
+  title              String?
+  content            String
+  version            String
+  termsType          TermsType
+  isActive           Boolean                  @default(true)
+  createdBy          String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  sessionAcceptances SessionTermsAcceptance[]
+
+  @@map("terms_and_conditions")
+}
+
+model SessionTermsAcceptance {
+  id          String             @id @default(uuid())
+  qaSessionId String
+  termsId     String
+  termsType   TermsType
+  title       String
+  content     String
+  version     String
+  acceptedAt  DateTime           @default(now())
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime           @default(now())
+  qaSession   QASession          @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
+  terms       TermsAndConditions @relation(fields: [termsId], references: [id])
+
+  @@map("session_terms_acceptance")
+}
+
+model SessionProductSuggestion {
+  id               String    @id @default(uuid())
+  qaSessionId      String    @unique
+  productId        String
+  name             String
+  shortName        String?
+  description      String?
+  fileName         String?
+  suggestionReason String?
+  confidenceScore  Decimal?  @db.Decimal(3, 2)
+  suggestedAt      DateTime  @default(now())
+  isConfirmed      Boolean   @default(false)
+  confirmedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  product          Product   @relation(fields: [productId], references: [id])
+  qaSession        QASession @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
+
+  @@map("session_product_suggestions")
+}
+
 model Thread {
-  id          String     @id @default(uuid())
-  qaSessionId String     @unique
-  qaSession   QASession  @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
-  createdAt   DateTime   @default(now())
+  id          String    @id @default(uuid())
+  createdAt   DateTime  @default(now())
+  qaSessionId String    @unique
   messages    Message[]
+  qaSession   QASession @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
 
   @@map("threads")
 }
 
 model Message {
-  id         String    @id @default(uuid())
-  threadId   String
-  thread     Thread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  role       Role
-  content    String
-  index      Int
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id           String     @id @default(uuid())
+  role         Role
+  content      String
+  createdAt    DateTime   @default(now())
+  messageIndex Int
+  threadId     String
+  updatedAt    DateTime   @updatedAt
+  audioFileId  String?
+  audioFile    AudioFile? @relation(fields: [audioFileId], references: [id], onDelete: SetNull)
+  thread       Thread     @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
   @@map("messages")
 }
 
-model Document {
-  id          String     @id @default(uuid())
-  qaSessionId String     @unique
-  qaSession   QASession  @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
-  url         String
-  isSigned    Boolean    @default(false)
-  signedAt    DateTime   @default(now())
+model AudioFile {
+  id         String    @id @default(uuid())
+  fileName   String
+  filePath   String
+  mimeType   String    @default("audio/webm")
+  duration   Float?
+  size       Int
+  transcript String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  messages   Message[]
 
-  @@map("document")
+  @@map("audio_files")
 }
 
 model PersonalInfo {
-  id          String     @id @default(uuid())
-  qaSessionId String     @unique
-  qaSession   QASession  @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
-  firstName   String
-  lastName    String
-  age         Int
-  dob         String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  actsOnOwnAccount       Boolean          @default(false)
+  city                   String
+  createdAt              DateTime         @default(now())
+  currentProfession      String
+  customerClassification String?
+  education              String
+  email                  String
+  firstName              String
+  fullName               String?
+  houseNumber            String
+  industry               String
+  isPep                  Boolean          @default(false)
+  lastName               String
+  maritalStatus          String
+  nationality            String
+  phone                  String
+  placeOfBirth           String
+  birthCountry           String?
+  postalCode             String
+  iban                   String?
+  country                String?
+  bic                    String?
+  bankName               String?
+  isTaxResidentAT        Boolean?
+  isTaxResidentOther     Boolean?
+  gender                 String?
+  isSelfEmployed         Boolean          @default(false)
+  taxResidencyCountry    String?
+  qaSessionId            String           @unique
+  residenceAbroad        Boolean          @default(false)
+  street                 String
+  updatedAt              DateTime         @updatedAt
+  id                     Int              @id @default(autoincrement())
+  dateOfBirth            DateTime         @db.Date
+  countryCode            String?          @default("+43")
+  documents              Document[]
+  qaSession              QASession        @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
+  previousJobsRel        PreviousJob[]
+  signedDocuments        SignedDocument[]
 
   @@map("personal_info")
 }
 
-model Product {
-  id          String      @id @default(uuid())
-  name        String   // Product name (e.g., "High-Yield Savings Account", "Fixed-Rate Bond")
-  shortName   String?  // Abbreviation (e.g., HYSA)
-  description String   // Main description of the product
-  keyFeatures String[] // List of key features
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Document {
+  id               Int          @id @default(autoincrement())
+  personalInfoId   Int
+  documentType     String
+  issuingAuthority String
+  documentNumber   String
+  issuedOn         DateTime     @db.Date
+  validUntil       DateTime     @db.Date
+  filename         String
+  personalInfo     PersonalInfo @relation(fields: [personalInfoId], references: [id], onDelete: Cascade)
 
-  @@map("products")
+  @@map("documents")
 }
 
+model PreviousJob {
+  id             Int          @id @default(autoincrement())
+  personalInfoId Int
+  jobTitle       String
+  startDate      DateTime     @db.Date
+  endDate        DateTime     @db.Date
+  companyName    String
+  document       Json?
+  personalInfo   PersonalInfo @relation(fields: [personalInfoId], references: [id], onDelete: Cascade)
+
+  @@map("previous_jobs")
+}
+
+model SignedDocument {
+  id                  Int           @id @default(autoincrement())
+  personalInfoId      Int?
+  qaSessionId         String        @unique
+  documentType        String
+  pdfUrl              String
+  generationTimestamp DateTime      @default(now())
+  templateVersion     String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  personalInfo        PersonalInfo? @relation(fields: [personalInfoId], references: [id], onDelete: Cascade)
+  qaSession           QASession     @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
+
+  @@map("signed_documents")
+}
+
+model AISettings {
+  id           String   @id @default(uuid())
+  prompt       String
+  model        String   @default("gpt-4")
+  vectorId     String?
+  productId    String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  firstMessage String   @default("")
+  product      Product? @relation(fields: [productId], references: [id])
+
+  @@map("ai_settings")
+}
+
+model SessionAuditLog {
+  id          String    @id @default(uuid())
+  qaSessionId String    @unique
+  action      String
+  details     Json?
+  timestamp   DateTime  @default(now())
+  userId      String?
+  qaSession   QASession @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
+  user        User?     @relation(fields: [userId], references: [id])
+
+  @@map("session_audit_log")
+}
+
+model MainProductPrompt {
+  id         String   @id @default(uuid())
+  vectorId   String?
+  aiModel    String   @default("gpt-5")
+  mcpUrl     String?
+  mainPrompt String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("main_product_prompts")
+}
+
+model SignteqHandshakeInfo {
+  id                     Int              @id @default(autoincrement())
+  signatureId         String?
+  sessionToken  String?
+  metaDate      Json?
+  userId        String?
+  qaSessionId   String?   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  qaSession  QASession? @relation(fields: [qaSessionId], references: [id], onDelete: Cascade)
+
+  @@map("signteq_handshake_info")
+}
 enum SessionStatus {
   DRAFT
   PENDING
@@ -289,13 +445,52 @@ enum SessionStatus {
 }
 
 enum SessionPhase {
-  DISCOVERY
+  TERMS1
+  TERMS_FROOTS
+  QUESTIONS1
+  TERMS2
+  QUESTIONS2
+  SUGGESTIONS
   CHAT
   PERSONAL_INFO
-  SIGNATURE
+  SIGN_DOCUMENT
+  RESULT_PDF
+  INVESTMENT_FORM
+  CONTRACT_DOCUMENT
 }
 
 enum Role {
   customer
   assistant
+}
+
+enum QuestionPhase {
+  QUESTIONS1
+  QUESTIONS2
+}
+
+enum TermsType {
+  INITIAL
+  PRODUCT_SPECIFIC
+}
+
+enum RiskType {
+  KONSERVATIV
+  AUSGEWOGEN
+  GEWINNORIENTIERT
+}
+
+enum PasswordResetUserType {
+  ADMIN
+  PARTNER
+}
+
+model HighRiskCountry {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String? // ISO code if available
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("high_risk_countries")
 }

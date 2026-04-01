@@ -1,8 +1,13 @@
 import { SignDCredentials, SignDHandshakePayload, SignDHandshakeResponse, SignDResult } from "@/types/signd";
 
+import { CONFIG } from "@/config/constants";
+
 // lib/signd-api.ts
-const SIGND_API_BASE = 'https://st-api.signd.id';
-const SIGND_WEB_BASE = 'https://st-web.signd.id';
+const SIGND_API_BASE = CONFIG.SIGND.API_URL;
+const SIGND_WEB_BASE = CONFIG.SIGND.WEB_BASE;
+
+// const SIGND_API_BASE = 'https://st-api.signd.id';
+// const SIGND_WEB_BASE = 'https://st-web.signd.id';
 
 export class SignDAPI {
   private credentials: SignDCredentials;

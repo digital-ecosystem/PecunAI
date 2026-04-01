@@ -9,13 +9,13 @@ export async function GET() {
     const sessionId = cookieStore.get('session-id')?.value;
     
     if (!token) {
-      return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ message: 'Nicht authentifiziert' }, { status: 401 });
     }
 
     const user = await AuthService.getUserFromToken(token);
     
     if (!user) {
-      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+      return NextResponse.json({ message: 'Ungültiges Token' }, { status: 401 });
     }
 
     return NextResponse.json({
@@ -25,7 +25,7 @@ export async function GET() {
         email: user.email,
         name: user.name,
         isActive: user.isActive,
-        age: user.age,
+        // age: user.age,
         createdAt: user.createdAt,
         sessionId: sessionId // Assuming sessionStatus is part of the user object
       }
@@ -34,7 +34,7 @@ export async function GET() {
   } catch (error) {
     console.error('Get user error:', error);
     return NextResponse.json({ 
-      message: 'Failed to get user',
+      message: 'Benutzer konnte nicht abgerufen werden',
       success: false 
     }, { status: 500 });
   }

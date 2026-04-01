@@ -14,7 +14,7 @@
 /coverage
 
 # next.js
-/.next/
+.next
 /out/
 
 # production
@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+
+package-lock.json
 
 # debug
 npm-debug.log*
@@ -41,5 +43,13 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+/prisma/src/generated/prisma
 
 /public/documents
+
+/public/audio
+
+/private-documents
+
+Zugangsdaten-für-Finova.pdf
+.yarn.lock

@@ -6,54 +6,103 @@ import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
-    
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+      return NextResponse.json({ error: 'Fehlende ID' }, { status: 400 });
     }
 
-    const { questionId, answer } = await request.json();
-    if (!questionId || !answer ) {
-      return NextResponse.json({ message: 'Missing questionId, or answer' }, { status: 400 });
+    const { questionId, answer, question, options, questionType } = await request.json();
+    if (!questionId || answer === undefined || answer === null) {
+      return NextResponse.json({ message: 'Frage-ID oder Antwort fehlt' }, { status: 400 });
     }
     const cookieStore = await cookies();
     const token = cookieStore.get('auth-token')?.value;
 
     if (!token) {
-      return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
+      return NextResponse.json({ message: "Nicht authentifiziert" }, { status: 401 });
     }
 
     const user = await AuthService.getUserFromToken(token);
     if (!user) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+      return NextResponse.json({ message: "Ungültiges Token" }, { status: 401 });
     }
 
     const session = await prisma.qASession.findFirst({
-        where: { userId: user.id, id: id },
-        orderBy: { id: "asc" }
-      });
-      
-      if (!session) {
-        return NextResponse.json({ message: "No active session found" }, { status: 404 });
-      }
-      
+      where: { userId: user.id, id: id },
+      orderBy: { id: "asc" }
+    });
+
+    if (!session) {
+      return NextResponse.json({ message: "Keine aktive Sitzung gefunden" }, { status: 404 });
+    }
+
     const sessionId = session.id;
 
-    const newAnswer = await prisma.answer.create({
-      data: {
+    // If client clears an input, delete the stored answer (idempotent)
+    if (typeof answer === 'string' && answer.trim() === '') {
+      await prisma.answer.deleteMany({
+        where: {
+          qaSessionId: sessionId,
+          questionId,
+        },
+      });
+
+      return NextResponse.json({ success: true, deleted: true });
+    }
+
+    const newAnswer = await prisma.answer.upsert({
+      where: {
+        qaSessionId_questionId: {
+          qaSessionId: sessionId,
+          questionId: questionId,
+        }
+      },
+      update: {
+        value: answer,
+        questionText: question,
+        questionType,
+        questionOptions: options,
+        // updatedAt will be set automatically if using @updatedAt
+      },
+      create: {
+        // Generate a new UUID for the answer ID
         id: uuidv4(),
         qaSessionId: sessionId,
         questionId,
         value: answer,
+        questionText: question,
+        questionType,
+        questionOptions: options,
         // createdAt will be set automatically if using @default(now())
       }
     });
 
+    // await prisma.qASession.update({
+    //   where: { id: sessionId },
+    //   data: {
+    //     updatedAt: new Date()
+    //   }
+    // });
+
+    // // Log the creation of a new answer
+    // await prisma.answerHistory.create({
+    //   data: {
+    //     id: uuidv4(),
+    //     qaSessionId: sessionId,
+    //     questionId,
+    //     value: answer,
+    //     questionText: question,
+    //     questionOptions: options,
+    //     // createdAt will be set automatically if using @default(now())
+    //   }
+    // });
+
     return NextResponse.json({ success: true, answer: newAnswer });
   } catch (error) {
     console.error('Error saving answer:', error);
-    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Interner Serverfehler' }, { status: 500 });
   }
 }

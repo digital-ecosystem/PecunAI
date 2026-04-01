@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PecunAI – Voice Session Prototype</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 24px 16px 40px;
+    }
+
+    .page-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 20px;
+    }
+
+    /* Phone frame */
+    .phone {
+      width: 390px;
+      min-height: 844px;
+      background: #f8faff;
+      border-radius: 44px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Status bar mock */
+    .status-bar {
+      height: 48px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      flex-shrink: 0;
+    }
+    .status-bar .time { font-size: 15px; font-weight: 600; color: #0f172a; }
+    .status-bar .icons { display: flex; gap: 6px; align-items: center; }
+    .status-bar .icons svg { width: 16px; height: 16px; fill: #0f172a; }
+
+    /* Header */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 10px 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .header-back {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #4f46e5;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .header-back svg { width: 18px; height: 18px; }
+    .header-title {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .header-phase {
+      background: #eef2ff;
+      color: #4f46e5;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.04em;
+    }
+
+    /* Progress strip */
+    .progress-strip {
+      background: #fff;
+      padding: 8px 20px 10px;
+      flex-shrink: 0;
+    }
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+    .progress-meta strong { color: #4f46e5; }
+    .progress-bar-track {
+      height: 4px;
+      background: #e2e8f0;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #4f46e5);
+      border-radius: 2px;
+      transition: width 0.45s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* Main scrollable content */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 20px 8px;
+      gap: 12px;
+    }
+
+    /* AI avatar + speaking label */
+    .ai-intro {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ai-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .ai-avatar svg { width: 18px; height: 18px; fill: #fff; }
+    .ai-name { font-size: 13px; font-weight: 700; color: #4f46e5; }
+    .ai-status { font-size: 11px; color: #94a3b8; }
+
+    /* Question card */
+    .question-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(79,70,229,0.07), 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid #e8eaf6;
+    }
+    .question-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #a5b4fc;
+      margin-bottom: 10px;
+    }
+    .question-text {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1e293b;
+      line-height: 1.55;
+    }
+    .question-footnote {
+      margin-top: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      background: #f8faff;
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .question-footnote svg { width: 14px; height: 14px; flex-shrink: 0; fill: #a5b4fc; margin-top: 1px; }
+    .question-footnote p { font-size: 12px; color: #64748b; line-height: 1.5; }
+
+    /* Answer tiles */
+    .answers-section {}
+    .answers-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+    .answer-tiles { display: flex; flex-direction: column; gap: 8px; }
+    .answer-tile {
+      min-height: 56px;
+      border-radius: 12px;
+      border: 1.5px solid #e2e8f0;
+      background: #f8fafc;
+      padding: 14px 16px;
+      font-size: 15px;
+      color: #334155;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.15s ease;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .answer-tile:hover { border-color: #c7d2fe; background: #f5f3ff; }
+    .answer-tile.selected {
+      border-color: #4f46e5;
+      background: #eef2ff;
+      color: #3730a3;
+      font-weight: 600;
+    }
+    .tile-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid #cbd5e1;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .answer-tile.selected .tile-dot {
+      border-color: #4f46e5;
+      background: #4f46e5;
+    }
+    .tile-dot-inner {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #fff;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .answer-tile.selected .tile-dot-inner { opacity: 1; }
+    .tile-text { flex: 1; line-height: 1.4; }
+
+    /* Voice wave section */
+    .wave-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0 2px;
+    }
+    canvas#wave {
+      width: 100%;
+      height: 52px;
+      border-radius: 10px;
+    }
+    .wave-status {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      transition: color 0.3s;
+    }
+    .wave-status.speaking { color: #4f46e5; }
+    .wave-status.listening { color: #16a34a; }
+    .wave-status.muted { color: #94a3b8; }
+
+    /* Nav bar */
+    .nav-bar {
+      background: #fff;
+      border-top: 1px solid #e2e8f0;
+      padding: 12px 20px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      transition: all 0.15s ease;
+      padding: 0 16px;
+      height: 48px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    .btn-mute {
+      background: #f1f5f9;
+      color: #475569;
+      min-width: 52px;
+      padding: 0 14px;
+    }
+    .btn-mute:hover { background: #e2e8f0; }
+    .btn-mute.active { background: #fef2f2; color: #dc2626; }
+    .btn-mute.active svg path, .btn-mute.active svg rect { stroke: #dc2626; }
+
+    .btn-back {
+      background: #f1f5f9;
+      color: #475569;
+      flex: 1;
+    }
+    .btn-back:hover { background: #e2e8f0; }
+
+    .btn-next {
+      background: #4f46e5;
+      color: #fff;
+      flex: 2;
+    }
+    .btn-next:hover { background: #4338ca; }
+    .btn-next:disabled { background: #c7d2fe; color: #fff; cursor: not-allowed; }
+    .btn-next.confirmed { background: #16a34a; }
+
+    /* State: muted overlay hint */
+    .muted-hint {
+      display: none;
+      font-size: 11px;
+      font-weight: 500;
+      color: #dc2626;
+      text-align: center;
+      padding: 0 0 2px;
+    }
+    .muted-hint.visible { display: block; }
+
+    /* Transitions for question swap */
+    .question-card, .answer-tiles { transition: opacity 0.2s ease; }
+    .fade-out { opacity: 0; }
+    .fade-in { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<p class="page-label">PecunAI V2 · Voice Session Prototype</p>
+
+<div class="phone">
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <div class="icons">
+      <!-- Signal -->
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="14" width="4" height="7"/><rect x="5" y="10" width="4" height="11"/><rect x="10" y="6" width="4" height="15"/><rect x="15" y="2" width="4" height="19"/></svg>
+      <!-- Battery -->
+      <svg viewBox="0 0 24 12" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="1" width="20" height="10" rx="2" fill="none" stroke="#0f172a" stroke-width="1.5"/><rect x="2" y="3" width="14" height="6" rx="1"/><path d="M21 4v4a2 2 0 0 0 0-4z"/></svg>
+    </div>
+  </div>
+
+  <!-- App header -->
+  <div class="header">
+    <div class="header-back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      Zurück
+    </div>
+    <span class="header-title" id="sessionLabel">Sitzung #A4F2</span>
+    <span class="header-phase" id="phaseLabel">Risikoprofil</span>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-strip">
+    <div class="progress-meta">
+      <span>Frage <strong id="qNum">4</strong> von <strong>15</strong></span>
+      <span id="pctLabel">27%</span>
+    </div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progressFill" style="width: 27%"></div>
+    </div>
+  </div>
+
+  <!-- Scrollable content -->
+  <div class="content">
+
+    <!-- AI identity row -->
+    <div class="ai-intro">
+      <div class="ai-avatar">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4zm0 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ai-name">PecunAI</div>
+        <div class="ai-status" id="aiStatusText">spricht gerade …</div>
+      </div>
+    </div>
+
+    <!-- Question card -->
+    <div class="question-card" id="questionCard">
+      <div class="question-label">Frage 4 von 15</div>
+      <div class="question-text" id="questionText">
+        Wie hoch ist Ihr monatliches Haushalts&shy;nettoeinkommen?
+      </div>
+      <div class="question-footnote">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        <p>Diese Information hilft dabei, eine Anlage zu empfehlen, die zu Ihrer finanziellen Situation passt.</p>
+      </div>
+    </div>
+
+    <!-- Answer options -->
+    <div class="answers-section">
+      <div class="answers-label">Ihre Antwort</div>
+      <div class="answer-tiles" id="answerTiles">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <!-- Voice wave -->
+    <div class="wave-section">
+      <canvas id="wave" width="700" height="104"></canvas>
+      <span class="wave-status speaking" id="waveStatus">PecunAI spricht</span>
+    </div>
+
+    <div class="muted-hint" id="mutedHint">Stumm – tippen Sie Ihre Antwort</div>
+
+  </div>
+
+  <!-- Nav bar -->
+  <div class="nav-bar">
+    <button class="btn btn-mute" id="btnMute" title="Ton ein/aus">
+      <svg id="iconMute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+      </svg>
+    </button>
+    <button class="btn btn-back" id="btnBack" onclick="prevQuestion()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      Zurück
+    </button>
+    <button class="btn btn-next" id="btnNext" onclick="nextQuestion()" disabled>
+      Weiter
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+    </button>
+  </div>
+
+</div>
+
+<script>
+// ─── Questions data ───────────────────────────────────────────────
+const questions = [
+  {
+    text: "Haben Sie bereits Erfahrung mit Geldanlagen in Wertpapieren wie Aktien oder Fonds?",
+    options: ["Nein, keine Erfahrung", "Begrenzte Erfahrung", "Moderate Erfahrung", "Umfangreiche Erfahrung"],
+    footnote: "Ihre bisherige Erfahrung hilft uns, die Beratung auf Ihren Wissensstand anzupassen."
+  },
+  {
+    text: "Wie lange möchten Sie Ihr Geld anlegen?",
+    options: ["Weniger als 3 Jahre", "3 bis 5 Jahre", "5 bis 10 Jahre", "Mehr als 10 Jahre"],
+    footnote: "Der Anlagehorizont beeinflusst wesentlich, welches Risikoprofil für Sie geeignet ist."
+  },
+  {
+    text: "Was ist Ihr primäres Anlage-ziel?",
+    options: ["Kapital erhalten", "Regelmäßige Erträge", "Langfristiges Wachstum", "Maximale Rendite"],
+    footnote: null
+  },
+  {
+    text: "Wie hoch ist Ihr monatliches Haushaltsnettoeinkommen?",
+    options: ["Unter 1.500 €", "1.500 – 3.000 €", "3.000 – 5.000 €", "Über 5.000 €"],
+    footnote: "Diese Information hilft dabei, eine Anlage zu empfehlen, die zu Ihrer finanziellen Situation passt."
+  },
+  {
+    text: "Wie würden Sie auf einen temporären Wertverlust Ihrer Anlage von 20 % reagieren?",
+    options: ["Ich würde sofort verkaufen", "Ich würde besorgt sein, aber abwarten", "Ich würde ruhig bleiben", "Ich würde nachkaufen"],
+    footnote: "Ihre emotionale Reaktion auf Verluste ist ein wichtiger Indikator für das passende Risikoprofil."
+  },
+  {
+    text: "Wie hoch sind Ihre monatlichen Sparraten derzeit etwa?",
+    options: ["Ich spare nicht regelmäßig", "Bis zu 200 € monatlich", "200 – 500 € monatlich", "Über 500 € monatlich"],
+    footnote: null
+  },
+];
+
+let currentIndex = 3; // start at question 4 (index 3)
+let selectedAnswers = {}; // index → option index
+let isMuted = false;
+let voiceState = "speaking"; // speaking | listening | muted
+
+// ─── Render question ─────────────────────────────────────────────
+function renderQuestion(idx, direction) {
+  const q = questions[idx];
+
+  const card = document.getElementById("questionCard");
+  const tiles = document.getElementById("answerTiles");
+
+  card.classList.add("fade-out");
+  tiles.classList.add("fade-out");
+
+  setTimeout(() => {
+    // Update question card
+    card.querySelector(".question-label").textContent = `Frage ${idx + 1} von ${questions.length}`;
+    document.getElementById("questionText").textContent = q.text;
+
+    const fn = card.querySelector(".question-footnote");
+    if (q.footnote) {
+      fn.style.display = "flex";
+      fn.querySelector("p").textContent = q.footnote;
+    } else {
+      fn.style.display = "none";
+    }
+
+    // Update progress
+    const pct = Math.round(((idx + 1) / questions.length) * 100);
+    const fill = Math.round((idx / questions.length) * 100);
+    document.getElementById("qNum").textContent = idx + 1;
+    document.getElementById("pctLabel").textContent = fill + "%";
+    document.getElementById("progressFill").style.width = fill + "%";
+
+    // Render tiles
+    tiles.innerHTML = "";
+    q.options.forEach((opt, oi) => {
+      const tile = document.createElement("div");
+      tile.className = "answer-tile" + (selectedAnswers[idx] === oi ? " selected" : "");
+      tile.innerHTML = `
+        <div class="tile-dot"><div class="tile-dot-inner"></div></div>
+        <span class="tile-text">${opt}</span>
+      `;
+      tile.addEventListener("click", () => selectAnswer(idx, oi));
+      tiles.appendChild(tile);
+    });
+
+    updateNextBtn(idx);
+
+    card.classList.remove("fade-out");
+    tiles.classList.remove("fade-out");
+  }, 180);
+}
+
+function selectAnswer(qIdx, optIdx) {
+  selectedAnswers[qIdx] = optIdx;
+  renderQuestion(qIdx, null);
+
+  // simulate AI acknowledgement
+  setVoiceState("speaking");
+  setTimeout(() => setVoiceState("listening"), 1800);
+}
+
+function updateNextBtn(idx) {
+  const btn = document.getElementById("btnNext");
+  const has = selectedAnswers[idx] !== undefined;
+  btn.disabled = !has;
+  btn.classList.toggle("confirmed", has);
+}
+
+function nextQuestion() {
+  if (currentIndex < questions.length - 1) {
+    currentIndex++;
+    renderQuestion(currentIndex, "next");
+    setVoiceState("speaking");
+    setTimeout(() => setVoiceState("listening"), 2200);
+  } else {
+    // End of demo – show a simple completion state
+    const nextBtn = document.getElementById("btnNext");
+    nextBtn.textContent = "✓ Abgeschlossen";
+    nextBtn.style.background = "#16a34a";
+  }
+}
+
+function prevQuestion() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    renderQuestion(currentIndex, "prev");
+    setVoiceState("speaking");
+    setTimeout(() => setVoiceState("listening"), 2200);
+  }
+}
+
+// ─── Voice state ─────────────────────────────────────────────────
+function setVoiceState(state) {
+  if (isMuted) return;
+  voiceState = state;
+  const status = document.getElementById("waveStatus");
+  const aiText = document.getElementById("aiStatusText");
+  status.className = "wave-status " + state;
+  if (state === "speaking") {
+    status.textContent = "PecunAI spricht";
+    aiText.textContent = "spricht gerade …";
+  } else if (state === "listening") {
+    status.textContent = "Bitte antworten Sie";
+    aiText.textContent = "hört zu …";
+  }
+}
+
+// ─── Mute toggle ─────────────────────────────────────────────────
+document.getElementById("btnMute").addEventListener("click", () => {
+  isMuted = !isMuted;
+  const btn = document.getElementById("btnMute");
+  const status = document.getElementById("waveStatus");
+  const aiText = document.getElementById("aiStatusText");
+  const hint = document.getElementById("mutedHint");
+
+  btn.classList.toggle("active", isMuted);
+  hint.classList.toggle("visible", isMuted);
+
+  if (isMuted) {
+    voiceState = "muted";
+    status.className = "wave-status muted";
+    status.textContent = "Stummgeschaltet";
+    aiText.textContent = "stumm";
+    document.getElementById("iconMute").innerHTML = `
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      <line x1="23" y1="9" x2="17" y2="15"/>
+      <line x1="17" y1="9" x2="23" y2="15"/>
+    `;
+  } else {
+    voiceState = "listening";
+    status.className = "wave-status listening";
+    status.textContent = "Bitte antworten Sie";
+    aiText.textContent = "hört zu …";
+    document.getElementById("iconMute").innerHTML = `
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+    `;
+  }
+});
+
+// ─── Waveform canvas ─────────────────────────────────────────────
+const canvas = document.getElementById("wave");
+const ctx = canvas.getContext("2d");
+
+const BARS = 36;
+const BAR_W = 5;
+const BAR_GAP = 6;
+
+// Simulated frequency data with smooth noise
+let phase = 0;
+let amplitudes = new Array(BARS).fill(0).map(() => Math.random());
+
+function lerpArr(arr, target, t) {
+  return arr.map((v, i) => v + (target[i] - v) * t);
+}
+
+function generateTarget(state) {
+  return new Array(BARS).fill(0).map((_, i) => {
+    if (state === "muted") return 0.05;
+    const base = state === "speaking" ? 0.55 : 0.35;
+    const variation = state === "speaking" ? 0.42 : 0.25;
+    return Math.max(0.04, base + Math.sin(phase * 1.8 + i * 0.9) * variation + (Math.random() - 0.5) * 0.2);
+  });
+}
+
+let targetAmps = generateTarget("speaking");
+let frameCount = 0;
+
+function drawWave() {
+  frameCount++;
+  phase += voiceState === "speaking" ? 0.08 : voiceState === "listening" ? 0.05 : 0.01;
+
+  // Update target every ~8 frames
+  if (frameCount % 8 === 0) {
+    targetAmps = generateTarget(voiceState);
+  }
+  amplitudes = lerpArr(amplitudes, targetAmps, 0.18);
+
+  const W = canvas.width;
+  const H = canvas.height;
+  const totalBarW = BAR_W + BAR_GAP;
+  const totalWidth = BARS * totalBarW - BAR_GAP;
+  const startX = (W - totalWidth) / 2;
+  const centerY = H / 2;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Colour by voice state
+  let color;
+  if (voiceState === "speaking") color = "#4f46e5";
+  else if (voiceState === "listening") color = "#16a34a";
+  else color = "#cbd5e1";
+
+  for (let i = 0; i < BARS; i++) {
+    const amp = amplitudes[i];
+    const h = Math.max(4, amp * (H * 0.82));
+    const x = startX + i * totalBarW;
+    const y = centerY - h / 2;
+
+    const opacity = voiceState === "muted" ? 0.4 : 0.75 + amp * 0.25;
+    ctx.globalAlpha = opacity;
+    ctx.fillStyle = color;
+
+    // Rounded bar
+    const r = Math.min(BAR_W / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + BAR_W - r, y);
+    ctx.quadraticCurveTo(x + BAR_W, y, x + BAR_W, y + r);
+    ctx.lineTo(x + BAR_W, y + h - r);
+    ctx.quadraticCurveTo(x + BAR_W, y + h, x + BAR_W - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(drawWave);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────
+renderQuestion(currentIndex, null);
+drawWave();
+
+// Simulate AI speaking cycle on load
+setTimeout(() => setVoiceState("listening"), 2500);
+</script>
+</body>
+</html>
