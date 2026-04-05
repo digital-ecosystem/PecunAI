@@ -235,6 +235,38 @@ const Dashboard = () => {
         await startSession(queuedPartnerCode ? { partnerCode: queuedPartnerCode } : undefined);
     };
 
+    const startSessionV2 = async (opts?: { partnerCode?: string }) => {
+        setStartError(null);
+        setLoading(true);
+        let didNavigate = false;
+        try {
+            const response = await fetch('/api/qa-session/create', {
+                method: 'POST',
+                body: JSON.stringify(opts?.partnerCode ? { partnerCode: opts.partnerCode } : {}),
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const res = await response.json();
+            if (res?.success && res?.session?.id) {
+                setIsStartDrawerOpen(false);
+                didNavigate = true;
+                router.push('/customer/voice-session/' + res.session.id);
+                return;
+            }
+            setStartError(res?.message || 'Sitzung konnte nicht erstellt werden');
+        } catch {
+            setStartError('Sitzung konnte nicht erstellt werden');
+        } finally {
+            if (!didNavigate) setLoading(false);
+        }
+    };
+
+    const handleWelcomeContinueV2 = async () => {
+        const queuedPartnerCode = pendingStartPartnerCode;
+        setShowOnboardingWelcomePopup(false);
+        setPendingStartPartnerCode(null);
+        await startSessionV2(queuedPartnerCode ? { partnerCode: queuedPartnerCode } : undefined);
+    };
+
     const handleLookupPartner = async () => {
         const code = partnerCode.trim();
         if (!code) return;
@@ -528,6 +560,13 @@ const Dashboard = () => {
                                                     className="w-full sm:w-auto px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                                                 >
                                                     Weiter
+                                                </button>
+                                                <button
+                                                    onClick={handleWelcomeContinueV2}
+                                                    className="w-full sm:w-auto px-4 py-2.5 text-white rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                                                    style={{ background: "linear-gradient(135deg, #4f46e5, #3b82f6)" }}
+                                                >
+                                                    Try V2
                                                 </button>
                                             </div>
                                         </div>
