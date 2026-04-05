@@ -107,18 +107,11 @@ const STATUS_LABEL: Record<SessionState, string> = {
   error:       "Verbindungsfehler – Tippen Sie weiter",
 };
 
-// ── Sample options (Phase B will load real ones) ──────────────────
-const SAMPLE_OPTIONS = [
-  { id: "a", label: "Option A" },
-  { id: "b", label: "Option B" },
-  { id: "c", label: "Option C" },
-];
-
 // ── Component ─────────────────────────────────────────────────────
 
 interface VoiceSessionShellProps {
-  sessionId:  string;
-  questions:  CarouselQuestion[];
+  sessionId: string;
+  questions: CarouselQuestion[];
 }
 
 export default function VoiceSessionShell({ sessionId, questions }: VoiceSessionShellProps) {
@@ -129,22 +122,19 @@ export default function VoiceSessionShell({ sessionId, questions }: VoiceSession
   const [explainOpen, setExplainOpen] = useState(false);
   const [chatOpen,    setChatOpen]    = useState(false);
 
-  const n        = questions.length;
-  const wrap     = (i: number) => n > 0 ? ((i % n) + n) % n : 0;
-  const activeQ  = questions[wrap(state.currentQuestionIndex)];
-  const isMuted  = state.session === "muted";
+  const n           = questions.length;
+  const wrap        = (i: number) => n > 0 ? ((i % n) + n) % n : 0;
+  const activeQ     = questions[wrap(state.currentQuestionIndex)];
+  const isMuted     = state.session === "muted";
   const sphereState = toVoiceState(state.session);
-  const color    = VOICE_COLORS[sphereState];
+  const color       = VOICE_COLORS[sphereState];
 
-  // ── Phase A: simulated state transitions on mount ─────────────
+  // ── Simulated greeting on mount ────────────────────────────────
   useEffect(() => {
-    // Simulate: idle → connecting → greeting → speaking → listening
     dispatch({ type: "CONNECT" });
-
-    const t1 = setTimeout(() => dispatch({ type: "CONNECTED"  }), 800);
+    const t1 = setTimeout(() => dispatch({ type: "CONNECTED"   }), 800);
     const t2 = setTimeout(() => dispatch({ type: "AI_SPEAKING" }), 1600);
-    const t3 = setTimeout(() => dispatch({ type: "AI_DONE"    }), 3200);
-
+    const t3 = setTimeout(() => dispatch({ type: "AI_DONE"     }), 3200);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, []);
 
@@ -163,30 +153,67 @@ export default function VoiceSessionShell({ sessionId, questions }: VoiceSession
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
+  // ── REST helpers ──────────────────────────────────────────────
+
+  const saveAnswer = useCallback(async (question: CarouselQuestion, selectedOptionId: string) => {
+    const selectedOption = (question.options ?? []).find(o => o.id === selectedOptionId);
+    await fetch(`/api/answers?id=${sessionId}`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        questionId:   question.id,
+        answer:       selectedOption?.value ?? selectedOptionId,
+        question:     question.text,
+        options:      question.options ?? [],
+        questionType: question.questionType ?? "choice",
+      }),
+    });
+  }, [sessionId]);
+
+  const saveVoiceState = useCallback(async (lastQuestionIndex: number) => {
+    await fetch(`/api/qa-session/${sessionId}/voice-state`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lastQuestionIndex }),
+    });
+  }, [sessionId]);
+
+  const advancePhase = useCallback(async () => {
+    await fetch("/api/phase", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, phase: "SUGGESTIONS" }),
+    });
+    router.push("/customer/dashboard");
+  }, [sessionId, router]);
+
+  // ── Answer confirmed (from modal) ─────────────────────────────
+
+  const handleAnswerConfirmed = useCallback(async (selectedOptionId: string) => {
+    setModalOpen(false);
+    if (!activeQ) return;
+
+    dispatch({ type: "ANSWER_RECEIVED" });
+
+    await saveAnswer(activeQ, selectedOptionId);
+
+    const nextIndex = state.currentQuestionIndex + 1;
+    await saveVoiceState(nextIndex);
+
+    if (nextIndex >= n) {
+      await advancePhase();
+      return;
+    }
+
+    dispatch({ type: "ANSWER_SAVED" });
+    setTimeout(() => dispatch({ type: "AI_DONE" }), 1200);
+  }, [activeQ, state.currentQuestionIndex, n, saveAnswer, saveVoiceState, advancePhase]);
+
   // ── Handlers ──────────────────────────────────────────────────
 
   const handleMute = useCallback(() => {
     dispatch({ type: isMuted ? "UNMUTE" : "MUTE" });
   }, [isMuted]);
-
-  const handleNext = useCallback(() => {
-    if (state.session === "listening" || state.session === "muted") {
-      dispatch({ type: "ANSWER_RECEIVED" });
-      // Phase A: simulate save delay, then move to next question
-      setTimeout(() => {
-        dispatch({ type: "ANSWER_SAVED" });
-        setTimeout(() => dispatch({ type: "AI_DONE" }), 1200);
-      }, 600);
-    }
-  }, [state.session]);
-
-  const handlePrev = useCallback(() => {
-    if (state.currentQuestionIndex > 0) {
-      dispatch({ type: "ANSWER_SAVED" }); // reuse to decrement — Phase B will have a proper BACK action
-      // Manually override index down
-      dispatch({ type: "RESET" });
-    }
-  }, [state.currentQuestionIndex]);
 
   const goNext = useCallback(() => {
     dispatch({ type: "ANSWER_SAVED" });
@@ -194,12 +221,8 @@ export default function VoiceSessionShell({ sessionId, questions }: VoiceSession
   }, []);
 
   const goPrev = useCallback(() => {
-    // Phase A: just move the carousel index down without state change
     dispatch({ type: "ANSWER_RECEIVED" });
-    setTimeout(() => {
-      // go back one — we'll track index manually
-      dispatch({ type: "AI_DONE" });
-    }, 300);
+    setTimeout(() => dispatch({ type: "AI_DONE" }), 300);
   }, []);
 
   return (
@@ -233,7 +256,6 @@ export default function VoiceSessionShell({ sessionId, questions }: VoiceSession
             {STATUS_LABEL[state.session]}
           </p>
 
-          {/* Error banner */}
           {state.session === "error" && (
             <p className="mt-2 text-xs text-red-400">{state.errorMessage}</p>
           )}
@@ -260,21 +282,19 @@ export default function VoiceSessionShell({ sessionId, questions }: VoiceSession
 
           {/* ── Nav bar ────────────────────────────────────────── */}
           <div className="flex items-center justify-center gap-5 py-4">
-            {/* Mute */}
             <Btn active={isMuted} onClick={handleMute}>
               {isMuted
                 ? <MicOff size={18} color="#ef4444" strokeWidth={2} />
                 : <Mic    size={18} color="#3b82f6"  strokeWidth={2} />}
             </Btn>
 
-            {/* Back / Forward */}
             <div className="flex items-center gap-5 px-5 py-4 rounded-full"
               style={{ background: "rgba(210,224,248,0.45)", border: "1.5px solid rgba(190,212,245,0.6)", boxShadow: "0 2px 8px rgba(80,120,210,0.10)" }}>
-              <button onClick={handlePrev} style={{ color: "#6b8de0" }}>
+              <button onClick={goPrev} style={{ color: "#6b8de0" }}>
                 <ChevronLeft size={22} strokeWidth={1.5} />
               </button>
               <button
-                onClick={handleNext}
+                onClick={() => setModalOpen(true)}
                 disabled={state.session === "processing" || state.session === "connecting"}
                 style={{ color: state.session === "listening" || state.session === "muted" ? "#6b8de0" : "#c3d3ef" }}
               >
@@ -282,7 +302,6 @@ export default function VoiceSessionShell({ sessionId, questions }: VoiceSession
               </button>
             </div>
 
-            {/* Chat */}
             <Btn onClick={() => setChatOpen(true)}>
               <MessageSquare size={18} color="#8ba3d4" strokeWidth={2} />
             </Btn>
@@ -314,13 +333,17 @@ export default function VoiceSessionShell({ sessionId, questions }: VoiceSession
       {modalOpen && activeQ && (
         <VoiceQuestionModal
           question={{
-            number:  state.currentQuestionIndex + 1,
-            total:   questions.length,
-            text:    activeQ.text,
-            options: SAMPLE_OPTIONS,
+            number:           state.currentQuestionIndex + 1,
+            total:            n,
+            text:             activeQ.text,
+            options:          activeQ.options ?? [],
+            questionType:     activeQ.questionType,
+            minValue:         activeQ.minValue,
+            maxValue:         activeQ.maxValue,
+            inputPlaceholder: activeQ.inputPlaceholder,
           }}
           onClose={() => setModalOpen(false)}
-          onNext={() => { setModalOpen(false); handleNext(); }}
+          onNext={handleAnswerConfirmed}
         />
       )}
     </>

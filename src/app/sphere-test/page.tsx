@@ -10,56 +10,56 @@ import VoiceChatModal from "@/components/voice/VoiceChatModal";
 
 const QUESTIONS = [
   {
-    id: 1, category: "Anlagedauer", text: "Für welchen Zeitraum möchten Sie veranlagen?",
+    id: "1", category: "Anlagedauer", text: "Für welchen Zeitraum möchten Sie veranlagen?",
     options: [
-      { id: "a", label: "Bis 3 Jahre" },
-      { id: "b", label: "3 bis 5 Jahre" },
-      { id: "c", label: "5 bis 10 Jahre" },
-      { id: "d", label: "Über 10 Jahre" },
+      { id: "a", value: "bis_3", label: "Bis 3 Jahre" },
+      { id: "b", value: "3_bis_5", label: "3 bis 5 Jahre" },
+      { id: "c", value: "5_bis_10", label: "5 bis 10 Jahre" },
+      { id: "d", value: "ueber_10", label: "Über 10 Jahre" },
     ],
   },
   {
-    id: 2, category: "Nachhaltigkeit", text: "Wünschen Sie Informationen zu nachhaltigen Veranlagungen?",
+    id: "2", category: "Nachhaltigkeit", text: "Wünschen Sie Informationen zu nachhaltigen Veranlagungen?",
     options: [
-      { id: "a", label: "Ja, bitte" },
-      { id: "b", label: "Nein, danke" },
+      { id: "a", value: "ja", label: "Ja, bitte" },
+      { id: "b", value: "nein", label: "Nein, danke" },
     ],
   },
   {
-    id: 3, category: "Anlageziel", text: "Was möchten Sie mit dieser Veranlagung erreichen?",
+    id: "3", category: "Anlageziel", text: "Was möchten Sie mit dieser Veranlagung erreichen?",
     options: [
-      { id: "a", label: "Vermögensaufbau" },
-      { id: "b", label: "Kapitalerhalt" },
-      { id: "c", label: "Altersvorsorge" },
-      { id: "d", label: "Sonstige Sparziele" },
+      { id: "a", value: "aufbau", label: "Vermögensaufbau" },
+      { id: "b", value: "erhalt", label: "Kapitalerhalt" },
+      { id: "c", value: "alters", label: "Altersvorsorge" },
+      { id: "d", value: "sonstige", label: "Sonstige Sparziele" },
     ],
   },
   {
-    id: 4, category: "Risikoprofil", text: "Wie würden Sie Ihre Risikobereitschaft einschätzen?",
+    id: "4", category: "Risikoprofil", text: "Wie würden Sie Ihre Risikobereitschaft einschätzen?",
     options: [
-      { id: "a", label: "Sehr konservativ" },
-      { id: "b", label: "Konservativ" },
-      { id: "c", label: "Ausgewogen" },
-      { id: "d", label: "Wachstumsorientiert" },
-      { id: "e", label: "Spekulativ" },
+      { id: "a", value: "sehr_konservativ", label: "Sehr konservativ" },
+      { id: "b", value: "konservativ", label: "Konservativ" },
+      { id: "c", value: "ausgewogen", label: "Ausgewogen" },
+      { id: "d", value: "wachstum", label: "Wachstumsorientiert" },
+      { id: "e", value: "spekulativ", label: "Spekulativ" },
     ],
   },
   {
-    id: 5, category: "Erfahrung", text: "Haben Sie bereits Erfahrungen mit Vermögensverwaltung gesammelt?",
+    id: "5", category: "Erfahrung", text: "Haben Sie bereits Erfahrungen mit Vermögensverwaltung gesammelt?",
     options: [
-      { id: "a", label: "Keine Erfahrung" },
-      { id: "b", label: "Geringe Erfahrung" },
-      { id: "c", label: "Gute Kenntnisse" },
-      { id: "d", label: "Sehr erfahren" },
+      { id: "a", value: "keine", label: "Keine Erfahrung" },
+      { id: "b", value: "gering", label: "Geringe Erfahrung" },
+      { id: "c", value: "gut", label: "Gute Kenntnisse" },
+      { id: "d", value: "sehr", label: "Sehr erfahren" },
     ],
   },
   {
-    id: 6, category: "Einkommen", text: "Wie hoch ist Ihr monatliches Nettoeinkommen?",
+    id: "6", category: "Einkommen", text: "Wie hoch ist Ihr monatliches Nettoeinkommen?",
     options: [
-      { id: "a", label: "Bis 1.500 €" },
-      { id: "b", label: "1.500 bis 3.000 €" },
-      { id: "c", label: "3.000 bis 5.000 €" },
-      { id: "d", label: "Über 5.000 €" },
+      { id: "a", value: "bis_1500", label: "Bis 1.500 €" },
+      { id: "b", value: "1500_3000", label: "1.500 bis 3.000 €" },
+      { id: "c", value: "3000_5000", label: "3.000 bis 5.000 €" },
+      { id: "d", value: "ueber_5000", label: "Über 5.000 €" },
     ],
   },
 ];
@@ -173,10 +173,10 @@ export default function SphereTestPage() {
       {modalOpen && (
         <VoiceQuestionModal
           question={{
-            number:  activeQ.id,
+            number:  Number(activeQ.id),
             total:   19,
             text:    activeQ.text,
-            options: activeQ.options,
+            options: activeQ.options ?? [],
           }}
           onClose={() => setModalOpen(false)}
           onNext={() => {

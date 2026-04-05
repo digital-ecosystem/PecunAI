@@ -4,9 +4,14 @@ import { useRef, useState } from "react";
 import { Info, Pencil } from "lucide-react";
 
 export interface CarouselQuestion {
-  id: number;
+  id: string;
   category: string;
   text: string;
+  options?: { id: string; value: string; label: string }[];
+  questionType?: string;
+  minValue?: number;
+  maxValue?: number;
+  inputPlaceholder?: string;
 }
 
 interface VoiceCarouselProps {
