@@ -10,8 +10,9 @@ export default function VoiceSessionPage() {
   const params    = useParams();
   const sessionId = params?.session_id as string;
 
-  const [ready,     setReady]     = useState(false);
-  const [questions, setQuestions] = useState<CarouselQuestion[]>([]);
+  const [ready,                setReady]                = useState(false);
+  const [questions,            setQuestions]            = useState<CarouselQuestion[]>([]);
+  const [initialQuestionIndex, setInitialQuestionIndex] = useState(0);
 
   useEffect(() => {
     const init = async () => {
@@ -20,6 +21,13 @@ export default function VoiceSessionPage() {
       if (!meData?.success) {
         router.push("/customer/signin");
         return;
+      }
+
+      // Load resume position from voice state
+      const vsRes  = await fetch(`/api/qa-session/${sessionId}/voice-state`);
+      const vsData = await vsRes.json().catch(() => null);
+      if (vsData?.lastQuestionIndex) {
+        setInitialQuestionIndex(vsData.lastQuestionIndex);
       }
 
       const res  = await fetch(`/api/phase?id=${sessionId}`);
@@ -70,5 +78,11 @@ export default function VoiceSessionPage() {
     );
   }
 
-  return <VoiceSessionShell sessionId={sessionId} questions={questions} />;
+  return (
+    <VoiceSessionShell
+      sessionId={sessionId}
+      questions={questions}
+      initialQuestionIndex={initialQuestionIndex}
+    />
+  );
 }

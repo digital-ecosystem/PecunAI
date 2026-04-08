@@ -1,219 +1,152 @@
 "use client";
 
-import { TrendingUp, DollarSign, PieChart, ArrowLeft } from "lucide-react";
-import VoiceWaveform from "./VoiceWaveform";
+import { motion, AnimatePresence } from "motion/react";
+import { TrendingUp, DollarSign, PieChart, X, MessageSquare } from "lucide-react";
 
-export interface ExplainStat {
+interface Stat {
   label: string;
-  value: number;   // 0–100
+  value: number;
   color: string;
 }
 
-export interface ExplainFootnote {
-  title: string;
-  body: string;
-  stats: ExplainStat[];
+interface VoiceExplainOverlayProps {
+  footnote: {
+    title: string;
+    body:  string;
+    stats: Stat[];
+  };
+  questionCategory: string;
+  questionText:     string;
+  onClose:          () => void;
+  onFollowUp:       () => void;
 }
 
-interface VoiceExplainOverlayProps {
-  footnote: ExplainFootnote;
-  questionCategory: string;
-  questionText: string;
-  analyserNode?: AnalyserNode | null;
-  onClose: () => void;
-  onFollowUp?: () => void;
-}
+const ICONS = [TrendingUp, DollarSign, PieChart];
 
 export default function VoiceExplainOverlay({
   footnote,
-  questionCategory,
-  questionText,
-  analyserNode,
   onClose,
   onFollowUp,
 }: VoiceExplainOverlayProps) {
   return (
-    <div
-      onClick={onFollowUp}
-      style={{
-        position:      "fixed",
-        inset:          0,
-        background:    "linear-gradient(155deg, #dce8fb 0%, #edf4ff 28%, #f6faff 55%, #fdfeff 100%)",
-        zIndex:         50,
-        display:       "flex",
-        flexDirection: "column",
-        cursor:        "default",
-      }}
-    >
-      {/* ── Back button ─────────────────────────────────────────── */}
-      <button
-        onClick={e => { e.stopPropagation(); onClose(); }}
-        style={{
-          position:      "absolute",
-          top:            20,
-          left:           20,
-          width:          40,
-          height:         40,
-          borderRadius:  "50%",
-          background:    "white",
-          border:        "1px solid rgba(180,205,245,0.5)",
-          boxShadow:     "0 2px 8px rgba(80,120,210,0.10)",
-          display:       "flex",
-          alignItems:    "center",
-          justifyContent:"center",
-          cursor:        "pointer",
-          zIndex:         10,
-        }}
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50 flex flex-col justify-end"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       >
-        <ArrowLeft size={16} color="#4f6ac0" strokeWidth={2.5} />
-      </button>
+        {/* Backdrop */}
+        <motion.div
+          className="absolute inset-0"
+          style={{ background: "rgba(0,0,0,0.3)", backdropFilter: "blur(4px)" }}
+          onClick={onClose}
+        />
 
-      {/* ── Waveform section ────────────────────────────────────── */}
-      <div style={{
-        flex:           1,
-        display:        "flex",
-        flexDirection:  "column",
-        alignItems:     "center",
-        justifyContent: "center",
-        minHeight:       0,
-        padding:        "60px 0 24px",
-      }}>
-        <div style={{ width: "min(520px, 80%)" }}>
-          <VoiceWaveform
-            analyserNode={analyserNode}
-            isActive={true}
-            color="#3b82f6"
-            height={130}
-            barCount={64}
+        {/* Panel */}
+        <motion.div
+          className="relative z-10 w-full rounded-t-3xl overflow-hidden"
+          style={{
+            background:     "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 100%)",
+            backdropFilter: "blur(20px)",
+            border:         "1px solid rgba(255,255,255,0.6)",
+            boxShadow:      "0 -8px 40px rgba(59,130,246,0.15)",
+            maxHeight:      "80vh",
+            overflowY:      "auto",
+          }}
+          initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+          transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        >
+          {/* Accent bar */}
+          <div
+            className="w-full h-1"
+            style={{ background: "linear-gradient(90deg, rgba(59,130,246,1) 0%, rgba(147,197,253,1) 100%)" }}
           />
-        </div>
-        <p style={{
-          marginTop:     12,
-          fontSize:      14,
-          fontWeight:    600,
-          color:         "#3b82f6",
-          letterSpacing: "0.01em",
-        }}>
-          AI erklärt...
-        </p>
-      </div>
 
-      {/* ── Divider ─────────────────────────────────────────────── */}
-      <div style={{
-        height:     2,
-        background: "linear-gradient(90deg, transparent 0%, #3b82f6 20%, #4f46e5 50%, #3b82f6 80%, transparent 100%)",
-        flexShrink:  0,
-      }} />
-
-      {/* ── Content section ─────────────────────────────────────── */}
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          overflowY:  "auto",
-          padding:    "20px 16px 80px",
-          flexShrink:  0,
-          maxHeight:  "60vh",
-        }}
-      >
-        {/* ── Info card ─────────────────────────────────────────── */}
-        <div style={{
-          background:    "white",
-          borderRadius:   16,
-          padding:       "20px 20px 22px",
-          boxShadow:     "0 4px 20px rgba(60,100,210,0.10), 0 1px 4px rgba(0,0,0,0.04)",
-          marginBottom:   20,
-        }}>
-          {/* Icons row */}
-          <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
-            <TrendingUp size={22} color="#22c55e" strokeWidth={2} />
-            <DollarSign size={22} color="#3b82f6" strokeWidth={2} />
-            <PieChart   size={22} color="#a855f7" strokeWidth={2} />
-          </div>
-
-          {/* Title */}
-          <p style={{ fontSize: 17, fontWeight: 700, color: "#1a2a50", marginBottom: 10 }}>
-            {footnote.title}
-          </p>
-
-          {/* Body */}
-          <p style={{ fontSize: 13, color: "#4a5568", lineHeight: 1.6, marginBottom: 18 }}>
-            {footnote.body}
-          </p>
-
-          {/* Stats bars */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {footnote.stats.map(stat => (
-              <div key={stat.label}>
-                <div style={{
-                  display:        "flex",
-                  justifyContent: "space-between",
-                  marginBottom:    5,
-                }}>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>{stat.label}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: stat.color }}>
-                    {stat.value}%
-                  </span>
-                </div>
-                <div style={{
-                  height:       6,
-                  background:   "rgba(200,215,240,0.4)",
-                  borderRadius:  3,
-                  overflow:     "hidden",
-                }}>
-                  <div style={{
-                    height:       "100%",
-                    width:        `${stat.value}%`,
-                    background:    stat.color,
-                    borderRadius:  3,
-                    transition:   "width 0.6s ease",
-                  }} />
-                </div>
+          <div className="p-6">
+            {/* Header row */}
+            <div className="flex items-start justify-between mb-5">
+              <div className="flex items-center gap-3">
+                {ICONS.map((Icon, i) => (
+                  <motion.div
+                    key={i}
+                    className="flex items-center justify-center rounded-2xl"
+                    style={{
+                      width: 44, height: 44,
+                      background: `${footnote.stats[i]?.color ?? "rgba(59,130,246,0.8)"}22`,
+                      border: `1px solid ${footnote.stats[i]?.color ?? "rgba(59,130,246,0.8)"}33`,
+                    }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1 + i * 0.1 }}
+                  >
+                    <Icon size={22} style={{ color: footnote.stats[i]?.color ?? "rgba(59,130,246,0.8)" }} />
+                  </motion.div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+              <motion.button
+                className="flex items-center justify-center rounded-full"
+                style={{ width: 36, height: 36, background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.15)" }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onClose}
+              >
+                <X size={18} style={{ color: "rgba(59,130,246,0.7)" }} />
+              </motion.button>
+            </div>
 
-        {/* ── IHRE FRAGE ────────────────────────────────────────── */}
-        <div style={{ padding: "0 4px" }}>
-          <p style={{
-            fontSize:      10,
-            fontWeight:    700,
-            color:         "#94a3b8",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            marginBottom:   10,
-          }}>
-            Ihre Frage
-          </p>
-          <div style={{
-            background:    "white",
-            borderRadius:   12,
-            padding:       "14px 16px",
-            boxShadow:     "0 2px 8px rgba(60,100,210,0.07)",
-          }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "#4f6ac0", marginBottom: 5, letterSpacing: "0.04em" }}>
-              {questionCategory}
-            </p>
-            <p style={{ fontSize: 15, fontWeight: 700, color: "#1a2a50", lineHeight: 1.4 }}>
-              {questionText}
-            </p>
-          </div>
-        </div>
-      </div>
+            {/* Title */}
+            <h3 className="text-lg font-semibold mb-3" style={{ color: "rgba(15,23,42,0.95)" }}>
+              {footnote.title}
+            </h3>
 
-      {/* ── Footer hint ─────────────────────────────────────────── */}
-      <div style={{
-        position:      "absolute",
-        bottom:         20,
-        left:            0,
-        right:           0,
-        textAlign:     "center",
-        pointerEvents: "none",
-      }}>
-        <p style={{ fontSize: 12, color: "#94a3b8" }}>
-          Tippen Sie irgendwo, um eine Nachfrage zu stellen
-        </p>
-      </div>
-    </div>
+            {/* Body */}
+            <p className="text-sm leading-relaxed mb-5" style={{ color: "rgba(71,85,105,0.8)" }}>
+              {footnote.body}
+            </p>
+
+            {/* Stats bars */}
+            <div className="space-y-3 mb-6">
+              {footnote.stats.map((stat, i) => (
+                <div key={i}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium" style={{ color: "rgba(71,85,105,0.7)" }}>
+                      {stat.label}
+                    </span>
+                    <span className="text-xs font-semibold" style={{ color: stat.color }}>
+                      {stat.value}%
+                    </span>
+                  </div>
+                  <div
+                    className="w-full h-2 rounded-full overflow-hidden"
+                    style={{ background: "rgba(226,232,240,0.5)" }}
+                  >
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{ background: stat.color }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${stat.value}%` }}
+                      transition={{ duration: 1, delay: 0.3 + i * 0.1, ease: "easeOut" }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Follow-up button */}
+            <motion.button
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-semibold text-sm"
+              style={{
+                background: "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+                color: "white",
+                boxShadow: "0 4px 16px rgba(59,130,246,0.3)",
+              }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onFollowUp}
+            >
+              <MessageSquare size={16} />
+              Frage stellen
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

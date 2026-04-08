@@ -1,98 +1,18 @@
 "use client";
 
-import { useReducer, useEffect, useCallback, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, User, Mic, MicOff, ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
-import VoiceSphere, { VoiceState, VOICE_COLORS } from "./VoiceSphere";
+import { motion } from "motion/react";
+import { Menu, User, Mic } from "lucide-react";
+import VoiceSphere from "./VoiceSphere";
 import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
 import VoiceQuestionModal from "./VoiceQuestionModal";
 import VoiceExplainOverlay from "./VoiceExplainOverlay";
 import VoiceChatModal from "./VoiceChatModal";
+import ControlBar from "./ControlBar";
+import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 
-// ── State machine ─────────────────────────────────────────────────
-
-export type SessionState =
-  | "idle"
-  | "connecting"
-  | "greeting"
-  | "speaking"
-  | "listening"
-  | "processing"
-  | "muted"
-  | "paused"
-  | "resuming"
-  | "error";
-
-type Action =
-  | { type: "CONNECT" }
-  | { type: "CONNECTED" }
-  | { type: "AI_SPEAKING" }
-  | { type: "AI_DONE" }
-  | { type: "ANSWER_RECEIVED" }
-  | { type: "ANSWER_SAVED" }
-  | { type: "MUTE" }
-  | { type: "UNMUTE" }
-  | { type: "PAUSE" }
-  | { type: "RESUME" }
-  | { type: "RESUMING_DONE" }
-  | { type: "ERROR"; message: string }
-  | { type: "RESET" };
-
-interface ShellState {
-  session:              SessionState;
-  prevSession:          SessionState | null; // saved for mute → unmute
-  currentQuestionIndex: number;
-  errorMessage:         string | null;
-}
-
-const initialState: ShellState = {
-  session:              "idle",
-  prevSession:          null,
-  currentQuestionIndex:  0,
-  errorMessage:         null,
-};
-
-function reducer(state: ShellState, action: Action): ShellState {
-  switch (action.type) {
-    case "CONNECT":
-      return { ...state, session: "connecting" };
-    case "CONNECTED":
-      return { ...state, session: "greeting" };
-    case "AI_SPEAKING":
-      return { ...state, session: "speaking" };
-    case "AI_DONE":
-      return { ...state, session: "listening" };
-    case "ANSWER_RECEIVED":
-      return { ...state, session: "processing" };
-    case "ANSWER_SAVED":
-      return { ...state, session: "speaking", currentQuestionIndex: state.currentQuestionIndex + 1 };
-    case "MUTE":
-      return { ...state, session: "muted", prevSession: state.session };
-    case "UNMUTE":
-      return { ...state, session: state.prevSession ?? "listening", prevSession: null };
-    case "PAUSE":
-      return { ...state, session: "paused" };
-    case "RESUME":
-      return { ...state, session: "resuming" };
-    case "RESUMING_DONE":
-      return { ...state, session: "listening" };
-    case "ERROR":
-      return { ...state, session: "error", errorMessage: action.message };
-    case "RESET":
-      return initialState;
-    default:
-      return state;
-  }
-}
-
-// ── Derived helpers ───────────────────────────────────────────────
-
-/** Map session state → VoiceSphere animation state */
-function toVoiceState(s: SessionState): VoiceState {
-  if (s === "speaking" || s === "greeting" || s === "resuming") return "speaking";
-  if (s === "listening") return "listening";
-  return "idle";
-}
+// ── Status labels ─────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<SessionState, string> = {
   idle:        "Bereit...",
@@ -107,210 +27,174 @@ const STATUS_LABEL: Record<SessionState, string> = {
   error:       "Verbindungsfehler – Tippen Sie weiter",
 };
 
-// ── Component ─────────────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────────────────
 
 interface VoiceSessionShellProps {
-  sessionId: string;
-  questions: CarouselQuestion[];
+  sessionId:            string;
+  questions:            CarouselQuestion[];
+  initialQuestionIndex: number;
 }
 
-export default function VoiceSessionShell({ sessionId, questions }: VoiceSessionShellProps) {
+// ── Component ─────────────────────────────────────────────────────
+
+export default function VoiceSessionShell({
+  sessionId,
+  questions,
+  initialQuestionIndex,
+}: VoiceSessionShellProps) {
   const router = useRouter();
-  const [state, dispatch] = useReducer(reducer, initialState);
+
+  const { state, started, analyserNode, startSession, toggleMute, onAnswerConfirmed, onPrev } =
+    useVoiceSession({ sessionId, questions, initialQuestionIndex });
 
   const [modalOpen,   setModalOpen]   = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const [chatOpen,    setChatOpen]    = useState(false);
 
-  const n           = questions.length;
-  const wrap        = (i: number) => n > 0 ? ((i % n) + n) % n : 0;
-  const activeQ     = questions[wrap(state.currentQuestionIndex)];
-  const isMuted     = state.session === "muted";
-  const sphereState = toVoiceState(state.session);
-  const color       = VOICE_COLORS[sphereState];
-
-  // ── Simulated greeting on mount ────────────────────────────────
-  useEffect(() => {
-    dispatch({ type: "CONNECT" });
-    const t1 = setTimeout(() => dispatch({ type: "CONNECTED"   }), 800);
-    const t2 = setTimeout(() => dispatch({ type: "AI_SPEAKING" }), 1600);
-    const t3 = setTimeout(() => dispatch({ type: "AI_DONE"     }), 3200);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-  }, []);
-
-  // ── Visibility: pause / resume when tab goes background ───────
-  useEffect(() => {
-    const onVisibility = () => {
-      if (document.hidden) {
-        dispatch({ type: "PAUSE" });
-      } else {
-        dispatch({ type: "RESUME" });
-        const t = setTimeout(() => dispatch({ type: "RESUMING_DONE" }), 1500);
-        return () => clearTimeout(t);
-      }
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, []);
-
-  // ── REST helpers ──────────────────────────────────────────────
-
-  const saveAnswer = useCallback(async (question: CarouselQuestion, selectedOptionId: string) => {
-    const selectedOption = (question.options ?? []).find(o => o.id === selectedOptionId);
-    await fetch(`/api/answers?id=${sessionId}`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        questionId:   question.id,
-        answer:       selectedOption?.value ?? selectedOptionId,
-        question:     question.text,
-        options:      question.options ?? [],
-        questionType: question.questionType ?? "choice",
-      }),
-    });
-  }, [sessionId]);
-
-  const saveVoiceState = useCallback(async (lastQuestionIndex: number) => {
-    await fetch(`/api/qa-session/${sessionId}/voice-state`, {
-      method:  "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lastQuestionIndex }),
-    });
-  }, [sessionId]);
-
-  const advancePhase = useCallback(async () => {
-    await fetch("/api/phase", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId, phase: "SUGGESTIONS" }),
-    });
-    router.push("/customer/dashboard");
-  }, [sessionId, router]);
-
-  // ── Answer confirmed (from modal) ─────────────────────────────
-
-  const handleAnswerConfirmed = useCallback(async (selectedOptionId: string) => {
-    setModalOpen(false);
-    if (!activeQ) return;
-
-    dispatch({ type: "ANSWER_RECEIVED" });
-
-    await saveAnswer(activeQ, selectedOptionId);
-
-    const nextIndex = state.currentQuestionIndex + 1;
-    await saveVoiceState(nextIndex);
-
-    if (nextIndex >= n) {
-      await advancePhase();
-      return;
-    }
-
-    dispatch({ type: "ANSWER_SAVED" });
-    setTimeout(() => dispatch({ type: "AI_DONE" }), 1200);
-  }, [activeQ, state.currentQuestionIndex, n, saveAnswer, saveVoiceState, advancePhase]);
-
-  // ── Handlers ──────────────────────────────────────────────────
-
-  const handleMute = useCallback(() => {
-    dispatch({ type: isMuted ? "UNMUTE" : "MUTE" });
-  }, [isMuted]);
-
-  const goNext = useCallback(() => {
-    dispatch({ type: "ANSWER_SAVED" });
-    setTimeout(() => dispatch({ type: "AI_DONE" }), 1200);
-  }, []);
-
-  const goPrev = useCallback(() => {
-    dispatch({ type: "ANSWER_RECEIVED" });
-    setTimeout(() => dispatch({ type: "AI_DONE" }), 300);
-  }, []);
+  const n        = questions.length;
+  const activeQ  = n > 0 ? questions[Math.min(state.currentQuestionIndex, n - 1)] : null;
+  const isMuted  = state.session === "muted";
+  const isSpeaking = ["speaking", "greeting", "resuming"].includes(state.session);
 
   return (
     <>
       <div
-        className="h-screen flex flex-col overflow-hidden select-none"
-        style={{ background: "linear-gradient(155deg, #dce8fb 0%, #edf4ff 28%, #f6faff 55%, #fdfeff 100%)" }}
+        className="min-h-screen flex flex-col relative overflow-hidden"
+        style={{
+          background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)",
+        }}
       >
-        {/* ── Header ──────────────────────────────────────────── */}
-        <header className="flex items-center justify-between px-5 pt-4 pb-2 flex-shrink-0">
-          <Btn onClick={() => router.push("/customer/dashboard")}>
-            <Menu size={20} color="#3b82f6" strokeWidth={2} />
-          </Btn>
-          <div className="flex flex-col items-center">
-            <span className="text-lg font-bold tracking-tight" style={{ color: "#3a5bd9" }}>Vox.2</span>
-            <span className="text-[10px] font-medium tracking-widest uppercase"
-              style={{ color: STATE_COLOR[state.session] }}>
-              {state.session}
-            </span>
+        {/* ── Header ──────────────────────────────────────────────── */}
+        <div className="w-full px-6 py-5 relative z-10">
+          <div className="flex items-center justify-between">
+            <motion.button
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width:          44,
+                height:         44,
+                background:     "rgba(255,255,255,0.6)",
+                backdropFilter: "blur(10px)",
+                border:         "1px solid rgba(255,255,255,0.5)",
+                boxShadow:      "0 2px 8px rgba(0,0,0,0.04)",
+              }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push("/customer/dashboard")}
+            >
+              <Menu size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
+            </motion.button>
+
+            <motion.h1
+              className="text-2xl font-bold tracking-tight"
+              style={{
+                background:           "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor:  "transparent",
+                backgroundClip:       "text",
+              }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              Vox.2
+            </motion.h1>
+
+            <motion.button
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width:          44,
+                height:         44,
+                background:     "rgba(255,255,255,0.6)",
+                backdropFilter: "blur(10px)",
+                border:         "1px solid rgba(255,255,255,0.5)",
+                boxShadow:      "0 2px 8px rgba(0,0,0,0.04)",
+              }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <User size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
+            </motion.button>
           </div>
-          <Btn>
-            <User size={20} color="#3b82f6" strokeWidth={2} />
-          </Btn>
-        </header>
+        </div>
 
-        {/* ── Sphere ──────────────────────────────────────────── */}
-        <div className="flex flex-col items-center justify-center flex-1 min-h-0">
-          <VoiceSphere voiceState={sphereState} size={420} />
-          <p className="mt-4 text-sm font-semibold tracking-wide transition-colors duration-500"
-            style={{ color }}>
+        {/* ── Main — orb ──────────────────────────────────────────── */}
+        <div className="flex-1 flex flex-col items-center justify-center relative">
+          {/* Background energy pulse */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+            <motion.div
+              className="rounded-full"
+              style={{
+                width:      500,
+                height:     500,
+                background: "radial-gradient(circle, rgba(59,130,246,0.08) 0%, rgba(59,130,246,0) 70%)",
+                filter:     "blur(60px)",
+              }}
+              animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.7, 0.5] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </div>
+
+          {/* Orb */}
+          <motion.div
+            className="relative z-10"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6 }}
+          >
+            <VoiceSphere
+              isActive={started}
+              isSpeaking={isSpeaking && !isMuted}
+              size={380}
+              analyserNode={analyserNode}
+            />
+          </motion.div>
+
+          {/* Status text */}
+          <motion.p
+            className="text-sm font-medium relative z-30 mt-6 mb-0 pb-[50px]"
+            style={{ color: "rgba(59,130,246,0.7)" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
             {STATUS_LABEL[state.session]}
-          </p>
+          </motion.p>
 
-          {state.session === "error" && (
-            <p className="mt-2 text-xs text-red-400">{state.errorMessage}</p>
+          {state.session === "error" && state.errorMessage && (
+            <p className="text-xs text-red-400 relative z-30 -mt-10">{state.errorMessage}</p>
           )}
         </div>
 
-        {/* ── Bottom panel ─────────────────────────────────────── */}
-        <div
-          className="flex-shrink-0"
-          style={{
-            background: "linear-gradient(180deg, transparent 0%, rgba(240,247,255,0.6) 20%, rgba(235,244,255,0.92) 100%)",
-            paddingBottom: "env(safe-area-inset-bottom, 16px)",
-          }}
-        >
-          {questions.length > 0 && (
+        {/* ── Question Carousel ────────────────────────────────────── */}
+        {n > 0 && (
+          <motion.div
+            className="relative z-20 -mt-24 mb-8"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+          >
             <VoiceCarousel
               questions={questions}
               currentIndex={state.currentQuestionIndex}
-              onNext={goNext}
-              onPrev={goPrev}
+              onNext={() => setModalOpen(true)}
+              onPrev={onPrev}
               onActiveCardClick={() => setModalOpen(true)}
               onInfoClick={() => setExplainOpen(true)}
             />
-          )}
+          </motion.div>
+        )}
 
-          {/* ── Nav bar ────────────────────────────────────────── */}
-          <div className="flex items-center justify-center gap-5 py-4">
-            <Btn active={isMuted} onClick={handleMute}>
-              {isMuted
-                ? <MicOff size={18} color="#ef4444" strokeWidth={2} />
-                : <Mic    size={18} color="#3b82f6"  strokeWidth={2} />}
-            </Btn>
-
-            <div className="flex items-center gap-5 px-5 py-4 rounded-full"
-              style={{ background: "rgba(210,224,248,0.45)", border: "1.5px solid rgba(190,212,245,0.6)", boxShadow: "0 2px 8px rgba(80,120,210,0.10)" }}>
-              <button onClick={goPrev} style={{ color: "#6b8de0" }}>
-                <ChevronLeft size={22} strokeWidth={1.5} />
-              </button>
-              <button
-                onClick={() => setModalOpen(true)}
-                disabled={state.session === "processing" || state.session === "connecting"}
-                style={{ color: state.session === "listening" || state.session === "muted" ? "#6b8de0" : "#c3d3ef" }}
-              >
-                <ChevronRight size={22} strokeWidth={1.5} />
-              </button>
-            </div>
-
-            <Btn onClick={() => setChatOpen(true)}>
-              <MessageSquare size={18} color="#8ba3d4" strokeWidth={2} />
-            </Btn>
-          </div>
-        </div>
+        {/* ── Control Bar ──────────────────────────────────────────── */}
+        <ControlBar
+          isMuted={isMuted}
+          onMuteToggle={toggleMute}
+          onPrevious={onPrev}
+          onNext={() => setModalOpen(true)}
+          onChatClick={() => setChatOpen(true)}
+        />
       </div>
 
-      {/* ── Modals ───────────────────────────────────────────────── */}
-      {chatOpen && <VoiceChatModal onClose={() => setChatOpen(false)} />}
+      {/* ── Overlays ─────────────────────────────────────────────── */}
+
+      <VoiceChatModal isOpen={chatOpen} onClose={() => setChatOpen(false)} />
 
       {explainOpen && activeQ && (
         <VoiceExplainOverlay
@@ -318,9 +202,9 @@ export default function VoiceSessionShell({ sessionId, questions }: VoiceSession
             title: `${activeQ.category} verstehen`,
             body:  "Bei der Festlegung Ihres Anlageziels ist es wichtig zu verstehen, ob Sie primär Vermögen aufbauen, Kapital erhalten, für das Alter vorsorgen oder andere spezifische Ziele verfolgen möchten.",
             stats: [
-              { label: "Stocks", value: 60, color: "#3b82f6" },
-              { label: "Bonds",  value: 30, color: "#60a5fa" },
-              { label: "Cash",   value: 10, color: "#93c5fd" },
+              { label: "Aktien",    value: 60, color: "rgba(59,130,246,0.8)"  },
+              { label: "Anleihen",  value: 30, color: "rgba(147,197,253,0.8)" },
+              { label: "Liquidität",value: 10, color: "rgba(191,219,254,0.8)" },
             ],
           }}
           questionCategory={activeQ.category}
@@ -343,38 +227,63 @@ export default function VoiceSessionShell({ sessionId, questions }: VoiceSession
             inputPlaceholder: activeQ.inputPlaceholder,
           }}
           onClose={() => setModalOpen(false)}
-          onNext={handleAnswerConfirmed}
+          onNext={async value => {
+            setModalOpen(false);
+            if (activeQ) await onAnswerConfirmed(activeQ, value);
+          }}
         />
       )}
+
+      {/* ── Tap-to-start overlay ─────────────────────────────────── */}
+      {!started && (
+        <motion.div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
+          style={{
+            background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)",
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          onClick={startSession}
+        >
+          <motion.div
+            className="flex flex-col items-center gap-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            <motion.div
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width:      88,
+                height:     88,
+                background: "rgba(59,130,246,0.1)",
+                border:     "1px solid rgba(59,130,246,0.2)",
+              }}
+              animate={{ scale: [1, 1.05, 1], opacity: [0.8, 1, 0.8] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <Mic size={36} style={{ color: "rgba(59,130,246,0.8)" }} strokeWidth={1.5} />
+            </motion.div>
+
+            <div className="flex flex-col items-center gap-1">
+              <motion.h1
+                className="text-2xl font-bold tracking-tight"
+                style={{
+                  background:           "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor:  "transparent",
+                  backgroundClip:       "text",
+                }}
+              >
+                PecunAI Beratung
+              </motion.h1>
+              <p className="text-sm" style={{ color: "rgba(59,130,246,0.6)" }}>
+                Tippen um zu starten
+              </p>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </>
-  );
-}
-
-// ── State indicator colours (dev helper shown under title) ────────
-const STATE_COLOR: Record<SessionState, string> = {
-  idle:        "#94a3b8",
-  connecting:  "#f59e0b",
-  greeting:    "#8b5cf6",
-  speaking:    "#3b82f6",
-  listening:   "#22c55e",
-  processing:  "#f59e0b",
-  muted:       "#ef4444",
-  paused:      "#94a3b8",
-  resuming:    "#8b5cf6",
-  error:       "#ef4444",
-};
-
-// ── Reusable button ───────────────────────────────────────────────
-function Btn({ children, onClick, active }: { children: React.ReactNode; onClick?: () => void; active?: boolean }) {
-  return (
-    <button onClick={onClick}
-      className="w-12 h-12 rounded-full flex items-center justify-center transition-all"
-      style={{
-        background: active ? "rgba(254,226,226,0.7)" : "rgba(210,224,248,0.45)",
-        border: `1.5px solid ${active ? "#fca5a5" : "rgba(190,212,245,0.6)"}`,
-        boxShadow: "0 2px 8px rgba(80,120,210,0.10)",
-      }}>
-      {children}
-    </button>
   );
 }

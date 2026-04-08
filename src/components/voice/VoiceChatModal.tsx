@@ -1,218 +1,186 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { X, Send } from "lucide-react";
 
 interface Message {
-  id:   string;
-  role: "ai" | "user";
+  id: string;
   text: string;
-  time: string;
+  sender: "user" | "ai";
+  timestamp: Date;
 }
 
 interface VoiceChatModalProps {
-  onClose: () => void;
+  isOpen:   boolean;
+  onClose:  () => void;
 }
 
-const now = () =>
-  new Date().toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" });
-
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id:   "1",
-    role: "ai",
-    text: "Hallo! Ich bin Pecunai, Ihr persönlicher Finanzassistent. Wie kann ich Ihnen heute helfen?",
-    time: now(),
-  },
-];
-
-export default function VoiceChatModal({ onClose }: VoiceChatModalProps) {
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-  const [input,    setInput]    = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
+export default function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "1",
+      text: "Hallo! Ich bin PecunAI, Ihr persönlicher Finanzassistent. Wie kann ich Ihnen heute helfen?",
+      sender: "ai",
+      timestamp: new Date(),
+    },
+  ]);
+  const [inputValue, setInputValue]   = useState("");
+  const messagesEndRef                = useRef<HTMLDivElement>(null);
+  const inputRef                      = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const send = () => {
-    const text = input.trim();
-    if (!text) return;
+  useEffect(() => {
+    if (isOpen) setTimeout(() => inputRef.current?.focus(), 300);
+  }, [isOpen]);
 
-    const userMsg: Message = { id: Date.now().toString(), role: "user", text, time: now() };
-    setMessages(m => [...m, userMsg]);
-    setInput("");
+  const handleSend = () => {
+    if (!inputValue.trim()) return;
+    const userMsg: Message = {
+      id: Date.now().toString(), text: inputValue, sender: "user", timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMsg]);
+    setInputValue("");
+    setTimeout(() => {
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        text: "Das ist eine sehr gute Frage! Ich helfe Ihnen gerne weiter.",
+        sender: "ai",
+        timestamp: new Date(),
+      }]);
+    }, 800);
   };
 
-  const handleKey = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
   return (
-    /* ── Backdrop ───────────────────────────────────────────────── */
-    <div
-      onClick={onClose}
-      style={{
-        position:   "fixed",
-        inset:       0,
-        background: "rgba(30,50,100,0.35)",
-        backdropFilter: "blur(3px)",
-        WebkitBackdropFilter: "blur(3px)",
-        zIndex:      60,
-        display:    "flex",
-        alignItems: "flex-end",
-      }}
-    >
-      {/* ── Sheet ───────────────────────────────────────────────── */}
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          width:         "100%",
-          height:        "68vh",
-          background:    "white",
-          borderRadius:  "22px 22px 0 0",
-          display:       "flex",
-          flexDirection: "column",
-          overflow:      "hidden",
-          boxShadow:     "0 -8px 40px rgba(40,80,180,0.15)",
-        }}
-      >
-        {/* ── Header ──────────────────────────────────────────── */}
-        <div style={{
-          padding:        "18px 20px 14px",
-          borderBottom:   "1px solid rgba(200,215,240,0.5)",
-          display:        "flex",
-          alignItems:     "flex-start",
-          justifyContent: "space-between",
-          flexShrink:      0,
-        }}>
-          <div>
-            <p style={{ fontSize: 17, fontWeight: 700, color: "#1a2a50", marginBottom: 3 }}>
-              Chat mit Pecunai
-            </p>
-            <p style={{ fontSize: 12, color: "#3b82f6" }}>
-              Online und bereit zu helfen
-            </p>
-          </div>
-          <button
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            className="fixed inset-0 z-40"
+            style={{ background: "rgba(0, 0, 0, 0.3)", backdropFilter: "blur(4px)" }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
-            style={{
-              width:          32,
-              height:         32,
-              borderRadius:  "50%",
-              border:        "1.5px solid rgba(180,205,245,0.6)",
-              background:    "white",
-              display:       "flex",
-              alignItems:    "center",
-              justifyContent:"center",
-              cursor:        "pointer",
-              flexShrink:     0,
-            }}
-          >
-            <X size={14} color="#94a3b8" strokeWidth={2.5} />
-          </button>
-        </div>
+          />
 
-        {/* ── Messages ────────────────────────────────────────── */}
-        <div style={{
-          flex:      1,
-          overflowY: "auto",
-          padding:   "20px 16px",
-          display:   "flex",
-          flexDirection: "column",
-          gap:        20,
-        }}>
-          {messages.map(msg => (
+          {/* Panel */}
+          <motion.div
+            className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
+            style={{
+              height: "70vh",
+              maxHeight: "600px",
+              background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,251,0.98) 100%)",
+              backdropFilter: "blur(20px)",
+              borderTopLeftRadius: "32px",
+              borderTopRightRadius: "32px",
+              boxShadow: "0 -8px 32px rgba(59, 130, 246, 0.15)",
+              border: "1px solid rgba(59, 130, 246, 0.2)",
+              borderBottom: "none",
+            }}
+            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          >
+            {/* Header */}
             <div
-              key={msg.id}
-              style={{
-                display:   "flex",
-                justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
-              }}
+              className="flex items-center justify-between px-6 py-5"
+              style={{ borderBottom: "1px solid rgba(59, 130, 246, 0.1)" }}
             >
-              <div style={{
-                maxWidth:      "60%",
-                background:    msg.role === "ai" ? "white" : "#3b82f6",
-                border:        msg.role === "ai" ? "1px solid rgba(180,205,245,0.5)" : "none",
-                borderRadius:   msg.role === "ai"
-                  ? "18px 18px 18px 4px"
-                  : "18px 18px 4px 18px",
-                padding:       "12px 16px 8px",
-                boxShadow:     msg.role === "ai"
-                  ? "0 2px 8px rgba(60,100,210,0.07)"
-                  : "0 2px 12px rgba(59,130,246,0.35)",
-              }}>
-                <p style={{
-                  fontSize:   14,
-                  fontWeight: 500,
-                  color:      msg.role === "ai" ? "#1a2a50" : "white",
-                  lineHeight: 1.5,
-                  margin:      0,
-                }}>
-                  {msg.text}
-                </p>
-                <p style={{
-                  fontSize:   11,
-                  color:      msg.role === "ai" ? "#93c5fd" : "rgba(255,255,255,0.65)",
-                  marginTop:   5,
-                  textAlign:  "right",
-                }}>
-                  {msg.time}
+              <div>
+                <h2 className="text-xl font-semibold" style={{ color: "rgba(30, 58, 138, 0.9)" }}>
+                  Chat mit PecunAI
+                </h2>
+                <p className="text-sm mt-1" style={{ color: "rgba(59, 130, 246, 0.6)" }}>
+                  Online und bereit zu helfen
                 </p>
               </div>
+              <motion.button
+                className="flex items-center justify-center rounded-full"
+                style={{ width: 40, height: 40, background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)" }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onClose}
+              >
+                <X size={20} style={{ color: "rgba(59, 130, 246, 0.8)" }} />
+              </motion.button>
             </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
 
-        {/* ── Input bar ───────────────────────────────────────── */}
-        <div style={{
-          padding:     "12px 16px",
-          borderTop:   "1px solid rgba(200,215,240,0.5)",
-          flexShrink:   0,
-          display:     "flex",
-          alignItems:  "center",
-          gap:          10,
-          background:  "white",
-          paddingBottom: "max(12px, env(safe-area-inset-bottom))",
-        }}>
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder="Nachricht eingeben..."
-            style={{
-              flex:          1,
-              height:         44,
-              borderRadius:   22,
-              border:        "1.5px solid rgba(180,205,245,0.55)",
-              background:    "rgba(240,246,255,0.6)",
-              padding:       "0 16px",
-              fontSize:       14,
-              color:         "#1a2a50",
-              outline:       "none",
-            }}
-          />
-          <button
-            onClick={send}
-            style={{
-              width:          40,
-              height:         40,
-              borderRadius:  "50%",
-              background:    input.trim() ? "#3b82f6" : "rgba(200,215,240,0.5)",
-              border:        "none",
-              display:       "flex",
-              alignItems:    "center",
-              justifyContent:"center",
-              cursor:        input.trim() ? "pointer" : "default",
-              flexShrink:     0,
-              transition:    "background 0.2s",
-            }}
-          >
-            <Send size={16} color={input.trim() ? "white" : "#94a3b8"} strokeWidth={2} />
-          </button>
-        </div>
-      </div>
-    </div>
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <div className="space-y-4">
+                {messages.map(msg => (
+                  <motion.div
+                    key={msg.id}
+                    className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div
+                      className="max-w-[80%] px-5 py-3 rounded-3xl"
+                      style={{
+                        background: msg.sender === "user"
+                          ? "linear-gradient(135deg, rgba(59,130,246,0.9) 0%, rgba(37,99,235,0.9) 100%)"
+                          : "rgba(255,255,255,0.9)",
+                        color: msg.sender === "user" ? "white" : "rgba(30, 58, 138, 0.9)",
+                        border:     msg.sender === "ai" ? "1px solid rgba(59,130,246,0.15)" : "none",
+                        boxShadow:  msg.sender === "user" ? "0 4px 12px rgba(59,130,246,0.3)" : "0 2px 8px rgba(0,0,0,0.05)",
+                      }}
+                    >
+                      <p className="text-sm leading-relaxed">{msg.text}</p>
+                      <p className="text-xs mt-1" style={{ color: msg.sender === "user" ? "rgba(255,255,255,0.7)" : "rgba(59,130,246,0.5)" }}>
+                        {msg.timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            {/* Input */}
+            <div
+              className="px-6 py-5"
+              style={{ borderTop: "1px solid rgba(59,130,246,0.1)", background: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)" }}
+            >
+              <div
+                className="flex items-center gap-3 px-5 py-3 rounded-full"
+                style={{ background: "rgba(255,255,255,0.9)", border: "1px solid rgba(59,130,246,0.2)", boxShadow: "0 2px 8px rgba(59,130,246,0.1)" }}
+              >
+                <input
+                  ref={inputRef}
+                  type="text"
+                  placeholder="Nachricht eingeben..."
+                  value={inputValue}
+                  onChange={e => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="flex-1 bg-transparent outline-none text-sm"
+                  style={{ color: "rgba(30, 58, 138, 0.9)" }}
+                />
+                <motion.button
+                  className="flex items-center justify-center rounded-full"
+                  style={{
+                    width: 36, height: 36,
+                    background: inputValue.trim()
+                      ? "linear-gradient(135deg, rgba(59,130,246,0.9) 0%, rgba(37,99,235,0.9) 100%)"
+                      : "rgba(59,130,246,0.15)",
+                    border: "1px solid rgba(59,130,246,0.2)",
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleSend}
+                  disabled={!inputValue.trim()}
+                >
+                  <Send size={16} style={{ color: inputValue.trim() ? "white" : "rgba(59,130,246,0.4)" }} />
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
