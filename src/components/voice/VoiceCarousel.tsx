@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { Info, Edit3 } from "lucide-react";
+import { useRef, type PointerEvent as ReactPointerEvent } from "react";
 
 export interface CarouselQuestion {
   id: string;
@@ -26,10 +27,36 @@ interface VoiceCarouselProps {
 export default function VoiceCarousel({
   questions,
   currentIndex,
+  onNext,
+  onPrev,
   onActiveCardClick,
   onInfoClick,
 }: VoiceCarouselProps) {
-  const n = questions.length;
+  const n             = questions.length;
+  const pointerStartX = useRef<number | null>(null);
+  const didSwipe      = useRef(false);
+
+  const SWIPE_THRESHOLD = 40;
+
+  const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    pointerStartX.current = e.clientX;
+    didSwipe.current      = false;
+  };
+
+  const handlePointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (pointerStartX.current === null) return;
+    const dx = e.clientX - pointerStartX.current;
+    if (Math.abs(dx) >= SWIPE_THRESHOLD) {
+      didSwipe.current = true;
+      if (dx < 0) onNext();
+      else        onPrev();
+    }
+    pointerStartX.current = null;
+  };
+
+  const handlePointerCancel = () => {
+    pointerStartX.current = null;
+  };
 
   const getRelativePos = (index: number) => {
     let diff = index - currentIndex;
@@ -42,11 +69,11 @@ export default function VoiceCarousel({
     const abs = Math.abs(rel);
     let left: string, right: string, scale: number;
 
-    if      (rel  === 0) { left = "50%";   right = "auto"; scale = 1;    }
-    else if (rel  === 1) { left = "60%";   right = "auto"; scale = 0.85; }
-    else if (rel  === -1){ left = "auto";  right = "60%";  scale = 0.85; }
-    else if (rel  >= 2)  { left = "80%";   right = "auto"; scale = 0.7;  }
-    else                 { left = "auto";  right = "80%";  scale = 0.7;  }
+    if      (rel  === 0) { left = "50%";  right = "auto"; scale = 1;    }
+    else if (rel  === 1) { left = "60%";  right = "auto"; scale = 0.85; }
+    else if (rel  === -1){ left = "auto"; right = "60%";  scale = 0.85; }
+    else if (rel  >= 2)  { left = "80%";  right = "auto"; scale = 0.7;  }
+    else                 { left = "auto"; right = "80%";  scale = 0.7;  }
 
     return {
       left,
@@ -62,7 +89,13 @@ export default function VoiceCarousel({
   };
 
   return (
-    <div className="relative w-full" style={{ height: "240px" }}>
+    <div
+      className="relative w-full select-none"
+      style={{ height: "240px", touchAction: "pan-y" }}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+    >
       {/* Edge fade masks */}
       <div
         className="absolute inset-0 pointer-events-none z-30"
@@ -79,6 +112,13 @@ export default function VoiceCarousel({
             const style    = getCardStyle(rel);
             const isActive = rel === 0;
 
+            const handleClick = () => {
+              if (didSwipe.current) return;
+              if      (isActive)    onActiveCardClick();
+              else if (rel ===  1)  onNext();
+              else if (rel === -1)  onPrev();
+            };
+
             return (
               <motion.div
                 key={q.id || index}
@@ -86,7 +126,7 @@ export default function VoiceCarousel({
                 style={style}
                 animate={style}
                 transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
-                onClick={isActive ? onActiveCardClick : undefined}
+                onClick={handleClick}
               >
                 <motion.div
                   className="relative overflow-hidden rounded-3xl"
@@ -124,7 +164,10 @@ export default function VoiceCarousel({
                             className="rounded-full p-2"
                             style={{ background: "rgba(59,130,246,0.1)" }}
                             whileTap={{ scale: 0.9 }}
-                            onClick={e => { e.stopPropagation(); onInfoClick(); }}
+                            onClick={e => {
+                              e.stopPropagation();
+                              if (!didSwipe.current) onInfoClick();
+                            }}
                           >
                             <Info size={18} style={{ color: "rgba(59,130,246,0.8)" }} />
                           </motion.button>
