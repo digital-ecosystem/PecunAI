@@ -136,14 +136,14 @@ export default function VoiceCarousel({
                     backdropFilter: "blur(20px)",
                     border:         "1px solid rgba(255,255,255,0.5)",
                     boxShadow: isActive
-                      ? "0 0 40px rgba(59,130,246,0.6), 0 0 40px rgba(59,130,246,0.4), 0 8px 32px rgba(59,130,246,0.15)"
-                      : "0 8px 32px rgba(59,130,246,0.15), 0 2px 8px rgba(0,0,0,0.05)",
+                      ? "0 0 20px rgba(59,130,246,0.2), 0 0 20px rgba(59,130,246,0.15), 0 8px 32px rgba(59,130,246,0.08)"
+                      : "0 8px 32px rgba(59,130,246,0.08), 0 2px 8px rgba(0,0,0,0.04)",
                   }}
                   animate={isActive ? {
                     boxShadow: [
-                      "0 0 40px rgba(59,130,246,0.6), 0 0 40px rgba(59,130,246,0.4), 0 8px 32px rgba(59,130,246,0.15)",
-                      "0 0 50px rgba(59,130,246,0.8), 0 0 50px rgba(59,130,246,0.6), 0 8px 32px rgba(59,130,246,0.2)",
-                      "0 0 40px rgba(59,130,246,0.6), 0 0 40px rgba(59,130,246,0.4), 0 8px 32px rgba(59,130,246,0.15)",
+                      "0 0 20px rgba(59,130,246,0.2), 0 0 20px rgba(59,130,246,0.15), 0 8px 32px rgba(59,130,246,0.08)",
+                      "0 0 25px rgba(59,130,246,0.4), 0 0 25px rgba(59,130,246,0.3), 0 8px 32px rgba(59,130,246,0.1)",
+                      "0 0 20px rgba(59,130,246,0.2), 0 0 20px rgba(59,130,246,0.15), 0 8px 32px rgba(59,130,246,0.08)",
                     ],
                   } : {}}
                   transition={isActive ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : {}}
@@ -155,7 +155,7 @@ export default function VoiceCarousel({
                       </div>
                     )}
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-base font-medium flex-1" style={{ color: "rgba(15,23,42,0.9)" }}>
+                      <p className="text-base flex-1" style={{ color: "rgba(15,23,42,0.9)", fontSize: "14px", fontWeight: "bold" }}>
                         {q.text}
                       </p>
                       {isActive && (

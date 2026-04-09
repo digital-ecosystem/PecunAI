@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, TrendingUp, DollarSign, PieChart } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
-import VoiceWaveform from "./VoiceWaveform";
 
 interface Stat {
   label: string;
@@ -22,6 +21,45 @@ interface VoiceExplainOverlayProps {
   questionText:     string;
   onClose:          () => void;
   onFollowUp:       () => void;
+}
+
+const BAR_COUNT = 40;
+const BASE_H    = 4;
+const MAX_H     = 80;
+
+function WaveformBars() {
+  // Generate stable random heights once per mount
+  const bars = useMemo(
+    () =>
+      Array.from({ length: BAR_COUNT }, () => [
+        Math.random() * MAX_H + 20,
+        Math.random() * MAX_H + 20,
+      ]),
+    [],
+  );
+
+  return (
+    <div className="flex items-center justify-center gap-1 h-24 px-8">
+      {bars.map(([h1, h2], i) => (
+        <motion.div
+          key={i}
+          className="rounded-full"
+          style={{
+            width:      2.5,
+            background: "linear-gradient(180deg, rgba(59,130,246,0.8) 0%, rgba(147,197,253,0.6) 100%)",
+            boxShadow:  "0 0 8px rgba(59,130,246,0.4)",
+          }}
+          animate={{ height: [BASE_H, h1, h2, BASE_H] }}
+          transition={{
+            duration: 1.2,
+            repeat:   Infinity,
+            ease:     "easeInOut",
+            delay:    i * 0.05,
+          }}
+        />
+      ))}
+    </div>
+  );
 }
 
 export default function VoiceExplainOverlay({
@@ -181,16 +219,14 @@ export default function VoiceExplainOverlay({
         }}
         transition={{ delay: showTransition ? 0 : 0.5, duration: 0.6 }}
       >
-        {/* Waveform TODO: FIX THIS */}
-        {/* <div className="mb-8">
-          <VoiceWaveform isActive height={96} barCount={40} />
-          <p
-            className="text-center text-sm font-medium mt-4"
-            style={{ color: "rgba(59,130,246,0.7)" }}
-          >
-            AI erklärt...
-          </p>
-        </div> */}
+        {/* Waveform — matches Figma design */}
+        <WaveformBars />
+        <p
+          className="text-center text-sm font-medium pt-3 mb-8"
+          style={{ color: "rgba(59,130,246,0.7)" }}
+        >
+          AI erklärt...
+        </p>
 
         {/* Explanation panel */}
         <div className="mb-6">

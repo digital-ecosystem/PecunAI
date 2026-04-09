@@ -216,18 +216,7 @@ export default function VoiceSphere({
         transition={{ duration: isSpeaking ? 0.8 : 2, repeat: Infinity, ease: "easeInOut", delay: 0.1 }}
       />
 
-      {/* Core sphere */}
-      <div
-        className="absolute rounded-full pointer-events-none"
-        style={{
-          width:        size * 0.7,
-          height:       size * 0.7,
-          background:   "radial-gradient(circle at 30% 30%, rgba(147, 197, 253, 0.15), rgba(59, 130, 246, 0.08))",
-          backdropFilter: "blur(20px)",
-          border:       "1px solid rgba(147, 197, 253, 0.2)",
-          boxShadow:    "0 8px 32px 0 rgba(59, 130, 246, 0.2), inset 0 0 20px rgba(147, 197, 253, 0.1)",
-        }}
-      />
+      
 
       <canvas ref={canvasRef} style={{ width: size, height: size }} className="relative z-10" />
     </div>

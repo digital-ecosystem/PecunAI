@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Menu, User, Mic } from "lucide-react";
@@ -51,8 +51,15 @@ export default function VoiceSessionShell({
   const [explainOpen, setExplainOpen] = useState(false);
   const [chatOpen,    setChatOpen]    = useState(false);
 
-  const n        = questions.length;
-  const activeQ  = n > 0 ? questions[Math.min(state.currentQuestionIndex, n - 1)] : null;
+  // viewIndex drives the carousel visually; it can be browsed freely.
+  // It syncs forward whenever the hook advances currentQuestionIndex (after an answer is saved).
+  const [viewIndex, setViewIndex] = useState(initialQuestionIndex);
+  useEffect(() => {
+    setViewIndex(state.currentQuestionIndex);
+  }, [state.currentQuestionIndex]);
+
+  const n       = questions.length;
+  const activeQ = n > 0 ? questions[Math.min(viewIndex, n - 1)] : null;
   const isMuted  = state.session === "muted";
   const isSpeaking = ["speaking", "greeting", "resuming"].includes(state.session);
 
@@ -149,7 +156,7 @@ export default function VoiceSessionShell({
 
           {/* Status text */}
           <motion.p
-            className="text-sm font-medium relative z-30 mt-6 mb-0 pb-[50px]"
+            className="text-sm font-medium relative z-30 mt-4 mb-0 pb-[75px]"
             style={{ color: "rgba(59,130,246,0.7)" }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -173,9 +180,9 @@ export default function VoiceSessionShell({
           >
             <VoiceCarousel
               questions={questions}
-              currentIndex={state.currentQuestionIndex}
-              onNext={() => setModalOpen(true)}
-              onPrev={onPrev}
+              currentIndex={viewIndex}
+              onNext={() => setViewIndex(i => Math.min(i + 1, n - 1))}
+              onPrev={() => setViewIndex(i => Math.max(i - 1, 0))}
               onActiveCardClick={() => setModalOpen(true)}
               onInfoClick={() => setExplainOpen(true)}
             />
@@ -186,8 +193,8 @@ export default function VoiceSessionShell({
         <ControlBar
           isMuted={isMuted}
           onMuteToggle={toggleMute}
-          onPrevious={onPrev}
-          onNext={() => setModalOpen(true)}
+          onPrevious={() => setViewIndex(i => Math.max(i - 1, 0))}
+          onNext={() => setViewIndex(i => Math.min(i + 1, n - 1))}
           onChatClick={() => setChatOpen(true)}
         />
       </div>
@@ -217,7 +224,7 @@ export default function VoiceSessionShell({
       {modalOpen && activeQ && (
         <VoiceQuestionModal
           question={{
-            number:           state.currentQuestionIndex + 1,
+            number:           viewIndex + 1,
             total:            n,
             text:             activeQ.text,
             options:          activeQ.options ?? [],
