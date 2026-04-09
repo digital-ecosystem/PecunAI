@@ -189,8 +189,8 @@ export default function VoiceSessionShell({
             <VoiceCarousel
               questions={questions}
               currentIndex={viewIndex}
-              onNext={() => setViewIndex(i => Math.min(i + 1, n - 1))}
-              onPrev={() => setViewIndex(i => Math.max(i - 1, 0))}
+              onNext={() => setViewIndex(i => (i + 1) % n)}
+              onPrev={() => setViewIndex(i => (i - 1 + n) % n)}
               onActiveCardClick={() => setModalOpen(true)}
               onInfoClick={() => setExplainOpen(true)}
             />
@@ -201,8 +201,8 @@ export default function VoiceSessionShell({
         <ControlBar
           isMuted={isMuted}
           onMuteToggle={toggleMute}
-          onPrevious={() => setViewIndex(i => Math.max(i - 1, 0))}
-          onNext={() => setViewIndex(i => Math.min(i + 1, n - 1))}
+          onPrevious={() => setViewIndex(i => (i - 1 + n) % n)}
+          onNext={() => setViewIndex(i => (i + 1) % n)}
           onChatClick={() => setChatOpen(true)}
         />
       </div>
