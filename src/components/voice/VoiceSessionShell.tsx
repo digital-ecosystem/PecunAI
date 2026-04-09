@@ -44,7 +44,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, startSession, toggleMute, onAnswerConfirmed, onPrev } =
+  const { state, started, analyserNode, micGranted, startSession, toggleMute, onAnswerConfirmed, onPrev } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex });
 
   const [modalOpen,   setModalOpen]   = useState(false);
@@ -154,20 +154,28 @@ export default function VoiceSessionShell({
             />
           </motion.div>
 
-          {/* Status text */}
-          <motion.p
-            className="text-sm font-medium relative z-30 mt-4 mb-0 pb-[75px]"
-            style={{ color: "rgba(59,130,246,0.7)" }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            {STATUS_LABEL[state.session]}
-          </motion.p>
+          {/* Status text + mic hint */}
+          <div className="relative z-30 mt-4 pb-[75px] flex flex-col items-center gap-1">
+            <motion.p
+              className="text-sm font-medium"
+              style={{ color: "rgba(59,130,246,0.7)" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              {STATUS_LABEL[state.session]}
+            </motion.p>
 
-          {state.session === "error" && state.errorMessage && (
-            <p className="text-xs text-red-400 relative z-30 -mt-10">{state.errorMessage}</p>
-          )}
+            {micGranted === false && (
+              <p className="text-xs" style={{ color: "rgba(107,114,128,0.7)" }}>
+                Kein Mikrofon – Tippen Sie Ihre Antworten
+              </p>
+            )}
+
+            {state.session === "error" && state.errorMessage && (
+              <p className="text-xs text-red-400">{state.errorMessage}</p>
+            )}
+          </div>
         </div>
 
         {/* ── Question Carousel ────────────────────────────────────── */}

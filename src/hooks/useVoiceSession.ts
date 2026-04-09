@@ -177,17 +177,21 @@ export function useVoiceSession({
 
   // Exposed to UI components for waveform visualization
   const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
+  const [micGranted,   setMicGranted]   = useState<boolean | null>(null);
 
   // Internal refs — stable across renders
-  const wsRef           = useRef<WebSocket | null>(null);
-  const audioCtxRef     = useRef<AudioContext | null>(null);
-  const gainRef         = useRef<GainNode | null>(null);
-  const analyserRef     = useRef<AnalyserNode | null>(null);
-  const nextPlayTimeRef = useRef<number>(0);
-  const audioEndTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingCall     = useRef<{ callId: string; name: string; args: string } | null>(null);
-  const questionsRef    = useRef(questions);
-  const stateRef        = useRef(state);
+  const wsRef              = useRef<WebSocket | null>(null);
+  const audioCtxRef        = useRef<AudioContext | null>(null);
+  const gainRef            = useRef<GainNode | null>(null);
+  const analyserRef        = useRef<AnalyserNode | null>(null);
+  const nextPlayTimeRef    = useRef<number>(0);
+  const audioEndTimer      = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingCall        = useRef<{ callId: string; name: string; args: string } | null>(null);
+  const questionsRef       = useRef(questions);
+  const stateRef           = useRef(state);
+  const micStreamRef       = useRef<MediaStream | null>(null);
+  const micSourceRef       = useRef<MediaStreamAudioSourceNode | null>(null);
+  const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
 
   useEffect(() => { questionsRef.current = questions; }, [questions]);
   useEffect(() => { stateRef.current    = state;     }, [state]);
@@ -405,10 +409,39 @@ export function useVoiceSession({
           break;
         }
 
-        case "session.updated":
+        case "session.updated": {
+          // Wire mic input for server VAD if permission was granted
+          const mic = micStreamRef.current;
+          const ctx = audioCtxRef.current;
+          if (mic && ctx) {
+            const micSource  = ctx.createMediaStreamSource(mic);
+            const silentGain = ctx.createGain();
+            silentGain.gain.value = 0;
+            const processor  = ctx.createScriptProcessor(4096, 1, 1);
+            micSource.connect(processor);
+            processor.connect(silentGain);
+            silentGain.connect(ctx.destination);
+            processor.onaudioprocess = (e: AudioProcessingEvent) => {
+              const ws = wsRef.current;
+              if (!ws || ws.readyState !== WebSocket.OPEN) return;
+              if (stateRef.current.session !== "listening") return;
+              const float32 = e.inputBuffer.getChannelData(0);
+              const pcm16   = new Int16Array(float32.length);
+              for (let i = 0; i < float32.length; i++) {
+                pcm16[i] = Math.max(-32768, Math.min(32767, Math.round(float32[i] * 32767)));
+              }
+              const bytes = new Uint8Array(pcm16.buffer);
+              let binary = "";
+              for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+              ws.send(JSON.stringify({ type: "input_audio_buffer.append", audio: btoa(binary) }));
+            };
+            micSourceRef.current       = micSource;
+            scriptProcessorRef.current = processor;
+          }
           // Session configured — trigger the AI to speak its greeting
           send({ type: "response.create" });
           break;
+        }
 
         case "response.audio.delta": {
           dispatch({ type: "AI_SPEAKING" });
@@ -478,6 +511,12 @@ export function useVoiceSession({
     return () => {
       ws.close();
       if (audioEndTimer.current) clearTimeout(audioEndTimer.current);
+      micStreamRef.current?.getTracks().forEach(t => t.stop());
+      micStreamRef.current = null;
+      scriptProcessorRef.current?.disconnect();
+      scriptProcessorRef.current = null;
+      micSourceRef.current?.disconnect();
+      micSourceRef.current = null;
       audioCtxRef.current?.close();
       audioCtxRef.current = null;
       gainRef.current     = null;
@@ -562,10 +601,22 @@ export function useVoiceSession({
   }, [send]);
 
   /** Must be called from a user-gesture handler (tap/click) to unlock AudioContext */
-  const startSession = useCallback(() => {
+  const startSession = useCallback(async () => {
     setupAudio();
-    // AudioContext is now created inside a user gesture — resume it immediately
     audioCtxRef.current?.resume();
+
+    try {
+      if (navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStreamRef.current = stream;
+        setMicGranted(true);
+      } else {
+        setMicGranted(false);
+      }
+    } catch {
+      setMicGranted(false); // silent tap-only fallback — no error shown
+    }
+
     setStarted(true);
   }, [setupAudio]);
 
@@ -573,6 +624,7 @@ export function useVoiceSession({
     state,
     started,
     analyserNode,
+    micGranted,
     startSession,
     toggleMute,
     onAnswerConfirmed,
