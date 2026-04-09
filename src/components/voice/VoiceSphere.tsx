@@ -6,15 +6,26 @@ import { motion } from "motion/react";
 interface VoiceSphereProps {
   isActive?: boolean;
   isSpeaking?: boolean;
+  isListening?: boolean;
   size?: number;
   analyserNode?: AnalyserNode | null;
+  micAnalyserNode?: AnalyserNode | null;
 }
+
+// RGB colour sets: [primary, secondary]
+const COLORS = {
+  speaking:  { r: 59,  g: 130, b: 246, r2: 147, g2: 197, b2: 253 }, // blue
+  listening: { r: 22,  g: 163, b: 74,  r2: 134, g2: 239, b2: 172 }, // green
+  idle:      { r: 59,  g: 130, b: 246, r2: 147, g2: 197, b2: 253 }, // blue (default)
+};
 
 export default function VoiceSphere({
   isActive = false,
   isSpeaking = false,
+  isListening = false,
   size = 240,
   analyserNode,
+  micAnalyserNode,
 }: VoiceSphereProps) {
   const canvasRef      = useRef<HTMLCanvasElement>(null);
   const animationRef   = useRef<number>(0);
@@ -23,11 +34,19 @@ export default function VoiceSphere({
   // Keep props accessible inside animation loop without restarting it
   const isActiveRef    = useRef(isActive);
   const isSpeakingRef  = useRef(isSpeaking);
+  const isListeningRef = useRef(isListening);
   const analyserRef    = useRef(analyserNode);
+  const micAnalyserRef = useRef(micAnalyserNode);
+  const colorRef       = useRef(COLORS.idle);
 
-  useEffect(() => { isActiveRef.current   = isActive;    }, [isActive]);
-  useEffect(() => { isSpeakingRef.current = isSpeaking;  }, [isSpeaking]);
-  useEffect(() => { analyserRef.current   = analyserNode; }, [analyserNode]);
+  useEffect(() => { isActiveRef.current    = isActive;                           }, [isActive]);
+  useEffect(() => { isSpeakingRef.current  = isSpeaking;                         }, [isSpeaking]);
+  useEffect(() => { isListeningRef.current = isListening;                         }, [isListening]);
+  useEffect(() => { analyserRef.current    = analyserNode    ?? null;             }, [analyserNode]);
+  useEffect(() => { micAnalyserRef.current = micAnalyserNode ?? null;             }, [micAnalyserNode]);
+  useEffect(() => {
+    colorRef.current = isListening ? COLORS.listening : COLORS.speaking;
+  }, [isListening]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -87,24 +106,30 @@ export default function VoiceSphere({
       time += 0.016;
       rotY += 0.003;
 
-      const speaking = isSpeakingRef.current;
-      const active   = isActiveRef.current;
-      const analyser = analyserRef.current;
+      const speaking  = isSpeakingRef.current;
+      const listening = isListeningRef.current;
+      const active    = isActiveRef.current;
+      const { r: cr, g: cg, b: cb, r2: cr2, g2: cg2, b2: cb2 } = colorRef.current;
+
+      // Use mic analyser when listening, AI analyser when speaking
+      const analyser = listening
+        ? (micAnalyserRef.current ?? analyserRef.current)
+        : analyserRef.current;
 
       let audioData: number[]  = [];
       let audioAvg             = 0;
 
-      if (speaking && analyser) {
+      if ((speaking || listening) && analyser) {
         if (!dataArrayRef.current || dataArrayRef.current.length !== analyser.frequencyBinCount) {
           dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount) as Uint8Array<ArrayBuffer>;
         }
         analyser.getByteFrequencyData(dataArrayRef.current);
         audioData = Array.from(dataArrayRef.current);
-        audioAvg  = audioData.reduce((a, b) => a + b, 0) / audioData.length / 255;
+        audioAvg  = audioData.reduce((sum, val) => sum + val, 0) / audioData.length / 255;
       }
 
       nodes.forEach((node, i) => {
-        if (speaking && audioData.length > 0) {
+        if ((speaking || listening) && audioData.length > 0) {
           const idx       = Math.floor((i / nodeCount) * audioData.length);
           const freq      = audioData[idx] / 255;
           const deform    = 1 + freq * 0.4;
@@ -112,7 +137,7 @@ export default function VoiceSphere({
           node.y = node.baseY * deform;
           node.z = node.baseZ * deform;
           node.energy = freq * 0.7 + audioAvg * 0.3;
-        } else if (speaking) {
+        } else if (speaking || listening) {
           // Simulated while waiting for real audio data
           const freq   = Math.sin(time * 8 + i * 0.3) * 0.5 + 0.5;
           const bass   = Math.sin(time * 3) * 0.5 + 0.5;
@@ -145,7 +170,7 @@ export default function VoiceSphere({
         const a = projected[i], b = projected[j];
         if (a.z > -200 && b.z > -200) {
           const avg  = (nodes[i].energy + nodes[j].energy) / 2;
-          ctx.strokeStyle = `rgba(59, 130, 246, ${0.1 + avg * 0.4})`;
+          ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.1 + avg * 0.4})`;
           ctx.lineWidth   = 0.5 + avg * 1.5;
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
@@ -161,15 +186,15 @@ export default function VoiceSphere({
           const opacity = 0.3 + energy * 0.7;
 
           const grad = ctx.createRadialGradient(x, y, 0, x, y, ns * 2);
-          grad.addColorStop(0,   `rgba(59, 130, 246, ${opacity})`);
-          grad.addColorStop(0.5, `rgba(59, 130, 246, ${opacity * 0.3})`);
-          grad.addColorStop(1,   "rgba(59, 130, 246, 0)");
+          grad.addColorStop(0,   `rgba(${cr}, ${cg}, ${cb}, ${opacity})`);
+          grad.addColorStop(0.5, `rgba(${cr}, ${cg}, ${cb}, ${opacity * 0.3})`);
+          grad.addColorStop(1,   `rgba(${cr}, ${cg}, ${cb}, 0)`);
           ctx.fillStyle = grad;
           ctx.beginPath();
           ctx.arc(x, y, ns * 2, 0, Math.PI * 2);
           ctx.fill();
 
-          ctx.fillStyle = `rgba(147, 197, 253, ${opacity})`;
+          ctx.fillStyle = `rgba(${cr2}, ${cg2}, ${cb2}, ${opacity})`;
           ctx.beginPath();
           ctx.arc(x, y, ns, 0, Math.PI * 2);
           ctx.fill();
@@ -183,7 +208,15 @@ export default function VoiceSphere({
     return () => cancelAnimationFrame(animationRef.current);
   }, [size]);
 
-  const glowAnim = isSpeaking
+  const isAnimating = isSpeaking || isListening;
+  const glowR = isListening ? 22  : 59;
+  const glowG = isListening ? 163 : 130;
+  const glowB = isListening ? 74  : 246;
+  const glowR2 = isListening ? 134 : 147;
+  const glowG2 = isListening ? 239 : 197;
+  const glowB2 = isListening ? 172 : 253;
+
+  const glowAnim = isAnimating
     ? { scale: [1, 1.4, 1],  opacity: [0.6, 1, 0.6] }
     : isActive
     ? { scale: [1, 1.2, 1],  opacity: [0.4, 0.7, 0.4] }
@@ -195,25 +228,25 @@ export default function VoiceSphere({
       <motion.div
         className="absolute inset-0 rounded-full pointer-events-none"
         style={{
-          background: "radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0) 70%)",
+          background: `radial-gradient(circle, rgba(${glowR}, ${glowG}, ${glowB}, 0.2) 0%, rgba(${glowR}, ${glowG}, ${glowB}, 0) 70%)`,
           filter: "blur(40px)",
         }}
         animate={glowAnim}
-        transition={{ duration: isSpeaking ? 0.3 : 3, repeat: Infinity, ease: "easeInOut" }}
+        transition={{ duration: isAnimating ? 0.3 : 3, repeat: Infinity, ease: "easeInOut" }}
       />
 
       <motion.div
         className="absolute inset-0 rounded-full pointer-events-none"
         style={{
-          background: "radial-gradient(circle, rgba(147, 197, 253, 0.25) 0%, rgba(147, 197, 253, 0) 60%)",
+          background: `radial-gradient(circle, rgba(${glowR2}, ${glowG2}, ${glowB2}, 0.25) 0%, rgba(${glowR2}, ${glowG2}, ${glowB2}, 0) 60%)`,
           filter: "blur(25px)",
         }}
         animate={
-          isSpeaking ? { scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] } :
-          isActive   ? { scale: [1, 1.15, 1], opacity: [0.5, 0.8, 0.5] } :
-                       { scale: [1, 1, 1], opacity: [0.2, 0.2, 0.2] }
+          isAnimating ? { scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] } :
+          isActive    ? { scale: [1, 1.15, 1], opacity: [0.5, 0.8, 0.5] } :
+                        { scale: [1, 1, 1], opacity: [0.2, 0.2, 0.2] }
         }
-        transition={{ duration: isSpeaking ? 0.8 : 2, repeat: Infinity, ease: "easeInOut", delay: 0.1 }}
+        transition={{ duration: isAnimating ? 0.8 : 2, repeat: Infinity, ease: "easeInOut", delay: 0.1 }}
       />
 
       

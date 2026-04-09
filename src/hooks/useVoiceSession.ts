@@ -175,9 +175,10 @@ export function useVoiceSession({
   const [state, dispatch] = useReducer(reducer, makeInitial(initialQuestionIndex));
   const [started, setStarted] = useState(false);
 
-  // Exposed to UI components for waveform visualization
-  const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
-  const [micGranted,   setMicGranted]   = useState<boolean | null>(null);
+  // Exposed to UI components for waveform / sphere visualization
+  const [analyserNode,    setAnalyserNode]    = useState<AnalyserNode | null>(null);
+  const [micAnalyserNode, setMicAnalyserNode] = useState<AnalyserNode | null>(null);
+  const [micGranted,      setMicGranted]      = useState<boolean | null>(null);
 
   // Internal refs — stable across renders
   const wsRef              = useRef<WebSocket | null>(null);
@@ -192,6 +193,7 @@ export function useVoiceSession({
   const micStreamRef       = useRef<MediaStream | null>(null);
   const micSourceRef       = useRef<MediaStreamAudioSourceNode | null>(null);
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const micAnalyserRef     = useRef<AnalyserNode | null>(null);
 
   useEffect(() => { questionsRef.current = questions; }, [questions]);
   useEffect(() => { stateRef.current    = state;     }, [state]);
@@ -418,6 +420,12 @@ export function useVoiceSession({
             const silentGain = ctx.createGain();
             silentGain.gain.value = 0;
             const processor  = ctx.createScriptProcessor(4096, 1, 1);
+
+            // Tap an AnalyserNode off the mic source for sphere visualization
+            const micAnalyser  = ctx.createAnalyser();
+            micAnalyser.fftSize = 256;
+            micSource.connect(micAnalyser);
+
             micSource.connect(processor);
             processor.connect(silentGain);
             silentGain.connect(ctx.destination);
@@ -437,6 +445,8 @@ export function useVoiceSession({
             };
             micSourceRef.current       = micSource;
             scriptProcessorRef.current = processor;
+            micAnalyserRef.current     = micAnalyser;
+            setMicAnalyserNode(micAnalyser);
           }
           // Session configured — trigger the AI to speak its greeting
           send({ type: "response.create" });
@@ -515,6 +525,8 @@ export function useVoiceSession({
       micStreamRef.current = null;
       scriptProcessorRef.current?.disconnect();
       scriptProcessorRef.current = null;
+      micAnalyserRef.current?.disconnect();
+      micAnalyserRef.current = null;
       micSourceRef.current?.disconnect();
       micSourceRef.current = null;
       audioCtxRef.current?.close();
@@ -624,6 +636,7 @@ export function useVoiceSession({
     state,
     started,
     analyserNode,
+    micAnalyserNode,
     micGranted,
     startSession,
     toggleMute,
