@@ -86,45 +86,51 @@ function base64ToPCM16AudioBuffer(base64: string, ctx: AudioContext): AudioBuffe
 
 // ── System prompt ─────────────────────────────────────────────────
 
+// DEV: English for testing. For production restore German: "Sprechen Sie ausschließlich Deutsch, formelle Anrede „Sie""
 function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number): string {
   const list = questions.map((q, i) => {
     let extra = "";
     if (q.options?.length) {
-      extra = `\n  Optionen: ${q.options.map(o => `"${o.label}"`).join(", ")}`;
+      extra = `\n  Options: ${q.options.map(o => `"${o.label}"`).join(", ")}`;
     } else if (q.questionType === "number") {
-      const min = q.minValue !== undefined ? `, Minimum ${q.minValue}` : "";
-      const max = q.maxValue !== undefined ? `, Maximum ${q.maxValue}` : "";
-      extra = `\n  Format: Zahl${min}${max}`;
+      const min = q.minValue !== undefined ? `, min ${q.minValue}` : "";
+      const max = q.maxValue !== undefined ? `, max ${q.maxValue}` : "";
+      extra = `\n  Format: number${min}${max}`;
     } else {
-      extra = `\n  Format: Freitext`;
+      extra = `\n  Format: free text`;
     }
-    return `Frage ${i + 1} (ID: ${q.id})\nThema: ${q.category}\nText: ${q.text}${extra}`;
+    const skipped = i < resumeIndex ? "  ← ALREADY ANSWERED — DO NOT ASK" : "";
+    return `Question ${i + 1} (ID: ${q.id})${skipped}\nTopic: ${q.category}\nText: ${q.text}${extra}`;
   }).join("\n\n");
 
-  const resume = resumeIndex > 0
-    ? `\nDer Kunde hat bereits ${resumeIndex} von ${questions.length} Fragen beantwortet. Begrüßen Sie ihn herzlich zurück und fahren Sie direkt mit Frage ${resumeIndex + 1} fort.`
+  const resumeBlock = resumeIndex > 0
+    ? `\n\nRESUME — CRITICAL INSTRUCTIONS:
+- The customer completed ${resumeIndex} question${resumeIndex === 1 ? "" : "s"} in a previous session.
+- Questions 1–${resumeIndex} are marked "ALREADY ANSWERED — DO NOT ASK" in the list below.
+- You MUST skip them entirely. Do NOT read them, do NOT ask them, do NOT reference them.
+- Begin IMMEDIATELY with Question ${resumeIndex + 1} after a one-sentence welcome-back greeting.`
     : "";
 
-  return `Sie sind PecunAI, ein freundlicher digitaler Anlageberater für österreichische Kunden. \
-Sie führen jetzt ein strukturiertes Beratungsgespräch zur Ermittlung des Risikoprofils.
+  return `You are PecunAI, a friendly digital investment advisor conducting a structured risk-profile questionnaire.
 
-SPRACHE UND TON:
-- Sprechen Sie ausschließlich Deutsch, formelle Anrede „Sie"
-- Kurz, klar und professionell – keine langen Monologe
-- Bestätigen Sie jede Antwort bevor Sie weiterfahren (z. B. „Verstanden, danke.")
+LANGUAGE AND TONE:
+- Speak English only // DEV — restore German for production
+- Be concise and professional — no long monologues
+- Confirm each answer before recording it (e.g. "Got it, thank you.")${resumeBlock}
 
-ABLAUF:
-- Stellen Sie immer nur eine Frage auf einmal
-- Bei Multiple-Choice: lesen Sie alle Optionen vor
-- Nach Bestätigung der Antwort: rufen Sie submit_answer auf
-- Danach sofort navigate mit direction "next" aufrufen${resume}
+FLOW:
+- Ask exactly one question at a time, in order
+- For multiple-choice questions: read all options aloud
+- After the customer confirms their answer: call submit_answer immediately
+- Then call navigate with direction "next"
 
-FRAGENLISTE (${questions.length} Fragen):
+QUESTION LIST (${questions.length} total):
 
 ${list}
 
-Beginnen Sie jetzt mit einer kurzen Begrüßung (max. 2 Sätze), \
-dann stellen Sie ${resumeIndex > 0 ? `Frage ${resumeIndex + 1}` : "Frage 1"}.`;
+${resumeIndex > 0
+  ? `STARTING POINT: Question ${resumeIndex + 1}. Give a one-sentence welcome-back, then ask Question ${resumeIndex + 1} directly.`
+  : `Start with a brief two-sentence greeting, then ask Question 1.`}`;
 }
 
 // ── OpenAI function tools ─────────────────────────────────────────
@@ -179,6 +185,12 @@ export function useVoiceSession({
   const [analyserNode,    setAnalyserNode]    = useState<AnalyserNode | null>(null);
   const [micAnalyserNode, setMicAnalyserNode] = useState<AnalyserNode | null>(null);
   const [micGranted,      setMicGranted]      = useState<boolean | null>(null);
+  const [isAISpeaking,    setIsAISpeaking]    = useState(false);
+  const isAISpeakingRef = useRef(false);
+
+  // Stable ref for the initial question index — set once on mount.
+  // Used in session.created so the resume index is always reliable regardless of state timing.
+  const initialIndexRef = useRef(initialQuestionIndex);
 
   // Internal refs — stable across renders
   const wsRef              = useRef<WebSocket | null>(null);
@@ -194,6 +206,7 @@ export function useVoiceSession({
   const micSourceRef       = useRef<MediaStreamAudioSourceNode | null>(null);
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const micAnalyserRef     = useRef<AnalyserNode | null>(null);
+  const mutedRef           = useRef(false); // source of truth for mute — persists across state transitions
 
   useEffect(() => { questionsRef.current = questions; }, [questions]);
   useEffect(() => { stateRef.current    = state;     }, [state]);
@@ -206,8 +219,10 @@ export function useVoiceSession({
     const gain     = ctx.createGain();
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 256;
-    gain.connect(analyser);
-    analyser.connect(ctx.destination);
+    // Gain controls audio output volume (mute = gain 0).
+    // Analyser is NOT in the gain chain — sources connect to it directly in scheduleChunk
+    // so the sphere always sees the raw signal even when muted.
+    gain.connect(ctx.destination);
     audioCtxRef.current = ctx;
     gainRef.current     = gain;
     analyserRef.current = analyser;
@@ -237,7 +252,8 @@ export function useVoiceSession({
 
       const source = ctx.createBufferSource();
       source.buffer = buf;
-      source.connect(gain);
+      source.connect(gain);                          // audio output — silenced when muted
+      if (analyserRef.current) source.connect(analyserRef.current); // visualization — always sees signal
 
       const startAt          = Math.max(nextPlayTimeRef.current, ctx.currentTime + 0.02);
       source.start(startAt);
@@ -279,11 +295,20 @@ export function useVoiceSession({
   }, [sessionId]);
 
   const saveVoiceState = useCallback(async (index: number) => {
-    await fetch(`/api/qa-session/${sessionId}/voice-state`, {
-      method:  "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lastQuestionIndex: index }),
-    });
+    try {
+      const res = await fetch(`/api/qa-session/${sessionId}/voice-state`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lastQuestionIndex: index }),
+      });
+      if (!res.ok) {
+        console.warn("[voice] saveVoiceState PATCH failed:", res.status, "index:", index);
+      } else {
+        console.log("[voice] saveVoiceState saved index:", index);
+      }
+    } catch (err) {
+      console.warn("[voice] saveVoiceState error:", err, "index:", index);
+    }
   }, [sessionId]);
 
   const advancePhase = useCallback(async () => {
@@ -316,8 +341,10 @@ export function useVoiceSession({
 
         await saveAnswer(questionId, value);
 
-        const currentIndex = stateRef.current.currentQuestionIndex;
-        const nextIndex    = currentIndex + 1;
+        // Derive nextIndex from the question's position in the list rather than
+        // stateRef, so the saved resume index is correct even under state-timing edge cases.
+        const qIdx     = questionsRef.current.findIndex(q => q.id === questionId);
+        const nextIndex = qIdx >= 0 ? qIdx + 1 : stateRef.current.currentQuestionIndex + 1;
         await saveVoiceState(nextIndex);
 
         sendResult({ success: true });
@@ -354,10 +381,17 @@ export function useVoiceSession({
   const scheduleAIDone = useCallback(() => {
     if (audioEndTimer.current) clearTimeout(audioEndTimer.current);
     const ctx = audioCtxRef.current;
-    if (!ctx) { dispatch({ type: "AI_DONE" }); return; }
+    if (!ctx) {
+      isAISpeakingRef.current = false;
+      setIsAISpeaking(false);
+      if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+      return;
+    }
     const remaining = Math.max(0, (nextPlayTimeRef.current - ctx.currentTime)) * 1000;
     audioEndTimer.current = setTimeout(() => {
-      if (!pendingCall.current) dispatch({ type: "AI_DONE" });
+      isAISpeakingRef.current = false;
+      setIsAISpeaking(false);
+      if (!pendingCall.current && !mutedRef.current) dispatch({ type: "AI_DONE" });
     }, remaining + 200);
   }, []);
 
@@ -396,18 +430,17 @@ export function useVoiceSession({
       switch (type) {
 
         case "session.created": {
-          // DIAGNOSTIC: stripped to absolute minimum — add fields back one by one.
-          // Candidates for server_error: long instructions, tools format, output_audio_format, voice.
-          const sessionUpdate = {
+          // Use initialIndexRef (set once at mount) — guaranteed correct even if
+          // the stateRef effect hasn't fired yet when this message arrives.
+          send({
             type: "session.update",
             session: {
               modalities:   ["text", "audio"] as string[],
               voice:        "shimmer",
-              instructions: "Sie sind PecunAI, ein freundlicher Anlageberater.",
+              instructions: buildSystemPrompt(questionsRef.current, initialIndexRef.current),
+              tools:        TOOLS,
             },
-          };
-          console.log("[voice] → session.update payload:", JSON.stringify(sessionUpdate, null, 2));
-          send(sessionUpdate);
+          });
           break;
         }
 
@@ -454,7 +487,11 @@ export function useVoiceSession({
         }
 
         case "response.audio.delta": {
-          dispatch({ type: "AI_SPEAKING" });
+          if (!isAISpeakingRef.current) {
+            isAISpeakingRef.current = true;
+            setIsAISpeaking(true);
+          }
+          if (!mutedRef.current) dispatch({ type: "AI_SPEAKING" });
           scheduleChunk(msg.delta as string);
           break;
         }
@@ -545,10 +582,13 @@ export function useVoiceSession({
         dispatch({ type: "PAUSE" });
         if (gainRef.current) gainRef.current.gain.value = 0;
       } else {
-        const wasMuted = stateRef.current.session === "muted";
+        const wasMuted = mutedRef.current;
         if (gainRef.current) gainRef.current.gain.value = wasMuted ? 0 : 1;
         dispatch({ type: "RESUME" });
-        const t = setTimeout(() => dispatch({ type: "RESUMING_DONE" }), 1500);
+        const t = setTimeout(() => {
+          dispatch({ type: "RESUMING_DONE" });
+          if (wasMuted) dispatch({ type: "MUTE" }); // restore muted state after resume
+        }, 1500);
         return () => clearTimeout(t);
       }
     };
@@ -559,11 +599,13 @@ export function useVoiceSession({
   // ── Public API ─────────────────────────────────────────────────
 
   const toggleMute = useCallback(() => {
-    const isMuted = stateRef.current.session === "muted";
+    const isMuted = mutedRef.current;
     if (isMuted) {
+      mutedRef.current = false;
       dispatch({ type: "UNMUTE" });
       if (gainRef.current) gainRef.current.gain.value = 1;
     } else {
+      mutedRef.current = true;
       dispatch({ type: "MUTE" });
       if (gainRef.current) gainRef.current.gain.value = 0;
     }
@@ -574,7 +616,9 @@ export function useVoiceSession({
     dispatch({ type: "ANSWER_RECEIVED" });
 
     await saveAnswer(question.id, value);
-    const nextIndex = stateRef.current.currentQuestionIndex + 1;
+    // Derive nextIndex from question position — more reliable than stateRef.
+    const qIdx     = questionsRef.current.findIndex(q => q.id === question.id);
+    const nextIndex = qIdx >= 0 ? qIdx + 1 : stateRef.current.currentQuestionIndex + 1;
     await saveVoiceState(nextIndex);
 
     if (nextIndex >= questionsRef.current.length) {
@@ -638,6 +682,7 @@ export function useVoiceSession({
     analyserNode,
     micAnalyserNode,
     micGranted,
+    isAISpeaking,
     startSession,
     toggleMute,
     onAnswerConfirmed,

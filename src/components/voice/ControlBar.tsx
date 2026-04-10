@@ -9,6 +9,7 @@ interface ControlBarProps {
   onPrevious:   () => void;
   onNext:       () => void;
   onChatClick:  () => void;
+  micGranted?:  boolean | null;
 }
 
 export default function ControlBar({
@@ -17,7 +18,9 @@ export default function ControlBar({
   onPrevious,
   onNext,
   onChatClick,
+  micGranted,
 }: ControlBarProps) {
+  const micDenied = micGranted === false;
   return (
     <div
       className="w-full px-6 py-4 rounded-t-3xl"
@@ -36,17 +39,23 @@ export default function ControlBar({
           style={{
             width:      56,
             height:     56,
-            background: isMuted
+            background: micDenied
+              ? "linear-gradient(135deg, rgba(156,163,175,0.15) 0%, rgba(107,114,128,0.1) 100%)"
+              : isMuted
               ? "linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(220,38,38,0.1) 100%)"
               : "linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.1) 100%)",
-            border: isMuted
+            border: micDenied
+              ? "1px solid rgba(156,163,175,0.2)"
+              : isMuted
               ? "1px solid rgba(239,68,68,0.2)"
               : "1px solid rgba(59,130,246,0.2)",
           }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onMuteToggle}
+          whileTap={micDenied ? {} : { scale: 0.95 }}
+          onClick={micDenied ? undefined : onMuteToggle}
         >
-          {isMuted
+          {micDenied
+            ? <MicOff size={24} style={{ color: "rgba(156,163,175,0.7)" }} />
+            : isMuted
             ? <MicOff size={24} style={{ color: "rgba(239,68,68,0.8)" }} />
             : <Mic    size={24} style={{ color: "rgba(59,130,246,0.8)" }} />}
         </motion.button>

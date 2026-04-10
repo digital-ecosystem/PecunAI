@@ -44,7 +44,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, startSession, toggleMute, onAnswerConfirmed, onPrev } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, onPrev } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex });
 
   const [modalOpen,   setModalOpen]   = useState(false);
@@ -60,9 +60,10 @@ export default function VoiceSessionShell({
 
   const n       = questions.length;
   const activeQ = n > 0 ? questions[Math.min(viewIndex, n - 1)] : null;
-  const isMuted     = state.session === "muted";
-  const isSpeaking  = ["speaking", "greeting", "resuming"].includes(state.session);
-  const isListening = state.session === "listening";
+  const isMuted           = state.session === "muted";
+  const sessionIsSpeaking = ["speaking", "greeting", "resuming"].includes(state.session);
+  const isSpeaking        = sessionIsSpeaking || isAISpeaking; // animates sphere even when muted
+  const isListening       = state.session === "listening";
 
   return (
     <>
@@ -149,7 +150,7 @@ export default function VoiceSessionShell({
           >
             <VoiceSphere
               isActive={started}
-              isSpeaking={isSpeaking && !isMuted}
+              isSpeaking={isSpeaking}
               isListening={isListening && !isMuted}
               size={380}
               analyserNode={analyserNode}
@@ -207,6 +208,7 @@ export default function VoiceSessionShell({
           onPrevious={() => setViewIndex(i => (i - 1 + n) % n)}
           onNext={() => setViewIndex(i => (i + 1) % n)}
           onChatClick={() => setChatOpen(true)}
+          micGranted={micGranted}
         />
       </div>
 

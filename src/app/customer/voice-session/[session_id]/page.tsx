@@ -26,7 +26,7 @@ export default function VoiceSessionPage() {
       // Load resume position from voice state
       const vsRes  = await fetch(`/api/qa-session/${sessionId}/voice-state`);
       const vsData = await vsRes.json().catch(() => null);
-      if (vsData?.lastQuestionIndex) {
+      if (vsData?.success && typeof vsData.lastQuestionIndex === "number" && vsData.lastQuestionIndex > 0) {
         setInitialQuestionIndex(vsData.lastQuestionIndex);
       }
 
@@ -35,6 +35,13 @@ export default function VoiceSessionPage() {
 
       if (!data?.success) {
         router.push("/customer/signin");
+        return;
+      }
+
+      // Guard: session must belong to the current user.
+      // If sessionFound is explicitly false the session ID is wrong for this account.
+      if (data.sessionFound === false) {
+        router.push("/customer/dashboard");
         return;
       }
 
