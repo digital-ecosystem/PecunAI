@@ -114,15 +114,22 @@ function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number): 
   return `You are PecunAI, a friendly digital investment advisor conducting a structured risk-profile questionnaire.
 
 LANGUAGE AND TONE:
-- Speak English only // DEV — restore German for production
-- Be concise and professional — no long monologues
-- Confirm each answer before recording it (e.g. "Got it, thank you.")${resumeBlock}
+- YOU MUST SPEAK ENGLISH ONLY. This is a DEV environment. Even if questions, options, or customer messages are in German, always respond in English. // DEV — restore German for production
+- Be concise and professional — no long monologues${resumeBlock}
 
 FLOW:
 - Ask exactly one question at a time, in order
 - For multiple-choice questions: read all options aloud
-- After the customer confirms their answer: call submit_answer immediately
-- Then call navigate with direction "next"
+
+SPOKEN ANSWER FLOW (CRITICAL — follow this exactly):
+1. When the customer speaks an answer, do NOT call submit_answer immediately.
+2. First call highlight_answer(questionId, value, label) — this shows the answer visually on screen.
+3. Then say: "Got it — [label]. Is that correct?"
+4. If the customer confirms (says yes / correct / that's right): call submit_answer(questionId, value), then call navigate with direction "next".
+5. If the customer says no or corrects themselves: call highlight_answer again with the corrected value, then ask for confirmation again.
+
+TAP ANSWER FLOW:
+- If the customer taps an answer (you receive a text message like "Meine Antwort: ..."), that is already confirmed — call submit_answer immediately, then navigate next. Do NOT call highlight_answer for tap answers.
 
 QUESTION LIST (${questions.length} total):
 
@@ -138,8 +145,22 @@ ${resumeIndex > 0
 const TOOLS = [
   {
     type: "function",
+    name: "highlight_answer",
+    description: "Proposes an answer visually before committing. Call this when you think you heard the customer's answer, BEFORE calling submit_answer. The UI will highlight the matching option. Then ask the customer to confirm verbally.",
+    parameters: {
+      type: "object",
+      properties: {
+        questionId: { type: "string", description: "ID of the current question" },
+        value:      { type: "string", description: "The answer value (option value, number string, or free text)" },
+        label:      { type: "string", description: "Human-readable label to read back to the customer" },
+      },
+      required: ["questionId", "value", "label"],
+    },
+  },
+  {
+    type: "function",
     name: "submit_answer",
-    description: "Speichert die bestätigte Antwort des Kunden. Aufrufen nachdem der Kunde bestätigt hat.",
+    description: "Saves the customer's confirmed answer. Only call this AFTER the customer has confirmed via highlight_answer.",
     parameters: {
       type: "object",
       properties: {
@@ -187,6 +208,13 @@ export function useVoiceSession({
   const [micGranted,      setMicGranted]      = useState<boolean | null>(null);
   const [isAISpeaking,    setIsAISpeaking]    = useState(false);
   const isAISpeakingRef = useRef(false);
+
+  // Pending voice answer — set by highlight_answer, cleared on submit or rejection
+  const [pendingVoiceAnswer, setPendingVoiceAnswer] = useState<{
+    questionId: string;
+    value:      string;
+    label:      string;
+  } | null>(null);
 
   // Stable ref for the initial question index — set once on mount.
   // Used in session.created so the resume index is always reliable regardless of state timing.
@@ -335,8 +363,18 @@ export function useVoiceSession({
         item: { type: "function_call_output", call_id: callId, output: JSON.stringify(result) },
       });
 
+      if (name === "highlight_answer") {
+        const { questionId, value, label } = args;
+        console.log("[voice] highlight_answer →", { questionId, value, label });
+        setPendingVoiceAnswer({ questionId, value, label });
+        sendResult({ success: true });
+        send({ type: "response.create" }); // prompt AI to speak "Got it — X. Is that correct?"
+        return;
+      }
+
       if (name === "submit_answer") {
         const { questionId, value } = args;
+        setPendingVoiceAnswer(null); // clear any pending highlight on confirmed submit
         dispatch({ type: "ANSWER_RECEIVED" });
 
         await saveAnswer(questionId, value);
@@ -635,11 +673,16 @@ export function useVoiceSession({
       item: {
         type: "message",
         role: "user",
-        content: [{ type: "input_text", text: `Meine Antwort: "${label}"` }],
+        content: [{ type: "input_text", text: `My answer: "${label}"` }],
       },
     });
     send({ type: "response.create" });
   }, [saveAnswer, saveVoiceState, advancePhase, send]);
+
+  /** Clears the AI-proposed highlight — called when customer rejects or modal closes without submitting */
+  const clearPendingVoiceAnswer = useCallback(() => {
+    setPendingVoiceAnswer(null);
+  }, []);
 
   const onPrev = useCallback(() => {
     const newIndex = Math.max(0, stateRef.current.currentQuestionIndex - 1);
@@ -650,7 +693,7 @@ export function useVoiceSession({
       item: {
         type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "Bitte wiederholen Sie die vorherige Frage." }],
+        content: [{ type: "input_text", text: "Please repeat the previous question." }],
       },
     });
     send({ type: "response.create" });
@@ -683,9 +726,11 @@ export function useVoiceSession({
     micAnalyserNode,
     micGranted,
     isAISpeaking,
+    pendingVoiceAnswer,
     startSession,
     toggleMute,
     onAnswerConfirmed,
+    clearPendingVoiceAnswer,
     onPrev,
   };
 }

@@ -44,12 +44,22 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, onPrev } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, pendingVoiceAnswer } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex });
 
   const [modalOpen,   setModalOpen]   = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const [chatOpen,    setChatOpen]    = useState(false);
+
+  // Auto-open the modal when the AI proposes an answer via highlight_answer.
+  // Also sync viewIndex to the question the AI is actually on (may differ from carousel position).
+  useEffect(() => {
+    if (pendingVoiceAnswer) {
+      const idx = questions.findIndex(q => q.id === pendingVoiceAnswer.questionId);
+      if (idx >= 0) setViewIndex(idx);
+      setModalOpen(true);
+    }
+  }, [pendingVoiceAnswer, questions]);
 
   // viewIndex drives the carousel visually; it can be browsed freely.
   // It syncs forward whenever the hook advances currentQuestionIndex (after an answer is saved).
@@ -60,6 +70,15 @@ export default function VoiceSessionShell({
 
   const n       = questions.length;
   const activeQ = n > 0 ? questions[Math.min(viewIndex, n - 1)] : null;
+
+  // When the AI proposes an answer, use the question it's actually on — not the carousel position.
+  // This avoids any viewIndex timing race where the modal renders before setViewIndex propagates.
+  const modalQ = pendingVoiceAnswer
+    ? (questions.find(q => q.id === pendingVoiceAnswer.questionId) ?? activeQ)
+    : activeQ;
+  const modalQIndex = pendingVoiceAnswer
+    ? questions.findIndex(q => q.id === pendingVoiceAnswer.questionId)
+    : viewIndex;
   const isMuted           = state.session === "muted";
   const sessionIsSpeaking = ["speaking", "greeting", "resuming"].includes(state.session);
   const isSpeaking        = sessionIsSpeaking || isAISpeaking; // animates sphere even when muted
@@ -234,22 +253,31 @@ export default function VoiceSessionShell({
         />
       )}
 
-      {modalOpen && activeQ && (
+      {modalOpen && modalQ && (
         <VoiceQuestionModal
           question={{
-            number:           viewIndex + 1,
+            number:           modalQIndex + 1,
             total:            n,
-            text:             activeQ.text,
-            options:          activeQ.options ?? [],
-            questionType:     activeQ.questionType,
-            minValue:         activeQ.minValue,
-            maxValue:         activeQ.maxValue,
-            inputPlaceholder: activeQ.inputPlaceholder,
+            text:             modalQ.text,
+            options:          modalQ.options ?? [],
+            questionType:     modalQ.questionType,
+            minValue:         modalQ.minValue,
+            maxValue:         modalQ.maxValue,
+            inputPlaceholder: modalQ.inputPlaceholder,
           }}
-          onClose={() => setModalOpen(false)}
+          preSelectedValue={
+            pendingVoiceAnswer?.questionId === modalQ.id
+              ? pendingVoiceAnswer.value
+              : undefined
+          }
+          onClose={() => {
+            setModalOpen(false);
+            clearPendingVoiceAnswer();
+          }}
           onNext={async value => {
             setModalOpen(false);
-            if (activeQ) await onAnswerConfirmed(activeQ, value);
+            clearPendingVoiceAnswer();
+            if (modalQ) await onAnswerConfirmed(modalQ, value);
           }}
         />
       )}

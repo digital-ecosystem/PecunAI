@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 export interface QuestionOption {
-  id: string;
-  label: string;
+  id:     string;
+  label:  string;
+  value?: string;
 }
 
 export interface ModalQuestion {
@@ -21,9 +22,11 @@ export interface ModalQuestion {
 }
 
 interface VoiceQuestionModalProps {
-  question: ModalQuestion;
-  onClose:  () => void;
-  onNext:   (value: string) => void;
+  question:          ModalQuestion;
+  onClose:           () => void;
+  onNext:            (value: string) => void;
+  /** Value proposed by the AI via highlight_answer — shown in amber until customer confirms */
+  preSelectedValue?: string;
 }
 
 function formatValue(value: number, placeholder?: string): string {
@@ -31,13 +34,37 @@ function formatValue(value: number, placeholder?: string): string {
   return value.toLocaleString("de-AT");
 }
 
-export default function VoiceQuestionModal({ question, onClose, onNext }: VoiceQuestionModalProps) {
-  const [selected,   setSelected]   = useState<string | null>(null);
-  const [inputValue, setInputValue] = useState("");
-
+export default function VoiceQuestionModal({ question, onClose, onNext, preSelectedValue }: VoiceQuestionModalProps) {
   const isChoice = !question.questionType || question.questionType === "choice";
   const isNumber = question.questionType === "number";
   const isText   = question.questionType === "text";
+
+  const [selected,   setSelected]   = useState<string | null>(null);
+  const [inputValue, setInputValue] = useState("");
+
+  // Track whether current selection came from a tap (blue) or AI proposal (amber)
+  const [aiProposed, setAiProposed] = useState(!!preSelectedValue);
+
+  // When AI proposes a value via highlight_answer, apply it based on question type.
+  useEffect(() => {
+    if (preSelectedValue === undefined) return;
+
+    if (isChoice) {
+      // Find matching option by value or label (case-insensitive) → use its id
+      const lower = preSelectedValue.toLowerCase();
+      const match = question.options.find(
+        o => o.value?.toLowerCase() === lower || o.label.toLowerCase() === lower
+      );
+      if (match) {
+        setSelected(match.id);
+        setAiProposed(true);
+      }
+    } else {
+      // Number or text — pre-fill the input directly
+      setInputValue(preSelectedValue);
+      setAiProposed(true);
+    }
+  }, [preSelectedValue, question.options, isChoice]);
 
   const numVal   = isNumber ? parseInt(inputValue, 10) : NaN;
   const belowMin = isNumber && question.minValue !== undefined && !isNaN(numVal) && numVal < question.minValue;
@@ -121,68 +148,114 @@ export default function VoiceQuestionModal({ question, onClose, onNext }: VoiceQ
           {/* Choice options */}
           {isChoice && (
             <div className="space-y-3">
-              {question.options.map(opt => (
-                <motion.button
-                  key={opt.id}
-                  className="w-full text-left rounded-2xl transition-all"
-                  style={{
-                    background: selected === opt.id ? "rgba(219,234,254,0.7)" : "rgba(255,255,255,0.7)",
-                    border: selected === opt.id
-                      ? "2px solid rgba(59,130,246,1)"
-                      : "1px solid rgba(226,232,240,0.8)",
-                    backdropFilter: "blur(10px)",
-                    boxShadow: selected === opt.id
-                      ? "0 4px 16px rgba(59,130,246,0.15)"
-                      : "0 2px 8px rgba(0,0,0,0.04)",
-                  }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelected(opt.id)}
+              {/* AI-proposed hint — DEV: English. Restore German ("Ich habe diese Antwort gehört – ist das korrekt?") before production */}
+              {aiProposed && selected && (
+                <motion.p
+                  className="text-xs font-medium text-center pb-1"
+                  style={{ color: "rgba(217,119,6,0.8)" }}
+                  initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
                 >
-                  <div className="flex items-center gap-4 px-5 py-4">
-                    <div
-                      className="flex-shrink-0 rounded-full flex items-center justify-center"
-                      style={{
-                        width: 24, height: 24,
-                        border: selected === opt.id
-                          ? "2px solid rgba(59,130,246,1)"
-                          : "2px solid rgba(148,163,184,0.5)",
-                      }}
-                    >
-                      {selected === opt.id && (
-                        <motion.div
-                          className="rounded-full"
-                          style={{ width: 12, height: 12, background: "rgba(59,130,246,1)" }}
-                          initial={{ scale: 0 }} animate={{ scale: 1 }}
-                          transition={{ duration: 0.2 }}
-                        />
-                      )}
+                  I heard this answer — is that correct?
+                </motion.p>
+              )}
+              {question.options.map(opt => {
+                const isSelected = selected === opt.id;
+                // Amber when AI proposed, blue when customer tapped
+                const isAmber = isSelected && aiProposed;
+                const isBlue  = isSelected && !aiProposed;
+                return (
+                  <motion.button
+                    key={opt.id}
+                    className="w-full text-left rounded-2xl transition-all"
+                    style={{
+                      background: isAmber
+                        ? "rgba(254,243,199,0.8)"
+                        : isBlue
+                        ? "rgba(219,234,254,0.7)"
+                        : "rgba(255,255,255,0.7)",
+                      border: isAmber
+                        ? "2px solid rgba(217,119,6,0.7)"
+                        : isBlue
+                        ? "2px solid rgba(59,130,246,1)"
+                        : "1px solid rgba(226,232,240,0.8)",
+                      backdropFilter: "blur(10px)",
+                      boxShadow: isAmber
+                        ? "0 4px 16px rgba(217,119,6,0.15)"
+                        : isBlue
+                        ? "0 4px 16px rgba(59,130,246,0.15)"
+                        : "0 2px 8px rgba(0,0,0,0.04)",
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => { setSelected(opt.id); setAiProposed(false); }}
+                  >
+                    <div className="flex items-center gap-4 px-5 py-4">
+                      <div
+                        className="flex-shrink-0 rounded-full flex items-center justify-center"
+                        style={{
+                          width: 24, height: 24,
+                          border: isAmber
+                            ? "2px solid rgba(217,119,6,0.7)"
+                            : isBlue
+                            ? "2px solid rgba(59,130,246,1)"
+                            : "2px solid rgba(148,163,184,0.5)",
+                        }}
+                      >
+                        {isSelected && (
+                          <motion.div
+                            className="rounded-full"
+                            style={{
+                              width: 12, height: 12,
+                              background: isAmber
+                                ? "rgba(217,119,6,0.8)"
+                                : "rgba(59,130,246,1)",
+                            }}
+                            initial={{ scale: 0 }} animate={{ scale: 1 }}
+                            transition={{ duration: 0.2 }}
+                          />
+                        )}
+                      </div>
+                      <span style={{ color: "rgba(15,23,42,0.85)" }}>{opt.label}</span>
                     </div>
-                    <span style={{ color: "rgba(15,23,42,0.85)" }}>{opt.label}</span>
-                  </div>
-                </motion.button>
-              ))}
+                  </motion.button>
+                );
+              })}
             </div>
           )}
 
           {/* Number / text input */}
           {(isNumber || isText) && (
             <div className="space-y-3">
+              {/* AI-proposed hint — DEV: English. Restore German before production */}
+              {aiProposed && inputValue !== "" && (
+                <motion.p
+                  className="text-xs font-medium text-center pb-1"
+                  style={{ color: "rgba(217,119,6,0.8)" }}
+                  initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                >
+                  I heard this answer — is that correct?
+                </motion.p>
+              )}
               <input
                 type={isNumber ? "number" : "text"}
                 placeholder={question.inputPlaceholder ?? (isNumber ? "Zahl eingeben..." : "Antwort eingeben...")}
                 value={inputValue}
                 min={isNumber ? 0 : undefined}
                 onChange={e => {
+                  setAiProposed(false); // customer edited — clear AI-proposed state
                   if (isNumber && parseInt(e.target.value, 10) < 0) return;
                   setInputValue(e.target.value);
                 }}
                 onWheel={e => isNumber && e.currentTarget.blur()}
                 className="w-full px-5 py-4 rounded-2xl text-base"
                 style={{
-                  background:     "rgba(255,255,255,0.7)",
-                  border:         hasError ? "2px solid rgba(239,68,68,1)" : "1px solid rgba(226,232,240,0.8)",
+                  background:     aiProposed && inputValue !== "" ? "rgba(254,243,199,0.6)" : "rgba(255,255,255,0.7)",
+                  border:         hasError
+                    ? "2px solid rgba(239,68,68,1)"
+                    : aiProposed && inputValue !== ""
+                    ? "2px solid rgba(217,119,6,0.7)"
+                    : "1px solid rgba(226,232,240,0.8)",
                   backdropFilter: "blur(10px)",
-                  boxShadow:      "0 2px 8px rgba(0,0,0,0.04)",
+                  boxShadow:      aiProposed && inputValue !== "" ? "0 4px 16px rgba(217,119,6,0.15)" : "0 2px 8px rgba(0,0,0,0.04)",
                   color:          "rgba(15,23,42,0.9)",
                   outline:        "none",
                 }}
