@@ -54,8 +54,13 @@ function reducer(state: VoiceSessionState, action: Action): VoiceSessionState {
     case "CONNECTED":       return { ...state, session: "greeting" };
     case "AI_SPEAKING":     return { ...state, session: "speaking" };
     case "AI_DONE":         return { ...state, session: "listening" };
-    case "ANSWER_RECEIVED": return { ...state, session: "processing" };
-    case "ANSWER_SAVED":    return { ...state, session: "speaking", currentQuestionIndex: state.currentQuestionIndex + 1 };
+    case "ANSWER_RECEIVED": return { ...state, session: state.session === "muted" ? "muted" : "processing" };
+    case "ANSWER_SAVED":    return {
+      ...state,
+      session:              state.session === "muted" ? "muted" : "speaking",
+      prevSession:          state.session === "muted" ? "speaking" : state.prevSession,
+      currentQuestionIndex: state.currentQuestionIndex + 1,
+    };
     case "MUTE":            return { ...state, session: "muted",   prevSession: state.session };
     case "UNMUTE":          return { ...state, session: state.prevSession ?? "listening", prevSession: null };
     case "PAUSE":           return { ...state, session: "paused" };

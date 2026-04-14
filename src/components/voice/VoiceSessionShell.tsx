@@ -79,7 +79,7 @@ export default function VoiceSessionShell({
     : viewIndex;
   const isMuted           = state.session === "muted";
   const sessionIsSpeaking = ["speaking", "greeting", "resuming"].includes(state.session);
-  const isSpeaking        = sessionIsSpeaking || isAISpeaking; // animates sphere even when muted
+  const isSpeaking        = !isMuted && (sessionIsSpeaking || isAISpeaking);
   const isListening       = state.session === "listening";
 
   return (
@@ -170,7 +170,7 @@ export default function VoiceSessionShell({
               isSpeaking={isSpeaking}
               isListening={isListening && !isMuted}
               size={380}
-              analyserNode={analyserNode}
+              analyserNode={isMuted ? null : analyserNode}
               micAnalyserNode={micAnalyserNode}
             />
           </motion.div>
