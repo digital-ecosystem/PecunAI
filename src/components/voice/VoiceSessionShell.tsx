@@ -255,6 +255,7 @@ export default function VoiceSessionShell({
 
       {modalOpen && modalQ && (
         <VoiceQuestionModal
+          key={modalQ.id}
           question={{
             number:           modalQIndex + 1,
             total:            n,

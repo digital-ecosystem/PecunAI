@@ -364,7 +364,7 @@ const Dashboard = () => {
                                                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                                                     Dashboard
                                                 </h1>
-                                                <p className="mt-1 text-sm text-gray-600 truncate">
+                                                <p className="mt-1 text-sm text-gray-600 truncate" suppressHydrationWarning>
                                                     Willkommen zurück, {user?.name || user?.email?.split('@')[0] || ''}!
                                                 </p>
                                             </div>
