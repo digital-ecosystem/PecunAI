@@ -51,13 +51,11 @@ export default function VoiceSessionShell({
   const [explainOpen, setExplainOpen] = useState(false);
   const [chatOpen,    setChatOpen]    = useState(false);
 
-  // Auto-open the modal when the AI proposes an answer via highlight_answer.
-  // Also sync viewIndex to the question the AI is actually on (may differ from carousel position).
+  // Sync carousel to the question the AI is proposing an answer for.
   useEffect(() => {
     if (pendingVoiceAnswer) {
       const idx = questions.findIndex(q => q.id === pendingVoiceAnswer.questionId);
       if (idx >= 0) setViewIndex(idx);
-      setModalOpen(true);
     }
   }, [pendingVoiceAnswer, questions]);
 
