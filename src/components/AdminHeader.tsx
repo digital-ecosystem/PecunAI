@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { LogOut, Package, BarChart3, MessageSquare } from 'lucide-react';
+import { LogOut, Package, BarChart3, MessageSquare, TrendingUp } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 
 interface AdminData {
@@ -51,6 +51,11 @@ const AdminHeader = () => {
       icon: BarChart3,
     },
     {
+      name: 'Performance',
+      href: '/advisor/performance-reports',
+      icon: TrendingUp,
+    },
+    {
       name: 'Products',
       href: '/admin/products',
       icon: Package,
@@ -72,11 +77,13 @@ const AdminHeader = () => {
             <div className="flex flex-col space-y-1 sm:space-y-2">
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">
                 {pathname === '/admin/dashboard' && 'Dashboard'}
+                {pathname === '/advisor/performance-reports' && 'Performance Report'}
                 {pathname === '/admin/products' && 'Products Management'}
                 {pathname === '/admin/main-product-prompt' && 'Main Product Prompts'}
               </h1>
               <p className="text-xs sm:text-sm lg:text-base text-gray-600 truncate">
                 {pathname === '/admin/dashboard' && 'Welcome back!'}
+                {pathname === '/advisor/performance-reports' && 'Unternehmensweite Leistungsübersicht'}
                 {pathname === '/admin/products' && 'Manage your product catalog'}
                 {pathname === '/admin/main-product-prompt' && 'Manage your AI model configurations'}
               </p>
