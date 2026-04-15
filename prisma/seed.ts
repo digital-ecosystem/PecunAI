@@ -17,6 +17,8 @@ async function main() {
   await prisma.termsAndConditions.deleteMany();
   await prisma.highRiskCountry.deleteMany();
   await prisma.mainProductPrompt.deleteMany();
+  await prisma.team.deleteMany();
+  await prisma.agent.deleteMany();
   await prisma.admin.deleteMany();
   await prisma.partner.deleteMany();
 
@@ -1201,6 +1203,58 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
     },
   ];
 
+  const agents = [
+    { firstName: 'Alex',   lastName: 'Berger',  agentCode: 'AB743' },
+    { firstName: 'Xenia',  lastName: 'Klein',   agentCode: 'XK291' },
+    { firstName: 'Marco',  lastName: 'Neubert', agentCode: 'MN582' },
+    { firstName: 'Paula',  lastName: 'Richter', agentCode: 'PR904' },
+    { firstName: 'Tim',    lastName: 'Lang',    agentCode: 'TL193' },
+  ];
+
+  const teamDefinitions = [
+    {
+      name: 'Team Alpha',
+      teamLeadEmail: 'alexander.bracic@finova.at',
+      memberEmails: [
+        'alexander.bracic@finova.at',
+        'lukas.hochsteger@finova.at',
+        'franz.resch@finova.at',
+        'sedin.cehajic@finova.at',
+      ],
+    },
+    {
+      name: 'Team Beta',
+      teamLeadEmail: 'leonhard.ogris@finova.at',
+      memberEmails: [
+        'leonhard.ogris@finova.at',
+        'filip.bonat@finova.at',
+        'gerald.puntigam@finova.at',
+        'erwin.buerger@finova.at',
+      ],
+    },
+    {
+      name: 'Team Gamma',
+      teamLeadEmail: 'aldin.mujanic@finova.at',
+      memberEmails: [
+        'aldin.mujanic@finova.at',
+        'marco.puntigam@finova.at',
+        'marco.schober@finova.at',
+        'guenter.moser@finova.at',
+      ],
+    },
+    {
+      name: 'Team Delta',
+      teamLeadEmail: 'christian.leski@finova.at',
+      memberEmails: [
+        'christian.leski@finova.at',
+        'gernot.fasching@finova.at',
+        'hamza.hamzic@finova.at',
+        'heiko.juritsch@finova.at',
+        'b.mahdi@adana.group',
+      ],
+    },
+  ];
+
   for (const q of questions) {
     await prisma.question.create({
       data: {
@@ -1335,6 +1389,47 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
   //   });
   //   console.log(`  ✅ Partner created: ${partner.email} (password: ${partner.password}, referralCode: ${partner.referralCode})`);
   // }
+
+  for (const agent of agents) {
+    await prisma.agent.upsert({
+      where: { agentCode: agent.agentCode },
+      update: {},
+      create: {
+        firstName: agent.firstName,
+        lastName:  agent.lastName,
+        agentCode: agent.agentCode,
+      },
+    });
+    console.log(`  ✅ Agent upserted: ${agent.agentCode} (${agent.firstName} ${agent.lastName})`);
+  }
+
+  for (const teamDef of teamDefinitions) {
+    const lead = await prisma.partner.findUnique({ where: { email: teamDef.teamLeadEmail } });
+    if (!lead) {
+      console.warn(`  ⚠️  Team lead not found, skipping team: ${teamDef.name} (${teamDef.teamLeadEmail})`);
+      continue;
+    }
+
+    const team = await prisma.team.create({
+      data: {
+        name:       teamDef.name,
+        teamLeadId: lead.id,
+      },
+    });
+    console.log(`  ✅ Team created: ${team.name} (lead: ${teamDef.teamLeadEmail})`);
+
+    for (const memberEmail of teamDef.memberEmails) {
+      const updated = await prisma.partner.updateMany({
+        where: { email: memberEmail },
+        data:  { teamId: team.id },
+      });
+      if (updated.count === 0) {
+        console.warn(`    ⚠️  Member not found, skipped: ${memberEmail}`);
+      }
+    }
+    console.log(`    ✅ Assigned ${teamDef.memberEmails.length} members to ${team.name}`);
+  }
+
   console.log('✅ Seed complete!');
 }
 
