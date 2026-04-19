@@ -67,7 +67,7 @@ export async function GET(request: Request) {
     // Fetch paginated sessions
     const sessions = await prisma.qASession.findMany({
       where,
-      include: { user: true, personalInfo: true },
+      include: { user: true, personalInfo: true, agent: { select: { id: true, firstName: true, lastName: true, agentCode: true } } },
       orderBy: { createdAt: "desc" },
       skip,
       take: limit

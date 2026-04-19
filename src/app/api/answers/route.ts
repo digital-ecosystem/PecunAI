@@ -4,6 +4,21 @@ import { v4 as uuidv4 } from 'uuid';
 import { AuthService } from '@/lib/auth';
 import { cookies } from 'next/headers';
 
+// Cached at module level — question orders never change, avoids a lookup on every request
+let _volumeQuestionMap: Record<string, 'oneTimeVolume' | 'recurringVolume'> | null = null;
+
+async function getVolumeQuestionMap(): Promise<Record<string, 'oneTimeVolume' | 'recurringVolume'>> {
+  if (_volumeQuestionMap) return _volumeQuestionMap;
+  const questions = await prisma.question.findMany({
+    where: { questionOrder: { in: [18, 19] } },
+    select: { id: true, questionOrder: true },
+  });
+  _volumeQuestionMap = Object.fromEntries(
+    questions.map((q) => [q.id, q.questionOrder === 18 ? 'oneTimeVolume' : 'recurringVolume'] as const)
+  );
+  return _volumeQuestionMap;
+}
+
 export async function POST(request: Request) {
   try {
 
@@ -40,15 +55,19 @@ export async function POST(request: Request) {
     }
 
     const sessionId = session.id;
+    const volumeQuestionMap = await getVolumeQuestionMap();
 
     // If client clears an input, delete the stored answer (idempotent)
     if (typeof answer === 'string' && answer.trim() === '') {
-      await prisma.answer.deleteMany({
-        where: {
-          qaSessionId: sessionId,
-          questionId,
-        },
-      });
+      await prisma.answer.deleteMany({ where: { qaSessionId: sessionId, questionId } });
+
+      // Also clear the corresponding volume field if this was a volume question
+      if (questionId in volumeQuestionMap) {
+        await prisma.qASession.update({
+          where: { id: sessionId },
+          data: { [volumeQuestionMap[questionId]]: null },
+        });
+      }
 
       return NextResponse.json({ success: true, deleted: true });
     }
@@ -99,6 +118,16 @@ export async function POST(request: Request) {
     //     // createdAt will be set automatically if using @default(now())
     //   }
     // });
+
+    // Sync investment volume fields directly onto QASession
+    if (questionId in volumeQuestionMap) {
+      const field = volumeQuestionMap[questionId];
+      const parsed = Number(answer);
+      await prisma.qASession.update({
+        where: { id: sessionId },
+        data: { [field]: isNaN(parsed) ? null : parsed },
+      });
+    }
 
     return NextResponse.json({ success: true, answer: newAnswer });
   } catch (error) {
