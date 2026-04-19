@@ -1,41 +1,137 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TrendingUp, CheckCircle, ShoppingBag, Wallet, Users } from 'lucide-react';
 import AdminHeader from '@/components/AdminHeader';
 import KPICard from '@/components/admin/performance-reports/KPICard';
-import PerformanceFilters from '@/components/admin/performance-reports/PerformanceFilters';
+import PerformanceFilters, { FilterState, FilterOptions } from '@/components/admin/performance-reports/PerformanceFilters';
 import TrendChart from '@/components/admin/performance-reports/TrendChart';
-import ProductPerformance from '@/components/admin/performance-reports/ProductPerformance';
-import TeamRankingTable from '@/components/admin/performance-reports/TeamRankingTable';
-import AdvisorRankingTable from '@/components/admin/performance-reports/AdvisorRankingTable';
-import AgentRankingTable from '@/components/admin/performance-reports/AgentRankingTable';
+import ProductPerformance, { ProductData } from '@/components/admin/performance-reports/ProductPerformance';
+import TeamRankingTable, { TeamRow } from '@/components/admin/performance-reports/TeamRankingTable';
+import AdvisorRankingTable, { AdvisorRow } from '@/components/admin/performance-reports/AdvisorRankingTable';
+import AgentRankingTable, { AgentRow } from '@/components/admin/performance-reports/AgentRankingTable';
+import { formatVolume } from '@/components/admin/performance-reports/_shared';
 
-// ── Mock data ────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-const TREND_DATA = [
-  { month: 'Okt', started: 18, completed: 12 },
-  { month: 'Nov', started: 22, completed: 16 },
-  { month: 'Dez', started: 15, completed: 11 },
-  { month: 'Jan', started: 28, completed: 21 },
-  { month: 'Feb', started: 24, completed: 18 },
-  { month: 'Mär', started: 35, completed: 27 },
-  { month: 'Apr', started: 20, completed: 13 },
-];
+interface KPIData {
+  started: number;
+  completed: number;
+  sold: number;
+  volumeOneTime: number;
+  volumeRecurring: number;
+  teamCount: number;
+  advisorCount: number;
+  agentCount: number;
+}
 
-const VOLUME_DATA = [
-  { month: 'Okt', value: 145000 },
-  { month: 'Nov', value: 198000 },
-  { month: 'Dez', value: 121000 },
-  { month: 'Jan', value: 274000 },
-  { month: 'Feb', value: 231000 },
-  { month: 'Mär', value: 312000 },
-  { month: 'Apr', value: 164000 },
-];
+interface TrendPoint {
+  month: string;
+  started: number;
+  completed: number;
+  volumeOneTime: number;
+  volumeRecurring: number;
+}
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+interface RankingsData {
+  teams: TeamRow[];
+  advisors: AdvisorRow[];
+  agents: AgentRow[];
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function getDefaultFilter(): FilterState {
+  const to = new Date();
+  const from = new Date();
+  from.setMonth(from.getMonth() - 6);
+  return {
+    from: from.toISOString().split('T')[0],
+    to: to.toISOString().split('T')[0],
+  };
+}
+
+function buildQueryString(filter: FilterState): string {
+  const params = new URLSearchParams({
+    from: filter.from,
+    to: filter.to,
+    ...(filter.teamId ? { teamId: filter.teamId } : {}),
+    ...(filter.partnerId ? { partnerId: filter.partnerId } : {}),
+    ...(filter.agentId ? { agentId: filter.agentId } : {}),
+  });
+  return params.toString();
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CompanyPerformancePage() {
+  const [filter, setFilter] = useState<FilterState>(getDefaultFilter);
+
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    teams: [],
+    advisors: [],
+    agents: [],
+  });
+
+  const [kpis, setKpis] = useState<KPIData | null>(null);
+  const [trend, setTrend] = useState<TrendPoint[] | null>(null);
+  const [products, setProducts] = useState<ProductData[] | null>(null);
+  const [rankings, setRankings] = useState<RankingsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch filter options once on mount
+  useEffect(() => {
+    fetch('/api/admin/performance/filter-options')
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setFilterOptions(d.data); })
+      .catch(console.error);
+  }, []);
+
+  // Fetch all dashboard data whenever the filter changes
+  const fetchDashboardData = useCallback((activeFilter: FilterState) => {
+    setIsLoading(true);
+    const qs = buildQueryString(activeFilter);
+
+    Promise.all([
+      fetch(`/api/admin/performance/kpis?${qs}`).then((r) => r.json()),
+      fetch(`/api/admin/performance/trend?${qs}`).then((r) => r.json()),
+      fetch(`/api/admin/performance/products?${qs}`).then((r) => r.json()),
+      fetch(`/api/admin/performance/rankings?${qs}`).then((r) => r.json()),
+    ])
+      .then(([kpiRes, trendRes, productsRes, rankingsRes]) => {
+        if (kpiRes.success) setKpis(kpiRes.data);
+        if (trendRes.success) setTrend(trendRes.data);
+        if (productsRes.success) setProducts(productsRes.data);
+        if (rankingsRes.success) setRankings(rankingsRes.data);
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData(filter);
+  }, [filter, fetchDashboardData]);
+
+  const handleFilterChange = useCallback((newFilter: FilterState) => {
+    setFilter(newFilter);
+  }, []);
+
+  // ── Derived display values ─────────────────────────────────────────────────
+
+  const kpiTeamsSplit = kpis ? [
+    { label: 'Teams', value: `${kpis.teamCount}` },
+    { label: 'Berater', value: `${kpis.advisorCount}` },
+    { label: 'Agenten', value: `${kpis.agentCount}` },
+  ] : undefined;
+
+  const trendDual = trend
+    ? trend.map((t) => ({ month: t.month, started: t.started, completed: t.completed }))
+    : [];
+
+  const trendVolume = trend
+    ? trend.map((t) => ({ month: t.month, started: t.volumeOneTime, completed: t.volumeRecurring }))
+    : [];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminHeader />
@@ -43,42 +139,49 @@ export default function CompanyPerformancePage() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 space-y-6">
 
         {/* Filters */}
-        <PerformanceFilters />
+        <PerformanceFilters
+          filterOptions={filterOptions}
+          onFilterChange={handleFilterChange}
+        />
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <KPICard
             label="Gestartet"
-            value="142"
-            subValue="+12% ggü. Vormonat"
+            value={kpis?.started ?? '—'}
             icon={TrendingUp}
             iconBgClass="bg-blue-100"
             iconColorClass="text-blue-600"
           />
           <KPICard
             label="Abgeschlossen"
-            value="98"
+            value={kpis?.completed ?? '—'}
             icon={CheckCircle}
             iconBgClass="bg-green-100"
             iconColorClass="text-green-600"
           />
           <KPICard
             label="Verkauft"
-            value="67"
+            value={kpis?.sold ?? '—'}
             icon={ShoppingBag}
             iconBgClass="bg-emerald-100"
             iconColorClass="text-emerald-600"
           />
           <KPICard
             label="Volumen"
-            value="€ 1,24M"
+            splitValues={kpis ? [
+              { label: 'Einmalig', value: formatVolume(kpis.volumeOneTime) },
+              { label: 'Wiederk.', value: `${formatVolume(kpis.volumeRecurring)}/Mo` },
+            ] : undefined}
+            value={kpis ? undefined : '—'}
             icon={Wallet}
             iconBgClass="bg-purple-100"
             iconColorClass="text-purple-600"
           />
           <KPICard
-            label="Teams · Berater · Agenten"
-            value="4 · 18 · 31"
+            label=""
+            splitValues={kpiTeamsSplit}
+            value={kpis ? undefined : '—'}
             icon={Users}
             iconBgClass="bg-orange-100"
             iconColorClass="text-orange-600"
@@ -90,25 +193,38 @@ export default function CompanyPerformancePage() {
           <TrendChart
             type="dual"
             title="Gestartet vs. Abgeschlossen"
-            data={TREND_DATA}
+            data={trendDual}
             legend1="Gestartet"
             legend2="Abgeschlossen"
           />
           <TrendChart
-            type="single"
-            title="Volumentrend"
-            data={VOLUME_DATA}
-            legendLabel="Volumen"
+            type="dual"
+            title="Volumen"
+            data={trendVolume}
+            legend1="Einmalig"
+            legend2="Wiederk./Mo"
           />
         </div>
 
         {/* Product Performance */}
-        <ProductPerformance />
+        <ProductPerformance
+          products={products ?? []}
+          isLoading={isLoading && products === null}
+        />
 
         {/* Ranking Tables */}
-        <TeamRankingTable />
-        <AdvisorRankingTable />
-        <AgentRankingTable />
+        <TeamRankingTable
+          teams={rankings?.teams ?? []}
+          isLoading={isLoading && rankings === null}
+        />
+        <AdvisorRankingTable
+          advisors={rankings?.advisors ?? []}
+          isLoading={isLoading && rankings === null}
+        />
+        <AgentRankingTable
+          agents={rankings?.agents ?? []}
+          isLoading={isLoading && rankings === null}
+        />
 
       </div>
     </div>

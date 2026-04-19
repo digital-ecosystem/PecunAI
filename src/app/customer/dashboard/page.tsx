@@ -4,7 +4,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
-import { Session, SessionStatus, User } from '@/types';
+import { Agent, Session, SessionStatus, User } from '@/types';
 import { Ban, CheckCircle, Clock, FileText, Hourglass, LogOut } from 'lucide-react';
 import {
     Drawer,
@@ -37,6 +37,11 @@ const Dashboard = () => {
     const [pendingStartPartnerCode, setPendingStartPartnerCode] = useState<string | null>(null);
     const [startError, setStartError] = useState<string | null>(null);
     const [didAutostart, setDidAutostart] = useState(false);
+    const [drawerAgentCode, setDrawerAgentCode] = useState('');
+
+    const [drawerAgentLookupError, setDrawerAgentLookupError] = useState<string | null>(null);
+    const [drawerAgentPreview, setDrawerAgentPreview] = useState<Agent | null>(null);
+    const [pendingStartAgentCode, setPendingStartAgentCode] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
     const [totalPages, setTotalPages] = useState(0);
@@ -179,7 +184,7 @@ const Dashboard = () => {
         }
     }
 
-    const startSession = async (opts?: { partnerCode?: string }) => {
+    const startSession = async (opts?: { partnerCode?: string; agentCode?: string }) => {
         setStartError(null);
         setLoading(true);
 
@@ -197,6 +202,13 @@ const Dashboard = () => {
             const res = await response.json();
 
             if (res?.success && res?.session?.id) {
+                if (opts?.agentCode) {
+                    await fetch('/api/qa-session/agent', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sessionId: res.session.id, agentCode: opts.agentCode }),
+                    });
+                }
                 setIsStartDrawerOpen(false);
                 didNavigate = true;
                 router.push('/customer/stepper/' + res.session.id);
@@ -222,56 +234,58 @@ const Dashboard = () => {
         }
     };
 
-    const openWelcomeAndQueueStart = (opts?: { partnerCode?: string }) => {
+    const openWelcomeAndQueueStart = (opts?: { partnerCode?: string; agentCode?: string }) => {
         setIsStartDrawerOpen(false);
         setPendingStartPartnerCode(opts?.partnerCode || null);
+        setPendingStartAgentCode(opts?.agentCode || null);
         setShowOnboardingWelcomePopup(true);
     };
 
     const handleWelcomeContinue = async () => {
         const queuedPartnerCode = pendingStartPartnerCode;
+        const queuedAgentCode = pendingStartAgentCode;
         setShowOnboardingWelcomePopup(false);
         setPendingStartPartnerCode(null);
-        await startSession(queuedPartnerCode ? { partnerCode: queuedPartnerCode } : undefined);
+        setPendingStartAgentCode(null);
+        await startSession({
+            ...(queuedPartnerCode ? { partnerCode: queuedPartnerCode } : {}),
+            ...(queuedAgentCode ? { agentCode: queuedAgentCode } : {}),
+        });
     };
 
-    const handleLookupPartner = async () => {
-        const code = partnerCode.trim();
-        if (!code) return;
+    const handleLookupBoth = async () => {
+        if (!partnerCode.trim() || !drawerAgentCode.trim()) return;
 
         setPartnerLookupError(null);
         setPartnerPreview(null);
+        setDrawerAgentLookupError(null);
+        setDrawerAgentPreview(null);
         setPartnerLookupLoading(true);
 
         try {
-            const response = await fetch(`/api/advisor/lookup?code=${encodeURIComponent(code)}`);
-            const data = await response.json();
+            const [partnerRes, agentRes] = await Promise.all([
+                fetch(`/api/advisor/lookup?code=${encodeURIComponent(partnerCode.trim())}`),
+                fetch(`/api/qa-session/agent?code=${encodeURIComponent(drawerAgentCode.trim())}`),
+            ]);
+            const [partnerData, agentData] = await Promise.all([partnerRes.json(), agentRes.json()]);
 
-            if (data?.success && data?.partner) {
-                setPartnerPreview(data.partner);
+            if (partnerData?.success && partnerData?.partner) {
+                setPartnerPreview(partnerData.partner);
             } else {
-                setPartnerLookupError(data?.message || 'Partner nicht gefunden');
+                setPartnerLookupError(partnerData?.message || 'Partner-Code ungültig');
             }
-        } catch (error) {
-            console.log('error : ', error)
-            setPartnerLookupError('Partner konnte nicht abgerufen werden');
+
+            if (agentData?.success && agentData?.agent) {
+                setDrawerAgentPreview(agentData.agent);
+            } else {
+                setDrawerAgentLookupError(agentData?.message || 'Agenten-Code ungültig');
+            }
+        } catch {
+            setPartnerLookupError('Anfrage fehlgeschlagen');
         } finally {
             setPartnerLookupLoading(false);
         }
     };
-
-    useEffect(() => {
-        if (!partnerPreview) return;
-
-        try {
-            const el = document.getElementById('partner-preview');
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        } catch (error) {
-            console.error('Error scrolling to partner preview', error);
-        }
-    }, [partnerPreview]);
 
     const handleStartNow = async () => {
         setStartError(null);
@@ -291,6 +305,7 @@ const Dashboard = () => {
 
         setIsStartDrawerOpen(true);
     };
+
 
     // Auto-start after login when user came via partner link
     useEffect(() => {
@@ -417,61 +432,45 @@ const Dashboard = () => {
                                                 </div>
                                             ) : (
                                                 <div>
-                                                    <p className="text-sm text-gray-700">Bitte geben Sie den Partner-Code ein:</p>
-
-                                                    <div className="mt-3 flex flex-col sm:flex-row gap-3">
-                                                        <input
-                                                            onFocus={() => {
-                                                                const scrollEl = drawerScrollRef.current;
-                                                                if (!scrollEl) return;
-                                                                const saved = scrollEl.scrollTop;
-                                                                requestAnimationFrame(() => {
-                                                                    requestAnimationFrame(() => {
-                                                                        scrollEl.scrollTop = saved;
-                                                                    });
-                                                                });
-                                                            }}
-                                                            value={partnerCode}
-                                                            onChange={(e) => setPartnerCode(e.target.value)}
-                                                            placeholder="Partner-Code"
-                                                            className="h-11 w-full px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                        />
+                                                    <div className="mt-3 flex items-start gap-2">
+                                                        <div className="flex-1 min-w-0">
+                                                            <input
+                                                                value={partnerCode}
+                                                                onChange={(e) => { setPartnerCode(e.target.value); setPartnerPreview(null); setPartnerLookupError(null); }}
+                                                                onKeyDown={(e) => { if (e.key === 'Enter') handleLookupBoth(); }}
+                                                                placeholder="Partner-Code"
+                                                                className="h-10 w-full px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                            />
+                                                            {partnerLookupError && <p className="mt-1 text-xs text-red-600">{partnerLookupError}</p>}
+                                                            {partnerPreview && <p className="mt-1 text-xs text-green-700 font-medium">✓ {partnerPreview.firstName} {partnerPreview.lastName}</p>}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <input
+                                                                value={drawerAgentCode}
+                                                                onChange={(e) => { setDrawerAgentCode(e.target.value); setDrawerAgentPreview(null); setDrawerAgentLookupError(null); }}
+                                                                onKeyDown={(e) => { if (e.key === 'Enter') handleLookupBoth(); }}
+                                                                placeholder="Agenten-Code"
+                                                                className="h-10 w-full px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                            />
+                                                            {drawerAgentLookupError && <p className="mt-1 text-xs text-red-600">{drawerAgentLookupError}</p>}
+                                                            {drawerAgentPreview && <p className="mt-1 text-xs text-green-700 font-medium">✓ {drawerAgentPreview.firstName} {drawerAgentPreview.lastName}</p>}
+                                                        </div>
                                                         <button
-                                                            onClick={handleLookupPartner}
-                                                            disabled={partnerLookupLoading || !partnerCode.trim()}
-                                                            className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${partnerLookupLoading || !partnerCode.trim()
-                                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                                                                }`}
+                                                            onClick={handleLookupBoth}
+                                                            disabled={partnerLookupLoading || !partnerCode.trim() || !drawerAgentCode.trim()}
+                                                            className={`shrink-0 px-4 h-10 rounded-lg text-sm font-medium transition-colors ${partnerLookupLoading || !partnerCode.trim() || !drawerAgentCode.trim() ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'}`}
                                                         >
                                                             {partnerLookupLoading ? 'Prüfe...' : 'Prüfen'}
                                                         </button>
                                                     </div>
 
-                                                    {partnerLookupError && (
-                                                        <p className="mt-2 text-sm text-red-600">{partnerLookupError}</p>
-                                                    )}
-
-                                                    {partnerPreview && (
-                                                        <div
-                                                            id="partner-preview"
-                                                            className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4"
+                                                    {partnerPreview && drawerAgentPreview && (
+                                                        <button
+                                                            onClick={() => openWelcomeAndQueueStart({ partnerCode: partnerPreview.referralCode, agentCode: drawerAgentPreview.agentCode })}
+                                                            className="mt-3 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                                                         >
-                                                            <p className="text-sm text-gray-700">
-                                                                <span className="font-medium">Partner:</span> {partnerPreview.firstName} {partnerPreview.lastName}
-                                                            </p>
-                                                            <p className="text-sm text-gray-700">
-                                                                <span className="font-medium">E-Mail:</span> {partnerPreview.email}
-                                                            </p>
-                                                            <div className="mt-3">
-                                                                <button
-                                                                    onClick={() => openWelcomeAndQueueStart({ partnerCode: partnerPreview.referralCode })}
-                                                                    className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                                                                >
-                                                                    Weiter
-                                                                </button>
-                                                            </div>
-                                                        </div>
+                                                            Weiter
+                                                        </button>
                                                     )}
                                                 </div>
                                             )}

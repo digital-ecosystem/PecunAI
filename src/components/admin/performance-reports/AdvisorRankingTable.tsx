@@ -1,44 +1,39 @@
 import React from 'react';
+import { RankBadge, formatVolume } from './_shared';
 
-interface AdvisorRow {
+export interface AdvisorRow {
   rank: number;
+  id: string;
   name: string;
   email: string;
   team: string;
   started: number;
   completed: number;
   sold: number;
-  volume: string;
+  volumeOneTime: number;
+  volumeRecurring: number;
 }
 
-const ADVISORS: AdvisorRow[] = [
-  { rank: 1, name: 'Anna Müller', email: 'a.mueller@4money.at', team: 'Team Alpha', started: 18, completed: 14, sold: 9, volume: '€ 165k' },
-  { rank: 2, name: 'Thomas Bauer', email: 't.bauer@4money.at', team: 'Team Beta', started: 15, completed: 12, sold: 8, volume: '€ 148k' },
-  { rank: 3, name: 'Sarah Weber', email: 's.weber@4money.at', team: 'Team Gamma', started: 14, completed: 10, sold: 7, volume: '€ 134k' },
-  { rank: 4, name: 'Michael Fischer', email: 'm.fischer@4money.at', team: 'Team Delta', started: 12, completed: 9, sold: 6, volume: '€ 112k' },
-  { rank: 5, name: 'Lisa Schmidt', email: 'l.schmidt@4money.at', team: 'Team Alpha', started: 11, completed: 8, sold: 5, volume: '€ 98k' },
-];
-
-function RankBadge({ rank }: { rank: number }) {
-  const cls =
-    rank === 1
-      ? 'bg-blue-600 text-white'
-      : rank === 2
-      ? 'bg-gray-400 text-white'
-      : rank === 3
-      ? 'bg-gray-300 text-gray-700'
-      : 'bg-gray-100 text-gray-500';
-
-  return (
-    <div
-      className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold flex-shrink-0 ${cls}`}
-    >
-      {rank}
-    </div>
-  );
+interface AdvisorRankingTableProps {
+  advisors: AdvisorRow[];
+  isLoading?: boolean;
 }
 
-export default function AdvisorRankingTable() {
+export default function AdvisorRankingTable({ advisors, isLoading }: AdvisorRankingTableProps) {
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+        <div className="animate-pulse space-y-3">
+          <div className="h-4 bg-gray-200 rounded w-1/4" />
+          <div className="h-3 bg-gray-100 rounded w-1/3" />
+          <div className="mt-4 space-y-2">
+            {[...Array(5)].map((_, i) => <div key={i} className="h-14 bg-gray-100 rounded" />)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -48,41 +43,48 @@ export default function AdvisorRankingTable() {
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-lg border border-gray-200">
-        {/* Table header */}
-        <div className="grid grid-cols-8 gap-4 border-b bg-gray-50 px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
-          <div>Rang</div>
-          <div className="col-span-2">Berater</div>
-          <div>Team</div>
-          <div>Gestartet</div>
-          <div>Abgeschlossen</div>
-          <div>Verkauft</div>
-          <div>Volumen</div>
-        </div>
-
-        {/* Rows */}
-        {ADVISORS.map((advisor) => (
-          <div
-            key={advisor.rank}
-            className="grid grid-cols-8 gap-4 items-center border-b px-4 py-4 last:border-b-0 hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center">
-              <RankBadge rank={advisor.rank} />
-            </div>
-
-            <div className="col-span-2 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{advisor.name}</p>
-              <p className="text-xs text-gray-500 truncate">{advisor.email}</p>
-            </div>
-
-            <div className="text-sm text-gray-700 truncate">{advisor.team}</div>
-            <div className="text-sm font-medium text-gray-900">{advisor.started}</div>
-            <div className="text-sm font-medium text-gray-900">{advisor.completed}</div>
-            <div className="text-sm font-medium text-green-600">{advisor.sold}</div>
-            <div className="text-sm font-medium text-gray-900">{advisor.volume}</div>
+      {advisors.length === 0 ? (
+        <p className="mt-6 text-sm text-gray-400 text-center py-6">Keine Beraterdaten für den gewählten Zeitraum</p>
+      ) : (
+        <div className="mt-5 rounded-lg border border-gray-200 overflow-hidden">
+          <div className="grid grid-cols-8 gap-4 border-b bg-gray-50 px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+            <div>Rang</div>
+            <div className="col-span-2">Berater</div>
+            <div>Team</div>
+            <div>Gestartet</div>
+            <div>Abgeschlossen</div>
+            <div>Verkauft</div>
+            <div>Volumen</div>
           </div>
-        ))}
-      </div>
+
+          <div className="max-h-96 overflow-y-auto">
+            {advisors.map((advisor) => (
+              <div
+                key={advisor.id}
+                className="grid grid-cols-8 gap-4 items-center border-b px-4 py-4 last:border-b-0 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center">
+                  <RankBadge rank={advisor.rank} />
+                </div>
+
+                <div className="col-span-2 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{advisor.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{advisor.email}</p>
+                </div>
+
+                <div className="text-sm text-gray-700 truncate">{advisor.team}</div>
+                <div className="text-sm font-medium text-gray-900">{advisor.started}</div>
+                <div className="text-sm font-medium text-gray-900">{advisor.completed}</div>
+                <div className="text-sm font-medium text-green-600">{advisor.sold}</div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{formatVolume(advisor.volumeOneTime)}</p>
+                  <p className="text-xs text-gray-500">{formatVolume(advisor.volumeRecurring)}/Mo</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
