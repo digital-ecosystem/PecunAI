@@ -92,11 +92,11 @@ function base64ToPCM16AudioBuffer(base64: string, ctx: AudioContext): AudioBuffe
 // ── System prompt ─────────────────────────────────────────────────
 
 // DEV: English for testing. For production restore German: "Sprechen Sie ausschließlich Deutsch, formelle Anrede „Sie""
-function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number): string {
+function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, micGranted: boolean | null): string {
   const list = questions.map((q, i) => {
     let extra = "";
     if (q.options?.length) {
-      extra = `\n  Options: ${q.options.map(o => `"${o.label}"`).join(", ")}`;
+      extra = `\n  Valid values: ${q.options.map(o => `"${o.value ?? o.label}"`).join(", ")}`;
     } else if (q.questionType === "number") {
       const min = q.minValue !== undefined ? `, min ${q.minValue}` : "";
       const max = q.maxValue !== undefined ? `, max ${q.maxValue}` : "";
@@ -104,45 +104,46 @@ function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number): 
     } else {
       extra = `\n  Format: free text`;
     }
-    const skipped = i < resumeIndex ? "  ← ALREADY ANSWERED — DO NOT ASK" : "";
-    return `Question ${i + 1} (ID: ${q.id})${skipped}\nTopic: ${q.category}\nText: ${q.text}${extra}`;
+    const skipped = i < resumeIndex ? "  ← ALREADY COLLECTED — SKIP" : "";
+    return `[${i + 1}]${skipped}\nID: ${q.id}\nTopic: ${q.category}\nWhat to find out: ${q.text}${extra}`;
   }).join("\n\n");
 
   const resumeBlock = resumeIndex > 0
-    ? `\n\nRESUME — CRITICAL INSTRUCTIONS:
-- The customer completed ${resumeIndex} question${resumeIndex === 1 ? "" : "s"} in a previous session.
-- Questions 1–${resumeIndex} are marked "ALREADY ANSWERED — DO NOT ASK" in the list below.
-- You MUST skip them entirely. Do NOT read them, do NOT ask them, do NOT reference them.
-- Begin IMMEDIATELY with Question ${resumeIndex + 1} after a one-sentence welcome-back greeting.`
+    ? `\n\nRESUME: You already collected data points 1–${resumeIndex} in a previous session (marked SKIP). Do not revisit them. After a brief warm welcome-back, pick up naturally from data point ${resumeIndex + 1}.`
     : "";
 
-  return `You are PecunAI, a friendly digital investment advisor conducting a structured risk-profile questionnaire.
+  const micBlock = micGranted === false
+    ? `\n\nMIC ACCESS: The customer has NOT granted microphone access — they are in tap-only mode. An answer card will automatically appear on screen after you finish speaking each topic. In your opening greeting, naturally mention this — e.g. "I noticed you haven't given microphone access, no worries at all — answer cards will appear on screen for you to tap. You can always enable your mic in browser settings if you change your mind. Let's get started!" Do not repeat this mic reminder after the greeting.`
+    : "";
 
-LANGUAGE AND TONE:
-- YOU MUST SPEAK ENGLISH ONLY. This is a DEV environment. Even if questions, options, or customer messages are in German, always respond in English. // DEV — restore German for production
-- Be concise and professional — no long monologues${resumeBlock}
+  return `You are PecunAI, a warm and knowledgeable digital investment advisor. You are having a natural conversation with a customer to understand their financial situation and goals — so you can recommend the right investment product for them.
 
-FLOW:
-- Ask exactly one question at a time, in order
-- For multiple-choice questions: read all options aloud
+// DEV — restore German with formal "Sie" address for production
+LANGUAGE: YOU MUST SPEAK ENGLISH ONLY in this DEV environment. Even if the customer writes or speaks German, always reply in English.
 
-SPOKEN ANSWER FLOW (CRITICAL — follow this exactly):
-1. When the customer speaks an answer, do NOT call submit_answer immediately.
-2. First call highlight_answer(questionId, value, label) — this shows the answer visually on screen.
-3. Then say: "Got it — [label]. Is that correct?"
-4. If the customer confirms (says yes / correct / that's right): call submit_answer(questionId, value), then call navigate with direction "next".
-5. If the customer says no or corrects themselves: call highlight_answer again with the corrected value, then ask for confirmation again.
+TONE AND STYLE:
+- Sound like a real financial advisor having a relaxed, professional conversation — NOT like reading a form aloud.
+- Keep each response to 1–3 sentences. Never monologue.
+- Acknowledge answers naturally before moving on: "Makes sense.", "Good to know.", "That gives us a clear picture.", "Smart thinking." etc.
+- Never say "Question 1", "Next question", "Option A/B/C" or reveal any questionnaire structure.
+- Never robotically list all options. If the customer needs guidance on what to choose, mention them conversationally — e.g. "Are you thinking more growth-focused, or would you prefer something more conservative?"
+- React to what the customer says. If they seem hesitant, reassure them. If they're confident, match their energy.${resumeBlock}${micBlock}
 
-TAP ANSWER FLOW:
-- If the customer taps an answer (you receive a text message like "Meine Antwort: ..."), that is already confirmed — call submit_answer immediately, then navigate next. Do NOT call highlight_answer for tap answers.
+YOUR GOAL:
+Collect all the data points listed below through natural dialogue. You decide how to phrase each one — make it feel like genuine curiosity, not a form. Related topics can be woven together naturally if the conversation flows that way.
 
-QUESTION LIST (${questions.length} total):
+SAVING ANSWERS — IMPORTANT:
+- When the customer clearly answers a data point: call submit_answer(questionId, value) immediately, then continue the conversation naturally to the next uncollected point. Do NOT ask "Is that correct?" — just acknowledge and move on.
+- Only use highlight_answer when you genuinely cannot tell which option the customer meant (e.g. their phrasing was vague or ambiguous). Then ask once — e.g. "Just to make sure — did you mean X?" — and save whichever they confirm.
+- When you receive a message containing "[SYSTEM: Answer already saved]": the answer is already in the database — do NOT call submit_answer or highlight_answer. Just acknowledge naturally and continue to the next uncollected data point.
+
+DATA POINTS TO COLLECT (in order — do not skip any):
 
 ${list}
 
 ${resumeIndex > 0
-  ? `STARTING POINT: Question ${resumeIndex + 1}. Give a one-sentence welcome-back, then ask Question ${resumeIndex + 1} directly.`
-  : `Start with a brief two-sentence greeting, then ask Question 1.`}`;
+  ? `You have already collected the first ${resumeIndex} data point${resumeIndex === 1 ? "" : "s"}. Open with a warm one-sentence welcome-back, then continue naturally from data point ${resumeIndex + 1}.`
+  : `Open with a warm, brief greeting as a friendly advisor (2 sentences max), then naturally lead into the first topic.`}`;
 }
 
 // ── OpenAI function tools ─────────────────────────────────────────
@@ -151,7 +152,7 @@ const TOOLS = [
   {
     type: "function",
     name: "highlight_answer",
-    description: "Proposes an answer visually before committing. Call this when you think you heard the customer's answer, BEFORE calling submit_answer. The UI will highlight the matching option. Then ask the customer to confirm verbally.",
+    description: "Shows a proposed answer visually on screen. Use ONLY when you are genuinely unsure which option the customer meant — their phrasing was vague or ambiguous. Do NOT call this for every answer — most of the time you should call submit_answer directly. After calling this, ask once to clarify (e.g. 'Did you mean X?'), then submit whichever they confirm.",
     parameters: {
       type: "object",
       properties: {
@@ -165,7 +166,7 @@ const TOOLS = [
   {
     type: "function",
     name: "submit_answer",
-    description: "Saves the customer's confirmed answer. Only call this AFTER the customer has confirmed via highlight_answer.",
+    description: "Saves the customer's answer to the database. Call this as soon as you clearly understand the customer's answer — no highlight_answer confirmation needed for clear answers. Always call this before moving to the next topic.",
     parameters: {
       type: "object",
       properties: {
@@ -223,7 +224,9 @@ export function useVoiceSession({
 
   // Stable ref for the initial question index — set once on mount.
   // Used in session.created so the resume index is always reliable regardless of state timing.
-  const initialIndexRef = useRef(initialQuestionIndex);
+  const initialIndexRef  = useRef(initialQuestionIndex);
+  // Stable ref for mic permission — set in startSession() before WS opens so it's ready at session.created time.
+  const micGrantedRef    = useRef<boolean | null>(null);
 
   // Internal refs — stable across renders
   const wsRef              = useRef<WebSocket | null>(null);
@@ -480,7 +483,7 @@ export function useVoiceSession({
             session: {
               modalities:   ["text", "audio"] as string[],
               voice:        "shimmer",
-              instructions: buildSystemPrompt(questionsRef.current, initialIndexRef.current),
+              instructions: buildSystemPrompt(questionsRef.current, initialIndexRef.current, micGrantedRef.current),
               tools:        TOOLS,
             },
           });
@@ -671,14 +674,15 @@ export function useVoiceSession({
 
     dispatch({ type: "ANSWER_SAVED" });
 
-    // Inform AI of the tap-based answer so it continues naturally
+    // Inform AI of the tap-based answer so it continues naturally.
+    // Explicitly mark as already saved so the AI does NOT call submit_answer again.
     const label = (question.options ?? []).find(o => o.value === value)?.label ?? value;
     send({
       type: "conversation.item.create",
       item: {
         type: "message",
         role: "user",
-        content: [{ type: "input_text", text: `My answer: "${label}"` }],
+        content: [{ type: "input_text", text: `[SYSTEM: Answer already saved — do NOT call submit_answer] The customer tapped their answer: "${label}"` }],
       },
     });
     send({ type: "response.create" });
@@ -713,11 +717,14 @@ export function useVoiceSession({
       if (navigator.mediaDevices?.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         micStreamRef.current = stream;
+        micGrantedRef.current = true;
         setMicGranted(true);
       } else {
+        micGrantedRef.current = false;
         setMicGranted(false);
       }
     } catch {
+      micGrantedRef.current = false;
       setMicGranted(false); // silent tap-only fallback — no error shown
     }
 

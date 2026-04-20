@@ -59,6 +59,14 @@ export default function VoiceSessionShell({
     }
   }, [pendingVoiceAnswer, questions]);
 
+  // Mic-denied: auto-open the modal when the AI finishes speaking so the customer
+  // doesn't have to manually find and tap the carousel card.
+  useEffect(() => {
+    if (micGranted === false && state.session === "listening" && !modalOpen) {
+      setModalOpen(true);
+    }
+  }, [micGranted, state.session, modalOpen]);
+
   // viewIndex drives the carousel visually; it can be browsed freely.
   // It syncs forward whenever the hook advances currentQuestionIndex (after an answer is saved).
   const [viewIndex, setViewIndex] = useState(initialQuestionIndex);
