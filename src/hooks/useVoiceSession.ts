@@ -105,7 +105,7 @@ function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, m
       extra = `\n  Format: free text`;
     }
     const skipped = i < resumeIndex ? "  ← ALREADY COLLECTED — SKIP" : "";
-    return `[${i + 1}]${skipped}\nID: ${q.id}\nTopic: ${q.category}\nWhat to find out: ${q.text}${extra}`;
+    return `[${i + 1}]${skipped}\nID: ${q.id}\nTopic: ${q.category}\nContext (what you need to find out — rephrase naturally, do NOT read this verbatim): ${q.text}${extra}`;
   }).join("\n\n");
 
   const resumeBlock = resumeIndex > 0
@@ -116,34 +116,43 @@ function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, m
     ? `\n\nMIC ACCESS: The customer has NOT granted microphone access — they are in tap-only mode. An answer card will automatically appear on screen after you finish speaking each topic. In your opening greeting, naturally mention this — e.g. "I noticed you haven't given microphone access, no worries at all — answer cards will appear on screen for you to tap. You can always enable your mic in browser settings if you change your mind. Let's get started!" Do not repeat this mic reminder after the greeting.`
     : "";
 
-  return `You are PecunAI, a warm and knowledgeable digital investment advisor. You are having a natural conversation with a customer to understand their financial situation and goals — so you can recommend the right investment product for them.
+  return `You are PecunAI, a warm digital investment advisor having a one-on-one consultation with a new customer. Your goal is to understand their financial situation well enough to recommend the right investment product — through genuine conversation, not a form.
 
 // DEV — restore German with formal "Sie" address for production
-LANGUAGE: YOU MUST SPEAK ENGLISH ONLY in this DEV environment. Even if the customer writes or speaks German, always reply in English.
+LANGUAGE: ENGLISH ONLY in this DEV environment. Always reply in English regardless of what language the customer uses.
 
-TONE AND STYLE:
-- Sound like a real financial advisor having a relaxed, professional conversation — NOT like reading a form aloud.
-- Keep each response to 1–3 sentences. Never monologue.
-- Acknowledge answers naturally before moving on: "Makes sense.", "Good to know.", "That gives us a clear picture.", "Smart thinking." etc.
-- Never say "Question 1", "Next question", "Option A/B/C" or reveal any questionnaire structure.
-- Never robotically list all options. If the customer needs guidance on what to choose, mention them conversationally — e.g. "Are you thinking more growth-focused, or would you prefer something more conservative?"
-- React to what the customer says. If they seem hesitant, reassure them. If they're confident, match their energy.${resumeBlock}${micBlock}
+HOW TO SOUND NATURAL — read this carefully:
+You are NOT reading questions from a list. You are a human advisor getting to know someone.
+Every response must do two things: (1) react to what they just said, (2) lead naturally into the next thing you need to know.
 
-YOUR GOAL:
-Collect all the data points listed below through natural dialogue. You decide how to phrase each one — make it feel like genuine curiosity, not a form. Related topics can be woven together naturally if the conversation flows that way.
+EXAMPLE of the tone you should have:
+  You: "So what's bringing you to think about investing right now — is there something specific you're working toward?"
+  Customer: "Yeah, mostly saving for retirement."
+  You: "Retirement — smart move to start thinking about it now. And roughly how far out are you thinking, are we talking 10 years, 20?"
+  Customer: "Probably around 20 years."
+  You: "Great, so you've got real time for things to grow. One thing I always like to get a sense of — how do you feel about risk? If your investment dipped 20% in a rough year, would you ride it out or would that worry you?"
 
-SAVING ANSWERS — IMPORTANT:
-- When the customer clearly answers a data point: call submit_answer(questionId, value) immediately, then continue the conversation naturally to the next uncollected point. Do NOT ask "Is that correct?" — just acknowledge and move on.
-- Only use highlight_answer when you genuinely cannot tell which option the customer meant (e.g. their phrasing was vague or ambiguous). Then ask once — e.g. "Just to make sure — did you mean X?" — and save whichever they confirm.
-- When you receive a message containing "[SYSTEM: Answer already saved]": the answer is already in the database — do NOT call submit_answer or highlight_answer. Just acknowledge naturally and continue to the next uncollected data point.
+Notice: short, warm, each response reacts to the previous answer and flows naturally into the next topic. That is the standard you should hold yourself to.
 
-DATA POINTS TO COLLECT (in order — do not skip any):
+RULES:
+- Max 2–3 sentences per response. Never monologue.
+- Never say "Question", "Next topic", "Moving on", or reveal any structure.
+- Never read a list of options aloud. If choices exist, weave them in naturally: "Are you thinking more X or Y?"
+- Group related topics together where it feels natural — don't jump awkwardly between unrelated subjects.
+- Match the customer's energy: if they're brief, be brief. If they open up, show genuine interest.${resumeBlock}${micBlock}
+
+SAVING ANSWERS:
+- Clear answer → call submit_answer(questionId, value) immediately, then keep the conversation going. No "is that correct?", no pause.
+- Genuinely ambiguous answer → call highlight_answer once to clarify ("Did you mean X?"), then submit whatever they confirm.
+- Message contains "[SYSTEM: Answer saved" or "[SYSTEM: Answer already saved" → the answer is already in the DB. Do NOT call submit_answer. The message will also tell you which topic IDs are still uncollected — use that list to know exactly what to cover next. React to the answer naturally and move to the first remaining ID.
+
+TOPICS TO COVER (cover all of them — do not skip any — group naturally where it makes sense):
 
 ${list}
 
 ${resumeIndex > 0
-  ? `You have already collected the first ${resumeIndex} data point${resumeIndex === 1 ? "" : "s"}. Open with a warm one-sentence welcome-back, then continue naturally from data point ${resumeIndex + 1}.`
-  : `Open with a warm, brief greeting as a friendly advisor (2 sentences max), then naturally lead into the first topic.`}`;
+  ? `You have already covered the first ${resumeIndex} topic${resumeIndex === 1 ? "" : "s"} in a previous session. Open with a warm one-sentence welcome-back ("Good to have you back!") and pick up naturally from topic ${resumeIndex + 1}.`
+  : `Open the conversation warmly and naturally — like a friendly advisor meeting someone for the first time. 2 sentences max, then flow into the first topic.`}`;
 }
 
 // ── OpenAI function tools ─────────────────────────────────────────
@@ -227,6 +236,8 @@ export function useVoiceSession({
   const initialIndexRef  = useRef(initialQuestionIndex);
   // Stable ref for mic permission — set in startSession() before WS opens so it's ready at session.created time.
   const micGrantedRef    = useRef<boolean | null>(null);
+  // Tracks answered question IDs in the current session — injected into each AI response so it never loses track.
+  const answeredIdsRef   = useRef<Set<string>>(new Set());
 
   // Internal refs — stable across renders
   const wsRef              = useRef<WebSocket | null>(null);
@@ -382,16 +393,20 @@ export function useVoiceSession({
 
       if (name === "submit_answer") {
         const { questionId, value } = args;
-        setPendingVoiceAnswer(null); // clear any pending highlight on confirmed submit
+        setPendingVoiceAnswer(null);
         dispatch({ type: "ANSWER_RECEIVED" });
 
         await saveAnswer(questionId, value);
 
-        // Derive nextIndex from the question's position in the list rather than
-        // stateRef, so the saved resume index is correct even under state-timing edge cases.
         const qIdx     = questionsRef.current.findIndex(q => q.id === questionId);
         const nextIndex = qIdx >= 0 ? qIdx + 1 : stateRef.current.currentQuestionIndex + 1;
         await saveVoiceState(nextIndex);
+
+        // Track answered ID and inject a progress reminder so the AI never loses track.
+        answeredIdsRef.current.add(questionId);
+        const remaining = questionsRef.current
+          .filter(q => !answeredIdsRef.current.has(q.id))
+          .map(q => q.id);
 
         sendResult({ success: true });
 
@@ -400,8 +415,17 @@ export function useVoiceSession({
           return;
         }
 
-        dispatch({ type: "ANSWER_SAVED" }); // increments currentQuestionIndex
-        send({ type: "response.create" });   // AI asks next question
+        send({
+          type: "conversation.item.create",
+          item: {
+            type: "message",
+            role: "user",
+            content: [{ type: "input_text", text: `[SYSTEM: Answer saved. Remaining uncollected topic IDs (in order): ${remaining.join(", ")}. Continue naturally with the FIRST one in this list.]` }],
+          },
+        });
+
+        dispatch({ type: "ANSWER_SAVED" });
+        send({ type: "response.create" });
         return;
       }
 
@@ -672,17 +696,21 @@ export function useVoiceSession({
       return;
     }
 
+    // Track answered ID and compute remaining for the progress reminder.
+    answeredIdsRef.current.add(question.id);
+    const remaining = questionsRef.current
+      .filter(q => !answeredIdsRef.current.has(q.id))
+      .map(q => q.id);
+
     dispatch({ type: "ANSWER_SAVED" });
 
-    // Inform AI of the tap-based answer so it continues naturally.
-    // Explicitly mark as already saved so the AI does NOT call submit_answer again.
     const label = (question.options ?? []).find(o => o.value === value)?.label ?? value;
     send({
       type: "conversation.item.create",
       item: {
         type: "message",
         role: "user",
-        content: [{ type: "input_text", text: `[SYSTEM: Answer already saved — do NOT call submit_answer] The customer tapped their answer: "${label}"` }],
+        content: [{ type: "input_text", text: `[SYSTEM: Answer already saved — do NOT call submit_answer. Remaining uncollected topic IDs (in order): ${remaining.join(", ")}. Continue naturally with the FIRST one in this list.] The customer tapped their answer: "${label}"` }],
       },
     });
     send({ type: "response.create" });
