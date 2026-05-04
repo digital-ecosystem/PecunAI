@@ -14,7 +14,7 @@ export async function GET() {
       }),
       prisma.partner.findMany({
         where: { isActive: true },
-        select: { id: true, firstName: true, lastName: true, email: true },
+        select: { id: true, firstName: true, lastName: true, email: true, referralCode: true },
         orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
       }),
       prisma.agent.findMany({

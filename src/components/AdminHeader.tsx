@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { LogOut, Package, BarChart3, MessageSquare, TrendingUp } from 'lucide-react';
+import { LogOut, Package, BarChart3, MessageSquare, TrendingUp, Users } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 
 interface AdminData {
@@ -65,6 +65,11 @@ const AdminHeader = () => {
       href: '/admin/main-product-prompt',
       icon: MessageSquare,
     },
+    {
+      name: 'Agents',
+      href: '/admin/agents',
+      icon: Users,
+    },
   ];
 
   return (
@@ -80,12 +85,14 @@ const AdminHeader = () => {
                 {pathname === '/admin/performance-reports' && 'Performance Report'}
                 {pathname === '/admin/products' && 'Products Management'}
                 {pathname === '/admin/main-product-prompt' && 'Main Product Prompts'}
+                {pathname === '/admin/agents' && 'Agents'}
               </h1>
               <p className="text-xs sm:text-sm lg:text-base text-gray-600 truncate">
                 {pathname === '/admin/dashboard' && 'Welcome back!'}
                 {pathname === '/admin/performance-reports' && 'Unternehmensweite Leistungsübersicht'}
                 {pathname === '/admin/products' && 'Manage your product catalog'}
                 {pathname === '/admin/main-product-prompt' && 'Manage your AI model configurations'}
+                {pathname === '/admin/agents' && 'Agenten verwalten und zuweisen'}
               </p>
             </div>
           </div>
