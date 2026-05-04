@@ -1205,11 +1205,11 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
   ];
 
   const agents = [
-    { firstName: 'Alex',   lastName: 'Berger',  agentCode: 'AB743' },
-    { firstName: 'Xenia',  lastName: 'Klein',   agentCode: 'XK291' },
-    { firstName: 'Marco',  lastName: 'Neubert', agentCode: 'MN582' },
-    { firstName: 'Paula',  lastName: 'Richter', agentCode: 'PR904' },
-    { firstName: 'Tim',    lastName: 'Lang',    agentCode: 'TL193' },
+    { firstName: 'Alex',   lastName: 'Berger',  agentCode: 'AB743', partnerEmail: 'alexander.bracic@finova.at' },
+    { firstName: 'Xenia',  lastName: 'Klein',   agentCode: 'XK291', partnerEmail: 'alexander.bracic@finova.at' },
+    { firstName: 'Marco',  lastName: 'Neubert', agentCode: 'MN582', partnerEmail: 'lukas.hochsteger@finova.at' },
+    { firstName: 'Paula',  lastName: 'Richter', agentCode: 'PR904', partnerEmail: 'lukas.hochsteger@finova.at' },
+    { firstName: 'Tim',    lastName: 'Lang',    agentCode: 'TL193', partnerEmail: 'franz.resch@finova.at' },
   ];
 
   const teamDefinitions = [
@@ -1402,6 +1402,7 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
         firstName: agent.firstName,
         lastName:  agent.lastName,
         agentCode: agent.agentCode,
+        partner:   { connect: { email: agent.partnerEmail } },
       },
     });
     console.log(`  ✅ Agent upserted: ${agent.agentCode} (${agent.firstName} ${agent.lastName})`);

@@ -56,6 +56,10 @@ const Dashboard = () => {
         return match ? decodeURIComponent(match[1]) : '';
     };
 
+    const clearCookie = (name: string) => {
+        document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
+    };
+
     const openSession = allSessionsForStats.find(
         s => s.status === SessionStatus.DRAFT
     );
@@ -299,7 +303,9 @@ const Dashboard = () => {
 
         const referralCode = getCookieValue('referral_code');
         if (referralCode) {
-            await startSession();
+            const agentCode = getCookieValue('agent_code') || undefined;
+            clearCookie('agent_code');
+            await startSession(agentCode ? { agentCode } : undefined);
             return;
         }
 
@@ -320,7 +326,9 @@ const Dashboard = () => {
         }
         // Require explicit confirmation before starting the stepper
         setIsStartDrawerOpen(true);
-        openWelcomeAndQueueStart();
+        const agentCodeFromCookie = getCookieValue('agent_code') || undefined;
+        clearCookie('agent_code');
+        openWelcomeAndQueueStart(agentCodeFromCookie ? { agentCode: agentCodeFromCookie } : undefined);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, didAutostart]);
 

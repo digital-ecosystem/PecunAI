@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { DashboardQuestions, Session, SessionStatus } from '@/types';
+import { Agent, DashboardQuestions, Session, SessionStatus } from '@/types';
 import { useParams, useRouter } from 'next/navigation';
 import AdvisorDashboardHeader from '@/components/advisor/AdvisorDashboardHeader';
 import AdvisorReferralBanner from '@/components/advisor/AdvisorReferralBanner';
@@ -37,6 +37,8 @@ export default function AdvisorDashboardLayout({ children }: { children: React.R
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [selectedAgentCode, setSelectedAgentCode] = useState<string>('');
 
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [questionAnswer, setQuestionAnswer] = useState<DashboardQuestions[]>([]);
@@ -61,7 +63,12 @@ export default function AdvisorDashboardLayout({ children }: { children: React.R
           setAdvisor(data.partner);
         } else {
           router.push('/advisor/signin');
+          return;
         }
+
+        const agentsRes = await fetch('/api/agent', { credentials: 'include' });
+        const agentsData = await agentsRes.json();
+        if (agentsData?.success) setAgents(agentsData.agents);
       } catch (error) {
         console.error('Error fetching dashboard:', error);
         router.push('/advisor/signin');
@@ -132,7 +139,8 @@ export default function AdvisorDashboardLayout({ children }: { children: React.R
   const copyReferralLink = () => {
     if (!advisor?.referralCode) return;
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const referralLink = `${baseUrl}/?ref=${advisor.referralCode}`;
+    const agentParam = selectedAgentCode ? `&agent=${selectedAgentCode}` : '';
+    const referralLink = `${baseUrl}/?ref=${advisor.referralCode}${agentParam}`;
     navigator.clipboard.writeText(referralLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -302,6 +310,9 @@ export default function AdvisorDashboardLayout({ children }: { children: React.R
             copiedLink={copied}
             onCopyCode={copyReferralCode}
             onCopyLink={copyReferralLink}
+            agents={agents}
+            selectedAgentCode={selectedAgentCode}
+            onAgentChange={setSelectedAgentCode}
           />
 
           <DashboardStats
