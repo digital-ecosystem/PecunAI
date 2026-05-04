@@ -20,7 +20,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, agents });
   } catch (error) {
-    console.error('[GET /api/agent]', error);
+    console.error('[GET /api/advisor/agents]', error);
     return NextResponse.json({ success: false, message: 'Interner Serverfehler' }, { status: 500 });
   }
 }

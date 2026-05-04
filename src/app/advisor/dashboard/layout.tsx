@@ -66,7 +66,7 @@ export default function AdvisorDashboardLayout({ children }: { children: React.R
           return;
         }
 
-        const agentsRes = await fetch('/api/agent', { credentials: 'include' });
+        const agentsRes = await fetch('/api/advisor/agents', { credentials: 'include' });
         const agentsData = await agentsRes.json();
         if (agentsData?.success) setAgents(agentsData.agents);
       } catch (error) {
