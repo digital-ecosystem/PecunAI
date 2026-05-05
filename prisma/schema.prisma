@@ -137,7 +137,6 @@ model QASession {
   phase              SessionPhase              @default(TERMS1)
   createdAt          DateTime                  @default(now())
   updatedAt          DateTime                  @updatedAt
-  completedAt        DateTime?
   userId             String
   status             SessionStatus?            @default(DRAFT)
   agentId   String?
