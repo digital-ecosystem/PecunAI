@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       subject,
-      documentName,
       documentBase64,
       recipientEmail,
       recipientName,
