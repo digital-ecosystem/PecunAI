@@ -142,9 +142,16 @@ RULES:
 - Match the customer's energy: if they're brief, be brief. If they open up, show genuine interest.${resumeBlock}${micBlock}
 
 SAVING ANSWERS:
-- Clear answer → call submit_answer(questionId, value) immediately, then keep the conversation going. No "is that correct?", no pause.
+- Only call submit_answer when the customer has CLEARLY and EXPLICITLY spoken or tapped an answer. Do NOT submit based on silence, background noise, assumption, or inference — wait for them to actually respond.
+- Clear spoken answer → call submit_answer(questionId, value) immediately, then keep the conversation going. No "is that correct?", no pause.
 - Genuinely ambiguous answer → call highlight_answer once to clarify ("Did you mean X?"), then submit whatever they confirm.
 - Message contains "[SYSTEM: Answer saved" or "[SYSTEM: Answer already saved" → the answer is already in the DB. Do NOT call submit_answer. The message will also tell you which topic IDs are still uncollected — use that list to know exactly what to cover next. React to the answer naturally and move to the first remaining ID.
+
+NAVIGATION:
+- The customer can tap "back" to revisit a previous topic or "skip" to move past the current one.
+- On back: you will receive a [SYSTEM: Customer navigated back...] message — react naturally and ask if they want to change their answer.
+- On skip: you will receive a [SYSTEM: Customer skipped...] message — acknowledge briefly and continue.
+- Skipped topics will be listed at the end — work through them one by one before finishing.
 
 TOPICS TO COVER (cover all of them — do not skip any — group naturally where it makes sense):
 
@@ -231,6 +238,17 @@ export function useVoiceSession({
     label:      string;
   } | null>(null);
 
+  // All confirmed answers in this session — keyed by questionId.
+  // Used to pre-populate the modal when user taps a card for an already-answered question.
+  const [savedAnswers, setSavedAnswers] = useState<Record<string, string>>({});
+  const savedAnswersRef = useRef<Record<string, string>>({});
+
+  // Dedicated state for the carousel card position — ONLY updated when we know exactly
+  // what question the AI will talk about next. Decoupled from the state machine index.
+  const [activeCardId, setActiveCardId] = useState<string | null>(
+    questions[initialQuestionIndex]?.id ?? null
+  );
+
   // Stable ref for the initial question index — set once on mount.
   // Used in session.created so the resume index is always reliable regardless of state timing.
   const initialIndexRef  = useRef(initialQuestionIndex);
@@ -238,6 +256,10 @@ export function useVoiceSession({
   const micGrantedRef    = useRef<boolean | null>(null);
   // Tracks answered question IDs in the current session — injected into each AI response so it never loses track.
   const answeredIdsRef   = useRef<Set<string>>(new Set());
+  // Tracks explicitly skipped question IDs — cleared when the question is later answered.
+  const skippedIdsRef    = useRef<Set<string>>(new Set());
+  // One skip at a time — locked until the AI finishes speaking and returns to "listening".
+  const skipInProgressRef = useRef(false);
 
   // Internal refs — stable across renders
   const wsRef              = useRef<WebSocket | null>(null);
@@ -386,6 +408,7 @@ export function useVoiceSession({
         const { questionId, value, label } = args;
         console.log("[voice] highlight_answer →", { questionId, value, label });
         setPendingVoiceAnswer({ questionId, value, label });
+        setActiveCardId(questionId);
         sendResult({ success: true });
         send({ type: "response.create" }); // prompt AI to speak "Got it — X. Is that correct?"
         return;
@@ -402,16 +425,42 @@ export function useVoiceSession({
         const nextIndex = qIdx >= 0 ? qIdx + 1 : stateRef.current.currentQuestionIndex + 1;
         await saveVoiceState(nextIndex);
 
-        // Track answered ID and inject a progress reminder so the AI never loses track.
+        // Track answered ID and store value so tapping the card later shows it pre-filled.
         answeredIdsRef.current.add(questionId);
+        skippedIdsRef.current.delete(questionId);
+        setSavedAnswers(prev => ({ ...prev, [questionId]: value }));
+        savedAnswersRef.current = { ...savedAnswersRef.current, [questionId]: value };
         const remaining = questionsRef.current
-          .filter(q => !answeredIdsRef.current.has(q.id))
+          .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
           .map(q => q.id);
 
         sendResult({ success: true });
 
-        if (nextIndex >= questionsRef.current.length) {
+        const allAnswered            = answeredIdsRef.current.size === questionsRef.current.length;
+        const allCoveredExceptSkipped = answeredIdsRef.current.size + skippedIdsRef.current.size === questionsRef.current.length;
+
+        if (allAnswered) {
           await advancePhase();
+          return;
+        }
+
+        if (allCoveredExceptSkipped && skippedIdsRef.current.size > 0) {
+          const skippedList = questionsRef.current
+            .filter(q => skippedIdsRef.current.has(q.id))
+            .map(q => `"${q.id}" (topic: ${q.category})`)
+            .join(", ");
+          dispatch({ type: "ANSWER_SAVED" });
+          const firstSkipped = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));
+          setActiveCardId(firstSkipped?.id ?? null);
+          send({
+            type: "conversation.item.create",
+            item: {
+              type: "message",
+              role: "user",
+              content: [{ type: "input_text", text: `[SYSTEM: All main topics have been covered. ${skippedIdsRef.current.size} topic(s) were skipped earlier: ${skippedList}. Circle back to them now one by one, naturally. After all are answered, the session will complete.]` }],
+            },
+          });
+          send({ type: "response.create" });
           return;
         }
 
@@ -425,6 +474,9 @@ export function useVoiceSession({
         });
 
         dispatch({ type: "ANSWER_SAVED" });
+        const nextQIdx = remaining.length > 0 ? questionsRef.current.findIndex(q => q.id === remaining[0]) : -1;
+        if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
+        setActiveCardId(remaining[0] ?? null);
         send({ type: "response.create" });
         return;
       }
@@ -505,10 +557,16 @@ export function useVoiceSession({
           send({
             type: "session.update",
             session: {
-              modalities:   ["text", "audio"] as string[],
-              voice:        "shimmer",
-              instructions: buildSystemPrompt(questionsRef.current, initialIndexRef.current, micGrantedRef.current),
-              tools:        TOOLS,
+              modalities:    ["text", "audio"] as string[],
+              voice:         "shimmer",
+              instructions:  buildSystemPrompt(questionsRef.current, initialIndexRef.current, micGrantedRef.current),
+              tools:         TOOLS,
+              turn_detection: {
+                type:                "server_vad",
+                threshold:           0.7,   // higher = less sensitive to background noise
+                prefix_padding_ms:   300,
+                silence_duration_ms: 700,
+              },
             },
           });
           break;
@@ -666,6 +724,11 @@ export function useVoiceSession({
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
+  // Unlock skip when AI finishes speaking and session returns to "listening".
+  useEffect(() => {
+    if (state.session === "listening") skipInProgressRef.current = false;
+  }, [state.session]);
+
   // ── Public API ─────────────────────────────────────────────────
 
   const toggleMute = useCallback(() => {
@@ -691,18 +754,48 @@ export function useVoiceSession({
     const nextIndex = qIdx >= 0 ? qIdx + 1 : stateRef.current.currentQuestionIndex + 1;
     await saveVoiceState(nextIndex);
 
-    if (nextIndex >= questionsRef.current.length) {
+    // Track answered ID before coverage check so the counts are up-to-date.
+    answeredIdsRef.current.add(question.id);
+    skippedIdsRef.current.delete(question.id);
+    setSavedAnswers(prev => ({ ...prev, [question.id]: value }));
+    savedAnswersRef.current = { ...savedAnswersRef.current, [question.id]: value };
+
+    const allAnswered            = answeredIdsRef.current.size === questionsRef.current.length;
+    const allCoveredExceptSkipped = answeredIdsRef.current.size + skippedIdsRef.current.size === questionsRef.current.length;
+
+    if (allAnswered) {
       await advancePhase();
       return;
     }
 
-    // Track answered ID and compute remaining for the progress reminder.
-    answeredIdsRef.current.add(question.id);
     const remaining = questionsRef.current
-      .filter(q => !answeredIdsRef.current.has(q.id))
+      .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
       .map(q => q.id);
 
+    if (allCoveredExceptSkipped && skippedIdsRef.current.size > 0) {
+      const skippedList = questionsRef.current
+        .filter(q => skippedIdsRef.current.has(q.id))
+        .map(q => `"${q.id}" (topic: ${q.category})`)
+        .join(", ");
+      dispatch({ type: "ANSWER_SAVED" });
+      const firstSkipped = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));
+      setActiveCardId(firstSkipped?.id ?? null);
+      send({
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: "user",
+          content: [{ type: "input_text", text: `[SYSTEM: All main topics have been covered. ${skippedIdsRef.current.size} topic(s) were skipped earlier: ${skippedList}. Circle back to them now one by one, naturally. After all are answered, the session will complete.]` }],
+        },
+      });
+      send({ type: "response.create" });
+      return;
+    }
+
     dispatch({ type: "ANSWER_SAVED" });
+    const nextQIdx = remaining.length > 0 ? questionsRef.current.findIndex(q => q.id === remaining[0]) : -1;
+    if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
+    setActiveCardId(remaining[0] ?? null);
 
     const label = (question.options ?? []).find(o => o.value === value)?.label ?? value;
     send({
@@ -722,15 +815,38 @@ export function useVoiceSession({
   }, []);
 
   const onPrev = useCallback(() => {
-    const newIndex = Math.max(0, stateRef.current.currentQuestionIndex - 1);
-    dispatch({ type: "SET_INDEX", index: newIndex });
-    // Tell AI to re-read the previous question
+    if (stateRef.current.currentQuestionIndex === 0) return;
+    const prevIndex = stateRef.current.currentQuestionIndex - 1;
+    const prevQuestion = questionsRef.current[prevIndex];
+    dispatch({ type: "SET_INDEX", index: prevIndex });
+    setActiveCardId(questionsRef.current[prevIndex]?.id ?? null);
+
+    const prevAnswer = prevQuestion ? savedAnswersRef.current[prevQuestion.id] : undefined;
+    const msg = prevAnswer
+      ? `[SYSTEM: Customer navigated back to topic "${prevQuestion.category}". Their previous answer was "${prevAnswer}". Ask warmly whether they want to change it — e.g. "You went back to [topic] — you said [X] before, did you want to revisit that?"]`
+      : `[SYSTEM: Customer navigated back to topic "${prevQuestion?.category}" which has not been answered yet. Ask it naturally.]`;
+
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text", text: msg }] },
+    });
+    send({ type: "response.create" });
+  }, [send]);
+
+  const skipQuestion = useCallback((question: CarouselQuestion) => {
+    if (skipInProgressRef.current) return; // block until AI finishes and session returns to "listening"
+    skipInProgressRef.current = true;
+
+    skippedIdsRef.current.add(question.id);
+    const questionIdx = questionsRef.current.findIndex(q => q.id === question.id);
+    setActiveCardId(questionsRef.current[questionIdx + 1]?.id ?? null);
+
     send({
       type: "conversation.item.create",
       item: {
         type: "message",
         role: "user",
-        content: [{ type: "input_text", text: "Please repeat the previous question." }],
+        content: [{ type: "input_text", text: `[SYSTEM: Customer skipped the topic "${question.category}". Acknowledge briefly ("No problem, we can come back to that") and move naturally to the next topic.]` }],
       },
     });
     send({ type: "response.create" });
@@ -767,10 +883,13 @@ export function useVoiceSession({
     micGranted,
     isAISpeaking,
     pendingVoiceAnswer,
+    savedAnswers,
     startSession,
     toggleMute,
     onAnswerConfirmed,
     clearPendingVoiceAnswer,
     onPrev,
+    skipQuestion,
+    activeCardId,
   };
 }

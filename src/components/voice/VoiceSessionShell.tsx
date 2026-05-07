@@ -44,20 +44,12 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, pendingVoiceAnswer } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex });
 
   const [modalOpen,   setModalOpen]   = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const [chatOpen,    setChatOpen]    = useState(false);
-
-  // Sync carousel to the question the AI is proposing an answer for.
-  useEffect(() => {
-    if (pendingVoiceAnswer) {
-      const idx = questions.findIndex(q => q.id === pendingVoiceAnswer.questionId);
-      if (idx >= 0) setViewIndex(idx);
-    }
-  }, [pendingVoiceAnswer, questions]);
 
   // Mic-denied: auto-open the modal when the AI finishes speaking so the customer
   // doesn't have to manually find and tap the carousel card.
@@ -67,12 +59,11 @@ export default function VoiceSessionShell({
     }
   }, [micGranted, state.session, modalOpen]);
 
-  // viewIndex drives the carousel visually; it can be browsed freely.
-  // It syncs forward whenever the hook advances currentQuestionIndex (after an answer is saved).
-  const [viewIndex, setViewIndex] = useState(initialQuestionIndex);
-  useEffect(() => {
-    setViewIndex(state.currentQuestionIndex);
-  }, [state.currentQuestionIndex]);
+  // viewIndex is derived directly from activeCardId — the hook's explicit source of truth
+  // for which question the AI is currently on. No state machine sync needed.
+  const viewIndex = activeCardId
+    ? Math.max(0, questions.findIndex(q => q.id === activeCardId))
+    : initialQuestionIndex;
 
   const n       = questions.length;
   const activeQ = n > 0 ? questions[Math.min(viewIndex, n - 1)] : null;
@@ -218,8 +209,16 @@ export default function VoiceSessionShell({
             <VoiceCarousel
               questions={questions}
               currentIndex={viewIndex}
-              onNext={() => setViewIndex(i => (i + 1) % n)}
-              onPrev={() => setViewIndex(i => (i - 1 + n) % n)}
+              onNext={() => {
+                if (state.session !== "listening") return;
+                if (viewIndex >= n - 1) return;
+                skipQuestion(questions[viewIndex]);
+              }}
+              onPrev={() => {
+                if (state.session !== "listening") return;
+                if (viewIndex === 0) return;
+                onPrev();
+              }}
               onActiveCardClick={() => setModalOpen(true)}
               onInfoClick={() => setExplainOpen(true)}
             />
@@ -230,8 +229,16 @@ export default function VoiceSessionShell({
         <ControlBar
           isMuted={isMuted}
           onMuteToggle={toggleMute}
-          onPrevious={() => setViewIndex(i => (i - 1 + n) % n)}
-          onNext={() => setViewIndex(i => (i + 1) % n)}
+          onPrevious={() => {
+            if (state.session !== "listening") return;
+            if (viewIndex === 0) return;
+            onPrev();
+          }}
+          onNext={() => {
+            if (state.session !== "listening") return;
+            if (viewIndex >= n - 1) return;
+            skipQuestion(questions[viewIndex]);
+          }}
           onChatClick={() => setChatOpen(true)}
           micGranted={micGranted}
         />
@@ -275,7 +282,7 @@ export default function VoiceSessionShell({
           preSelectedValue={
             pendingVoiceAnswer?.questionId === modalQ.id
               ? pendingVoiceAnswer.value
-              : undefined
+              : savedAnswers[modalQ.id] ?? undefined
           }
           onClose={() => {
             setModalOpen(false);
