@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Menu, User, Mic } from "lucide-react";
@@ -44,17 +44,28 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, requestExplanation, closeExplainOverlay } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex });
 
-  const [modalOpen,   setModalOpen]   = useState(false);
-  const [explainOpen, setExplainOpen] = useState(false);
-  const [chatOpen,    setChatOpen]    = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [chatOpen,  setChatOpen]  = useState(false);
+
+  // Derived from hook state — overlay is open whenever the AI has set explain data
+  const explainOpen = explainOverlayData !== null;
+
+  // Set when the customer manually closes the modal — prevents it from immediately re-opening.
+  // Cleared when activeCardId changes (AI moved to a new question), so the next question auto-opens normally.
+  const suppressAutoModalRef = useRef(false);
+
+  useEffect(() => {
+    suppressAutoModalRef.current = false;
+  }, [activeCardId]);
 
   // Mic-denied: auto-open the modal when the AI finishes speaking so the customer
   // doesn't have to manually find and tap the carousel card.
+  // suppressAutoModalRef prevents re-opening after a manual close until the question changes.
   useEffect(() => {
-    if (micGranted === false && state.session === "listening" && !modalOpen) {
+    if (micGranted === false && state.session === "listening" && !modalOpen && !suppressAutoModalRef.current) {
       setModalOpen(true);
     }
   }, [micGranted, state.session, modalOpen]);
@@ -220,7 +231,7 @@ export default function VoiceSessionShell({
                 onPrev();
               }}
               onActiveCardClick={() => setModalOpen(true)}
-              onInfoClick={() => setExplainOpen(true)}
+              onInfoClick={requestExplanation}
             />
           </motion.div>
         )}
@@ -248,21 +259,19 @@ export default function VoiceSessionShell({
 
       <VoiceChatModal isOpen={chatOpen} onClose={() => setChatOpen(false)} />
 
-      {explainOpen && activeQ && (
+      {explainOpen && activeQ && explainOverlayData && (
         <VoiceExplainOverlay
           footnote={{
-            title: `${activeQ.category} verstehen`,
-            body:  "Bei der Festlegung Ihres Anlageziels ist es wichtig zu verstehen, ob Sie primär Vermögen aufbauen, Kapital erhalten, für das Alter vorsorgen oder andere spezifische Ziele verfolgen möchten.",
-            stats: [
-              { label: "Aktien",    value: 60, color: "rgba(59,130,246,0.8)"  },
-              { label: "Anleihen",  value: 30, color: "rgba(147,197,253,0.8)" },
-              { label: "Liquidität",value: 10, color: "rgba(191,219,254,0.8)" },
-            ],
+            title:     explainOverlayData.title,
+            keyPoints: explainOverlayData.keyPoints,
+            stats:     explainOverlayData.stats,
           }}
           questionCategory={activeQ.category}
           questionText={activeQ.text}
-          onClose={() => setExplainOpen(false)}
-          onFollowUp={() => { setChatOpen(true); setExplainOpen(false); }}
+          analyserNode={analyserNode}
+          micAnalyserNode={micAnalyserNode}
+          onClose={closeExplainOverlay}
+          onFollowUp={closeExplainOverlay}
         />
       )}
 
@@ -285,6 +294,7 @@ export default function VoiceSessionShell({
               : savedAnswers[modalQ.id] ?? undefined
           }
           onClose={() => {
+            suppressAutoModalRef.current = true;
             setModalOpen(false);
             clearPendingVoiceAnswer();
           }}

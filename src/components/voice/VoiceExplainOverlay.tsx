@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, TrendingUp, DollarSign, PieChart } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
@@ -13,12 +13,14 @@ interface Stat {
 
 interface VoiceExplainOverlayProps {
   footnote: {
-    title: string;
-    body:  string;
-    stats: Stat[];
+    title:     string;
+    keyPoints: string[];
+    stats:     Stat[];
   };
   questionCategory: string;
   questionText:     string;
+  analyserNode:     AnalyserNode | null;
+  micAnalyserNode:  AnalyserNode | null;
   onClose:          () => void;
   onFollowUp:       () => void;
 }
@@ -27,37 +29,84 @@ const BAR_COUNT = 40;
 const BASE_H    = 4;
 const MAX_H     = 80;
 
-function WaveformBars() {
-  // Generate stable random heights once per mount
-  const bars = useMemo(
-    () =>
-      Array.from({ length: BAR_COUNT }, () => [
-        Math.random() * MAX_H + 20,
-        Math.random() * MAX_H + 20,
-      ]),
+const AI_BAR_BG     = "linear-gradient(180deg, rgba(59,130,246,0.8) 0%, rgba(147,197,253,0.6) 100%)";
+const AI_BAR_SHADOW = "0 0 8px rgba(59,130,246,0.4)";
+const MIC_BAR_BG    = "linear-gradient(180deg, rgba(34,197,94,0.9) 0%, rgba(134,239,172,0.6) 100%)";
+const MIC_BAR_SHADOW = "0 0 8px rgba(34,197,94,0.5)";
+
+const IDLE_BAR_STYLE = {
+  width:      2.5,
+  background: AI_BAR_BG,
+  boxShadow:  AI_BAR_SHADOW,
+} as const;
+
+function WaveformBars({ analyserNode, micAnalyserNode }: {
+  analyserNode:    AnalyserNode | null;
+  micAnalyserNode: AnalyserNode | null;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rafRef       = useRef<number | null>(null);
+  const idleBars = useMemo(
+    () => Array.from({ length: BAR_COUNT }, () => [
+      Math.random() * MAX_H + 20,
+      Math.random() * MAX_H + 20,
+    ]),
     [],
   );
 
+  useEffect(() => {
+    if (!analyserNode || !containerRef.current) return;
+    const aiData  = new Uint8Array(analyserNode.frequencyBinCount);
+    const micData = micAnalyserNode ? new Uint8Array(micAnalyserNode.frequencyBinCount) : null;
+    const barEls  = Array.from(containerRef.current.children) as HTMLElement[];
+    const step    = analyserNode.frequencyBinCount / BAR_COUNT;
+    let prevMicActive = false;
+
+    const tick = () => {
+      analyserNode.getByteFrequencyData(aiData);
+      let isMicActive = false;
+      if (micAnalyserNode && micData) {
+        micAnalyserNode.getByteFrequencyData(micData);
+        let sum = 0;
+        for (let i = 0; i < micData.length; i++) sum += micData[i];
+        isMicActive = (sum / micData.length) > 18;
+      }
+
+      const activeData = isMicActive && micData ? micData : aiData;
+      const colorChanged = isMicActive !== prevMicActive;
+      prevMicActive = isMicActive;
+
+      barEls.forEach((el, i) => {
+        const bin = activeData[Math.floor(i * step)] ?? 0;
+        el.style.height = `${BASE_H + (bin / 255) * (MAX_H - BASE_H)}px`;
+        if (colorChanged) {
+          el.style.background = isMicActive ? MIC_BAR_BG    : AI_BAR_BG;
+          el.style.boxShadow  = isMicActive ? MIC_BAR_SHADOW : AI_BAR_SHADOW;
+        }
+      });
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [analyserNode, micAnalyserNode]);
+
   return (
-    <div className="flex items-center justify-center gap-1 h-24 px-8">
-      {bars.map(([h1, h2], i) => (
-        <motion.div
-          key={i}
-          className="rounded-full"
-          style={{
-            width:      2.5,
-            background: "linear-gradient(180deg, rgba(59,130,246,0.8) 0%, rgba(147,197,253,0.6) 100%)",
-            boxShadow:  "0 0 8px rgba(59,130,246,0.4)",
-          }}
-          animate={{ height: [BASE_H, h1, h2, BASE_H] }}
-          transition={{
-            duration: 1.2,
-            repeat:   Infinity,
-            ease:     "easeInOut",
-            delay:    i * 0.05,
-          }}
-        />
-      ))}
+    <div ref={containerRef} className="flex items-center justify-center gap-1 h-24 px-8">
+      {analyserNode
+        ? idleBars.map((_, i) => (
+            <div key={i} className="rounded-full" style={{ ...IDLE_BAR_STYLE, height: BASE_H }} />
+          ))
+        : idleBars.map(([h1, h2], i) => (
+            <motion.div
+              key={i}
+              className="rounded-full"
+              style={IDLE_BAR_STYLE}
+              animate={{ height: [BASE_H, h1, h2, BASE_H] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: i * 0.05 }}
+            />
+          ))
+      }
     </div>
   );
 }
@@ -66,6 +115,8 @@ export default function VoiceExplainOverlay({
   footnote,
   questionCategory,
   questionText,
+  analyserNode,
+  micAnalyserNode,
   onClose,
   onFollowUp,
 }: VoiceExplainOverlayProps) {
@@ -219,8 +270,8 @@ export default function VoiceExplainOverlay({
         }}
         transition={{ delay: showTransition ? 0 : 0.5, duration: 0.6 }}
       >
-        {/* Waveform — matches Figma design */}
-        <WaveformBars />
+        {/* Waveform — blue for AI speech, green for customer speech */}
+        <WaveformBars analyserNode={analyserNode} micAnalyserNode={micAnalyserNode} />
         <p
           className="text-center text-sm font-medium pt-3 mb-8"
           style={{ color: "rgba(59,130,246,0.7)" }}
@@ -284,13 +335,18 @@ export default function VoiceExplainOverlay({
                 {footnote.title}
               </h3>
 
-              {/* Body */}
-              <p
-                className="text-sm leading-relaxed mb-4"
-                style={{ color: "rgba(71,85,105,0.8)" }}
-              >
-                {footnote.body}
-              </p>
+              {/* Key points — bullet highlights only, full explanation is spoken verbally */}
+              <ul className="space-y-2 mb-4">
+                {footnote.keyPoints.map((point, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "rgba(71,85,105,0.8)" }}>
+                    <span
+                      className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ background: "rgba(59,130,246,0.6)" }}
+                    />
+                    {point}
+                  </li>
+                ))}
+              </ul>
 
               {/* Data bars */}
               <div className="space-y-3">
@@ -376,18 +432,6 @@ export default function VoiceExplainOverlay({
           </div>
         </div>
 
-        {/* Tap hint */}
-        <motion.button
-          className="mt-8 text-center w-full"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          onClick={onFollowUp}
-        >
-          <p className="text-xs" style={{ color: "rgba(100,116,139,0.5)" }}>
-            Tippen Sie irgendwo, um eine Nachfrage zu stellen
-          </p>
-        </motion.button>
       </motion.div>
 
       {/* Bottom gradient fade */}

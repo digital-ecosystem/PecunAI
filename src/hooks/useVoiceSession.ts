@@ -148,10 +148,25 @@ SAVING ANSWERS:
 - Message contains "[SYSTEM: Answer saved" or "[SYSTEM: Answer already saved" → the answer is already in the DB. Do NOT call submit_answer. The message will also tell you which topic IDs are still uncollected — use that list to know exactly what to cover next. React to the answer naturally and move to the first remaining ID.
 
 NAVIGATION:
-- The customer can tap "back" to revisit a previous topic or "skip" to move past the current one.
-- On back: you will receive a [SYSTEM: Customer navigated back...] message — react naturally and ask if they want to change their answer.
-- On skip: you will receive a [SYSTEM: Customer skipped...] message — acknowledge briefly and continue.
+- The customer can tap buttons on screen OR ask out loud — both do the same thing.
+- When navigating, ALWAYS call navigate() BEFORE speaking so the carousel on screen stays in sync.
+- TWO MODES:
+  (a) Customer references a specific topic ("that question about risks", "the investment horizon one") — look up its ID in the topics list above and call navigate with that questionId to jump straight to it.
+  (b) Customer says "skip" / "next" / "go back" without specifying a topic — call navigate with direction "next" or "prev".
+- After navigate(questionId): you will receive a [SYSTEM: Customer navigated directly to topic...] message — react naturally and ask about that topic.
+- After navigate(direction "next"): you will receive a [SYSTEM: Remaining uncollected topic IDs...] message — acknowledge the skip briefly and continue with the first remaining topic.
+- After navigate(direction "prev"): you will receive a [SYSTEM: Customer navigated back to topic...] message — ask warmly if they want to change their answer.
 - Skipped topics will be listed at the end — work through them one by one before finishing.
+
+EXPLANATION OVERLAY:
+- When the customer asks about a concept — e.g. "What does X mean?", "Can you explain Y?", "Tell me more" — call explain_topic(title, keyPoints, stats) FIRST, then speak the full explanation verbally.
+  - title: short label for the overlay heading (e.g. "Stocks & Bonds")
+  - keyPoints: 3–5 short bullet highlights — visual prompts only, NOT your full verbal explanation
+  - stats: optional — only include if there are concrete percentages worth visualising (e.g. typical asset allocation)
+- Stay in explain mode; answer any follow-up questions naturally with the overlay still open.
+- While the explanation overlay is open: do NOT call submit_answer and do NOT call navigate — both are blocked until close_explanation() is called.
+- When the customer confirms they understand and wants to continue, call close_explanation().
+- After close_explanation(), you will receive a [SYSTEM: ...] message telling you exactly which question to resume and what to do next — follow it precisely.
 
 TOPICS TO COVER (cover all of them — do not skip any — group naturally where it makes sense):
 
@@ -162,9 +177,62 @@ ${resumeIndex > 0
   : `Open the conversation warmly and naturally — like a friendly advisor meeting someone for the first time. 2 sentences max, then flow into the first topic.`}`;
 }
 
+// ── Types ─────────────────────────────────────────────────────────
+
+export interface ExplainOverlayStat {
+  label: string;
+  value: number;
+  color: string;
+}
+
+export interface ExplainOverlayData {
+  title:     string;
+  keyPoints: string[];
+  stats:     ExplainOverlayStat[];
+}
+
 // ── OpenAI function tools ─────────────────────────────────────────
 
 const TOOLS = [
+  {
+    type: "function",
+    name: "explain_topic",
+    description: "Opens a visual explanation overlay on screen. Call this BEFORE speaking whenever the customer asks about a concept or wants more information. The overlay shows title + bullet-point key highlights; speak the full explanation verbally at the same time.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: {
+          type: "string",
+          description: "Concise topic title displayed as the overlay heading (e.g. 'Stocks & Bonds')",
+        },
+        keyPoints: {
+          type: "array",
+          items: { type: "string" },
+          description: "3–5 short bullet-point highlights. Visual prompts only — do NOT put the full explanation here; speak it verbally.",
+        },
+        stats: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string" },
+              value: { type: "number", description: "Percentage 0–100" },
+              color: { type: "string", description: "CSS color string (e.g. 'rgba(59,130,246,0.8)')" },
+            },
+            required: ["label", "value", "color"],
+          },
+          description: "Optional data bars — include only when concrete percentages add value (e.g. asset allocation).",
+        },
+      },
+      required: ["title", "keyPoints"],
+    },
+  },
+  {
+    type: "function",
+    name: "close_explanation",
+    description: "Closes the explanation overlay and returns to the main voice session. Call this after the customer confirms they understood the explanation and want to continue.",
+    parameters: { type: "object", properties: {} },
+  },
   {
     type: "function",
     name: "highlight_answer",
@@ -195,13 +263,20 @@ const TOOLS = [
   {
     type: "function",
     name: "navigate",
-    description: "Wechselt zur nächsten oder vorherigen Frage.",
+    description: "Moves the on-screen question carousel. Call this IMMEDIATELY when the customer wants to navigate — BEFORE speaking your response. Two modes: (1) Customer references a SPECIFIC topic by name/description and you can identify its ID from the topics list — pass questionId to jump directly to it. (2) Customer says 'skip'/'next' or 'go back' without specifying a topic — use direction 'next' or 'prev'. questionId takes priority over direction when both are provided.",
     parameters: {
       type: "object",
       properties: {
-        direction: { type: "string", enum: ["next", "prev"] },
+        direction: {
+          type: "string",
+          enum: ["next", "prev"],
+          description: "Use for generic skip (next) or one-step back (prev). Omit when providing questionId.",
+        },
+        questionId: {
+          type: "string",
+          description: "Exact ID of the question to jump to. Use when customer references a specific topic you can identify from the topics list above.",
+        },
       },
-      required: ["direction"],
     },
   },
 ];
@@ -231,6 +306,9 @@ export function useVoiceSession({
   const [isAISpeaking,    setIsAISpeaking]    = useState(false);
   const isAISpeakingRef = useRef(false);
 
+  // Explain overlay — set by explain_topic tool call, cleared on close_explanation or manual close
+  const [explainOverlayData, setExplainOverlayData] = useState<ExplainOverlayData | null>(null);
+
   // Pending voice answer — set by highlight_answer, cleared on submit or rejection
   const [pendingVoiceAnswer, setPendingVoiceAnswer] = useState<{
     questionId: string;
@@ -248,6 +326,8 @@ export function useVoiceSession({
   const [activeCardId, setActiveCardId] = useState<string | null>(
     questions[initialQuestionIndex]?.id ?? null
   );
+  // Ref mirror of activeCardId — readable inside stable callbacks without stale closure.
+  const activeCardIdRef = useRef<string | null>(questions[initialQuestionIndex]?.id ?? null);
 
   // Stable ref for the initial question index — set once on mount.
   // Used in session.created so the resume index is always reliable regardless of state timing.
@@ -275,10 +355,19 @@ export function useVoiceSession({
   const micSourceRef       = useRef<MediaStreamAudioSourceNode | null>(null);
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const micAnalyserRef     = useRef<AnalyserNode | null>(null);
-  const mutedRef           = useRef(false); // source of truth for mute — persists across state transitions
+  const mutedRef               = useRef(false); // source of truth for mute — persists across state transitions
+  const explainOpenRef         = useRef(false); // mirrors explainOverlayData !== null for stable WS closures
+  const explainIdleTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetExplainIdleRef    = useRef<() => void>(() => {});
 
   useEffect(() => { questionsRef.current = questions; }, [questions]);
   useEffect(() => { stateRef.current    = state;     }, [state]);
+
+  // Keeps activeCardIdRef in sync with state so callbacks can read it without stale closures.
+  const setCard = useCallback((id: string | null) => {
+    activeCardIdRef.current = id;
+    setActiveCardId(id);
+  }, []);
 
   // ── Audio setup ────────────────────────────────────────────────
 
@@ -345,6 +434,39 @@ export function useVoiceSession({
     }
   }, []);
 
+  // ── Explain overlay idle timer ────────────────────────────────
+
+  const resetExplainIdleTimer = useCallback(() => {
+    if (explainIdleTimerRef.current) clearTimeout(explainIdleTimerRef.current);
+    explainIdleTimerRef.current = setTimeout(() => {
+      send({
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: "user",
+          content: [{ type: "input_text", text: "[SYSTEM: Customer has been silent for 30 seconds in the explanation overlay. Check in naturally — ask if everything makes sense and if they're ready to go back to the question.]" }],
+        },
+      });
+      send({ type: "response.create" });
+    }, 30_000);
+  }, [send]);
+
+  // Keep a stable ref so the WS closure can call the latest version
+  useEffect(() => { resetExplainIdleRef.current = resetExplainIdleTimer; }, [resetExplainIdleTimer]);
+
+  // Start/stop the idle timer whenever the overlay opens or closes
+  useEffect(() => {
+    explainOpenRef.current = explainOverlayData !== null;
+    if (!explainOverlayData) {
+      if (explainIdleTimerRef.current) { clearTimeout(explainIdleTimerRef.current); explainIdleTimerRef.current = null; }
+      return;
+    }
+    resetExplainIdleTimer();
+    return () => {
+      if (explainIdleTimerRef.current) { clearTimeout(explainIdleTimerRef.current); explainIdleTimerRef.current = null; }
+    };
+  }, [explainOverlayData, resetExplainIdleTimer]);
+
   // ── REST helpers ───────────────────────────────────────────────
 
   const saveAnswer = useCallback(async (questionId: string, value: string) => {
@@ -408,13 +530,17 @@ export function useVoiceSession({
         const { questionId, value, label } = args;
         console.log("[voice] highlight_answer →", { questionId, value, label });
         setPendingVoiceAnswer({ questionId, value, label });
-        setActiveCardId(questionId);
+        setCard(questionId);
         sendResult({ success: true });
         send({ type: "response.create" }); // prompt AI to speak "Got it — X. Is that correct?"
         return;
       }
 
       if (name === "submit_answer") {
+        if (explainOpenRef.current) {
+          sendResult({ success: false, reason: "Explanation overlay is open — do not submit answers here" });
+          return;
+        }
         const { questionId, value } = args;
         setPendingVoiceAnswer(null);
         dispatch({ type: "ANSWER_RECEIVED" });
@@ -451,7 +577,7 @@ export function useVoiceSession({
             .join(", ");
           dispatch({ type: "ANSWER_SAVED" });
           const firstSkipped = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));
-          setActiveCardId(firstSkipped?.id ?? null);
+          setCard(firstSkipped?.id ?? null);
           send({
             type: "conversation.item.create",
             item: {
@@ -476,27 +602,135 @@ export function useVoiceSession({
         dispatch({ type: "ANSWER_SAVED" });
         const nextQIdx = remaining.length > 0 ? questionsRef.current.findIndex(q => q.id === remaining[0]) : -1;
         if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
-        setActiveCardId(remaining[0] ?? null);
+        setCard(remaining[0] ?? null);
+        send({ type: "response.create" });
+        return;
+      }
+
+      if (name === "explain_topic") {
+        const { title, keyPoints, stats } = JSON.parse(argsJson) as {
+          title:      string;
+          keyPoints?: string[];
+          stats?:     ExplainOverlayStat[];
+        };
+        setExplainOverlayData({
+          title:     title ?? "",
+          keyPoints: Array.isArray(keyPoints) ? keyPoints : [],
+          stats:     Array.isArray(stats)     ? stats     : [],
+        });
+        sendResult({ success: true });
+        send({ type: "response.create" });
+        return;
+      }
+
+      if (name === "close_explanation") {
+        setExplainOverlayData(null);
+        const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current);
+        if (currentQ) setCard(currentQ.id);
+        sendResult({ success: true });
+        const alreadyAnswered = currentQ ? answeredIdsRef.current.has(currentQ.id) : false;
+        const navInstruction  = currentQ ? ` Call navigate(questionId: "${currentQ.id}") first to sync the carousel.` : "";
+        const answerHint      = currentQ && !alreadyAnswered
+          ? ` If you just explained something because the customer didn't have that information (e.g., they said 'no' to a yes/no information question), call submit_answer("${currentQ.id}", "yes") after navigating — the explanation has now fulfilled that requirement.`
+          : "";
+        send({
+          type: "conversation.item.create",
+          item: {
+            type: "message",
+            role: "user",
+            content: [{ type: "input_text", text: `[SYSTEM: Explanation overlay closed.${navInstruction}${answerHint} Then resume the consultation naturally.]` }],
+          },
+        });
         send({ type: "response.create" });
         return;
       }
 
       if (name === "navigate") {
-        const { direction } = args;
+        if (explainOpenRef.current) {
+          sendResult({ success: false, reason: "Explanation overlay is open — navigation blocked" });
+          return;
+        }
+        const { direction, questionId: targetId } = args;
         sendResult({ success: true });
 
-        if (direction === "prev") {
-          const newIndex = Math.max(0, stateRef.current.currentQuestionIndex - 1);
-          dispatch({ type: "SET_INDEX", index: newIndex });
+        if (targetId) {
+          // ── Mode 1: jump directly to a specific question by ID ────────
+          const targetQ   = questionsRef.current.find(q => q.id === targetId);
+          const targetIdx = targetQ ? questionsRef.current.findIndex(q => q.id === targetId) : -1;
+
+          if (targetQ && targetIdx >= 0) {
+            // If previously skipped, unmark it — customer is now revisiting it to answer.
+            skippedIdsRef.current.delete(targetId);
+
+            dispatch({ type: "SET_INDEX", index: targetIdx });
+            setCard(targetId);
+
+            const savedAnswer = savedAnswersRef.current[targetId];
+            const msg = savedAnswer
+              ? `[SYSTEM: Customer navigated directly to topic "${targetQ.category}". Their previous answer was "${savedAnswer}". Ask warmly whether they want to change it.]`
+              : `[SYSTEM: Customer navigated directly to topic "${targetQ.category}" which has not been answered yet. Ask it naturally.]`;
+
+            send({
+              type: "conversation.item.create",
+              item: { type: "message", role: "user", content: [{ type: "input_text", text: msg }] },
+            });
+          }
+        } else if (direction === "next") {
+          // ── Mode 2: skip current question forward ─────────────────────
+          const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current)
+            ?? questionsRef.current[stateRef.current.currentQuestionIndex];
+
+          if (currentQ) {
+            skippedIdsRef.current.add(currentQ.id);
+            skipInProgressRef.current = true;
+          }
+
+          const remaining = questionsRef.current.filter(
+            q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
+          );
+          const nextQ    = remaining[0] ?? null;
+          const nextQIdx = nextQ ? questionsRef.current.findIndex(q => q.id === nextQ.id) : -1;
+
+          if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
+          setCard(nextQ?.id ?? null);
+
+          send({
+            type: "conversation.item.create",
+            item: {
+              type: "message", role: "user",
+              content: [{ type: "input_text", text: `[SYSTEM: Remaining uncollected topic IDs (in order): ${remaining.map(q => q.id).join(", ")}. Acknowledge the skip briefly and continue naturally with the FIRST one in this list.]` }],
+            },
+          });
+        } else if (direction === "prev") {
+          // ── Mode 3: step back one question ────────────────────────────
+          // Use activeCardIdRef — currentQuestionIndex can drift after button skips.
+          const currentIdx   = activeCardIdRef.current
+            ? questionsRef.current.findIndex(q => q.id === activeCardIdRef.current)
+            : stateRef.current.currentQuestionIndex;
+          const prevIndex    = Math.max(0, currentIdx - 1);
+          const prevQuestion = questionsRef.current[prevIndex];
+
+          dispatch({ type: "SET_INDEX", index: prevIndex });
+          setCard(prevQuestion?.id ?? null);
+
+          const prevAnswer = prevQuestion ? savedAnswersRef.current[prevQuestion.id] : undefined;
+          const msg = prevAnswer
+            ? `[SYSTEM: Customer navigated back to topic "${prevQuestion.category}". Their previous answer was "${prevAnswer}". Ask warmly whether they want to change it — e.g. "You went back to [topic] — you said [X] before, did you want to revisit that?"]`
+            : `[SYSTEM: Customer navigated back to topic "${prevQuestion?.category}" which has not been answered yet. Ask it naturally.]`;
+
+          send({
+            type: "conversation.item.create",
+            item: { type: "message", role: "user", content: [{ type: "input_text", text: msg }] },
+          });
         }
-        // "next" is handled naturally by the conversation context
+
         send({ type: "response.create" });
         return;
       }
     } catch (err) {
       console.error("[voice] Function call error:", name, err);
     }
-  }, [saveAnswer, saveVoiceState, advancePhase, send]);
+  }, [saveAnswer, saveVoiceState, advancePhase, send, setCard]);
 
   // ── Schedule AI_DONE after audio finishes playing ──────────────
 
@@ -665,6 +899,12 @@ export function useVoiceSession({
           break;
         }
 
+        case "input_audio_buffer.speech_started": {
+          // Customer started speaking — reset explain-overlay idle timer if open
+          if (explainOpenRef.current) resetExplainIdleRef.current();
+          break;
+        }
+
         case "error": {
           const err = msg.error as Record<string, unknown>;
           console.error("[voice] OpenAI error:", err);
@@ -686,6 +926,7 @@ export function useVoiceSession({
     return () => {
       ws.close();
       if (audioEndTimer.current) clearTimeout(audioEndTimer.current);
+      if (explainIdleTimerRef.current) { clearTimeout(explainIdleTimerRef.current); explainIdleTimerRef.current = null; }
       micStreamRef.current?.getTracks().forEach(t => t.stop());
       micStreamRef.current = null;
       scriptProcessorRef.current?.disconnect();
@@ -779,7 +1020,7 @@ export function useVoiceSession({
         .join(", ");
       dispatch({ type: "ANSWER_SAVED" });
       const firstSkipped = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));
-      setActiveCardId(firstSkipped?.id ?? null);
+      setCard(firstSkipped?.id ?? null);
       send({
         type: "conversation.item.create",
         item: {
@@ -795,7 +1036,7 @@ export function useVoiceSession({
     dispatch({ type: "ANSWER_SAVED" });
     const nextQIdx = remaining.length > 0 ? questionsRef.current.findIndex(q => q.id === remaining[0]) : -1;
     if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
-    setActiveCardId(remaining[0] ?? null);
+    setCard(remaining[0] ?? null);
 
     const label = (question.options ?? []).find(o => o.value === value)?.label ?? value;
     send({
@@ -815,11 +1056,16 @@ export function useVoiceSession({
   }, []);
 
   const onPrev = useCallback(() => {
-    if (stateRef.current.currentQuestionIndex === 0) return;
-    const prevIndex = stateRef.current.currentQuestionIndex - 1;
+    // Derive current position from activeCardIdRef — the true carousel source of truth.
+    // currentQuestionIndex can drift stale after button skips (which don't always dispatch SET_INDEX).
+    const currentIdx = activeCardIdRef.current
+      ? questionsRef.current.findIndex(q => q.id === activeCardIdRef.current)
+      : stateRef.current.currentQuestionIndex;
+    if (currentIdx <= 0) return;
+    const prevIndex = currentIdx - 1;
     const prevQuestion = questionsRef.current[prevIndex];
     dispatch({ type: "SET_INDEX", index: prevIndex });
-    setActiveCardId(questionsRef.current[prevIndex]?.id ?? null);
+    setCard(questionsRef.current[prevIndex]?.id ?? null);
 
     const prevAnswer = prevQuestion ? savedAnswersRef.current[prevQuestion.id] : undefined;
     const msg = prevAnswer
@@ -838,19 +1084,65 @@ export function useVoiceSession({
     skipInProgressRef.current = true;
 
     skippedIdsRef.current.add(question.id);
-    const questionIdx = questionsRef.current.findIndex(q => q.id === question.id);
-    setActiveCardId(questionsRef.current[questionIdx + 1]?.id ?? null);
+
+    // Use the same remaining algorithm as navigate("next") — not raw index+1,
+    // which could land on an already-answered or already-skipped slot.
+    const remaining = questionsRef.current.filter(
+      q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
+    );
+    const nextQ    = remaining[0] ?? null;
+    const nextQIdx = nextQ ? questionsRef.current.findIndex(q => q.id === nextQ.id) : -1;
+
+    if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
+    setCard(nextQ?.id ?? null);
 
     send({
       type: "conversation.item.create",
       item: {
         type: "message",
         role: "user",
-        content: [{ type: "input_text", text: `[SYSTEM: Customer skipped the topic "${question.category}". Acknowledge briefly ("No problem, we can come back to that") and move naturally to the next topic.]` }],
+        content: [{ type: "input_text", text: `[SYSTEM: Customer skipped the topic "${question.category}". Remaining uncollected topic IDs (in order): ${remaining.map(q => q.id).join(", ")}. Acknowledge briefly ("No problem, we can come back to that") and continue naturally with the FIRST one in this list.]` }],
       },
     });
     send({ type: "response.create" });
   }, [send]);
+
+  /** Sends a system message prompting the AI to call explain_topic for the current question. */
+  const requestExplanation = useCallback(() => {
+    const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current)
+      ?? questionsRef.current[stateRef.current.currentQuestionIndex];
+    if (!currentQ) return;
+    send({
+      type: "conversation.item.create",
+      item: {
+        type: "message",
+        role: "user",
+        content: [{ type: "input_text", text: `[SYSTEM: Customer tapped the info button on "${currentQ.category}". Use explain_topic to open the overlay and explain this concept clearly.]` }],
+      },
+    });
+    send({ type: "response.create" });
+  }, [send]);
+
+  /** Closes the explain overlay and tells the AI to resume. Called by the overlay's back button. */
+  const closeExplainOverlay = useCallback(() => {
+    setExplainOverlayData(null);
+    const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current);
+    if (currentQ) setCard(currentQ.id);
+    const alreadyAnswered = currentQ ? answeredIdsRef.current.has(currentQ.id) : false;
+    const navInstruction  = currentQ ? ` Call navigate(questionId: "${currentQ.id}") first to sync the carousel.` : "";
+    const answerHint      = currentQ && !alreadyAnswered
+      ? ` If you just explained something because the customer didn't have that information (e.g., they said 'no' to a yes/no information question), call submit_answer("${currentQ.id}", "yes") after navigating — the explanation has now fulfilled that requirement.`
+      : "";
+    send({
+      type: "conversation.item.create",
+      item: {
+        type: "message",
+        role: "user",
+        content: [{ type: "input_text", text: `[SYSTEM: Customer manually closed the explanation overlay.${navInstruction}${answerHint} Then resume the consultation naturally.]` }],
+      },
+    });
+    send({ type: "response.create" });
+  }, [send, setCard]);
 
   /** Must be called from a user-gesture handler (tap/click) to unlock AudioContext */
   const startSession = useCallback(async () => {
@@ -884,6 +1176,7 @@ export function useVoiceSession({
     isAISpeaking,
     pendingVoiceAnswer,
     savedAnswers,
+    explainOverlayData,
     startSession,
     toggleMute,
     onAnswerConfirmed,
@@ -891,5 +1184,7 @@ export function useVoiceSession({
     onPrev,
     skipQuestion,
     activeCardId,
+    requestExplanation,
+    closeExplainOverlay,
   };
 }
