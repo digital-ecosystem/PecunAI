@@ -656,6 +656,7 @@ export function useVoiceSession({
 
       if (name === "close_explanation") {
         setExplainOverlayData(null);
+        if (!mutedRef.current) dispatch({ type: "AI_SPEAKING" });
         const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current);
         if (currentQ) setCard(currentQ.id);
         sendResult({ success: true });
@@ -1172,6 +1173,7 @@ export function useVoiceSession({
   /** Closes the explain overlay and tells the AI to resume. Called by the overlay's back button. */
   const closeExplainOverlay = useCallback(() => {
     setExplainOverlayData(null);
+    if (!mutedRef.current) dispatch({ type: "AI_SPEAKING" });
     const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current);
     if (currentQ) setCard(currentQ.id);
 
