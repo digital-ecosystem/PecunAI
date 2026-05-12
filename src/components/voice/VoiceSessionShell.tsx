@@ -176,12 +176,12 @@ export default function VoiceSessionShell({
             transition={{ duration: 0.6 }}
           >
             <VoiceSphere
-              isActive={started}
-              isSpeaking={isSpeaking}
-              isListening={isListening && !isMuted}
+              isActive={explainOpen ? false : started}
+              isSpeaking={explainOpen ? false : isSpeaking}
+              isListening={explainOpen ? false : (isListening && !isMuted)}
               size={380}
-              analyserNode={isMuted ? null : analyserNode}
-              micAnalyserNode={micAnalyserNode}
+              analyserNode={explainOpen ? null : (isMuted ? null : analyserNode)}
+              micAnalyserNode={explainOpen ? null : micAnalyserNode}
             />
           </motion.div>
 
@@ -270,6 +270,7 @@ export default function VoiceSessionShell({
           questionText={activeQ.text}
           analyserNode={analyserNode}
           micAnalyserNode={micAnalyserNode}
+          isAISpeaking={isAISpeaking}
           onClose={closeExplainOverlay}
           onFollowUp={closeExplainOverlay}
         />

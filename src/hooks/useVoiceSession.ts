@@ -158,15 +158,42 @@ NAVIGATION:
 - After navigate(direction "prev"): you will receive a [SYSTEM: Customer navigated back to topic...] message — ask warmly if they want to change their answer.
 - Skipped topics will be listed at the end — work through them one by one before finishing.
 
-EXPLANATION OVERLAY:
-- When the customer asks about a concept — e.g. "What does X mean?", "Can you explain Y?", "Tell me more" — call explain_topic(title, keyPoints, stats) FIRST, then speak the full explanation verbally.
-  - title: short label for the overlay heading (e.g. "Stocks & Bonds")
-  - keyPoints: 3–5 short bullet highlights — visual prompts only, NOT your full verbal explanation
-  - stats: optional — only include if there are concrete percentages worth visualising (e.g. typical asset allocation)
-- Stay in explain mode; answer any follow-up questions naturally with the overlay still open.
-- While the explanation overlay is open: do NOT call submit_answer and do NOT call navigate — both are blocked until close_explanation() is called.
-- When the customer confirms they understand and wants to continue, call close_explanation().
-- After close_explanation(), you will receive a [SYSTEM: ...] message telling you exactly which question to resume and what to do next — follow it precisely.
+IMPLICIT SKIPS — this is critical:
+Any time the customer indicates they are not ready or unable to answer the current question — even without saying "skip" — treat it as a skip and call navigate(direction: "next") BEFORE responding verbally.
+This includes phrases like: "I'm not sure", "I need to think about it", "I don't know right now", "can we come back to that?", "let's move on", "I'll figure it out later", "not sure yet".
+→ Call navigate(direction: "next") first, then acknowledge naturally ("Of course, we can always come back to that.") and continue with the next topic.
+
+EXPLANATION OVERLAY — READ THIS CAREFULLY:
+
+WHEN TO OPEN AN EXPLANATION (two triggers):
+
+(a) Customer explicitly asks for clarification mid-conversation:
+    "What does X mean?", "Can you explain Y?", "Tell me more about Z"
+    → Go straight to the HOW TO EXPLAIN steps below — no offer needed.
+
+(b) YES/NO information-provision questions only — where "no" means the customer hasn't received or understood a required piece of information (e.g. "Have you been provided with sustainability information?"):
+    → If customer answers "no" or "I don't have it": DO NOT call submit_answer yet.
+    → Ask naturally: "Would you like me to explain [topic] before we continue?"
+    → If they say YES → proceed to HOW TO EXPLAIN steps below.
+    → If they say NO (no explanation wanted) → call submit_answer("no") and move on.
+    → NEVER use this offer for: preference questions ("no, I prefer low risk" → valid answer, submit it); factual uncertainty about their own data ("I'm not sure how much I have" → not a concept gap, handle naturally).
+
+HOW TO EXPLAIN:
+1. Call explain_topic(title, keyPoints, stats) BEFORE speaking.
+   - title: short topic label (e.g. "Sustainability Criteria")
+   - keyPoints: 3–5 short bullet highlights — visual only, speak the full explanation verbally
+   - stats: optional, only for concrete percentages
+2. Speak the full explanation verbally while the overlay is visible.
+3. Answer any follow-up questions — stay in explain mode, overlay stays open.
+4. Ask naturally: "Does that all make sense? Shall we head back?"
+5. When confirmed, call close_explanation().
+
+WHILE THE OVERLAY IS OPEN:
+- Do NOT call submit_answer — blocked until close_explanation() is called.
+- Do NOT call navigate — carousel locked until close_explanation() is called.
+
+AFTER close_explanation():
+You will receive a [SYSTEM: ...] message with exact instructions — follow them precisely.
 
 TOPICS TO COVER (cover all of them — do not skip any — group naturally where it makes sense):
 
@@ -338,6 +365,8 @@ export function useVoiceSession({
   const answeredIdsRef   = useRef<Set<string>>(new Set());
   // Tracks explicitly skipped question IDs — cleared when the question is later answered.
   const skippedIdsRef    = useRef<Set<string>>(new Set());
+  // Tracks question IDs that were explained via explain_topic — used to instruct AI to re-ask with context after returning.
+  const explainedQuestionsRef = useRef<Set<string>>(new Set());
   // One skip at a time — locked until the AI finishes speaking and returns to "listening".
   const skipInProgressRef = useRef(false);
 
@@ -618,6 +647,8 @@ export function useVoiceSession({
           keyPoints: Array.isArray(keyPoints) ? keyPoints : [],
           stats:     Array.isArray(stats)     ? stats     : [],
         });
+        // Track which question triggered this explanation so we know to re-ask with context on return
+        if (activeCardIdRef.current) explainedQuestionsRef.current.add(activeCardIdRef.current);
         sendResult({ success: true });
         send({ type: "response.create" });
         return;
@@ -628,17 +659,26 @@ export function useVoiceSession({
         const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current);
         if (currentQ) setCard(currentQ.id);
         sendResult({ success: true });
+
+        const wasExplained  = currentQ ? explainedQuestionsRef.current.has(currentQ.id) : false;
         const alreadyAnswered = currentQ ? answeredIdsRef.current.has(currentQ.id) : false;
-        const navInstruction  = currentQ ? ` Call navigate(questionId: "${currentQ.id}") first to sync the carousel.` : "";
-        const answerHint      = currentQ && !alreadyAnswered
-          ? ` If you just explained something because the customer didn't have that information (e.g., they said 'no' to a yes/no information question), call submit_answer("${currentQ.id}", "yes") after navigating — the explanation has now fulfilled that requirement.`
-          : "";
+        const navInstruction = currentQ ? ` Call navigate(questionId: "${currentQ.id}") first to sync the carousel.` : "";
+
+        let nextInstruction: string;
+        if (wasExplained && currentQ && !alreadyAnswered) {
+          nextInstruction = ` Then re-ask the "${currentQ.category}" question naturally with context — e.g. "Now that I've walked you through that, [original question]?" — wait for their answer and submit it.`;
+        } else if (currentQ && !alreadyAnswered) {
+          nextInstruction = ` Then continue naturally with the "${currentQ.category}" question.`;
+        } else {
+          nextInstruction = " Then resume the consultation naturally.";
+        }
+
         send({
           type: "conversation.item.create",
           item: {
             type: "message",
             role: "user",
-            content: [{ type: "input_text", text: `[SYSTEM: Explanation overlay closed.${navInstruction}${answerHint} Then resume the consultation naturally.]` }],
+            content: [{ type: "input_text", text: `[SYSTEM: Explanation overlay closed.${navInstruction}${nextInstruction}]` }],
           },
         });
         send({ type: "response.create" });
@@ -893,6 +933,12 @@ export function useVoiceSession({
           if (pc) {
             pendingCall.current = null;
             if (audioEndTimer.current) { clearTimeout(audioEndTimer.current); audioEndTimer.current = null; }
+            // Guard: if the response was interrupted mid-stream the args JSON may be truncated.
+            // Silently drop the call rather than throwing — the AI will re-attempt on the next turn.
+            try { JSON.parse(pc.args || "{}"); } catch {
+              console.warn("[voice] Dropping truncated function call (interrupted mid-stream):", pc.name);
+              break;
+            }
             await handleFunctionCall(pc.name, pc.args, pc.callId);
           }
           // Audio-only response: AI_DONE was already scheduled by response.audio.done
@@ -1128,17 +1174,26 @@ export function useVoiceSession({
     setExplainOverlayData(null);
     const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current);
     if (currentQ) setCard(currentQ.id);
+
+    const wasExplained    = currentQ ? explainedQuestionsRef.current.has(currentQ.id) : false;
     const alreadyAnswered = currentQ ? answeredIdsRef.current.has(currentQ.id) : false;
     const navInstruction  = currentQ ? ` Call navigate(questionId: "${currentQ.id}") first to sync the carousel.` : "";
-    const answerHint      = currentQ && !alreadyAnswered
-      ? ` If you just explained something because the customer didn't have that information (e.g., they said 'no' to a yes/no information question), call submit_answer("${currentQ.id}", "yes") after navigating — the explanation has now fulfilled that requirement.`
-      : "";
+
+    let nextInstruction: string;
+    if (wasExplained && currentQ && !alreadyAnswered) {
+      nextInstruction = ` Then re-ask the "${currentQ.category}" question naturally with context — e.g. "Now that I've walked you through that, [original question]?" — wait for their answer and submit it.`;
+    } else if (currentQ && !alreadyAnswered) {
+      nextInstruction = ` Then continue naturally with the "${currentQ.category}" question.`;
+    } else {
+      nextInstruction = " Then resume the consultation naturally.";
+    }
+
     send({
       type: "conversation.item.create",
       item: {
         type: "message",
         role: "user",
-        content: [{ type: "input_text", text: `[SYSTEM: Customer manually closed the explanation overlay.${navInstruction}${answerHint} Then resume the consultation naturally.]` }],
+        content: [{ type: "input_text", text: `[SYSTEM: Customer manually closed the explanation overlay.${navInstruction}${nextInstruction}]` }],
       },
     });
     send({ type: "response.create" });

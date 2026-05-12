@@ -21,6 +21,7 @@ interface VoiceExplainOverlayProps {
   questionText:     string;
   analyserNode:     AnalyserNode | null;
   micAnalyserNode:  AnalyserNode | null;
+  isAISpeaking:     boolean;
   onClose:          () => void;
   onFollowUp:       () => void;
 }
@@ -117,6 +118,7 @@ export default function VoiceExplainOverlay({
   questionText,
   analyserNode,
   micAnalyserNode,
+  isAISpeaking,
   onClose,
   onFollowUp,
 }: VoiceExplainOverlayProps) {
@@ -252,9 +254,13 @@ export default function VoiceExplainOverlay({
             backdropFilter: "blur(10px)",
             border:         "1px solid rgba(255,255,255,0.6)",
             boxShadow:      "0 2px 8px rgba(0,0,0,0.04)",
+            opacity:        isAISpeaking ? 0.3 : 1,
+            pointerEvents:  isAISpeaking ? "none" : "auto",
+            transition:     "opacity 0.3s ease",
           }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onClose}
+          whileTap={isAISpeaking ? {} : { scale: 0.95 }}
+          onClick={isAISpeaking ? undefined : onClose}
+          aria-disabled={isAISpeaking}
         >
           <ArrowLeft size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
         </motion.button>
