@@ -218,6 +218,14 @@ export interface ExplainOverlayData {
   stats:     ExplainOverlayStat[];
 }
 
+export interface ChatMessage {
+  id:          string;
+  questionId?: string;
+  text:        string;
+  sender:      "ai" | "user";
+  timestamp:   Date;
+}
+
 // ── OpenAI function tools ─────────────────────────────────────────
 
 const TOOLS = [
@@ -336,6 +344,9 @@ export function useVoiceSession({
   // Explain overlay — set by explain_topic tool call, cleared on close_explanation or manual close
   const [explainOverlayData, setExplainOverlayData] = useState<ExplainOverlayData | null>(null);
 
+  // Chat log — mirrors all questions and answers for the chat modal
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+
   // Pending voice answer — set by highlight_answer, cleared on submit or rejection
   const [pendingVoiceAnswer, setPendingVoiceAnswer] = useState<{
     questionId: string;
@@ -392,10 +403,38 @@ export function useVoiceSession({
   useEffect(() => { questionsRef.current = questions; }, [questions]);
   useEffect(() => { stateRef.current    = state;     }, [state]);
 
+  // Append an AI bubble to the chat log whenever the active question changes (and session is running).
+  useEffect(() => {
+    if (!started || !activeCardId) return;
+    const q = questionsRef.current.find(q => q.id === activeCardId);
+    if (!q) return;
+    setChatMessages(prev => {
+      const last = prev[prev.length - 1];
+      if (last?.sender === "ai" && last.questionId === q.id) return prev;
+      return [...prev, {
+        id:        `ai-${q.id}-${Date.now()}`,
+        questionId: q.id,
+        text:      q.text,
+        sender:    "ai",
+        timestamp: new Date(),
+      }];
+    });
+  }, [activeCardId, started]);
+
   // Keeps activeCardIdRef in sync with state so callbacks can read it without stale closures.
   const setCard = useCallback((id: string | null) => {
     activeCardIdRef.current = id;
     setActiveCardId(id);
+  }, []);
+
+  const appendChatMessage = useCallback((text: string, sender: "ai" | "user", questionId?: string) => {
+    setChatMessages(prev => [...prev, {
+      id:        `${sender}-${Date.now()}`,
+      questionId,
+      text,
+      sender,
+      timestamp: new Date(),
+    }]);
   }, []);
 
   // ── Audio setup ────────────────────────────────────────────────
@@ -585,6 +624,9 @@ export function useVoiceSession({
         skippedIdsRef.current.delete(questionId);
         setSavedAnswers(prev => ({ ...prev, [questionId]: value }));
         savedAnswersRef.current = { ...savedAnswersRef.current, [questionId]: value };
+        const answeredQ   = questionsRef.current[qIdx];
+        const voiceLabel  = (answeredQ?.options ?? []).find(o => o.value === value)?.label ?? value;
+        appendChatMessage(voiceLabel, "user", questionId);
         const remaining = questionsRef.current
           .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
           .map(q => q.id);
@@ -771,7 +813,7 @@ export function useVoiceSession({
     } catch (err) {
       console.error("[voice] Function call error:", name, err);
     }
-  }, [saveAnswer, saveVoiceState, advancePhase, send, setCard]);
+  }, [saveAnswer, saveVoiceState, advancePhase, send, setCard, appendChatMessage]);
 
   // ── Schedule AI_DONE after audio finishes playing ──────────────
 
@@ -1047,6 +1089,8 @@ export function useVoiceSession({
     skippedIdsRef.current.delete(question.id);
     setSavedAnswers(prev => ({ ...prev, [question.id]: value }));
     savedAnswersRef.current = { ...savedAnswersRef.current, [question.id]: value };
+    const tapLabel = (question.options ?? []).find(o => o.value === value)?.label ?? value;
+    appendChatMessage(tapLabel, "user", question.id);
 
     const allAnswered            = answeredIdsRef.current.size === questionsRef.current.length;
     const allCoveredExceptSkipped = answeredIdsRef.current.size + skippedIdsRef.current.size === questionsRef.current.length;
@@ -1095,7 +1139,7 @@ export function useVoiceSession({
       },
     });
     send({ type: "response.create" });
-  }, [saveAnswer, saveVoiceState, advancePhase, send]);
+  }, [saveAnswer, saveVoiceState, advancePhase, send, appendChatMessage]);
 
   /** Clears the AI-proposed highlight — called when customer rejects or modal closes without submitting */
   const clearPendingVoiceAnswer = useCallback(() => {
@@ -1234,6 +1278,7 @@ export function useVoiceSession({
     pendingVoiceAnswer,
     savedAnswers,
     explainOverlayData,
+    chatMessages,
     startSession,
     toggleMute,
     onAnswerConfirmed,
