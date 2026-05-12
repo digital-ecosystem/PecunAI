@@ -625,7 +625,7 @@ export function useVoiceSession({
         setSavedAnswers(prev => ({ ...prev, [questionId]: value }));
         savedAnswersRef.current = { ...savedAnswersRef.current, [questionId]: value };
         const answeredQ   = questionsRef.current[qIdx];
-        const voiceLabel  = (answeredQ?.options ?? []).find(o => o.value === value)?.label ?? value;
+        const voiceLabel  = (answeredQ?.options ?? []).find(o => o.value === value || o.id === value)?.label ?? value;
         appendChatMessage(voiceLabel, "user", questionId);
         const remaining = questionsRef.current
           .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
@@ -1089,7 +1089,7 @@ export function useVoiceSession({
     skippedIdsRef.current.delete(question.id);
     setSavedAnswers(prev => ({ ...prev, [question.id]: value }));
     savedAnswersRef.current = { ...savedAnswersRef.current, [question.id]: value };
-    const tapLabel = (question.options ?? []).find(o => o.value === value)?.label ?? value;
+    const tapLabel = (question.options ?? []).find(o => o.value === value || o.id === value)?.label ?? value;
     appendChatMessage(tapLabel, "user", question.id);
 
     const allAnswered            = answeredIdsRef.current.size === questionsRef.current.length;
@@ -1245,6 +1245,12 @@ export function useVoiceSession({
     send({ type: "response.create" });
   }, [send, setCard]);
 
+  /** Silences or restores audio for UI overlays (chat, etc.) without affecting the mute button state. */
+  const setChatMuted = useCallback((muted: boolean) => {
+    if (!gainRef.current) return;
+    gainRef.current.gain.value = muted ? 0 : (mutedRef.current ? 0 : 1);
+  }, []);
+
   /** Must be called from a user-gesture handler (tap/click) to unlock AudioContext */
   const startSession = useCallback(async () => {
     setupAudio();
@@ -1279,6 +1285,7 @@ export function useVoiceSession({
     savedAnswers,
     explainOverlayData,
     chatMessages,
+    setChatMuted,
     startSession,
     toggleMute,
     onAnswerConfirmed,

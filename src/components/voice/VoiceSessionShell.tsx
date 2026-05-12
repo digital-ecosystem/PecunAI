@@ -44,7 +44,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, requestExplanation, closeExplainOverlay, chatMessages } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, requestExplanation, closeExplainOverlay, chatMessages, setChatMuted } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex });
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -61,11 +61,15 @@ export default function VoiceSessionShell({
     suppressAutoModalRef.current = false;
   }, [activeCardId]);
 
+  useEffect(() => {
+    setChatMuted(chatOpen);
+  }, [chatOpen, setChatMuted]);
+
   // Mic-denied: auto-open the modal when the AI finishes speaking so the customer
   // doesn't have to manually find and tap the carousel card.
   // suppressAutoModalRef prevents re-opening after a manual close until the question changes.
   useEffect(() => {
-    if (micGranted === false && state.session === "listening" && !modalOpen && !suppressAutoModalRef.current) {
+    if (micGranted === false && state.session === "listening" && !modalOpen && !suppressAutoModalRef.current && !chatOpen) {
       setModalOpen(true);
     }
   }, [micGranted, state.session, modalOpen]);
@@ -176,12 +180,12 @@ export default function VoiceSessionShell({
             transition={{ duration: 0.6 }}
           >
             <VoiceSphere
-              isActive={explainOpen ? false : started}
-              isSpeaking={explainOpen ? false : isSpeaking}
-              isListening={explainOpen ? false : (isListening && !isMuted)}
+              isActive={(explainOpen || chatOpen) ? false : started}
+              isSpeaking={(explainOpen || chatOpen) ? false : isSpeaking}
+              isListening={(explainOpen || chatOpen) ? false : (isListening && !isMuted)}
               size={380}
-              analyserNode={explainOpen ? null : (isMuted ? null : analyserNode)}
-              micAnalyserNode={explainOpen ? null : micAnalyserNode}
+              analyserNode={(explainOpen || chatOpen) ? null : (isMuted ? null : analyserNode)}
+              micAnalyserNode={(explainOpen || chatOpen) ? null : micAnalyserNode}
             />
           </motion.div>
 
