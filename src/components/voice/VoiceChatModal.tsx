@@ -26,8 +26,9 @@ export default function VoiceChatModal({
   const inputRef                    = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!isOpen) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isOpen]);
 
   useEffect(() => {
     if (isOpen) setTimeout(() => inputRef.current?.focus(), 300);

@@ -44,7 +44,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, requestExplanation, closeExplainOverlay, chatMessages, setChatMuted } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex });
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -62,8 +62,8 @@ export default function VoiceSessionShell({
   }, [activeCardId]);
 
   useEffect(() => {
-    setChatMuted(chatOpen);
-  }, [chatOpen, setChatMuted]);
+    notifyChatOpen(chatOpen);
+  }, [chatOpen, notifyChatOpen]);
 
   // Mic-denied: auto-open the modal when the AI finishes speaking so the customer
   // doesn't have to manually find and tap the carousel card.

@@ -397,6 +397,8 @@ export function useVoiceSession({
   const micAnalyserRef     = useRef<AnalyserNode | null>(null);
   const mutedRef               = useRef(false); // source of truth for mute — persists across state transitions
   const explainOpenRef         = useRef(false); // mirrors explainOverlayData !== null for stable WS closures
+  const chatOpenRef            = useRef(false); // true while chat modal is open
+  const chatAnsweredRef        = useRef(0);     // count of answers given while chat was open
   const explainIdleTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetExplainIdleRef    = useRef<() => void>(() => {});
 
@@ -1092,6 +1094,33 @@ export function useVoiceSession({
     const tapLabel = (question.options ?? []).find(o => o.value === value || o.id === value)?.label ?? value;
     appendChatMessage(tapLabel, "user", question.id);
 
+    if (chatOpenRef.current) {
+      chatAnsweredRef.current++;
+
+      const allAnswered = answeredIdsRef.current.size === questionsRef.current.length;
+      if (allAnswered) {
+        await advancePhase();
+        return;
+      }
+
+      const remaining = questionsRef.current
+        .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
+        .map(q => q.id);
+
+      // Advance the carousel so the next question appears as an AI bubble in chat
+      const nextQIdx = remaining.length > 0 ? questionsRef.current.findIndex(q => q.id === remaining[0]) : -1;
+      if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
+      setCard(remaining[0] ?? null);
+
+      send({
+        type: "conversation.item.create",
+        item: { type: "message", role: "user", content: [{ type: "input_text",
+          text: `[SYSTEM: Answer saved via chat. Remaining topic IDs: ${remaining.join(", ")}.]`,
+        }]},
+      });
+      return; // no response.create — notifyChatOpen(false) sends one consolidated prompt on close
+    }
+
     const allAnswered            = answeredIdsRef.current.size === questionsRef.current.length;
     const allCoveredExceptSkipped = answeredIdsRef.current.size + skippedIdsRef.current.size === questionsRef.current.length;
 
@@ -1245,11 +1274,41 @@ export function useVoiceSession({
     send({ type: "response.create" });
   }, [send, setCard]);
 
-  /** Silences or restores audio for UI overlays (chat, etc.) without affecting the mute button state. */
-  const setChatMuted = useCallback((muted: boolean) => {
-    if (!gainRef.current) return;
-    gainRef.current.gain.value = muted ? 0 : (mutedRef.current ? 0 : 1);
-  }, []);
+  /** Called when the chat modal opens or closes. Silences audio on open; on close with queued answers,
+   *  resets the audio buffer and sends one consolidated re-prompt so the AI speaks once. */
+  const notifyChatOpen = useCallback((open: boolean) => {
+    if (open) {
+      chatOpenRef.current   = true;
+      chatAnsweredRef.current = 0;
+      if (gainRef.current) gainRef.current.gain.value = 0;
+    } else {
+      chatOpenRef.current = false;
+      if (gainRef.current) gainRef.current.gain.value = mutedRef.current ? 0 : 1;
+
+      if (chatAnsweredRef.current > 0) {
+        // Flush the audio queue so stale buffered speech doesn't play
+        if (audioCtxRef.current) nextPlayTimeRef.current = audioCtxRef.current.currentTime;
+
+        const remaining = questionsRef.current
+          .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
+          .map(q => q.id);
+        const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current);
+        send({
+          type: "conversation.item.create",
+          item: {
+            type: "message", role: "user",
+            content: [{ type: "input_text", text:
+              `[SYSTEM: Customer just answered ${chatAnsweredRef.current} question(s) via chat. ` +
+              `Current question is "${currentQ?.category}". ` +
+              `Remaining topic IDs: ${remaining.join(", ")}. ` +
+              `Resume naturally from the current question.]`,
+            }],
+          },
+        });
+        send({ type: "response.create" });
+      }
+    }
+  }, [send]);
 
   /** Must be called from a user-gesture handler (tap/click) to unlock AudioContext */
   const startSession = useCallback(async () => {
@@ -1285,7 +1344,7 @@ export function useVoiceSession({
     savedAnswers,
     explainOverlayData,
     chatMessages,
-    setChatMuted,
+    notifyChatOpen,
     startSession,
     toggleMute,
     onAnswerConfirmed,
