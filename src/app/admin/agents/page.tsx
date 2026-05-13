@@ -42,6 +42,7 @@ export default function AgentsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchAgents = useCallback(async () => {
     try {
@@ -118,6 +119,13 @@ export default function AgentsPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const copyLink = (agent: AgentRow) => {
+    const url = `${window.location.origin}/?ref=${agent.partner.referralCode}&agent=${agent.agentCode}`;
+    navigator.clipboard.writeText(url);
+    setCopiedId(agent.id);
+    setTimeout(() => setCopiedId((id) => (id === agent.id ? null : id)), 2000);
   };
 
   const toggleActive = async (agent: AgentRow) => {
@@ -217,6 +225,14 @@ export default function AgentsPage() {
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2 justify-end">
+                            {agent.isActive && (
+                              <button
+                                onClick={() => copyLink(agent)}
+                                className={`w-24 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors text-center ${copiedId === agent.id ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                              >
+                                {copiedId === agent.id ? 'Kopiert!' : 'Link'}
+                              </button>
+                            )}
                             <button
                               onClick={() => openEdit(agent)}
                               className="w-24 text-xs px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors text-center"
@@ -260,6 +276,14 @@ export default function AgentsPage() {
                         <p className="text-xs text-gray-500">Berater: {agent.partner.firstName} {agent.partner.lastName}</p>
                         <p className="text-xs text-gray-500">Erstellt: {new Date(agent.createdAt).toLocaleDateString('de-DE')}</p>
                         <div className="flex gap-2 pt-1">
+                          {agent.isActive && (
+                            <button
+                              onClick={() => copyLink(agent)}
+                              className={`flex-1 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${copiedId === agent.id ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-600'}`}
+                            >
+                              {copiedId === agent.id ? 'Kopiert!' : 'Link'}
+                            </button>
+                          )}
                           <button onClick={() => openEdit(agent)} className="flex-1 text-xs px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600">
                             Bearbeiten
                           </button>
