@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '../performance/_lib';
@@ -12,16 +13,11 @@ const agentSelect = {
   partner: { select: { id: true, firstName: true, lastName: true, referralCode: true } },
 } as const;
 
-async function generateAgentCode(firstName: string, lastName: string): Promise<string> {
-  const initials = ((firstName[0] ?? 'X') + (lastName[0] ?? 'X')).toUpperCase();
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const digits = Math.floor(100 + Math.random() * 900).toString();
-    const code = `${initials}${digits}`;
-    const existing = await prisma.agent.findUnique({ where: { agentCode: code } });
-    if (!existing) return code;
-  }
-  // Fallback: use timestamp suffix to guarantee uniqueness
-  return `${initials}${Date.now().toString().slice(-3)}`;
+function generateAgentCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const segment = (len: number) =>
+    Array.from(randomBytes(len), (b) => chars[b % chars.length]).join('');
+  return `AGENT-${segment(4)}-${segment(4)}`;
 }
 
 export async function GET() {
@@ -60,7 +56,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Berater nicht gefunden' }, { status: 404 });
     }
 
-    const agentCode = await generateAgentCode(firstName.trim(), lastName.trim());
+    const agentCode = generateAgentCode();
 
     const agent = await prisma.agent.create({
       data: {
