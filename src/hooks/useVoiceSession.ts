@@ -1113,8 +1113,21 @@ export function useVoiceSession({
         const firstSkipped = skippedRemaining[0];
         const skippedIdx = questionsRef.current.findIndex(q => q.id === firstSkipped.id);
         if (skippedIdx >= 0) dispatch({ type: "SET_INDEX", index: skippedIdx });
-        setCard(firstSkipped.id); // chatMessages effect adds AI bubble; full context sent on chat close
-        return; // no response.create — still batched until chat closes
+        setCard(firstSkipped.id);
+        // Queue a history entry so the AI knows this question was answered in chat.
+        // Without this, the AI sees a gap: it was asking about this topic mid-voice, then
+        // notifyChatOpen(false) tells it to ask about the next skipped topic — with no record
+        // of how the current one got answered.
+        send({
+          type: "conversation.item.create",
+          item: { type: "message", role: "user", content: [{ type: "input_text",
+            text: `[SYSTEM: Answer saved via chat for topic "${question.category}" (ID: ${question.id}) — value: "${tapLabel}". ` +
+              `These skipped topics still need answers: ` +
+              `${skippedRemaining.map(q => `"${q.id}" (${q.category})`).join(", ")}. ` +
+              `Do NOT respond yet — wait for the customer to close the chat.]`,
+          }]},
+        });
+        return; // no response.create — notifyChatOpen(false) sends the consolidated prompt on close
       }
 
       // Normal advance to next non-skipped question
