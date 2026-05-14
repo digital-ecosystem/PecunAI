@@ -1103,19 +1103,31 @@ export function useVoiceSession({
         return;
       }
 
-      const remaining = questionsRef.current
-        .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
-        .map(q => q.id);
+      const remainingNonSkipped = questionsRef.current.filter(
+        q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
+      );
+      const skippedRemaining = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
 
-      // Advance the carousel so the next question appears as an AI bubble in chat
-      const nextQIdx = remaining.length > 0 ? questionsRef.current.findIndex(q => q.id === remaining[0]) : -1;
+      // All non-skipped covered — circle back to skipped topics inside chat
+      if (remainingNonSkipped.length === 0 && skippedRemaining.length > 0) {
+        const firstSkipped = skippedRemaining[0];
+        const skippedIdx = questionsRef.current.findIndex(q => q.id === firstSkipped.id);
+        if (skippedIdx >= 0) dispatch({ type: "SET_INDEX", index: skippedIdx });
+        setCard(firstSkipped.id); // chatMessages effect adds AI bubble; full context sent on chat close
+        return; // no response.create — still batched until chat closes
+      }
+
+      // Normal advance to next non-skipped question
+      const nextQ    = remainingNonSkipped[0] ?? null;
+      const nextQIdx = nextQ ? questionsRef.current.findIndex(q => q.id === nextQ.id) : -1;
       if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
-      setCard(remaining[0] ?? null);
+      setCard(nextQ?.id ?? null);
 
       send({
         type: "conversation.item.create",
         item: { type: "message", role: "user", content: [{ type: "input_text",
-          text: `[SYSTEM: Answer saved via chat. Remaining topic IDs: ${remaining.join(", ")}.]`,
+          text: `[SYSTEM: Answer saved via chat. Remaining topic IDs (in order): ` +
+            `${remainingNonSkipped.map(q => q.id).join(", ")}.]`,
         }]},
       });
       return; // no response.create — notifyChatOpen(false) sends one consolidated prompt on close
@@ -1289,21 +1301,37 @@ export function useVoiceSession({
         // Flush the audio queue so stale buffered speech doesn't play
         if (audioCtxRef.current) nextPlayTimeRef.current = audioCtxRef.current.currentTime;
 
-        const remaining = questionsRef.current
-          .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
-          .map(q => q.id);
-        const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current);
+        const remainingNonSkipped = questionsRef.current.filter(
+          q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
+        );
+        const skippedRemaining = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
+        const currentQ         = questionsRef.current.find(q => q.id === activeCardIdRef.current);
+
+        let systemText: string;
+        if (remainingNonSkipped.length === 0 && skippedRemaining.length > 0) {
+          // All non-skipped done — AI must circle back to skipped topics
+          const skippedList = skippedRemaining.map(q => `"${q.id}" (${q.category})`).join(", ");
+          systemText =
+            `[SYSTEM: Customer answered ${chatAnsweredRef.current} question(s) via chat. ` +
+            `All main topics covered. These topics were skipped earlier and still need answers: ` +
+            `${skippedList}. The carousel is already showing the first skipped topic. ` +
+            `Ask about it naturally and continue through them one by one.]`;
+        } else {
+          const remainingIds = remainingNonSkipped.map(q => q.id).join(", ") || "none";
+          const skippedPart  = skippedRemaining.length > 0
+            ? ` Skipped topics to circle back to later: ${skippedRemaining.map(q => q.id).join(", ")}.`
+            : "";
+          systemText =
+            `[SYSTEM: Customer answered ${chatAnsweredRef.current} question(s) via chat. ` +
+            `Current topic: "${currentQ?.category ?? "unknown"}"` +
+            (currentQ ? ` (ID: ${currentQ.id})` : "") + `. ` +
+            `Remaining topic IDs (in order): ${remainingIds}.` +
+            `${skippedPart} Resume naturally from the current topic.]`;
+        }
+
         send({
           type: "conversation.item.create",
-          item: {
-            type: "message", role: "user",
-            content: [{ type: "input_text", text:
-              `[SYSTEM: Customer just answered ${chatAnsweredRef.current} question(s) via chat. ` +
-              `Current question is "${currentQ?.category}". ` +
-              `Remaining topic IDs: ${remaining.join(", ")}. ` +
-              `Resume naturally from the current question.]`,
-            }],
-          },
+          item: { type: "message", role: "user", content: [{ type: "input_text", text: systemText }]},
         });
         send({ type: "response.create" });
       }
