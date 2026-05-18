@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Search, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Plus, X, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { exportAgentsToExcel } from '@/utils/agentExport';
 import AdminHeader from '@/components/AdminHeader';
 
 interface Partner {
@@ -170,13 +171,23 @@ export default function AgentsPage() {
               ))}
             </div>
           </div>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Agent hinzufügen
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => exportAgentsToExcel(agents)}
+              disabled={agents.filter((agent) => agent.isActive).length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Download className="h-4 w-4" />
+              Exportieren
+            </button>
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Agent hinzufügen
+            </button>
+          </div>
         </div>
 
         {/* Table */}
