@@ -9,7 +9,6 @@ import { signteqHandshake, saveHandshakeInfo } from '@/utils/signteqHandshake';
 // You should store your SignTeq API token in environment variables
 const SIGNTEQ_API_TOKEN = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_API_KEY_PRO || '' : process.env.SIGNTEQ_API_KEY_DEV || '';
 const SIGNTEQ_ORG_ID = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_ORG_ID_PRO || '' : process.env.SIGNTEQ_ORG_ID_DEV || '';
-console.log("🚀 ~ SIGNTEQ_API_TOKEN:", SIGNTEQ_API_TOKEN);
 
 export async function POST(request: NextRequest) {
   try {
