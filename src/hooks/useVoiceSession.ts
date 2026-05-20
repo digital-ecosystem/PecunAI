@@ -380,6 +380,8 @@ export function useVoiceSession({
   const explainedQuestionsRef = useRef<Set<string>>(new Set());
   // One skip at a time — locked until the AI finishes speaking and returns to "listening".
   const skipInProgressRef = useRef(false);
+  // Same guard for button-initiated prev — prevents AI from calling navigate("prev") a second time.
+  const prevInProgressRef = useRef(false);
 
   // Internal refs — stable across renders
   const wsRef              = useRef<WebSocket | null>(null);
@@ -393,7 +395,7 @@ export function useVoiceSession({
   const stateRef           = useRef(state);
   const micStreamRef       = useRef<MediaStream | null>(null);
   const micSourceRef       = useRef<MediaStreamAudioSourceNode | null>(null);
-  const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const workletNodeRef     = useRef<AudioWorkletNode | null>(null);
   const micAnalyserRef     = useRef<AnalyserNode | null>(null);
   const mutedRef               = useRef(false); // source of truth for mute — persists across state transitions
   const explainOpenRef         = useRef(false); // mirrors explainOverlayData !== null for stable WS closures
@@ -441,7 +443,7 @@ export function useVoiceSession({
 
   // ── Audio setup ────────────────────────────────────────────────
 
-  const setupAudio = useCallback(() => {
+  const setupAudio = useCallback(async () => {
     if (audioCtxRef.current) return;
     const ctx      = new AudioContext({ sampleRate: SAMPLE_RATE });
     const gain     = ctx.createGain();
@@ -455,6 +457,7 @@ export function useVoiceSession({
     gainRef.current     = gain;
     analyserRef.current = analyser;
     setAnalyserNode(analyser);
+    await ctx.audioWorklet.addModule("/pcm-processor.js");
   }, []);
 
   const scheduleChunk = useCallback((base64: string) => {
@@ -762,6 +765,21 @@ export function useVoiceSession({
           }
         } else if (direction === "next") {
           // ── Mode 2: skip current question forward ─────────────────────
+          // If a button skip is already in progress, the carousel was already advanced.
+          // Send the expected post-navigate SYSTEM message so the AI knows what to say,
+          // but do NOT send response.create — the button's response.create drives this turn.
+          if (skipInProgressRef.current) {
+            const remaining = questionsRef.current.filter(
+              q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
+            );
+            send({
+              type: "conversation.item.create",
+              item: { type: "message", role: "user", content: [{ type: "input_text",
+                text: `[SYSTEM: Remaining uncollected topic IDs (in order): ${remaining.map(q => q.id).join(", ")}. Acknowledge the skip briefly and continue naturally with the FIRST one in this list.]`,
+              }]},
+            });
+            return;
+          }
           const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current)
             ?? questionsRef.current[stateRef.current.currentQuestionIndex];
 
@@ -788,6 +806,25 @@ export function useVoiceSession({
           });
         } else if (direction === "prev") {
           // ── Mode 3: step back one question ────────────────────────────
+          // If a button prev is already in progress, the carousel was already stepped back.
+          // Send the expected post-navigate SYSTEM message so the AI knows what to say,
+          // but do NOT send response.create — the button's response.create drives this turn.
+          if (prevInProgressRef.current) {
+            const curIdx  = activeCardIdRef.current
+              ? questionsRef.current.findIndex(q => q.id === activeCardIdRef.current)
+              : stateRef.current.currentQuestionIndex;
+            const curQ    = questionsRef.current[curIdx];
+            const saved   = curQ ? savedAnswersRef.current[curQ.id] : undefined;
+            send({
+              type: "conversation.item.create",
+              item: { type: "message", role: "user", content: [{ type: "input_text",
+                text: saved
+                  ? `[SYSTEM: Customer navigated back to topic "${curQ?.category}". Their previous answer was "${saved}". Ask warmly whether they want to change it — e.g. "You went back to [topic] — you said [X] before, did you want to revisit that?"]`
+                  : `[SYSTEM: Customer navigated back to topic "${curQ?.category}" which has not been answered yet. Ask it naturally.]`,
+              }]},
+            });
+            return;
+          }
           // Use activeCardIdRef — currentQuestionIndex can drift after button skips.
           const currentIdx   = activeCardIdRef.current
             ? questionsRef.current.findIndex(q => q.id === activeCardIdRef.current)
@@ -864,7 +901,7 @@ export function useVoiceSession({
       try { msg = JSON.parse(raw); } catch { return; }
 
       const type = msg.type as string;
-      if (type !== "response.audio.delta") {
+      if (type !== "response.output_audio.delta") {
         console.log("[voice] ←", type, type === "error" ? msg : "");
       }
 
@@ -876,15 +913,22 @@ export function useVoiceSession({
           send({
             type: "session.update",
             session: {
-              modalities:    ["text", "audio"] as string[],
-              voice:         "shimmer",
-              instructions:  buildSystemPrompt(questionsRef.current, initialIndexRef.current, micGrantedRef.current),
-              tools:         TOOLS,
-              turn_detection: {
-                type:                "server_vad",
-                threshold:           0.7,   // higher = less sensitive to background noise
-                prefix_padding_ms:   300,
-                silence_duration_ms: 700,
+              type:         "realtime",
+              instructions: buildSystemPrompt(questionsRef.current, initialIndexRef.current, micGrantedRef.current),
+              tools:        TOOLS,
+              tool_choice:  "auto",
+              audio: {
+                input: {
+                  turn_detection: {
+                    type:                "server_vad",
+                    threshold:           0.7,
+                    prefix_padding_ms:   300,
+                    silence_duration_ms: 700,
+                  },
+                },
+                output: {
+                  voice: "shimmer",
+                },
               },
             },
           });
@@ -899,33 +943,28 @@ export function useVoiceSession({
             const micSource  = ctx.createMediaStreamSource(mic);
             const silentGain = ctx.createGain();
             silentGain.gain.value = 0;
-            const processor  = ctx.createScriptProcessor(4096, 1, 1);
+            const workletNode = new AudioWorkletNode(ctx, "pcm-processor");
 
             // Tap an AnalyserNode off the mic source for sphere visualization
-            const micAnalyser  = ctx.createAnalyser();
+            const micAnalyser = ctx.createAnalyser();
             micAnalyser.fftSize = 256;
             micSource.connect(micAnalyser);
 
-            micSource.connect(processor);
-            processor.connect(silentGain);
+            micSource.connect(workletNode);
+            workletNode.connect(silentGain);
             silentGain.connect(ctx.destination);
-            processor.onaudioprocess = (e: AudioProcessingEvent) => {
+            workletNode.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
               const ws = wsRef.current;
               if (!ws || ws.readyState !== WebSocket.OPEN) return;
               if (stateRef.current.session !== "listening") return;
-              const float32 = e.inputBuffer.getChannelData(0);
-              const pcm16   = new Int16Array(float32.length);
-              for (let i = 0; i < float32.length; i++) {
-                pcm16[i] = Math.max(-32768, Math.min(32767, Math.round(float32[i] * 32767)));
-              }
-              const bytes = new Uint8Array(pcm16.buffer);
+              const bytes = new Uint8Array(e.data);
               let binary = "";
               for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
               ws.send(JSON.stringify({ type: "input_audio_buffer.append", audio: btoa(binary) }));
             };
-            micSourceRef.current       = micSource;
-            scriptProcessorRef.current = processor;
-            micAnalyserRef.current     = micAnalyser;
+            micSourceRef.current   = micSource;
+            workletNodeRef.current = workletNode;
+            micAnalyserRef.current = micAnalyser;
             setMicAnalyserNode(micAnalyser);
           }
           // Session configured — trigger the AI to speak its greeting
@@ -933,7 +972,7 @@ export function useVoiceSession({
           break;
         }
 
-        case "response.audio.delta": {
+        case "response.output_audio.delta": {
           if (!isAISpeakingRef.current) {
             isAISpeakingRef.current = true;
             setIsAISpeaking(true);
@@ -943,7 +982,7 @@ export function useVoiceSession({
           break;
         }
 
-        case "response.audio.done":
+        case "response.output_audio.done":
           // Schedule AI_DONE to fire once the buffered audio finishes playing
           if (!pendingCall.current) scheduleAIDone();
           break;
@@ -1020,8 +1059,8 @@ export function useVoiceSession({
       if (explainIdleTimerRef.current) { clearTimeout(explainIdleTimerRef.current); explainIdleTimerRef.current = null; }
       micStreamRef.current?.getTracks().forEach(t => t.stop());
       micStreamRef.current = null;
-      scriptProcessorRef.current?.disconnect();
-      scriptProcessorRef.current = null;
+      workletNodeRef.current?.disconnect();
+      workletNodeRef.current = null;
       micAnalyserRef.current?.disconnect();
       micAnalyserRef.current = null;
       micSourceRef.current?.disconnect();
@@ -1056,9 +1095,12 @@ export function useVoiceSession({
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
-  // Unlock skip when AI finishes speaking and session returns to "listening".
+  // Unlock skip/prev when AI finishes speaking and session returns to "listening".
   useEffect(() => {
-    if (state.session === "listening") skipInProgressRef.current = false;
+    if (state.session === "listening") {
+      skipInProgressRef.current = false;
+      prevInProgressRef.current = false;
+    }
   }, [state.session]);
 
   // ── Public API ─────────────────────────────────────────────────
@@ -1209,6 +1251,8 @@ export function useVoiceSession({
     if (currentIdx <= 0) return;
     const prevIndex = currentIdx - 1;
     const prevQuestion = questionsRef.current[prevIndex];
+    // Mark button nav in progress so navigate("prev") from the AI doesn't step back again.
+    prevInProgressRef.current = true;
     dispatch({ type: "SET_INDEX", index: prevIndex });
     setCard(questionsRef.current[prevIndex]?.id ?? null);
 
@@ -1353,7 +1397,7 @@ export function useVoiceSession({
 
   /** Must be called from a user-gesture handler (tap/click) to unlock AudioContext */
   const startSession = useCallback(async () => {
-    setupAudio();
+    await setupAudio();
     audioCtxRef.current?.resume();
 
     try {

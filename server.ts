@@ -9,7 +9,7 @@ const app    = next({ dev, port });
 const handle = app.getRequestHandler();
 
 const OPENAI_REALTIME_URL =
-  "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview";
+  "wss://api.openai.com/v1/realtime?model=gpt-realtime-1.5";
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
@@ -50,7 +50,6 @@ app.prepare().then(() => {
     const upstream = new WebSocket(OPENAI_REALTIME_URL, {
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        "OpenAI-Beta": "realtime=v1",
       },
     });
 
