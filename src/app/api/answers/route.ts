@@ -16,6 +16,9 @@ async function getVolumeQuestionMap(): Promise<Record<string, 'oneTimeVolume' | 
   _volumeQuestionMap = Object.fromEntries(
     questions.map((q) => [q.id, q.questionOrder === 18 ? 'oneTimeVolume' : 'recurringVolume'] as const)
   );
+  if (Object.keys(_volumeQuestionMap).length === 0) {
+    console.warn('[answers] Volume questions (order 18/19) not found — investment volumes will not sync to qa_sessions');
+  }
   return _volumeQuestionMap;
 }
 
