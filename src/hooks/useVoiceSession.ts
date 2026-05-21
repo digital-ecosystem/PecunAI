@@ -149,9 +149,10 @@ Short, warm, each response reacts to the previous answer and flows naturally int
 
 # Reasoning
 
-- For direct acknowledgments, simple answers, and follow-up questions, respond immediately — do not reason first.
+- For direct acknowledgments, simple answers, follow-up questions, and all navigation (skip/back/jump), respond immediately — do not reason first.
 - For ambiguous answers where you need to decide between submit_answer and highlight_answer, reason briefly before acting.
-- For explain_topic decisions, navigation decisions, and coverage checks, reason before acting.
+- For explain_topic decisions, reason before acting.
+- Do not reason about which topics to group together, skip ahead to, or treat as implicitly covered — topic order is controlled entirely by [SYSTEM] messages.
 - Do not reason when audio is unclear — ask for clarification instead.
 
 # Preambles
@@ -191,7 +192,7 @@ Two modes:
 After calling navigate() once, speak immediately when you receive the [SYSTEM] reply. The carousel is already updated. Do not call navigate() again.
 
 - After navigate(questionId): ask about that topic. Do not call navigate() again.
-- After navigate(direction "next"): acknowledge the skip naturally, then ask about the first remaining topic. Do not call navigate() again.
+- After navigate(direction "next"): the navigate() function result contains the exact next topic ID and name. Ask about THAT topic only. The function result and [SYSTEM] message are the authoritative source — do NOT use conversation history to infer what has been covered. Conversation context is unreliable for determining coverage. Do not call navigate() again.
 - After navigate(direction "prev"): ask warmly if they want to change their answer. Do not call navigate() again.
 
 Skipped topics will be listed at the end — work through them one by one before finishing.
@@ -204,6 +205,8 @@ Treat any of the following as a skip and call navigate(direction: "next") before
 "I'm not sure", "I need to think about it", "I don't know", "can we come back to that?", "let's move on", "I'll figure it out later", "not sure yet", "skip this", or any similar indication the customer is not ready to answer.
 
 Call navigate(direction: "next") first, then acknowledge naturally ("Of course, we can always come back to that.") and continue with the next topic.
+
+After navigate() fires and you receive the [SYSTEM] reply with the next topic: treat the customer's attitude as completely fresh. Do NOT carry the skip intent forward. Do NOT decide that the next topic is also something they'll want to skip. Ask each new topic directly and wait for their answer.
 
 # Explanation Overlay
 
@@ -235,7 +238,7 @@ After close_explanation(): follow the [SYSTEM] instructions precisely.
 
 # Topics to Cover
 
-Cover all of them — do not skip any — group naturally where it makes sense.
+Cover all of them, one at a time. Do not group multiple topics into a single question. Topic order is dictated by [SYSTEM] messages — never decide independently which topic to ask about next.
 
 ${list}
 
@@ -358,8 +361,21 @@ const TOOLS = [
 
 // ── Helpers ───────────────────────────────────────────────────────
 
-function makeNextTopicMsg(nextQ: CarouselQuestion): string {
-  return `[SYSTEM: Your next topic is "${nextQ.category}" (ID: ${nextQ.id}). Ask about this topic now. Do not move to a different topic until the customer has answered.]`;
+function makeNextTopicMsg(
+  nextQ: CarouselQuestion,
+  remainingIds?: string[],
+  answeredIds?: string[],
+): string {
+  const answeredStr  = answeredIds ? (answeredIds.length ? answeredIds.join(", ") : "none") : null;
+  const remainingStr = remainingIds && remainingIds.length > 0 ? remainingIds.join(", ") : "none";
+  return [
+    `[SYSTEM: NEXT TOPIC = "${nextQ.category}" (ID: ${nextQ.id}).`,
+    answeredStr !== null ? `Formally submitted answers: ${answeredStr}.` : "",
+    `Remaining to collect: ${nextQ.id}${remainingStr !== "none" ? `, ${remainingStr}` : ""}.`,
+    `The navigate() function result confirms this. Do NOT override with conversation inference — only submitted answers count.`,
+    `The customer's skip request applied ONLY to the previous topic — NOT to this one. Start fresh — ask about "${nextQ.category}" as if the customer is fully ready to answer it. Do NOT apply skip logic to this topic.`,
+    `Ask about "${nextQ.category}" NOW.]`,
+  ].filter(Boolean).join(" ");
 }
 
 // ── Hook ──────────────────────────────────────────────────────────
@@ -416,6 +432,8 @@ export function useVoiceSession({
   // Stable ref for the initial question index — set once on mount.
   // Used in session.created so the resume index is always reliable regardless of state timing.
   const initialIndexRef  = useRef(initialQuestionIndex);
+  // Guards against duplicate mic setup / response.create when session.update is re-sent mid-session (e.g. on skip).
+  const sessionConfiguredRef = useRef(false);
   // Stable ref for mic permission — set in startSession() before WS opens so it's ready at session.created time.
   const micGrantedRef    = useRef<boolean | null>(null);
   // Tracks answered question IDs in the current session — injected into each AI response so it never loses track.
@@ -719,7 +737,7 @@ export function useVoiceSession({
             type: "message",
             role: "user",
             content: [{ type: "input_text", text: remainingQs.length > 0
-              ? makeNextTopicMsg(remainingQs[0])
+              ? makeNextTopicMsg(remainingQs[0], remaining.slice(1), Array.from(answeredIdsRef.current))
               : "[SYSTEM: All remaining topics answered. Session complete.]",
             }],
           },
@@ -789,7 +807,6 @@ export function useVoiceSession({
           return;
         }
         const { direction, questionId: targetId } = args;
-        sendResult({ success: true });
 
         if (targetId) {
           // ── Mode 1: jump directly to a specific question by ID ────────
@@ -799,9 +816,9 @@ export function useVoiceSession({
           if (targetQ && targetIdx >= 0) {
             // If previously skipped, unmark it — customer is now revisiting it to answer.
             skippedIdsRef.current.delete(targetId);
-
             dispatch({ type: "SET_INDEX", index: targetIdx });
             setCard(targetId);
+            sendResult({ success: true, jumped_to_id: targetId, jumped_to_name: targetQ.category });
 
             const savedAnswer = savedAnswersRef.current[targetId];
             const msg = savedAnswer
@@ -812,6 +829,8 @@ export function useVoiceSession({
               type: "conversation.item.create",
               item: { type: "message", role: "user", content: [{ type: "input_text", text: msg }] },
             });
+          } else {
+            sendResult({ success: false, reason: "Question ID not found" });
           }
         } else if (direction === "next") {
           // ── Mode 2: skip current question forward ─────────────────────
@@ -823,10 +842,18 @@ export function useVoiceSession({
               q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
             );
             const nextSkipQ = remaining[0] ?? null;
+            sendResult(nextSkipQ ? {
+              success: true,
+              next_topic_id: nextSkipQ.id,
+              next_topic_name: nextSkipQ.category,
+              formally_answered_ids: Array.from(answeredIdsRef.current),
+              remaining_ids_after_next: remaining.slice(1).map(q => q.id),
+              instruction: `Ask about "${nextSkipQ.category}" (ID: ${nextSkipQ.id}) NOW.`,
+            } : { success: true, all_topics_covered: true });
             send({
               type: "conversation.item.create",
               item: { type: "message", role: "user", content: [{ type: "input_text",
-                text: nextSkipQ ? makeNextTopicMsg(nextSkipQ) : "[SYSTEM: All topics covered.]",
+                text: nextSkipQ ? makeNextTopicMsg(nextSkipQ, remaining.slice(1).map(q => q.id), Array.from(answeredIdsRef.current)) : "[SYSTEM: All topics covered.]",
               }]},
             });
             return;
@@ -848,13 +875,32 @@ export function useVoiceSession({
           if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
           setCard(nextQ?.id ?? null);
 
+          sendResult(nextQ ? {
+            success: true,
+            next_topic_id: nextQ.id,
+            next_topic_name: nextQ.category,
+            formally_answered_ids: Array.from(answeredIdsRef.current),
+            remaining_ids_after_next: remaining.slice(1).map(q => q.id),
+            instruction: `Ask about "${nextQ.category}" (ID: ${nextQ.id}) NOW. This is the only correct next topic.`,
+          } : { success: true, all_topics_covered: true });
+
           send({
             type: "conversation.item.create",
             item: {
               type: "message", role: "user",
-              content: [{ type: "input_text", text: nextQ ? makeNextTopicMsg(nextQ) : "[SYSTEM: All topics covered.]" }],
+              content: [{ type: "input_text", text: nextQ ? makeNextTopicMsg(nextQ, remaining.slice(1).map(q => q.id), Array.from(answeredIdsRef.current)) : "[SYSTEM: All topics covered.]" }],
             },
           });
+
+          // Use per-response instructions so the model is told exactly what to ask from the card.
+          // This avoids the model reasoning about which topic to ask — it just naturalises the text.
+          send({
+            type: "response.create",
+            response: nextQ ? {
+              instructions: `The customer just skipped a topic. Acknowledge in one natural sentence (e.g. "Of course, we can always come back to that!"). Then ask the customer about ${nextQ.category} by rephrasing this question in your warm advisor voice — reply in English only: "${nextQ.text}". Ask ONLY this question. Do not ask about any other topic. Do not skip this question. Wait for the customer's answer.`,
+            } : {},
+          });
+          return;
         } else if (direction === "prev") {
           // ── Mode 3: step back one question ────────────────────────────
           // If a button prev is already in progress, the carousel was already stepped back.
@@ -866,6 +912,7 @@ export function useVoiceSession({
               : stateRef.current.currentQuestionIndex;
             const curQ    = questionsRef.current[curIdx];
             const saved   = curQ ? savedAnswersRef.current[curQ.id] : undefined;
+            sendResult({ success: true });
             send({
               type: "conversation.item.create",
               item: { type: "message", role: "user", content: [{ type: "input_text",
@@ -885,6 +932,7 @@ export function useVoiceSession({
 
           dispatch({ type: "SET_INDEX", index: prevIndex });
           setCard(prevQuestion?.id ?? null);
+          sendResult({ success: true });
 
           const prevAnswer = prevQuestion ? savedAnswersRef.current[prevQuestion.id] : undefined;
           const msg = prevAnswer
@@ -895,6 +943,8 @@ export function useVoiceSession({
             type: "conversation.item.create",
             item: { type: "message", role: "user", content: [{ type: "input_text", text: msg }] },
           });
+        } else {
+          sendResult({ success: false, reason: "Unknown navigate parameters" });
         }
 
         send({ type: "response.create" });
@@ -970,7 +1020,7 @@ export function useVoiceSession({
               instructions:      buildSystemPrompt(questionsRef.current, initialIndexRef.current, micGrantedRef.current),
               tools:             TOOLS,
               tool_choice:       "auto",
-              reasoning:         { effort: "low" },
+              reasoning:         { effort: "minimal" },
               audio: {
                 input: {
                   format: { type: "audio/pcm", rate: 24000 },
@@ -987,6 +1037,11 @@ export function useVoiceSession({
         }
 
         case "session.updated": {
+          // Only perform initial setup once — subsequent session.updated events come from
+          // mid-session session.update calls (e.g. navigation task overrides) and must be ignored.
+          if (sessionConfiguredRef.current) break;
+          sessionConfiguredRef.current = true;
+
           // Wire mic input for server VAD if permission was granted
           const mic = micStreamRef.current;
           const ctx = audioCtxRef.current;
@@ -1284,7 +1339,7 @@ export function useVoiceSession({
         type: "message",
         role: "user",
         content: [{ type: "input_text", text: remainingQsTap.length > 0
-          ? `[SYSTEM: Answer already saved — do NOT call submit_answer. The customer tapped "${label}". ${makeNextTopicMsg(remainingQsTap[0]).replace("[SYSTEM: ", "")}`
+          ? `[SYSTEM: Answer already saved — do NOT call submit_answer. The customer tapped "${label}". ${makeNextTopicMsg(remainingQsTap[0], remaining.slice(1), Array.from(answeredIdsRef.current)).replace("[SYSTEM: ", "")}`
           : `[SYSTEM: Answer already saved. All topics complete.]`,
         }],
       },
@@ -1346,8 +1401,8 @@ export function useVoiceSession({
         type: "message",
         role: "user",
         content: [{ type: "input_text", text: nextQ
-          ? `[SYSTEM: Customer skipped "${question.category}". Your next topic is "${nextQ.category}" (ID: ${nextQ.id}). Ask about this now.]`
-          : `[SYSTEM: Customer skipped "${question.category}". All other topics have been covered — circle-back phase will follow.]`,
+          ? makeNextTopicMsg(nextQ, remaining.slice(1).map(q => q.id), Array.from(answeredIdsRef.current))
+          : "[SYSTEM: All remaining topics are either answered or skipped — circle-back phase will follow.]",
         }],
       },
     });
