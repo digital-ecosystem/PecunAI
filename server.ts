@@ -9,7 +9,7 @@ const app    = next({ dev, port });
 const handle = app.getRequestHandler();
 
 const OPENAI_REALTIME_URL =
-  "wss://api.openai.com/v1/realtime?model=gpt-realtime-1.5";
+  "wss://api.openai.com/v1/realtime?model=gpt-realtime-2";
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {

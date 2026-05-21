@@ -149,14 +149,16 @@ SAVING ANSWERS:
 
 NAVIGATION:
 - The customer can tap buttons on screen OR ask out loud — both do the same thing.
-- When navigating, ALWAYS call navigate() BEFORE speaking so the carousel on screen stays in sync.
+- Call navigate() EXACTLY ONCE per customer navigation request, and ONLY when the customer explicitly asks to skip, go back, or jump to a specific topic.
 - TWO MODES:
   (a) Customer references a specific topic ("that question about risks", "the investment horizon one") — look up its ID in the topics list above and call navigate with that questionId to jump straight to it.
   (b) Customer says "skip" / "next" / "go back" without specifying a topic — call navigate with direction "next" or "prev".
-- After navigate(questionId): you will receive a [SYSTEM: Customer navigated directly to topic...] message — react naturally and ask about that topic.
-- After navigate(direction "next"): you will receive a [SYSTEM: Remaining uncollected topic IDs...] message — acknowledge the skip briefly and continue with the first remaining topic.
-- After navigate(direction "prev"): you will receive a [SYSTEM: Customer navigated back to topic...] message — ask warmly if they want to change their answer.
+- After you call navigate() ONCE and receive the SYSTEM response message, SPEAK IMMEDIATELY. The carousel is already updated. Do NOT call navigate() again.
+- After navigate(questionId): [SYSTEM: Customer navigated directly to topic...] — speak and ask about that topic. Do not call navigate() again.
+- After navigate(direction "next"): [SYSTEM: Remaining uncollected topic IDs...] — speak to acknowledge the skip, then ask about the first remaining topic. Do not call navigate() again.
+- After navigate(direction "prev"): [SYSTEM: Customer navigated back to topic...] — speak warmly and ask if they want to change. Do not call navigate() again.
 - Skipped topics will be listed at the end — work through them one by one before finishing.
+- NEVER call navigate() after submit_answer, in response to any [SYSTEM:] message, or during normal question-to-question flow. The carousel updates automatically — just speak.
 
 IMPLICIT SKIPS — this is critical:
 Any time the customer indicates they are not ready or unable to answer the current question — even without saying "skip" — treat it as a skip and call navigate(direction: "next") BEFORE responding verbally.
@@ -755,8 +757,8 @@ export function useVoiceSession({
 
             const savedAnswer = savedAnswersRef.current[targetId];
             const msg = savedAnswer
-              ? `[SYSTEM: Customer navigated directly to topic "${targetQ.category}". Their previous answer was "${savedAnswer}". Ask warmly whether they want to change it.]`
-              : `[SYSTEM: Customer navigated directly to topic "${targetQ.category}" which has not been answered yet. Ask it naturally.]`;
+              ? `[SYSTEM: Customer navigated directly to topic "${targetQ.category}". Their previous answer was "${savedAnswer}". SPEAK NOW — ask warmly whether they want to change it. Do NOT call navigate() again.]`
+              : `[SYSTEM: Customer navigated directly to topic "${targetQ.category}" which has not been answered yet. SPEAK NOW — ask it naturally. Do NOT call navigate() again.]`;
 
             send({
               type: "conversation.item.create",
@@ -775,7 +777,7 @@ export function useVoiceSession({
             send({
               type: "conversation.item.create",
               item: { type: "message", role: "user", content: [{ type: "input_text",
-                text: `[SYSTEM: Remaining uncollected topic IDs (in order): ${remaining.map(q => q.id).join(", ")}. Acknowledge the skip briefly and continue naturally with the FIRST one in this list.]`,
+                text: `[SYSTEM: Remaining uncollected topic IDs (in order): ${remaining.map(q => q.id).join(", ")}. SPEAK NOW — acknowledge the skip briefly and ask about the FIRST topic in this list. Do NOT call navigate() again.]`,
               }]},
             });
             return;
@@ -801,7 +803,7 @@ export function useVoiceSession({
             type: "conversation.item.create",
             item: {
               type: "message", role: "user",
-              content: [{ type: "input_text", text: `[SYSTEM: Remaining uncollected topic IDs (in order): ${remaining.map(q => q.id).join(", ")}. Acknowledge the skip briefly and continue naturally with the FIRST one in this list.]` }],
+              content: [{ type: "input_text", text: `[SYSTEM: Remaining uncollected topic IDs (in order): ${remaining.map(q => q.id).join(", ")}. SPEAK NOW — acknowledge the skip briefly and ask about the FIRST topic in this list. Do NOT call navigate() again.]` }],
             },
           });
         } else if (direction === "prev") {
@@ -819,8 +821,8 @@ export function useVoiceSession({
               type: "conversation.item.create",
               item: { type: "message", role: "user", content: [{ type: "input_text",
                 text: saved
-                  ? `[SYSTEM: Customer navigated back to topic "${curQ?.category}". Their previous answer was "${saved}". Ask warmly whether they want to change it — e.g. "You went back to [topic] — you said [X] before, did you want to revisit that?"]`
-                  : `[SYSTEM: Customer navigated back to topic "${curQ?.category}" which has not been answered yet. Ask it naturally.]`,
+                  ? `[SYSTEM: Customer navigated back to topic "${curQ?.category}". Their previous answer was "${saved}". SPEAK NOW — ask warmly whether they want to change it. Do NOT call navigate() again.]`
+                  : `[SYSTEM: Customer navigated back to topic "${curQ?.category}" which has not been answered yet. SPEAK NOW — ask it naturally. Do NOT call navigate() again.]`,
               }]},
             });
             return;
@@ -837,8 +839,8 @@ export function useVoiceSession({
 
           const prevAnswer = prevQuestion ? savedAnswersRef.current[prevQuestion.id] : undefined;
           const msg = prevAnswer
-            ? `[SYSTEM: Customer navigated back to topic "${prevQuestion.category}". Their previous answer was "${prevAnswer}". Ask warmly whether they want to change it — e.g. "You went back to [topic] — you said [X] before, did you want to revisit that?"]`
-            : `[SYSTEM: Customer navigated back to topic "${prevQuestion?.category}" which has not been answered yet. Ask it naturally.]`;
+            ? `[SYSTEM: Customer navigated back to topic "${prevQuestion.category}". Their previous answer was "${prevAnswer}". SPEAK NOW — ask warmly whether they want to change it. Do NOT call navigate() again.]`
+            : `[SYSTEM: Customer navigated back to topic "${prevQuestion?.category}" which has not been answered yet. SPEAK NOW — ask it naturally. Do NOT call navigate() again.]`;
 
           send({
             type: "conversation.item.create",
@@ -1290,7 +1292,7 @@ export function useVoiceSession({
       item: {
         type: "message",
         role: "user",
-        content: [{ type: "input_text", text: `[SYSTEM: Customer skipped the topic "${question.category}". Remaining uncollected topic IDs (in order): ${remaining.map(q => q.id).join(", ")}. Acknowledge briefly ("No problem, we can come back to that") and continue naturally with the FIRST one in this list.]` }],
+        content: [{ type: "input_text", text: `[SYSTEM: Customer skipped the topic "${question.category}". Remaining uncollected topic IDs (in order): ${remaining.map(q => q.id).join(", ")}. SPEAK NOW — acknowledge briefly and ask about the FIRST topic in this list. Do NOT call navigate() again.]` }],
       },
     });
     send({ type: "response.create" });
