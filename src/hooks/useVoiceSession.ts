@@ -138,14 +138,14 @@ RULES:
 - Max 2–3 sentences per response. Never monologue.
 - Never say "Question", "Next topic", "Moving on", or reveal any structure.
 - Never read a list of options aloud. If choices exist, weave them in naturally: "Are you thinking more X or Y?"
-- Group related topics together where it feels natural — don't jump awkwardly between unrelated subjects.
+- Follow the topic order given by SYSTEM messages exactly. Never reorder, cluster, or jump to a different topic than instructed.
 - Match the customer's energy: if they're brief, be brief. If they open up, show genuine interest.${resumeBlock}${micBlock}
 
 SAVING ANSWERS:
 - Only call submit_answer when the customer has CLEARLY and EXPLICITLY spoken or tapped an answer. Do NOT submit based on silence, background noise, assumption, or inference — wait for them to actually respond.
 - Clear spoken answer → call submit_answer(questionId, value) immediately, then keep the conversation going. No "is that correct?", no pause.
 - Genuinely ambiguous answer → call highlight_answer once to clarify ("Did you mean X?"), then submit whatever they confirm.
-- Message contains "[SYSTEM: Answer saved" or "[SYSTEM: Answer already saved" → the answer is already in the DB. Do NOT call submit_answer. The message will also tell you which topic IDs are still uncollected — use that list to know exactly what to cover next. React to the answer naturally and move to the first remaining ID.
+- Message contains "[SYSTEM: Answer saved" or "[SYSTEM: Answer already saved" → the answer is already in the DB. Do NOT call submit_answer. The message will tell you exactly which topic to ask about next — follow that instruction precisely and ask about that one topic and nothing else.
 
 NAVIGATION:
 - The customer can tap buttons on screen OR ask out loud — both do the same thing.
@@ -317,6 +317,12 @@ const TOOLS = [
     },
   },
 ];
+
+// ── Helpers ───────────────────────────────────────────────────────
+
+function makeNextTopicMsg(nextQ: CarouselQuestion): string {
+  return `[SYSTEM: Your next topic is "${nextQ.category}" (ID: ${nextQ.id}). Ask about this topic now. Do not move to a different topic until the customer has answered.]`;
+}
 
 // ── Hook ──────────────────────────────────────────────────────────
 
@@ -649,31 +655,35 @@ export function useVoiceSession({
         }
 
         if (allCoveredExceptSkipped && skippedIdsRef.current.size > 0) {
-          const skippedList = questionsRef.current
-            .filter(q => skippedIdsRef.current.has(q.id))
-            .map(q => `"${q.id}" (topic: ${q.category})`)
-            .join(", ");
           dispatch({ type: "ANSWER_SAVED" });
-          const firstSkipped = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));
+          const firstSkipped    = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));
+          const allSkippedQs    = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
           setCard(firstSkipped?.id ?? null);
           send({
             type: "conversation.item.create",
             item: {
               type: "message",
               role: "user",
-              content: [{ type: "input_text", text: `[SYSTEM: All main topics have been covered. ${skippedIdsRef.current.size} topic(s) were skipped earlier: ${skippedList}. Circle back to them now one by one, naturally. After all are answered, the session will complete.]` }],
+              content: [{ type: "input_text", text: firstSkipped
+                ? `[SYSTEM: All main topics are answered. Now circle back through ${allSkippedQs.length} skipped topic(s). Your ONLY next topic is "${firstSkipped.category}" (ID: ${firstSkipped.id}). Ask about this now. Remaining skipped after this: ${allSkippedQs.slice(1).map(q => q.id).join(", ") || "none"}.`
+                : `[SYSTEM: All topics answered. Session complete.]`,
+              }],
             },
           });
           send({ type: "response.create" });
           return;
         }
 
+        const remainingQs = remaining.map(id => questionsRef.current.find(q => q.id === id)!).filter(Boolean) as CarouselQuestion[];
         send({
           type: "conversation.item.create",
           item: {
             type: "message",
             role: "user",
-            content: [{ type: "input_text", text: `[SYSTEM: Answer saved. Remaining uncollected topic IDs (in order): ${remaining.join(", ")}. Continue naturally with the FIRST one in this list.]` }],
+            content: [{ type: "input_text", text: remainingQs.length > 0
+              ? makeNextTopicMsg(remainingQs[0])
+              : "[SYSTEM: All remaining topics answered. Session complete.]",
+            }],
           },
         });
 
@@ -774,10 +784,11 @@ export function useVoiceSession({
             const remaining = questionsRef.current.filter(
               q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
             );
+            const nextSkipQ = remaining[0] ?? null;
             send({
               type: "conversation.item.create",
               item: { type: "message", role: "user", content: [{ type: "input_text",
-                text: `[SYSTEM: Remaining uncollected topic IDs (in order): ${remaining.map(q => q.id).join(", ")}. SPEAK NOW — acknowledge the skip briefly and ask about the FIRST topic in this list. Do NOT call navigate() again.]`,
+                text: nextSkipQ ? makeNextTopicMsg(nextSkipQ) : "[SYSTEM: All topics covered.]",
               }]},
             });
             return;
@@ -803,7 +814,7 @@ export function useVoiceSession({
             type: "conversation.item.create",
             item: {
               type: "message", role: "user",
-              content: [{ type: "input_text", text: `[SYSTEM: Remaining uncollected topic IDs (in order): ${remaining.map(q => q.id).join(", ")}. SPEAK NOW — acknowledge the skip briefly and ask about the FIRST topic in this list. Do NOT call navigate() again.]` }],
+              content: [{ type: "input_text", text: nextQ ? makeNextTopicMsg(nextQ) : "[SYSTEM: All topics covered.]" }],
             },
           });
         } else if (direction === "prev") {
@@ -1203,19 +1214,19 @@ export function useVoiceSession({
       .map(q => q.id);
 
     if (allCoveredExceptSkipped && skippedIdsRef.current.size > 0) {
-      const skippedList = questionsRef.current
-        .filter(q => skippedIdsRef.current.has(q.id))
-        .map(q => `"${q.id}" (topic: ${q.category})`)
-        .join(", ");
+      const firstSkippedTap = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));
+      const allSkippedTap   = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
       dispatch({ type: "ANSWER_SAVED" });
-      const firstSkipped = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));
-      setCard(firstSkipped?.id ?? null);
+      setCard(firstSkippedTap?.id ?? null);
       send({
         type: "conversation.item.create",
         item: {
           type: "message",
           role: "user",
-          content: [{ type: "input_text", text: `[SYSTEM: All main topics have been covered. ${skippedIdsRef.current.size} topic(s) were skipped earlier: ${skippedList}. Circle back to them now one by one, naturally. After all are answered, the session will complete.]` }],
+          content: [{ type: "input_text", text: firstSkippedTap
+            ? `[SYSTEM: All main topics are answered. Now circle back through ${allSkippedTap.length} skipped topic(s). Your ONLY next topic is "${firstSkippedTap.category}" (ID: ${firstSkippedTap.id}). Ask about this now. Remaining skipped after this: ${allSkippedTap.slice(1).map(q => q.id).join(", ") || "none"}.`
+            : `[SYSTEM: All topics answered. Session complete.]`,
+          }],
         },
       });
       send({ type: "response.create" });
@@ -1228,12 +1239,16 @@ export function useVoiceSession({
     setCard(remaining[0] ?? null);
 
     const label = (question.options ?? []).find(o => o.value === value)?.label ?? value;
+    const remainingQsTap = remaining.map(id => questionsRef.current.find(q => q.id === id)!).filter(Boolean) as CarouselQuestion[];
     send({
       type: "conversation.item.create",
       item: {
         type: "message",
         role: "user",
-        content: [{ type: "input_text", text: `[SYSTEM: Answer already saved — do NOT call submit_answer. Remaining uncollected topic IDs (in order): ${remaining.join(", ")}. Continue naturally with the FIRST one in this list.] The customer tapped their answer: "${label}"` }],
+        content: [{ type: "input_text", text: remainingQsTap.length > 0
+          ? `[SYSTEM: Answer already saved — do NOT call submit_answer. The customer tapped "${label}". ${makeNextTopicMsg(remainingQsTap[0]).replace("[SYSTEM: ", "")}`
+          : `[SYSTEM: Answer already saved. All topics complete.]`,
+        }],
       },
     });
     send({ type: "response.create" });
@@ -1292,7 +1307,10 @@ export function useVoiceSession({
       item: {
         type: "message",
         role: "user",
-        content: [{ type: "input_text", text: `[SYSTEM: Customer skipped the topic "${question.category}". Remaining uncollected topic IDs (in order): ${remaining.map(q => q.id).join(", ")}. SPEAK NOW — acknowledge briefly and ask about the FIRST topic in this list. Do NOT call navigate() again.]` }],
+        content: [{ type: "input_text", text: nextQ
+          ? `[SYSTEM: Customer skipped "${question.category}". Your next topic is "${nextQ.category}" (ID: ${nextQ.id}). Ask about this now.]`
+          : `[SYSTEM: Customer skipped "${question.category}". All other topics have been covered — circle-back phase will follow.]`,
+        }],
       },
     });
     send({ type: "response.create" });
