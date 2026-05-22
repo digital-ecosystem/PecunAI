@@ -17,6 +17,9 @@ async function main() {
   await prisma.termsAndConditions.deleteMany();
   await prisma.highRiskCountry.deleteMany();
   await prisma.mainProductPrompt.deleteMany();
+  await prisma.qASession.deleteMany();
+  await prisma.team.deleteMany();
+  await prisma.agent.deleteMany();
   await prisma.admin.deleteMany();
   await prisma.partner.deleteMany();
 
@@ -734,7 +737,7 @@ ABSCHLUSS:
 
 Du bist **PecunAI**, der digitale Onboarding- und Beratungsassistent des Finanzverbundes aus:
 - **4money Financial Services GmbH** (von der **FMA konzessioniertes** Wertpapierdienstleistungsunternehmen / WPDLU),
-- **froots GmbH** (Strategie- und Portfoliologik; Umsetzung im Rahmen einer Vermögensverwaltung, sofern vereinbart),
+- **froots GmbH** (Vermögensverwaltung / Portfolioverwaltung für vermittelte Kunden),
 - **Schelhammer Capital Bank** (Depotbank / Verwahrung).
 
 Deine Aufgabe ist ausschließlich, **Fragen während des Onboardings zu beantworten und Inhalte zu erklären**.
@@ -774,8 +777,8 @@ Du interpretierst nicht, erfindest nichts und formulierst nichts, das nicht durc
 # 1.1 Rollen & Verantwortung (wichtig)
 
 Wenn nach Zuständigkeiten gefragt wird, halte diese Trennung ein:
-- **4money**: Anlageberatung im Rahmen der WPDLU-Konzession, Geeignetheits-/Angemessenheitslogik, Dokumentation, Auftragübermittlung/Abwicklung im Onboarding.
-- **froots**: Strategie-/Portfolio-Logik; Umsetzung je nach vereinbartem Setup.
+- **4money**: Anlageberatung im Rahmen der WPDLU-Konzession, Geeignetheits-/Angemessenheitslogik, Produktempfehlung, Portfolio-/Produktmatrix, Dokumentation, Auftragübermittlung/Abwicklung im Onboarding.
+- **froots**: ausschließlich Vermögensverwaltung (Portfolioverwaltung) für jene Kunden, die nach Abschluss der Anlageberatung durch 4money an froots vermittelt werden. froots erbringt keine Anlageberatung.
 - **Depotbank**: Verwahrung, Konten/Depots, Verrechnung und Buchungen.
 
 Wichtig:
@@ -1201,6 +1204,58 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
     },
   ];
 
+  const agents = [
+    { firstName: 'Alex',   lastName: 'Berger',  agentCode: 'AB743', partnerEmail: 'alexander.bracic@finova.at' },
+    { firstName: 'Xenia',  lastName: 'Klein',   agentCode: 'XK291', partnerEmail: 'alexander.bracic@finova.at' },
+    { firstName: 'Marco',  lastName: 'Neubert', agentCode: 'MN582', partnerEmail: 'lukas.hochsteger@finova.at' },
+    { firstName: 'Paula',  lastName: 'Richter', agentCode: 'PR904', partnerEmail: 'lukas.hochsteger@finova.at' },
+    { firstName: 'Tim',    lastName: 'Lang',    agentCode: 'TL193', partnerEmail: 'franz.resch@finova.at' },
+  ];
+
+  const teamDefinitions = [
+    {
+      name: 'Team Alpha',
+      teamLeadEmail: 'alexander.bracic@finova.at',
+      memberEmails: [
+        'alexander.bracic@finova.at',
+        'lukas.hochsteger@finova.at',
+        'franz.resch@finova.at',
+        'sedin.cehajic@finova.at',
+      ],
+    },
+    {
+      name: 'Team Beta',
+      teamLeadEmail: 'leonhard.ogris@finova.at',
+      memberEmails: [
+        'leonhard.ogris@finova.at',
+        'filip.bonat@finova.at',
+        'gerald.puntigam@finova.at',
+        'erwin.buerger@finova.at',
+      ],
+    },
+    {
+      name: 'Team Gamma',
+      teamLeadEmail: 'aldin.mujanic@finova.at',
+      memberEmails: [
+        'aldin.mujanic@finova.at',
+        'marco.puntigam@finova.at',
+        'marco.schober@finova.at',
+        'guenter.moser@finova.at',
+      ],
+    },
+    {
+      name: 'Team Delta',
+      teamLeadEmail: 'christian.leski@finova.at',
+      memberEmails: [
+        'christian.leski@finova.at',
+        'gernot.fasching@finova.at',
+        'hamza.hamzic@finova.at',
+        'heiko.juritsch@finova.at',
+        'b.mahdi@adana.group',
+      ],
+    },
+  ];
+
   for (const q of questions) {
     await prisma.question.create({
       data: {
@@ -1303,38 +1358,218 @@ Du erfindest nie Inhalte, sondern verwendest ausschließlich geprüfte Quellen.
     });
   }
 
-  // for (const admin of admins) {
-  //   const hashedPassword = await bcrypt.hash(admin.password, 10);
-  //   await prisma.admin.create({
-  //     data: {
-  //       email: admin.email,
-  //       firstName: admin.firstName,
-  //       lastName: admin.lastName,
-  //       birthday: admin.birthday,
-  //       agentNumber: admin.agentNumber,
-  //       password: hashedPassword,
-  //     },
-  //   });
-  //   console.log(`  ✅ Admin created: ${admin.email} (password: ${admin.password})`);
-  // }
+  for (const admin of admins) {
+    const hashedPassword = await bcrypt.hash(admin.password, 10);
+    await prisma.admin.upsert({
+      where:  { email: admin.email },
+      update: {},
+      create: {
+        email:       admin.email,
+        firstName:   admin.firstName,
+        lastName:    admin.lastName,
+        birthday:    admin.birthday,
+        agentNumber: admin.agentNumber,
+        password:    hashedPassword,
+      },
+    });
+    console.log(`  ✅ Admin upserted: ${admin.email}`);
+  }
 
+  for (const partner of partners) {
+    const hashedPassword = await bcrypt.hash(partner.password, 10);
+    await prisma.partner.upsert({
+      where:  { email: partner.email },
+      update: {},
+      create: {
+        email:       partner.email,
+        phone:       partner.phone,
+        firstName:   partner.firstName,
+        lastName:    partner.lastName,
+        birthday:    partner.birthday,
+        agentNumber:       partner.agentNumber,
+        password:          hashedPassword,
+        referralCode:      partner.referralCode,
+      },
+    });
+    console.log(`  ✅ Partner upserted: ${partner.email}`);
+  }
 
-  // for (const partner of partners) {
-  //   const hashedPassword = await bcrypt.hash(partner.password, 10);
-  //   await prisma.partner.create({
-  //     data: {
-  //       email: partner.email,
-  //       phone: partner.phone,
-  //       firstName: partner.firstName,
-  //       lastName: partner.lastName,
-  //       birthday: partner.birthday,
-  //       agentNumber: partner.agentNumber,
-  //       password: hashedPassword,
-  //       referralCode: partner.referralCode,
-  //     },
-  //   });
-  //   console.log(`  ✅ Partner created: ${partner.email} (password: ${partner.password}, referralCode: ${partner.referralCode})`);
-  // }
+  for (const agent of agents) {
+    await prisma.agent.upsert({
+      where: { agentCode: agent.agentCode },
+      update: {},
+      create: {
+        firstName: agent.firstName,
+        lastName:  agent.lastName,
+        agentCode: agent.agentCode,
+        partner:   { connect: { email: agent.partnerEmail } },
+      },
+    });
+    console.log(`  ✅ Agent upserted: ${agent.agentCode} (${agent.firstName} ${agent.lastName})`);
+  }
+
+  for (const teamDef of teamDefinitions) {
+    const lead = await prisma.partner.findUnique({ where: { email: teamDef.teamLeadEmail } });
+    if (!lead) {
+      console.warn(`  ⚠️  Team lead not found, skipping team: ${teamDef.name} (${teamDef.teamLeadEmail})`);
+      continue;
+    }
+
+    const team = await prisma.team.create({
+      data: {
+        name:       teamDef.name,
+        teamLeadId: lead.id,
+      },
+    });
+    console.log(`  ✅ Team created: ${team.name} (lead: ${teamDef.teamLeadEmail})`);
+
+    for (const memberEmail of teamDef.memberEmails) {
+      const updated = await prisma.partner.updateMany({
+        where: { email: memberEmail },
+        data:  { teamId: team.id },
+      });
+      if (updated.count === 0) {
+        console.warn(`    ⚠️  Member not found, skipped: ${memberEmail}`);
+      }
+    }
+    console.log(`    ✅ Assigned ${teamDef.memberEmails.length} members to ${team.name}`);
+  }
+
+  // ── Sample QASessions for performance dashboard ──
+
+  console.log('Seeding sample QASessions for performance dashboard...');
+
+  // Clean up old sample data (idempotent — sessions cascade-delete their product suggestions)
+  await prisma.qASession.deleteMany({ where: { user: { email: { startsWith: 'sample.' } } } });
+  await prisma.user.deleteMany({ where: { email: { startsWith: 'sample.' } } });
+
+  // Create 6 sample customer accounts
+  const sampleUsers: { id: string }[] = [];
+  for (let i = 1; i <= 6; i++) {
+    const u = await prisma.user.upsert({
+      where:  { email: `sample.user${i}@4money.at` },
+      update: {},
+      create: { email: `sample.user${i}@4money.at` },
+    });
+    sampleUsers.push(u);
+  }
+
+  // Fetch entities needed for FK references
+  const seedPartners = await prisma.partner.findMany({
+    select: { id: true, referralCode: true },
+    orderBy: { firstName: 'asc' },
+  });
+  const seedAgents = await prisma.agent.findMany({
+    select: { id: true },
+    orderBy: { agentCode: 'asc' },
+  });
+  const seedProducts = await prisma.product.findMany({
+    select: { id: true, shortName: true, name: true },
+  });
+
+  if (seedPartners.length === 0 || seedAgents.length === 0) {
+    console.warn('  ⚠️  No partners or agents found — skipping QASession seed');
+  } else {
+    function daysAgo(n: number): Date {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      d.setHours(9, 0, 0, 0);
+      return d;
+    }
+    function pick<T>(arr: T[], idx: number): T { return arr[idx % arr.length]; }
+
+    type SeedS = {
+      offset: number;
+      status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
+      oneTime: number | null;
+      recurring: number | null;
+      p: number; a: number; u: number;
+      product: string | null;
+    };
+
+    const seedSessions: SeedS[] = [
+      // Oct 2025
+      { offset: 180, status: 'APPROVED', oneTime: 25000, recurring: 500,  p: 0,  a: 0, u: 0, product: 'VVKN2' },
+      { offset: 175, status: 'APPROVED', oneTime: 18000, recurring: 300,  p: 1,  a: 1, u: 1, product: 'VVKN1' },
+      { offset: 172, status: 'APPROVED', oneTime: 32000, recurring: 640,  p: 3,  a: 2, u: 2, product: 'VVKN3' },
+      { offset: 168, status: 'PENDING',  oneTime: null,  recurring: null, p: 2,  a: 3, u: 3, product: 'VVKN2' },
+      { offset: 164, status: 'DRAFT',    oneTime: null,  recurring: null, p: 5,  a: 4, u: 4, product: null    },
+      // Nov 2025
+      { offset: 152, status: 'APPROVED', oneTime: 42000, recurring: 840,  p: 4,  a: 0, u: 5, product: 'VVKN2' },
+      { offset: 148, status: 'APPROVED', oneTime: 15000, recurring: 300,  p: 0,  a: 1, u: 0, product: 'VVKN1' },
+      { offset: 144, status: 'APPROVED', oneTime: 29000, recurring: 580,  p: 6,  a: 2, u: 1, product: 'VVKN3' },
+      { offset: 140, status: 'PENDING',  oneTime: null,  recurring: null, p: 7,  a: 3, u: 2, product: 'VVKN4' },
+      { offset: 136, status: 'REJECTED', oneTime: null,  recurring: null, p: 8,  a: 4, u: 3, product: null    },
+      { offset: 132, status: 'DRAFT',    oneTime: null,  recurring: null, p: 9,  a: 0, u: 4, product: null    },
+      // Dec 2025
+      { offset: 116, status: 'APPROVED', oneTime: 22000, recurring: 440,  p: 10, a: 1, u: 5, product: 'VVKN2' },
+      { offset: 112, status: 'APPROVED', oneTime: 38000, recurring: 760,  p: 11, a: 2, u: 0, product: 'VVKN3' },
+      { offset: 108, status: 'PENDING',  oneTime: null,  recurring: null, p: 12, a: 3, u: 1, product: 'VVKN1' },
+      { offset: 104, status: 'DRAFT',    oneTime: null,  recurring: null, p: 13, a: 4, u: 2, product: null    },
+      // Jan 2026
+      { offset: 92,  status: 'APPROVED', oneTime: 55000, recurring: 1100, p: 14, a: 0, u: 3, product: 'VVKN3' },
+      { offset: 88,  status: 'APPROVED', oneTime: 35000, recurring: 700,  p: 0,  a: 1, u: 4, product: 'VVKN2' },
+      { offset: 84,  status: 'APPROVED', oneTime: 28000, recurring: 560,  p: 1,  a: 2, u: 5, product: 'VVKN1' },
+      { offset: 80,  status: 'APPROVED', oneTime: 19500, recurring: 390,  p: 2,  a: 3, u: 0, product: 'VVKN4' },
+      { offset: 76,  status: 'PENDING',  oneTime: null,  recurring: null, p: 3,  a: 4, u: 1, product: 'VVKN2' },
+      { offset: 72,  status: 'REJECTED', oneTime: null,  recurring: null, p: 4,  a: 0, u: 2, product: null    },
+      // Feb 2026
+      { offset: 55,  status: 'APPROVED', oneTime: 47000, recurring: 940,  p: 5,  a: 1, u: 3, product: 'VVKN3' },
+      { offset: 51,  status: 'APPROVED', oneTime: 21000, recurring: 420,  p: 6,  a: 2, u: 4, product: 'VVKN2' },
+      { offset: 47,  status: 'PENDING',  oneTime: null,  recurring: null, p: 7,  a: 3, u: 5, product: 'VVKN1' },
+      { offset: 43,  status: 'DRAFT',    oneTime: null,  recurring: null, p: 8,  a: 4, u: 0, product: null    },
+      // Mar 2026
+      { offset: 32,  status: 'APPROVED', oneTime: 62000, recurring: 1240, p: 9,  a: 0, u: 1, product: 'VVKN2' },
+      { offset: 28,  status: 'APPROVED', oneTime: 38000, recurring: 760,  p: 10, a: 1, u: 2, product: 'VVKN3' },
+      { offset: 24,  status: 'APPROVED', oneTime: 24000, recurring: 480,  p: 11, a: 2, u: 3, product: 'VVKN1' },
+      { offset: 20,  status: 'PENDING',  oneTime: null,  recurring: null, p: 12, a: 3, u: 4, product: 'VVKN4' },
+      { offset: 16,  status: 'PENDING',  oneTime: null,  recurring: null, p: 13, a: 4, u: 5, product: 'VVKN2' },
+      { offset: 12,  status: 'DRAFT',    oneTime: null,  recurring: null, p: 14, a: 0, u: 0, product: null    },
+      // Apr 2026
+      { offset: 10,  status: 'APPROVED', oneTime: 31000, recurring: 620,  p: 0,  a: 1, u: 1, product: 'VVKN3' },
+      { offset:  7,  status: 'APPROVED', oneTime: 16500, recurring: 330,  p: 1,  a: 2, u: 2, product: 'VVKN1' },
+      { offset:  4,  status: 'APPROVED', oneTime: 44000, recurring: 880,  p: 2,  a: 3, u: 3, product: 'VVKN2' },
+      { offset:  2,  status: 'PENDING',  oneTime: null,  recurring: null, p: 3,  a: 4, u: 4, product: 'VVKN3' },
+      { offset:  1,  status: 'DRAFT',    oneTime: null,  recurring: null, p: 4,  a: 0, u: 5, product: null    },
+    ];
+
+    for (const s of seedSessions) {
+      const partner = pick(seedPartners, s.p);
+      const agent   = pick(seedAgents,   s.a);
+      const user    = pick(sampleUsers,  s.u);
+
+      const session = await prisma.qASession.create({
+        data: {
+          userId:          user.id,
+          partnerId:       partner.id,
+          agentId:         agent.id,
+          referralCode:    partner.referralCode,
+          status:          s.status,
+          phase:           s.status === 'DRAFT' ? 'QUESTIONS1' : 'CONTRACT_DOCUMENT',
+          createdAt:       daysAgo(s.offset),
+          oneTimeVolume:   s.oneTime,
+          recurringVolume: s.recurring,
+        },
+      });
+
+      if (s.product && s.status !== 'DRAFT') {
+        const product = seedProducts.find((p) => p.shortName === s.product);
+        if (product) {
+          await prisma.sessionProductSuggestion.create({
+            data: {
+              qaSessionId: session.id,
+              productId:   product.id,
+              name:        product.name,
+              shortName:   product.shortName ?? '',
+              isConfirmed: s.status === 'APPROVED',
+            },
+          });
+        }
+      }
+    }
+    console.log(`  ✅ Created ${seedSessions.length} sample QASessions`);
+  }
+
   console.log('✅ Seed complete!');
 }
 

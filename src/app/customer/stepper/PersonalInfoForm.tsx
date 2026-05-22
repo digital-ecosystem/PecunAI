@@ -12,26 +12,27 @@ type PersonalInfoFormProps = {
 
 // German country list for nationality and address
 const GERMAN_COUNTRIES = [
-  "Österreich",
-  "Deutschland",
-  "Schweiz",
-  "Italien",
-  "Frankreich",
-  "Spanien",
-  "Niederlande",
+  "Andere",
+  "Australien",
   "Belgien",
+  "Deutschland",
+  "Frankreich",
+  "Indien",
+  "Italien",
+  "Kanada",
+  "Kroatien",
+  "Niederlande",
+  "Österreich",
   "Polen",
-  "Tschechien",
-  "Ungarn",
+  "Rumänien",
+  "Schweiz",
   "Slowakei",
   "Slowenien",
-  "Kroatien",
-  "Vereinigtes Königreich",
+  "Spanien",
+  "Tschechien",
+  "Ungarn",
   "Vereinigte Staaten",
-  "Kanada",
-  "Australien",
-  "Indien",
-  "Andere",
+  "Vereinigtes Königreich"
 ];
 
 // Phone country codes simplified format

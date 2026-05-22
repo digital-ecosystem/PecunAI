@@ -53,3 +53,7 @@ next-env.d.ts
 
 Zugangsdaten-für-Finova.pdf
 .yarn.lock
+
+CLAUDE.md
+/docs
+/.claude/

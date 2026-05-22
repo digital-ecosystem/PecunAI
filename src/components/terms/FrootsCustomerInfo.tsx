@@ -4,6 +4,21 @@ export function FrootsCustomerInfo() {
   return (
     <>
       <p>
+        Das vorliegende KI-gestützte Beratungstool wird im Namen und auf Rechnung der 4money Financial
+        Services GmbH (kurz 4money) betrieben. Die über dieses Tool erbrachte Anlageberatung erfolgt
+        ausschließlich auf Verantwortung und Haftung von 4Money als konzessioniertes
+        Wertpapierdienstleistungsunternehmen (WPDLU) gemäß WAG 2018. Die Asset Management by froots GmbH
+        (froots) hat auf die Ausgestaltung, den Betrieb und die Inhalte dieses Tools keinerlei Einfluss
+        und übernimmt hierfür keine Haftung.
+      </p>
+
+      <p>
+        froots erbringt ausschließlich die Dienstleistung der Vermögensverwaltung (Portfolioverwaltung)
+        für jene Kunden, die nach Abschluss der Anlageberatung durch 4Money an froots vermittelt werden.
+        Eine Anlageberatung durch froots findet im Rahmen dieser Zusammenarbeit nicht statt.
+      </p>
+
+      <p>
         Das Wertpapieraufsichtsgesetz 2018 (WAG 2018) verpflichtet Wertpapierfirmen unter anderem,
         allen Kunden gesetzlich festgelegte Informationen zu erteilen. Dieser Verpflichtung kommt die
         Asset Management by froots GmbH (froots) mit diesen Kundeninformationen nach.

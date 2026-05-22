@@ -25,6 +25,21 @@ model User {
   @@map("users")
 }
 
+model Agent {
+  id          String      @id @default(cuid())
+  firstName   String
+  lastName    String
+  agentCode   String      @unique
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  partnerId   String
+  partner     Partner     @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  qaSessions  QASession[]
+
+  @@map("agents")
+}
+
 model Admin {
   id          String    @id @default(cuid())
   email       String    @unique
@@ -54,6 +69,18 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+model Team {
+  id         String    @id @default(cuid())
+  name       String
+  teamLeadId String?
+  teamLead   Partner?  @relation("TeamLead", fields: [teamLeadId], references: [id], onDelete: SetNull)
+  members    Partner[] @relation("TeamMembers")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("teams")
+}
+
 model Partner {
   id           String      @id @default(cuid())
   email        String      @unique
@@ -68,8 +95,11 @@ model Partner {
   isActive     Boolean     @default(true)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
-  // Sessions referred by this partner
-  qaSessions   QASession[]
+  teamId            String?
+  team              Team?       @relation("TeamMembers", fields: [teamId], references: [id], onDelete: SetNull)
+  ledTeams          Team[]      @relation("TeamLead")
+  qaSessions        QASession[]
+  agents            Agent[]
 
   @@map("partners")
 }
@@ -109,11 +139,15 @@ model QASession {
   updatedAt          DateTime                  @updatedAt
   userId             String
   status             SessionStatus?            @default(DRAFT)
+  agentId   String?
   partnerId          String
   referralCode       String
+  oneTimeVolume      Decimal?                  @db.Decimal(10, 2)
+  recurringVolume    Decimal?                  @db.Decimal(10, 2)
   answers            Answer[]
   personalInfo       PersonalInfo?
   user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agent     Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull) 
   partner            Partner                   @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   auditLogs          SessionAuditLog?
   productSuggestions SessionProductSuggestion?
