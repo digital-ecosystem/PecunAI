@@ -861,7 +861,10 @@ export function useVoiceSession({
           const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current)
             ?? questionsRef.current[stateRef.current.currentQuestionIndex];
 
-          if (currentQ) {
+          // If the current card is already answered, this is a confirm-advance (customer confirmed
+          // their existing answer while back-navigated), NOT a skip. Don't mark it skipped.
+          const isConfirmAdvance = currentQ != null && answeredIdsRef.current.has(currentQ.id);
+          if (currentQ && !isConfirmAdvance) {
             skippedIdsRef.current.add(currentQ.id);
             skipInProgressRef.current = true;
           }
@@ -892,12 +895,12 @@ export function useVoiceSession({
             },
           });
 
-          // Use per-response instructions so the model is told exactly what to ask from the card.
-          // This avoids the model reasoning about which topic to ask — it just naturalises the text.
           send({
             type: "response.create",
             response: nextQ ? {
-              instructions: `The customer just skipped a topic. Acknowledge in one natural sentence (e.g. "Of course, we can always come back to that!"). Then ask the customer about ${nextQ.category} by rephrasing this question in your warm advisor voice — reply in English only: "${nextQ.text}". Ask ONLY this question. Do not ask about any other topic. Do not skip this question. Wait for the customer's answer.`,
+              instructions: isConfirmAdvance
+                ? `The customer confirmed their previous answer and wants to move forward. Continue naturally to the next topic. Ask the customer about ${nextQ.category} by rephrasing this question in your warm advisor voice — reply in English only: "${nextQ.text}". Ask ONLY this question. Wait for the customer's answer.`
+                : `The customer just skipped a topic. Acknowledge in one natural sentence (e.g. "Of course, we can always come back to that!"). Then ask the customer about ${nextQ.category} by rephrasing this question in your warm advisor voice — reply in English only: "${nextQ.text}". Ask ONLY this question. Do not ask about any other topic. Do not skip this question. Wait for the customer's answer.`,
             } : {},
           });
           return;
@@ -917,8 +920,8 @@ export function useVoiceSession({
               type: "conversation.item.create",
               item: { type: "message", role: "user", content: [{ type: "input_text",
                 text: saved
-                  ? `[SYSTEM: Customer navigated back to topic "${curQ?.category}". Their previous answer was "${saved}". SPEAK NOW — ask warmly whether they want to change it. Do NOT call navigate() again.]`
-                  : `[SYSTEM: Customer navigated back to topic "${curQ?.category}" which has not been answered yet. SPEAK NOW — ask it naturally. Do NOT call navigate() again.]`,
+                  ? `[SYSTEM: Customer navigated back to topic "${curQ?.category}". Their previous answer was "${saved}". Ask warmly whether they want to change it. If they give a new answer, call submit_answer. If they confirm the existing answer and want to move on, call navigate("next") to advance the carousel — do NOT start talking about the next topic without calling navigate("next") first.]`
+                  : `[SYSTEM: Customer navigated back to topic "${curQ?.category}" which has not been answered yet. Ask it naturally. If they answer, call submit_answer. If they want to move on without answering, call navigate("next").]`,
               }]},
             });
             return;
@@ -936,8 +939,8 @@ export function useVoiceSession({
 
           const prevAnswer = prevQuestion ? savedAnswersRef.current[prevQuestion.id] : undefined;
           const msg = prevAnswer
-            ? `[SYSTEM: Customer navigated back to topic "${prevQuestion.category}". Their previous answer was "${prevAnswer}". SPEAK NOW — ask warmly whether they want to change it. Do NOT call navigate() again.]`
-            : `[SYSTEM: Customer navigated back to topic "${prevQuestion?.category}" which has not been answered yet. SPEAK NOW — ask it naturally. Do NOT call navigate() again.]`;
+            ? `[SYSTEM: Customer navigated back to topic "${prevQuestion.category}". Their previous answer was "${prevAnswer}". Ask warmly whether they want to change it. If they give a new answer, call submit_answer. If they confirm the existing answer and want to move on, call navigate("next") to advance the carousel — do NOT start talking about the next topic without calling navigate("next") first.]`
+            : `[SYSTEM: Customer navigated back to topic "${prevQuestion?.category}" which has not been answered yet. Ask it naturally. If they answer, call submit_answer. If they want to move on without answering, call navigate("next").]`;
 
           send({
             type: "conversation.item.create",
@@ -1368,8 +1371,8 @@ export function useVoiceSession({
 
     const prevAnswer = prevQuestion ? savedAnswersRef.current[prevQuestion.id] : undefined;
     const msg = prevAnswer
-      ? `[SYSTEM: Customer navigated back to topic "${prevQuestion.category}". Their previous answer was "${prevAnswer}". Ask warmly whether they want to change it — e.g. "You went back to [topic] — you said [X] before, did you want to revisit that?"]`
-      : `[SYSTEM: Customer navigated back to topic "${prevQuestion?.category}" which has not been answered yet. Ask it naturally.]`;
+      ? `[SYSTEM: Customer navigated back to topic "${prevQuestion.category}". Their previous answer was "${prevAnswer}". Ask warmly whether they want to change it. If they give a new answer, call submit_answer. If they confirm the existing answer and want to move on, call navigate("next") to advance the carousel — do NOT start talking about the next topic without calling navigate("next") first.]`
+      : `[SYSTEM: Customer navigated back to topic "${prevQuestion?.category}" which has not been answered yet. Ask it naturally. If they answer, call submit_answer. If they want to move on without answering, call navigate("next").]`;
 
     send({
       type: "conversation.item.create",
