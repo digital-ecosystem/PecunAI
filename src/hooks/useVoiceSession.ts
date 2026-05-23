@@ -454,7 +454,10 @@ export function useVoiceSession({
   const analyserRef        = useRef<AnalyserNode | null>(null);
   const nextPlayTimeRef    = useRef<number>(0);
   const audioEndTimer      = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingCall        = useRef<{ callId: string; name: string; args: string } | null>(null);
+  const pendingCall             = useRef<{ callId: string; name: string; args: string } | null>(null);
+  const aiTextBufferRef         = useRef<string>("");   // text-mode (chat open): response.output_text.* events
+  const aiAudioTranscriptRef    = useRef<string>("");   // voice-mode: response.output_audio_transcript.* events
+  const pendingVoiceTranscriptRef = useRef<string | null>(null); // verbatim transcript of last user speech turn
   const questionsRef       = useRef(questions);
   const stateRef           = useRef(state);
   const micStreamRef       = useRef<MediaStream | null>(null);
@@ -471,23 +474,6 @@ export function useVoiceSession({
   useEffect(() => { questionsRef.current = questions; }, [questions]);
   useEffect(() => { stateRef.current    = state;     }, [state]);
 
-  // Append an AI bubble to the chat log whenever the active question changes (and session is running).
-  useEffect(() => {
-    if (!started || !activeCardId) return;
-    const q = questionsRef.current.find(q => q.id === activeCardId);
-    if (!q) return;
-    setChatMessages(prev => {
-      const last = prev[prev.length - 1];
-      if (last?.sender === "ai" && last.questionId === q.id) return prev;
-      return [...prev, {
-        id:        `ai-${q.id}-${Date.now()}`,
-        questionId: q.id,
-        text:      q.text,
-        sender:    "ai",
-        timestamp: new Date(),
-      }];
-    });
-  }, [activeCardId, started]);
 
   // Keeps activeCardIdRef in sync with state so callbacks can read it without stale closures.
   const setCard = useCallback((id: string | null) => {
@@ -695,7 +681,9 @@ export function useVoiceSession({
         savedAnswersRef.current = { ...savedAnswersRef.current, [questionId]: value };
         const answeredQ   = questionsRef.current[qIdx];
         const voiceLabel  = (answeredQ?.options ?? []).find(o => o.value === value || o.id === value)?.label ?? value;
-        appendChatMessage(voiceLabel, "user", questionId);
+        const chatLabel   = pendingVoiceTranscriptRef.current ?? voiceLabel;
+        pendingVoiceTranscriptRef.current = null;
+        appendChatMessage(chatLabel, "user", questionId);
         const remaining = questionsRef.current
           .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
           .map(q => q.id);
@@ -1028,6 +1016,7 @@ export function useVoiceSession({
                 input: {
                   format: { type: "audio/pcm", rate: 24000 },
                   turn_detection: { type: "semantic_vad" },
+                  transcription: { model: "gpt-4o-transcribe" },
                 },
                 output: {
                   format: { type: "audio/pcm", rate: 24000 },
@@ -1066,6 +1055,7 @@ export function useVoiceSession({
               const ws = wsRef.current;
               if (!ws || ws.readyState !== WebSocket.OPEN) return;
               if (stateRef.current.session !== "listening") return;
+              if (chatOpenRef.current) return;
               const bytes = new Uint8Array(e.data);
               let binary = "";
               for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
@@ -1121,6 +1111,28 @@ export function useVoiceSession({
           }
           break;
 
+        case "response.output_text.delta":
+          aiTextBufferRef.current += (msg.delta as string) ?? "";
+          break;
+
+        case "response.output_text.done":
+          if (aiTextBufferRef.current.trim()) {
+            appendChatMessage(aiTextBufferRef.current.trim(), "ai");
+          }
+          aiTextBufferRef.current = "";
+          break;
+
+        case "response.output_audio_transcript.delta":
+          aiAudioTranscriptRef.current += (msg.delta as string) ?? "";
+          break;
+
+        case "response.output_audio_transcript.done":
+          if (aiAudioTranscriptRef.current.trim()) {
+            appendChatMessage(aiAudioTranscriptRef.current.trim(), "ai");
+          }
+          aiAudioTranscriptRef.current = "";
+          break;
+
         case "response.done": {
           const pc = pendingCall.current;
           if (pc) {
@@ -1134,9 +1146,17 @@ export function useVoiceSession({
             }
             await handleFunctionCall(pc.name, pc.args, pc.callId);
           }
+          // In text mode (chat open), audio events don't fire — trigger AI_DONE here.
+          if (chatOpenRef.current && !pc && !mutedRef.current) {
+            dispatch({ type: "AI_DONE" });
+          }
           // Audio-only response: AI_DONE was already scheduled by response.audio.done
           break;
         }
+
+        case "conversation.item.input_audio_transcription.completed":
+          pendingVoiceTranscriptRef.current = (msg.transcript as string | undefined)?.trim() || null;
+          break;
 
         case "input_audio_buffer.speech_started": {
           // Customer started speaking — reset explain-overlay idle timer if open
@@ -1465,10 +1485,13 @@ export function useVoiceSession({
     if (open) {
       chatOpenRef.current   = true;
       chatAnsweredRef.current = 0;
+      pendingVoiceTranscriptRef.current = null;
       if (gainRef.current) gainRef.current.gain.value = 0;
+      send({ type: "session.update", session: { output_modalities: ["text"] } });
     } else {
       chatOpenRef.current = false;
       if (gainRef.current) gainRef.current.gain.value = mutedRef.current ? 0 : 1;
+      send({ type: "session.update", session: { output_modalities: ["audio"] } });
 
       if (chatAnsweredRef.current > 0) {
         // Flush the audio queue so stale buffered speech doesn't play
@@ -1534,6 +1557,15 @@ export function useVoiceSession({
     setStarted(true);
   }, [setupAudio]);
 
+  const sendChatMessage = useCallback((text: string) => {
+    appendChatMessage(text, "user");
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text", text }] },
+    });
+    send({ type: "response.create" });
+  }, [send, appendChatMessage]);
+
   return {
     state,
     started,
@@ -1555,5 +1587,6 @@ export function useVoiceSession({
     activeCardId,
     requestExplanation,
     closeExplainOverlay,
+    sendChatMessage,
   };
 }

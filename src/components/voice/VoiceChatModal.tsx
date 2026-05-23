@@ -4,22 +4,19 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Send } from "lucide-react";
 import { ChatMessage } from "@/hooks/useVoiceSession";
-import { CarouselQuestion } from "./VoiceCarousel";
 
 interface VoiceChatModalProps {
-  isOpen:           boolean;
-  onClose:          () => void;
-  messages:         ChatMessage[];
-  currentQuestion:  CarouselQuestion | null;
-  onAnswerFromChat: (question: CarouselQuestion, value: string) => Promise<void>;
+  isOpen:        boolean;
+  onClose:       () => void;
+  messages:      ChatMessage[];
+  onSendMessage: (text: string) => void;
 }
 
 export default function VoiceChatModal({
   isOpen,
   onClose,
   messages,
-  currentQuestion,
-  onAnswerFromChat,
+  onSendMessage,
 }: VoiceChatModalProps) {
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef              = useRef<HTMLDivElement>(null);
@@ -34,22 +31,15 @@ export default function VoiceChatModal({
     if (isOpen) setTimeout(() => inputRef.current?.focus(), 300);
   }, [isOpen]);
 
-  // Determine if the current question still needs an answer in chat
-  const lastMsg              = messages[messages.length - 1];
-  const currentQIsAnswered   = lastMsg?.sender === "user" && lastMsg.questionId === currentQuestion?.id;
-  const showAnswerArea       = !!currentQuestion && !currentQIsAnswered;
-  const isChoiceQuestion     = showAnswerArea && (currentQuestion.options?.length ?? 0) > 0;
-  const isOpenQuestion       = showAnswerArea && !isChoiceQuestion;
-
-  const handleSendText = async () => {
-    if (!inputValue.trim() || !currentQuestion) return;
-    const val = inputValue.trim();
+  const handleSend = () => {
+    const text = inputValue.trim();
+    if (!text) return;
     setInputValue("");
-    await onAnswerFromChat(currentQuestion, val);
+    onSendMessage(text);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendText(); }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
   return (
@@ -142,66 +132,41 @@ export default function VoiceChatModal({
               )}
             </div>
 
-            {/* Answer area */}
+            {/* Input */}
             <div
               className="flex-shrink-0 px-6 pb-5 pt-3"
               style={{ borderTop: "1px solid rgba(59,130,246,0.1)", background: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)" }}
             >
-              {/* Choice chips */}
-              {isChoiceQuestion && (
-                <div className="flex flex-wrap gap-2 pb-3">
-                  {currentQuestion.options!.map(opt => (
-                    <motion.button
-                      key={opt.value ?? opt.label}
-                      className="px-4 py-2 rounded-full text-sm font-medium"
-                      style={{
-                        background: "rgba(255,255,255,0.9)",
-                        border:     "1px solid rgba(59,130,246,0.3)",
-                        color:      "rgba(37,99,235,0.9)",
-                        boxShadow:  "0 2px 6px rgba(59,130,246,0.1)",
-                      }}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => onAnswerFromChat(currentQuestion, opt.value ?? opt.label)}
-                    >
-                      {opt.label}
-                    </motion.button>
-                  ))}
-                </div>
-              )}
-
-              {/* Text / number input */}
-              {isOpenQuestion && (
-                <div
-                  className="flex items-center gap-3 px-5 py-3 rounded-full"
-                  style={{ background: "rgba(255,255,255,0.9)", border: "1px solid rgba(59,130,246,0.2)", boxShadow: "0 2px 8px rgba(59,130,246,0.1)" }}
+              <div
+                className="flex items-center gap-3 px-5 py-3 rounded-full"
+                style={{ background: "rgba(255,255,255,0.9)", border: "1px solid rgba(59,130,246,0.2)", boxShadow: "0 2px 8px rgba(59,130,246,0.1)" }}
+              >
+                <input
+                  ref={inputRef}
+                  type="text"
+                  placeholder="Nachricht schreiben..."
+                  value={inputValue}
+                  onChange={e => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="flex-1 bg-transparent outline-none text-sm"
+                  style={{ color: "rgba(30,58,138,0.9)" }}
+                />
+                <motion.button
+                  className="flex items-center justify-center rounded-full"
+                  style={{
+                    width: 36, height: 36,
+                    background: inputValue.trim()
+                      ? "linear-gradient(135deg, rgba(59,130,246,0.9) 0%, rgba(37,99,235,0.9) 100%)"
+                      : "rgba(59,130,246,0.15)",
+                    border: "1px solid rgba(59,130,246,0.2)",
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleSend}
+                  disabled={!inputValue.trim()}
                 >
-                  <input
-                    ref={inputRef}
-                    type={currentQuestion.questionType === "number" ? "number" : "text"}
-                    placeholder="Antwort eingeben..."
-                    value={inputValue}
-                    onChange={e => setInputValue(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className="flex-1 bg-transparent outline-none text-sm"
-                    style={{ color: "rgba(30,58,138,0.9)" }}
-                  />
-                  <motion.button
-                    className="flex items-center justify-center rounded-full"
-                    style={{
-                      width: 36, height: 36,
-                      background: inputValue.trim()
-                        ? "linear-gradient(135deg, rgba(59,130,246,0.9) 0%, rgba(37,99,235,0.9) 100%)"
-                        : "rgba(59,130,246,0.15)",
-                      border: "1px solid rgba(59,130,246,0.2)",
-                    }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleSendText}
-                    disabled={!inputValue.trim()}
-                  >
-                    <Send size={16} style={{ color: inputValue.trim() ? "white" : "rgba(59,130,246,0.4)" }} />
-                  </motion.button>
-                </div>
-              )}
+                  <Send size={16} style={{ color: inputValue.trim() ? "white" : "rgba(59,130,246,0.4)" }} />
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         </>

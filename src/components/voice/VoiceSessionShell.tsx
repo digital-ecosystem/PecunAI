@@ -44,7 +44,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen, sendChatMessage } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex });
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -265,8 +265,7 @@ export default function VoiceSessionShell({
         isOpen={chatOpen}
         onClose={() => setChatOpen(false)}
         messages={chatMessages}
-        currentQuestion={activeQ}
-        onAnswerFromChat={onAnswerConfirmed}
+        onSendMessage={sendChatMessage}
       />
 
       {explainOpen && activeQ && explainOverlayData && (
