@@ -10,9 +10,12 @@ export default function VoiceSessionPage() {
   const params    = useParams();
   const sessionId = params?.session_id as string;
 
+  type InitialTermsPhase = 'terms2' | 'skip' | null;
+
   const [ready,                setReady]                = useState(false);
   const [questions,            setQuestions]            = useState<CarouselQuestion[]>([]);
   const [initialQuestionIndex, setInitialQuestionIndex] = useState(0);
+  const [initialTermsPhase,    setInitialTermsPhase]    = useState<InitialTermsPhase>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -23,11 +26,17 @@ export default function VoiceSessionPage() {
         return;
       }
 
-      // Load resume position from voice state
+      // Load resume position and current phase from voice state
       const vsRes  = await fetch(`/api/qa-session/${sessionId}/voice-state`);
       const vsData = await vsRes.json().catch(() => null);
       if (vsData?.success && typeof vsData.lastQuestionIndex === "number" && vsData.lastQuestionIndex > 0) {
         setInitialQuestionIndex(vsData.lastQuestionIndex);
+      }
+      const currentPhase = vsData?.currentPhase as string | null | undefined;
+      if (currentPhase === 'TERMS_FROOTS') {
+        setInitialTermsPhase('terms2');
+      } else if (currentPhase && currentPhase !== 'TERMS1') {
+        setInitialTermsPhase('skip');
       }
 
       const res  = await fetch(`/api/phase?id=${sessionId}`);
@@ -90,6 +99,7 @@ export default function VoiceSessionPage() {
       sessionId={sessionId}
       questions={questions}
       initialQuestionIndex={initialQuestionIndex}
+      initialTermsPhase={initialTermsPhase}
     />
   );
 }

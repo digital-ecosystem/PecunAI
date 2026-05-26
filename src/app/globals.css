@@ -223,3 +223,14 @@ textarea {
     @apply bg-background text-foreground;
   }
 }
+
+/* PDF viewer — hide scrollbars visually (overflow:hidden is NOT set so jumpToPage still works) */
+.rpv-core__inner-pages,
+.rpv-core__inner-page-container--single {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.rpv-core__inner-pages::-webkit-scrollbar,
+.rpv-core__inner-page-container--single::-webkit-scrollbar {
+  display: none;
+}

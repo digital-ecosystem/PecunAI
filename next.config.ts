@@ -14,6 +14,13 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  webpack: (config) => {
+    // pdfjs-dist ships its own canvas (a native .node addon) for server-side rendering.
+    // We never render PDFs server-side, so map any require('canvas') to false
+    // on both server and client bundles to stop webpack trying to parse the binary.
+    config.resolve.alias = { ...config.resolve.alias, canvas: false };
+    return config;
+  },
 };
 
 export default nextConfig;

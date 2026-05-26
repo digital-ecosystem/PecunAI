@@ -10,6 +10,8 @@ import VoiceQuestionModal from "./VoiceQuestionModal";
 import VoiceExplainOverlay from "./VoiceExplainOverlay";
 import VoiceChatModal from "./VoiceChatModal";
 import ControlBar from "./ControlBar";
+import VoiceProductPhase from "./VoiceProductPhase";
+import VoiceTermsPhase from "./VoiceTermsPhase";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 
 // ── Status labels ─────────────────────────────────────────────────
@@ -33,6 +35,7 @@ interface VoiceSessionShellProps {
   sessionId:            string;
   questions:            CarouselQuestion[];
   initialQuestionIndex: number;
+  initialTermsPhase?:   'terms2' | 'skip' | null;
 }
 
 // ── Component ─────────────────────────────────────────────────────
@@ -41,11 +44,12 @@ export default function VoiceSessionShell({
   sessionId,
   questions,
   initialQuestionIndex,
+  initialTermsPhase,
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen, sendChatMessage } =
-    useVoiceSession({ sessionId, questions, initialQuestionIndex });
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen, sendChatMessage, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2 } =
+    useVoiceSession({ sessionId, questions, initialQuestionIndex, initialTermsPhase });
 
   const [modalOpen, setModalOpen] = useState(false);
   const [chatOpen,  setChatOpen]  = useState(false);
@@ -64,6 +68,16 @@ export default function VoiceSessionShell({
   useEffect(() => {
     notifyChatOpen(chatOpen);
   }, [chatOpen, notifyChatOpen]);
+
+  // Phase 0 auto-advance: when AI finishes the intro speech, transition to terms1 screen
+  const prevSpeakingRef = useRef(false);
+  useEffect(() => {
+    if (prevSpeakingRef.current && !isAISpeaking && voicePhase === 0 && termsSubStep === 'intro') {
+      moveToTerms1();
+    }
+    prevSpeakingRef.current = isAISpeaking;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAISpeaking]);
 
   // Mic-denied: auto-open the modal when the AI finishes speaking so the customer
   // doesn't have to manually find and tap the carousel card.
@@ -95,6 +109,222 @@ export default function VoiceSessionShell({
   const sessionIsSpeaking = ["speaking", "greeting", "resuming"].includes(state.session);
   const isSpeaking        = !isMuted && (sessionIsSpeaking || isAISpeaking);
   const isListening       = state.session === "listening";
+
+  // ── Phase 0 — intro: orb + status, no carousel or control bar ───
+  if (voicePhase === 0 && termsSubStep === 'intro') {
+    return (
+      <>
+        <div
+          className="min-h-screen flex flex-col relative overflow-hidden"
+          style={{
+            background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)",
+          }}
+        >
+          {/* Header */}
+          <div className="w-full px-6 py-5 relative z-10">
+            <div className="flex items-center justify-center">
+              <motion.h1
+                className="text-2xl font-bold tracking-tight"
+                style={{
+                  background:           "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor:  "transparent",
+                  backgroundClip:       "text",
+                }}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                Vox.2
+              </motion.h1>
+            </div>
+          </div>
+
+          {/* Orb */}
+          <div className="flex-1 flex flex-col items-center justify-center relative">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+              <motion.div
+                className="rounded-full"
+                style={{
+                  width:      500,
+                  height:     500,
+                  background: "radial-gradient(circle, rgba(59,130,246,0.08) 0%, rgba(59,130,246,0) 70%)",
+                  filter:     "blur(60px)",
+                }}
+                animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.7, 0.5] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </div>
+            <motion.div
+              className="relative z-10"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6 }}
+            >
+              <VoiceSphere
+                isActive={started}
+                isSpeaking={isSpeaking}
+                isListening={false}
+                size={380}
+                analyserNode={isMuted ? null : analyserNode}
+                micAnalyserNode={null}
+              />
+            </motion.div>
+            <div className="relative z-30 mt-4 flex flex-col items-center gap-1">
+              <motion.p
+                className="text-sm font-medium"
+                style={{ color: "rgba(59,130,246,0.7)" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                {STATUS_LABEL[state.session]}
+              </motion.p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tap-to-start overlay */}
+        {!started && (
+          <motion.div
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
+            style={{
+              background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)",
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={startSession}
+          >
+            <motion.div
+              className="flex flex-col items-center gap-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <motion.div
+                className="flex items-center justify-center rounded-full"
+                style={{
+                  width:      88,
+                  height:     88,
+                  background: "rgba(59,130,246,0.1)",
+                  border:     "1px solid rgba(59,130,246,0.2)",
+                }}
+                animate={{ scale: [1, 1.05, 1], opacity: [0.8, 1, 0.8] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Mic size={36} style={{ color: "rgba(59,130,246,0.8)" }} strokeWidth={1.5} />
+              </motion.div>
+              <div className="flex flex-col items-center gap-1">
+                <motion.h1
+                  className="text-2xl font-bold tracking-tight"
+                  style={{
+                    background:           "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor:  "transparent",
+                    backgroundClip:       "text",
+                  }}
+                >
+                  PecunAI Beratung
+                </motion.h1>
+                <p className="text-sm" style={{ color: "rgba(59,130,246,0.6)" }}>
+                  Tippen um zu starten
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </>
+    );
+  }
+
+  // ── Phase 0 — terms: document + confirm button ────────────────────
+  if (voicePhase === 0 && (termsSubStep === 'terms1' || termsSubStep === 'terms2')) {
+    return (
+      <>
+        <VoiceTermsPhase
+          key={termsSubStep}
+          which={termsSubStep}
+          isSpeaking={isSpeaking}
+          onConfirm={termsSubStep === 'terms1' ? confirmTerms1 : confirmTerms2}
+        />
+        {!started && (
+          <motion.div
+            className="fixed inset-0 z-[70] flex flex-col items-center justify-center cursor-pointer"
+            style={{
+              background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)",
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={startSession}
+          >
+            <motion.div
+              className="flex flex-col items-center gap-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <motion.div
+                className="flex items-center justify-center rounded-full"
+                style={{
+                  width:      88,
+                  height:     88,
+                  background: "rgba(59,130,246,0.1)",
+                  border:     "1px solid rgba(59,130,246,0.2)",
+                }}
+                animate={{ scale: [1, 1.05, 1], opacity: [0.8, 1, 0.8] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Mic size={36} style={{ color: "rgba(59,130,246,0.8)" }} strokeWidth={1.5} />
+              </motion.div>
+              <div className="flex flex-col items-center gap-1">
+                <motion.h1
+                  className="text-2xl font-bold tracking-tight"
+                  style={{
+                    background:           "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor:  "transparent",
+                    backgroundClip:       "text",
+                  }}
+                >
+                  PecunAI Beratung
+                </motion.h1>
+                <p className="text-sm" style={{ color: "rgba(59,130,246,0.6)" }}>
+                  Tippen um zu starten
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </>
+    );
+  }
+
+  // ── Phase 2 — product suggestion screen ─────────────��────────────
+  if (voicePhase === 2 && productSuggestion) {
+    return (
+      <>
+        <VoiceProductPhase
+          product={productSuggestion}
+          isSpeaking={isSpeaking}
+          isListening={isListening}
+          isMuted={isMuted}
+          sessionState={state.session}
+          analyserNode={isMuted ? null : analyserNode}
+          micAnalyserNode={micAnalyserNode}
+          onMuteToggle={toggleMute}
+          onChatClick={() => setChatOpen(true)}
+          onConfirm={confirmProduct}
+          onRevisit={revisitQuestions}
+        />
+        <VoiceChatModal
+          isOpen={chatOpen}
+          onClose={() => setChatOpen(false)}
+          messages={chatMessages}
+          onSendMessage={sendChatMessage}
+        />
+      </>
+    );
+  }
 
   return (
     <>

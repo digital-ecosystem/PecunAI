@@ -247,7 +247,37 @@ ${resumeIndex > 0
   : `Open the conversation warmly and naturally — like a friendly advisor meeting someone for the first time. 2 sentences max, then flow into the first topic.`}`;
 }
 
+// ── Phase 0 AI instruction strings (DEV English) ─────────────────
+
+const INTRO_INSTRUCTIONS =
+  `You are PecunAI — a warm personal investment advisor. English only (DEV).
+   Welcome the customer in 3–4 natural sentences: introduce yourself, explain that you will guide them through a personalized financial consultation today, and mention that before starting you need them to review and confirm two short regulatory documents. Keep it warm and natural, not corporate.`;
+
+const TERMS1_EXPLAIN_INSTRUCTIONS =
+  `You are PecunAI. English only (DEV). In 2–3 sentences: introduce the first document — it is information about 4money, the licensed securities services company conducting this session. Tell the customer to read it at their own pace and tap the confirm button when they are ready. Then stop speaking.`;
+
+const TERMS2_EXPLAIN_INSTRUCTIONS =
+  `You are PecunAI. English only (DEV). In 2–3 sentences: introduce the second document — it is information about froots Asset Management GmbH, the asset manager. Tell the customer to read it and tap confirm when ready. After confirming you will begin the consultation. Then stop speaking.`;
+
 // ── Types ─────────────────────────────────────────────────────────
+
+export interface ProductData {
+  id:          string;
+  name:        string;
+  fullName:    string;
+  description: string;
+  fileName:    string;
+  from:        number;
+  to:          number;
+  risk:        string;
+  riskType:    string;
+  sri:         string;
+  score:       number;
+  aiSettings:  {
+    prompt:        string;
+    firstMessage?: string;
+  };
+}
 
 export interface ExplainOverlayStat {
   label: string;
@@ -357,6 +387,18 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    name: "confirm_product",
+    description: "Call when: (1) the customer is done reviewing Phase 1 answers and wants to see the product recommendation, or (2) the customer explicitly confirms they want to proceed with the recommended portfolio shown in Phase 2.",
+    parameters: { type: "object", properties: {} },
+  },
+  {
+    type: "function",
+    name: "revisit_questions",
+    description: "Call when the customer explicitly wants to go back and change their Phase 1 answers.",
+    parameters: { type: "object", properties: {} },
+  },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -364,17 +406,17 @@ const TOOLS = [
 function makeNextTopicMsg(
   nextQ: CarouselQuestion,
   remainingIds?: string[],
-  answeredIds?: string[],
+  isSkipContext?: boolean,
 ): string {
-  const answeredStr  = answeredIds ? (answeredIds.length ? answeredIds.join(", ") : "none") : null;
   const remainingStr = remainingIds && remainingIds.length > 0 ? remainingIds.join(", ") : "none";
   return [
     `[SYSTEM: NEXT TOPIC = "${nextQ.category}" (ID: ${nextQ.id}).`,
-    answeredStr !== null ? `Formally submitted answers: ${answeredStr}.` : "",
     `Remaining to collect: ${nextQ.id}${remainingStr !== "none" ? `, ${remainingStr}` : ""}.`,
-    `The navigate() function result confirms this. Do NOT override with conversation inference — only submitted answers count.`,
-    `The customer's skip request applied ONLY to the previous topic — NOT to this one. Start fresh — ask about "${nextQ.category}" as if the customer is fully ready to answer it. Do NOT apply skip logic to this topic.`,
-    `Ask about "${nextQ.category}" NOW.]`,
+    isSkipContext
+      ? `The customer's skip request applied ONLY to the previous topic — NOT to this one. Start fresh — ask about "${nextQ.category}" as if the customer is fully ready to answer it.`
+      : null,
+    `Do NOT override this with conversation inference — only submitted answers count.`,
+    `Ask about "${nextQ.category}" (ID: ${nextQ.id}) NOW.]`,
   ].filter(Boolean).join(" ");
 }
 
@@ -384,12 +426,14 @@ interface UseVoiceSessionOptions {
   sessionId:            string;
   questions:            CarouselQuestion[];
   initialQuestionIndex: number;
+  initialTermsPhase?:   'terms2' | 'skip' | null;
 }
 
 export function useVoiceSession({
   sessionId,
   questions,
   initialQuestionIndex,
+  initialTermsPhase,
 }: UseVoiceSessionOptions) {
   const router = useRouter();
 
@@ -402,6 +446,22 @@ export function useVoiceSession({
   const [micGranted,      setMicGranted]      = useState<boolean | null>(null);
   const [isAISpeaking,    setIsAISpeaking]    = useState(false);
   const isAISpeakingRef = useRef(false);
+
+  // Phase 0 / 1 / 2 — 0 = terms/intro, 1 = questions, 2 = product suggestion
+  const startPhase: 0 | 1 | 2 = initialTermsPhase === 'skip' ? 1 : 0;
+  const [voicePhase,        setVoicePhase]        = useState<0 | 1 | 2>(startPhase);
+  const voicePhaseRef                             = useRef<0 | 1 | 2>(startPhase);
+  const [productSuggestion, setProductSuggestion] = useState<ProductData | null>(null);
+
+  // Phase 0 sub-step: which screen within the intro/terms gate
+  const [termsSubStep, setTermsSubStep] = useState<'intro' | 'terms1' | 'terms2' | null>(
+    initialTermsPhase === 'skip'   ? null    :
+    initialTermsPhase === 'terms2' ? 'terms2': 'intro'
+  );
+  const termsSubStepRef = useRef<'intro' | 'terms1' | 'terms2' | null>(
+    initialTermsPhase === 'skip'   ? null    :
+    initialTermsPhase === 'terms2' ? 'terms2': 'intro'
+  );
 
   // Explain overlay — set by explain_topic tool call, cleared on close_explanation or manual close
   const [explainOverlayData, setExplainOverlayData] = useState<ExplainOverlayData | null>(null);
@@ -444,8 +504,13 @@ export function useVoiceSession({
   const explainedQuestionsRef = useRef<Set<string>>(new Set());
   // One skip at a time — locked until the AI finishes speaking and returns to "listening".
   const skipInProgressRef = useRef(false);
+  // Tracks whether the circle-back transition has already been announced this session.
+  const circleBackActiveRef = useRef(false);
   // Same guard for button-initiated prev — prevents AI from calling navigate("prev") a second time.
   const prevInProgressRef = useRef(false);
+  // True while customer is in Phase 1 revisit mode — suppresses auto-advance on submit_answer so
+  // the user can change multiple answers freely before confirm_product() triggers advancePhase().
+  const isRevisitingRef = useRef(false);
 
   // Internal refs — stable across renders
   const wsRef              = useRef<WebSocket | null>(null);
@@ -458,6 +523,9 @@ export function useVoiceSession({
   const aiTextBufferRef         = useRef<string>("");   // text-mode (chat open): response.output_text.* events
   const aiAudioTranscriptRef    = useRef<string>("");   // voice-mode: response.output_audio_transcript.* events
   const pendingVoiceTranscriptRef = useRef<string | null>(null); // verbatim transcript of last user speech turn
+  const currentSpeechItemIdRef    = useRef<string | null>(null); // item_id of the current user speech turn
+  const applyPendingTranscriptRef = useRef<((transcript: string) => void) | null>(null); // retroactive chat bubble update when transcript arrives late
+  const needsTranscriptBubbleRef  = useRef(false); // set when response.done fires before transcript for a non-submit_answer turn
   const questionsRef       = useRef(questions);
   const stateRef           = useRef(state);
   const micStreamRef       = useRef<MediaStream | null>(null);
@@ -576,6 +644,8 @@ export function useVoiceSession({
 
   // Keep a stable ref so the WS closure can call the latest version
   useEffect(() => { resetExplainIdleRef.current = resetExplainIdleTimer; }, [resetExplainIdleTimer]);
+  useEffect(() => { voicePhaseRef.current    = voicePhase;    }, [voicePhase]);
+  useEffect(() => { termsSubStepRef.current = termsSubStep; }, [termsSubStep]);
 
   // Start/stop the idle timer whenever the overlay opens or closes
   useEffect(() => {
@@ -626,13 +696,103 @@ export function useVoiceSession({
   }, [sessionId]);
 
   const advancePhase = useCallback(async () => {
-    await fetch("/api/phase", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId, phase: "SUGGESTIONS" }),
-    });
-    router.push("/customer/dashboard");
-  }, [sessionId, router]);
+    isRevisitingRef.current = false; // clear revisit mode before fetching product
+    const durationAnswer = savedAnswersRef.current[questionsRef.current[1]?.id];
+    const riskAnswer     = savedAnswersRef.current[questionsRef.current[4]?.id];
+
+    try {
+      const params = new URLSearchParams();
+      if (durationAnswer) params.set("duration", durationAnswer);
+      if (riskAnswer)     params.set("risk",     riskAnswer);
+      const productRes = await fetch(`/api/phase/product?${params.toString()}`);
+      const productJson = await productRes.json();
+      const product: ProductData = productJson.data ?? productJson;
+
+      await fetch("/api/phase/suggest-product", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          qaSessionId:      sessionId,
+          productId:        product.id,
+          name:             product.name,
+          shortName:        product.name,
+          description:      product.description,
+          fileName:         product.fileName,
+          suggestionReason: `Selected based on ${durationAnswer} duration and ${riskAnswer} risk preference`,
+          confidenceScore:  product.score / 100,
+        }),
+      });
+
+      await fetch("/api/phase", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, phase: "SUGGESTIONS" }),
+      });
+
+      // Best-effort — voice sessions may not have a Thread record (V1-only concept)
+      fetch("/api/phase/chat/init", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, productId: product.id }),
+      }).catch(() => console.warn("[voice] chat/init skipped — no Thread for this session"));
+
+      // Extract PDF text page-by-page so AI can answer section-specific questions
+      let pdfPages: string[] = [];
+      try {
+        const cleanName = product.fileName.replace(/^\/products\//, "");
+        const textRes   = await fetch(`/api/products/text/${cleanName}`);
+        if (textRes.ok) {
+          const textJson = await textRes.json() as { pages?: string[] };
+          pdfPages = textJson.pages ?? [];
+        }
+      } catch {
+        // PDF extraction is best-effort — proceed without it
+      }
+
+      setProductSuggestion(product);
+      setVoicePhase(2);
+
+      const pdfSection = pdfPages.length > 0
+        ? `\nPDF content (page by page — use this to answer section-specific questions):\n` +
+          pdfPages.map((text, i) => `[Page ${i + 1}]\n${text}`).join("\n\n")
+        : "";
+
+      const systemMsg = [
+        `[SYSTEM: Phase 1 complete. Recommended portfolio: "${product.fullName}".`,
+        `Investment horizon answered: ${durationAnswer ?? "unknown"}. Risk tolerance answered: ${riskAnswer ?? "unknown"}.`,
+        `Product knowledge base:\n${product.aiSettings?.prompt ?? ""}`,
+        pdfSection,
+        `Your role now:`,
+        `1. Announce "${product.fullName}" by public name only — NEVER say "${product.name}"`,
+        `2. Explain WHY it was recommended based on the customer's answers (horizon + risk)`,
+        `3. Tell the customer the full PDF brochure is visible on screen — invite them to read it`,
+        `4. Mention there are navigation buttons (← →) below the PDF to page through it`,
+        `5. Answer customer questions — you can reference specific pages/sections from the PDF content above`,
+        `6. When customer confirms: call confirm_product()`,
+        `7. If customer wants to revisit Phase 1: call revisit_questions()]`,
+      ].join("\n");
+
+      send({
+        type: "conversation.item.create",
+        item: { type: "message", role: "user", content: [{ type: "input_text", text: systemMsg }] },
+      });
+
+      send({
+        type: "response.create",
+        response: {
+          instructions: [
+            `You are PecunAI — a warm investment advisor. English only (DEV).`,
+            `Announce the recommended portfolio "${product.fullName}" — NEVER say the internal code "${product.name}".`,
+            `In 3–4 warm sentences: (1) Name the portfolio. (2) Explain WHY it matches — their investment horizon of ${durationAnswer ?? `${product.from}–${product.to} years`} and ${riskAnswer ?? product.risk} risk profile. (3) Mention the PDF brochure is on screen for them to read, and they can use the arrow buttons below it to page through. (4) Invite any questions — you have the full PDF content available.`,
+            `Keep it natural and warm, not like a sales pitch.`,
+          ].join(" "),
+        },
+      });
+    } catch (err) {
+      console.error("[voice] advancePhase error:", err);
+      router.push("/customer/dashboard");
+    }
+  }, [sessionId, router, send]);
 
   // ── Function call handler ──────────────────────────────────────
 
@@ -665,6 +825,45 @@ export function useVoiceSession({
           return;
         }
         const { questionId, value } = args;
+
+        // Validate value against the question definition before doing anything.
+        // Rejects hallucinated values (e.g. fragments of ambient audio like "And")
+        // that don't match any valid option or type constraint.
+        const validatingQ = questionsRef.current.find(q => q.id === questionId);
+        if (validatingQ) {
+          if (validatingQ.options?.length) {
+            const validValues = validatingQ.options.map(o => o.value ?? o.id);
+            if (!validValues.includes(value)) {
+              pendingVoiceTranscriptRef.current = null;
+              sendResult({ success: false, reason: `"${value}" is not a valid option. Valid values: ${validValues.join(", ")}` });
+              return;
+            }
+          } else if (validatingQ.questionType === "number") {
+            const num = parseFloat(value);
+            if (isNaN(num)) {
+              pendingVoiceTranscriptRef.current = null;
+              sendResult({ success: false, reason: `"${value}" is not a valid number.` });
+              return;
+            }
+            if (validatingQ.minValue !== undefined && num < validatingQ.minValue) {
+              pendingVoiceTranscriptRef.current = null;
+              sendResult({ success: false, reason: `Value must be at least ${validatingQ.minValue}.` });
+              return;
+            }
+            if (validatingQ.maxValue !== undefined && num > validatingQ.maxValue) {
+              pendingVoiceTranscriptRef.current = null;
+              sendResult({ success: false, reason: `Value must be at most ${validatingQ.maxValue}.` });
+              return;
+            }
+          }
+          // free-text questions: accept any non-empty value
+          if (validatingQ.questionType !== "number" && !validatingQ.options?.length && !value?.trim()) {
+            pendingVoiceTranscriptRef.current = null;
+            sendResult({ success: false, reason: "Answer cannot be empty." });
+            return;
+          }
+        }
+
         setPendingVoiceAnswer(null);
         dispatch({ type: "ANSWER_RECEIVED" });
 
@@ -681,9 +880,32 @@ export function useVoiceSession({
         savedAnswersRef.current = { ...savedAnswersRef.current, [questionId]: value };
         const answeredQ   = questionsRef.current[qIdx];
         const voiceLabel  = (answeredQ?.options ?? []).find(o => o.value === value || o.id === value)?.label ?? value;
-        const chatLabel   = pendingVoiceTranscriptRef.current ?? voiceLabel;
+        // In chat mode the user bubble was already appended by sendChatMessage — skip it here.
+        // In voice mode, use the verbatim transcript if available, else the mapped label.
+        if (!chatOpenRef.current) {
+          const transcript = pendingVoiceTranscriptRef.current;
+          const chatLabel  = transcript ?? voiceLabel;
+          appendChatMessage(chatLabel, "user", questionId);
+
+          if (!transcript) {
+            // Transcript hasn't arrived yet (race: response.done beat transcription.completed).
+            // Capture questionId so the closure can update the right bubble when transcript lands.
+            const capturedQId = questionId;
+            applyPendingTranscriptRef.current = (t: string) => {
+              setChatMessages(prev => {
+                const revIdx = [...prev].reverse().findIndex(
+                  m => m.sender === "user" && m.questionId === capturedQId
+                );
+                if (revIdx === -1) return prev;
+                const realIdx = prev.length - 1 - revIdx;
+                return prev.map((m, i) => i === realIdx ? { ...m, text: t } : m);
+              });
+            };
+          } else {
+            applyPendingTranscriptRef.current = null;
+          }
+        }
         pendingVoiceTranscriptRef.current = null;
-        appendChatMessage(chatLabel, "user", questionId);
         const remaining = questionsRef.current
           .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
           .map(q => q.id);
@@ -693,12 +915,13 @@ export function useVoiceSession({
         const allAnswered            = answeredIdsRef.current.size === questionsRef.current.length;
         const allCoveredExceptSkipped = answeredIdsRef.current.size + skippedIdsRef.current.size === questionsRef.current.length;
 
-        if (allAnswered) {
+        if (allAnswered && !isRevisitingRef.current) {
+          circleBackActiveRef.current = false;
           await advancePhase();
           return;
         }
 
-        if (allCoveredExceptSkipped && skippedIdsRef.current.size > 0) {
+        if (allCoveredExceptSkipped && skippedIdsRef.current.size > 0 && !isRevisitingRef.current) {
           dispatch({ type: "ANSWER_SAVED" });
           const firstSkipped    = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));
           const allSkippedQs    = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
@@ -714,7 +937,19 @@ export function useVoiceSession({
               }],
             },
           });
-          send({ type: "response.create" });
+          const isFirstCircleBack = !circleBackActiveRef.current;
+          if (isFirstCircleBack) circleBackActiveRef.current = true;
+          send({
+            type: "response.create",
+            response: {
+              ...(chatOpenRef.current ? { output_modalities: ["text"] as const } : {}),
+              ...(firstSkipped ? {
+                instructions: isFirstCircleBack
+                  ? `You are PecunAI — a warm investment advisor, not a form. English only. All main questions are answered. Transition warmly in 1 sentence (e.g. "Great, there are just a couple of topics we skipped earlier — let's go back to those."). Then lead naturally into the topic about ${firstSkipped.category} (ID: ${firstSkipped.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${firstSkipped.text}". Keep it 2–3 sentences total. Ask ONLY about ${firstSkipped.category} (ID: ${firstSkipped.id}). Wait for their answer.`
+                  : `You are PecunAI — a warm investment advisor, not a form. English only. Continue naturally through the skipped topics. Lead into the topic about ${firstSkipped.category} (ID: ${firstSkipped.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${firstSkipped.text}". Keep it 2–3 sentences total. Ask ONLY about ${firstSkipped.category} (ID: ${firstSkipped.id}). Wait for their answer.`,
+              } : {}),
+            },
+          });
           return;
         }
 
@@ -725,7 +960,7 @@ export function useVoiceSession({
             type: "message",
             role: "user",
             content: [{ type: "input_text", text: remainingQs.length > 0
-              ? makeNextTopicMsg(remainingQs[0], remaining.slice(1), Array.from(answeredIdsRef.current))
+              ? makeNextTopicMsg(remainingQs[0], remaining.slice(1), false)
               : "[SYSTEM: All remaining topics answered. Session complete.]",
             }],
           },
@@ -735,11 +970,23 @@ export function useVoiceSession({
         const nextQIdx = remaining.length > 0 ? questionsRef.current.findIndex(q => q.id === remaining[0]) : -1;
         if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
         setCard(remaining[0] ?? null);
-        send({ type: "response.create" });
+        send({
+          type: "response.create",
+          response: {
+            ...(chatOpenRef.current ? { output_modalities: ["text"] as const } : {}),
+            ...(remainingQs[0] ? { instructions: `You are PecunAI — a warm investment advisor, not a form. English only. Do exactly two things: (1) React to the customer's last answer in 1 sentence — something genuine about what they said, not a generic transition phrase. Never say "Moving on", "Next question", or reveal any structure. (2) Lead naturally into the topic about ${remainingQs[0].category} (ID: ${remainingQs[0].id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${remainingQs[0].text}". Keep it 2–3 sentences total. Ask ONLY about ${remainingQs[0].category} (ID: ${remainingQs[0].id}). Wait for their answer.` } : {}),
+          },
+        });
         return;
       }
 
       if (name === "explain_topic") {
+        // Chat modal is open — explain inline in text, never open the overlay
+        if (chatOpenRef.current) {
+          sendResult({ success: false, reason: "Chat is open — do not open the explanation overlay. Explain the topic directly in your text response instead." });
+          send({ type: "response.create", response: { output_modalities: ["text"] } });
+          return;
+        }
         const { title, keyPoints, stats } = JSON.parse(argsJson) as {
           title:      string;
           keyPoints?: string[];
@@ -834,14 +1081,13 @@ export function useVoiceSession({
               success: true,
               next_topic_id: nextSkipQ.id,
               next_topic_name: nextSkipQ.category,
-              formally_answered_ids: Array.from(answeredIdsRef.current),
               remaining_ids_after_next: remaining.slice(1).map(q => q.id),
               instruction: `Ask about "${nextSkipQ.category}" (ID: ${nextSkipQ.id}) NOW.`,
             } : { success: true, all_topics_covered: true });
             send({
               type: "conversation.item.create",
               item: { type: "message", role: "user", content: [{ type: "input_text",
-                text: nextSkipQ ? makeNextTopicMsg(nextSkipQ, remaining.slice(1).map(q => q.id), Array.from(answeredIdsRef.current)) : "[SYSTEM: All topics covered.]",
+                text: nextSkipQ ? makeNextTopicMsg(nextSkipQ, remaining.slice(1).map(q => q.id), true) : "[SYSTEM: All topics covered.]",
               }]},
             });
             return;
@@ -870,7 +1116,6 @@ export function useVoiceSession({
             success: true,
             next_topic_id: nextQ.id,
             next_topic_name: nextQ.category,
-            formally_answered_ids: Array.from(answeredIdsRef.current),
             remaining_ids_after_next: remaining.slice(1).map(q => q.id),
             instruction: `Ask about "${nextQ.category}" (ID: ${nextQ.id}) NOW. This is the only correct next topic.`,
           } : { success: true, all_topics_covered: true });
@@ -879,17 +1124,20 @@ export function useVoiceSession({
             type: "conversation.item.create",
             item: {
               type: "message", role: "user",
-              content: [{ type: "input_text", text: nextQ ? makeNextTopicMsg(nextQ, remaining.slice(1).map(q => q.id), Array.from(answeredIdsRef.current)) : "[SYSTEM: All topics covered.]" }],
+              content: [{ type: "input_text", text: nextQ ? makeNextTopicMsg(nextQ, remaining.slice(1).map(q => q.id), true) : "[SYSTEM: All topics covered.]" }],
             },
           });
 
           send({
             type: "response.create",
-            response: nextQ ? {
-              instructions: isConfirmAdvance
-                ? `The customer confirmed their previous answer and wants to move forward. Continue naturally to the next topic. Ask the customer about ${nextQ.category} by rephrasing this question in your warm advisor voice — reply in English only: "${nextQ.text}". Ask ONLY this question. Wait for the customer's answer.`
-                : `The customer just skipped a topic. Acknowledge in one natural sentence (e.g. "Of course, we can always come back to that!"). Then ask the customer about ${nextQ.category} by rephrasing this question in your warm advisor voice — reply in English only: "${nextQ.text}". Ask ONLY this question. Do not ask about any other topic. Do not skip this question. Wait for the customer's answer.`,
-            } : {},
+            response: {
+              ...(chatOpenRef.current ? { output_modalities: ["text"] as const } : {}),
+              ...(nextQ ? {
+                instructions: isConfirmAdvance
+                  ? `You are PecunAI — a warm investment advisor, not a form. English only. The customer confirmed their previous answer and wants to move forward. Lead naturally into the next topic about ${nextQ.category} (ID: ${nextQ.id}) — no reaction needed, just a natural transition. Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${nextQ.text}". Keep it 2–3 sentences total. Ask ONLY about ${nextQ.category} (ID: ${nextQ.id}). Wait for their answer.`
+                  : `You are PecunAI — a warm investment advisor, not a form. English only. Acknowledge the skip in 1 natural sentence (e.g. "Of course, we can always come back to that!"). Then lead naturally into the topic about ${nextQ.category} (ID: ${nextQ.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${nextQ.text}". Keep it 2–3 sentences total. Ask ONLY about ${nextQ.category} (ID: ${nextQ.id}). Wait for their answer.`,
+              } : {}),
+            },
           });
           return;
         } else if (direction === "prev") {
@@ -938,13 +1186,47 @@ export function useVoiceSession({
           sendResult({ success: false, reason: "Unknown navigate parameters" });
         }
 
-        send({ type: "response.create" });
+        send({
+          type: "response.create",
+          ...(chatOpenRef.current ? { response: { output_modalities: ["text"] } } : {}),
+        });
+        return;
+      }
+
+      if (name === "confirm_product") {
+        sendResult({ success: true });
+        if (voicePhaseRef.current === 1) {
+          // Customer is done revisiting Phase 1 and wants to see the product — go to Phase 2
+          await advancePhase();
+        } else {
+          router.push("/customer/dashboard"); // Phase 3 placeholder
+        }
+        return;
+      }
+
+      if (name === "revisit_questions") {
+        sendResult({ success: true });
+        isRevisitingRef.current = true;
+        setVoicePhase(1);
+        setProductSuggestion(null);
+        send({
+          type: "conversation.item.create",
+          item: { type: "message", role: "user", content: [{ type: "input_text",
+            text: "[SYSTEM: Customer wants to revisit Phase 1. Ask which topic they want to change. IMPORTANT — when the customer names a topic: (1) call navigate({ questionId: '<exact ID from the question list>' }) FIRST to move the on-screen card, THEN ask the question verbally. When they re-answer, call submit_answer as normal. The customer may change multiple answers. Once they say they are done or want to see the updated product recommendation, call confirm_product().]",
+          }]},
+        });
+        send({
+          type: "response.create",
+          response: {
+            instructions: `You are PecunAI — a warm investment advisor. English only. Acknowledge warmly in 1 sentence. Then ask which question or topic they'd like to revisit or change.`,
+          },
+        });
         return;
       }
     } catch (err) {
       console.error("[voice] Function call error:", name, err);
     }
-  }, [saveAnswer, saveVoiceState, advancePhase, send, setCard, appendChatMessage]);
+  }, [saveAnswer, saveVoiceState, advancePhase, send, setCard, appendChatMessage, router]);
 
   // ── Schedule AI_DONE after audio finishes playing ──────────────
 
@@ -1015,7 +1297,7 @@ export function useVoiceSession({
               audio: {
                 input: {
                   format: { type: "audio/pcm", rate: 24000 },
-                  turn_detection: { type: "semantic_vad" },
+                  turn_detection: voicePhaseRef.current === 0 ? null : { type: "semantic_vad" },
                   transcription: { model: "gpt-4o-transcribe" },
                 },
                 output: {
@@ -1066,8 +1348,17 @@ export function useVoiceSession({
             micAnalyserRef.current = micAnalyser;
             setMicAnalyserNode(micAnalyser);
           }
-          // Session configured — trigger the AI to speak its greeting
-          send({ type: "response.create" });
+          // Session configured — trigger AI speech, branching on phase
+          if (voicePhaseRef.current === 0 && termsSubStepRef.current === 'terms2') {
+            // Resume: customer already confirmed terms1 — go straight to terms2 explanation
+            send({ type: "response.create", response: { instructions: TERMS2_EXPLAIN_INSTRUCTIONS } });
+          } else if (voicePhaseRef.current === 0) {
+            // Fresh start: welcome intro before terms
+            send({ type: "response.create", response: { instructions: INTRO_INSTRUCTIONS } });
+          } else {
+            // Phase 1 (skip mode or after confirmTerms2) — normal greeting
+            send({ type: "response.create" });
+          }
           break;
         }
 
@@ -1151,15 +1442,65 @@ export function useVoiceSession({
             dispatch({ type: "AI_DONE" });
           }
           // Audio-only response: AI_DONE was already scheduled by response.audio.done
+
+          // For conversational turns (no function call, or a non-submit_answer call), the user's
+          // spoken words need a chat bubble. submit_answer creates its own bubble so we skip it.
+          if (!chatOpenRef.current && (!pc || pc.name !== "submit_answer")) {
+            const buffered = pendingVoiceTranscriptRef.current;
+            if (buffered) {
+              // Insert BEFORE the last AI bubble — the AI already responded, so we retroactively
+              // place the user turn in the correct visual order.
+              setChatMessages(prev => {
+                const newMsg: ChatMessage = { id: `user-${Date.now()}`, text: buffered, sender: "user", timestamp: new Date() };
+                const lastAiIdx = prev.reduce((acc, m, i) => m.sender === "ai" ? i : acc, -1);
+                if (lastAiIdx === -1) return [...prev, newMsg];
+                return [...prev.slice(0, lastAiIdx), newMsg, ...prev.slice(lastAiIdx)];
+              });
+              pendingVoiceTranscriptRef.current = null;
+            } else {
+              // Transcript hasn't arrived yet — flag it so the transcript handler creates the bubble.
+              needsTranscriptBubbleRef.current = true;
+            }
+          }
           break;
         }
 
-        case "conversation.item.input_audio_transcription.completed":
-          pendingVoiceTranscriptRef.current = (msg.transcript as string | undefined)?.trim() || null;
+        case "conversation.item.input_audio_transcription.completed": {
+          const transcriptItemId = msg.item_id as string | undefined;
+          const transcript       = (msg.transcript as string | undefined)?.trim() || null;
+          if (!transcript) break;
+          // Guard against stale transcripts from previous speech turns
+          if (transcriptItemId && transcriptItemId !== currentSpeechItemIdRef.current) break;
+
+          if (applyPendingTranscriptRef.current) {
+            // submit_answer already ran with a fallback label — retroactively fix the bubble
+            applyPendingTranscriptRef.current(transcript);
+            applyPendingTranscriptRef.current = null;
+          } else if (needsTranscriptBubbleRef.current && !chatOpenRef.current) {
+            // response.done already fired for a conversational/non-submit turn — insert before last AI bubble
+            setChatMessages(prev => {
+              const newMsg: ChatMessage = { id: `user-${Date.now()}`, text: transcript, sender: "user", timestamp: new Date() };
+              const lastAiIdx = prev.reduce((acc, m, i) => m.sender === "ai" ? i : acc, -1);
+              if (lastAiIdx === -1) return [...prev, newMsg];
+              return [...prev.slice(0, lastAiIdx), newMsg, ...prev.slice(lastAiIdx)];
+            });
+            needsTranscriptBubbleRef.current = false;
+            pendingVoiceTranscriptRef.current = null;
+          } else {
+            // submit_answer hasn't run yet — store for it to pick up
+            pendingVoiceTranscriptRef.current = transcript;
+          }
           break;
+        }
 
         case "input_audio_buffer.speech_started": {
-          // Customer started speaking — reset explain-overlay idle timer if open
+          // New speech turn — record its item_id and clear any stale transcript / retroactive updater
+          // from the previous turn so they can't bleed into the next submit_answer.
+          const speechItemId = msg.item_id as string | undefined;
+          if (speechItemId) currentSpeechItemIdRef.current = speechItemId;
+          pendingVoiceTranscriptRef.current = null;
+          applyPendingTranscriptRef.current = null;
+          needsTranscriptBubbleRef.current = false;
           if (explainOpenRef.current) resetExplainIdleRef.current();
           break;
         }
@@ -1320,7 +1661,8 @@ export function useVoiceSession({
     const allAnswered            = answeredIdsRef.current.size === questionsRef.current.length;
     const allCoveredExceptSkipped = answeredIdsRef.current.size + skippedIdsRef.current.size === questionsRef.current.length;
 
-    if (allAnswered) {
+    if (allAnswered && !isRevisitingRef.current) {
+      circleBackActiveRef.current = false;
       await advancePhase();
       return;
     }
@@ -1329,7 +1671,7 @@ export function useVoiceSession({
       .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
       .map(q => q.id);
 
-    if (allCoveredExceptSkipped && skippedIdsRef.current.size > 0) {
+    if (allCoveredExceptSkipped && skippedIdsRef.current.size > 0 && !isRevisitingRef.current) {
       const firstSkippedTap = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));
       const allSkippedTap   = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
       dispatch({ type: "ANSWER_SAVED" });
@@ -1345,7 +1687,16 @@ export function useVoiceSession({
           }],
         },
       });
-      send({ type: "response.create" });
+      const isFirstCircleBackTap = !circleBackActiveRef.current;
+      if (isFirstCircleBackTap) circleBackActiveRef.current = true;
+      send({
+        type: "response.create",
+        response: firstSkippedTap ? {
+          instructions: isFirstCircleBackTap
+            ? `You are PecunAI — a warm investment advisor, not a form. English only. All main questions are answered. Transition warmly in 1 sentence (e.g. "Great, there are just a couple of topics we skipped earlier — let's go back to those."). Then lead naturally into the topic about ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${firstSkippedTap.text}". Keep it 2–3 sentences total. Ask ONLY about ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Wait for their answer.`
+            : `You are PecunAI — a warm investment advisor, not a form. English only. Continue naturally through the skipped topics. Lead into the topic about ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${firstSkippedTap.text}". Keep it 2–3 sentences total. Ask ONLY about ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Wait for their answer.`,
+        } : {},
+      });
       return;
     }
 
@@ -1362,12 +1713,17 @@ export function useVoiceSession({
         type: "message",
         role: "user",
         content: [{ type: "input_text", text: remainingQsTap.length > 0
-          ? `[SYSTEM: Answer already saved — do NOT call submit_answer. The customer tapped "${label}". ${makeNextTopicMsg(remainingQsTap[0], remaining.slice(1), Array.from(answeredIdsRef.current)).replace("[SYSTEM: ", "")}`
+          ? `[SYSTEM: Answer already saved — do NOT call submit_answer. The customer tapped "${label}". ${makeNextTopicMsg(remainingQsTap[0], remaining.slice(1), false).replace("[SYSTEM: ", "")}`
           : `[SYSTEM: Answer already saved. All topics complete.]`,
         }],
       },
     });
-    send({ type: "response.create" });
+    send({
+      type: "response.create",
+      response: remainingQsTap[0] ? {
+        instructions: `You are PecunAI — a warm investment advisor, not a form. English only. Do exactly two things: (1) React to the customer's tapped answer in 1 sentence — something genuine about their choice, not a generic transition. Never say "Moving on", "Next question", or reveal any structure. (2) Lead naturally into the topic about ${remainingQsTap[0].category} (ID: ${remainingQsTap[0].id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${remainingQsTap[0].text}". Keep it 2–3 sentences total. Ask ONLY about ${remainingQsTap[0].category} (ID: ${remainingQsTap[0].id}). Wait for their answer.`,
+      } : {},
+    });
   }, [saveAnswer, saveVoiceState, advancePhase, send, appendChatMessage]);
 
   /** Clears the AI-proposed highlight — called when customer rejects or modal closes without submitting */
@@ -1424,12 +1780,17 @@ export function useVoiceSession({
         type: "message",
         role: "user",
         content: [{ type: "input_text", text: nextQ
-          ? makeNextTopicMsg(nextQ, remaining.slice(1).map(q => q.id), Array.from(answeredIdsRef.current))
+          ? makeNextTopicMsg(nextQ, remaining.slice(1).map(q => q.id), true)
           : "[SYSTEM: All remaining topics are either answered or skipped — circle-back phase will follow.]",
         }],
       },
     });
-    send({ type: "response.create" });
+    send({
+      type: "response.create",
+      response: nextQ ? {
+        instructions: `You are PecunAI — a warm investment advisor, not a form. English only. Acknowledge the skip in 1 natural sentence (e.g. "Of course, we can always come back to that!"). Then lead naturally into the topic about ${nextQ.category} (ID: ${nextQ.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${nextQ.text}". Keep it 2–3 sentences total. Ask ONLY about ${nextQ.category} (ID: ${nextQ.id}). Wait for their answer.`,
+      } : {},
+    });
   }, [send]);
 
   /** Sends a system message prompting the AI to call explain_topic for the current question. */
@@ -1487,11 +1848,9 @@ export function useVoiceSession({
       chatAnsweredRef.current = 0;
       pendingVoiceTranscriptRef.current = null;
       if (gainRef.current) gainRef.current.gain.value = 0;
-      send({ type: "session.update", session: { output_modalities: ["text"] } });
     } else {
       chatOpenRef.current = false;
       if (gainRef.current) gainRef.current.gain.value = mutedRef.current ? 0 : 1;
-      send({ type: "session.update", session: { output_modalities: ["audio"] } });
 
       if (chatAnsweredRef.current > 0) {
         // Flush the audio queue so stale buffered speech doesn't play
@@ -1502,6 +1861,11 @@ export function useVoiceSession({
         );
         const skippedRemaining = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
         const currentQ         = questionsRef.current.find(q => q.id === activeCardIdRef.current);
+
+        // The question the AI must ask next — used to pin response.create instructions.
+        const nextToAsk = remainingNonSkipped.length > 0
+          ? (currentQ ?? remainingNonSkipped[0])
+          : skippedRemaining[0] ?? null;
 
         let systemText: string;
         if (remainingNonSkipped.length === 0 && skippedRemaining.length > 0) {
@@ -1529,10 +1893,85 @@ export function useVoiceSession({
           type: "conversation.item.create",
           item: { type: "message", role: "user", content: [{ type: "input_text", text: systemText }]},
         });
-        send({ type: "response.create" });
+        send({
+          type: "response.create",
+          response: nextToAsk ? {
+            instructions: `You are PecunAI — a warm investment advisor, not a form. English only. Welcome them back to the voice conversation in 1 warm sentence. Then lead naturally into the topic about ${nextToAsk.category} (ID: ${nextToAsk.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${nextToAsk.text}". Keep it 2–3 sentences total. Ask ONLY about ${nextToAsk.category} (ID: ${nextToAsk.id}). Wait for their answer.`,
+          } : {},
+        });
       }
     }
   }, [send]);
+
+  /** Tap handler — customer confirms the recommended product (Phase 2 button) */
+  const confirmProduct = useCallback(() => {
+    router.push("/customer/dashboard"); // Phase 3 placeholder
+  }, [router]);
+
+  /** Tap handler — customer wants to revisit Phase 1 answers (Phase 2 button) */
+  const revisitQuestions = useCallback(() => {
+    isRevisitingRef.current = true;
+    setVoicePhase(1);
+    setProductSuggestion(null);
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: "[SYSTEM: Customer tapped Revisit. Ask which topic they want to change. IMPORTANT — when the customer names a topic: (1) call navigate({ questionId: '<exact ID from the question list>' }) FIRST to move the on-screen card, THEN ask the question verbally. When they re-answer, call submit_answer as normal. The customer may change multiple answers. Once they say they are done or want to see the updated product recommendation, call confirm_product().]",
+      }]},
+    });
+    send({
+      type: "response.create",
+      response: {
+        instructions: `You are PecunAI — a warm investment advisor. English only. Customer tapped to go back. Acknowledge warmly in 1 sentence, then ask which question or topic they'd like to revisit.`,
+      },
+    });
+  }, [send]);
+
+  // ── Phase 0 — terms gate ───────────────────────────────────────
+
+  /** Called from VoiceSessionShell when intro speech ends (isAISpeaking goes false in Phase 0 intro) */
+  const moveToTerms1 = useCallback(async () => {
+    await fetch("/api/phase", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, phase: "TERMS1" }),
+    });
+    setTermsSubStep('terms1');
+    send({ type: "response.create", response: { instructions: TERMS1_EXPLAIN_INSTRUCTIONS } });
+  }, [sessionId, send]);
+
+  /** Customer tapped "Ich bestätige" on the 4money (terms1) document */
+  const confirmTerms1 = useCallback(async () => {
+    await fetch("/api/phase", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, phase: "TERMS_FROOTS" }),
+    });
+    setTermsSubStep('terms2');
+    send({ type: "response.create", response: { instructions: TERMS2_EXPLAIN_INSTRUCTIONS } });
+  }, [sessionId, send]);
+
+  /** Customer tapped "Ich bestätige" on the froots (terms2) document — transitions to Phase 1 */
+  const confirmTerms2 = useCallback(async () => {
+    await fetch("/api/phase", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, phase: "QUESTIONS1" }),
+    });
+    // Re-enable server VAD now that Phase 0 is complete
+    send({ type: "session.update", session: { audio: { input: { turn_detection: { type: "semantic_vad" } } } } });
+    setTermsSubStep(null);
+    setVoicePhase(1);
+    send({
+      type: "conversation.item.create",
+      item: {
+        type:    "message",
+        role:    "user",
+        content: [{ type: "input_text", text: "[SYSTEM: Terms confirmed. Starting Phase 1 — risk profile questions. Begin with the first topic.]" }],
+      },
+    });
+    send({ type: "response.create" });
+  }, [sessionId, send]);
 
   /** Must be called from a user-gesture handler (tap/click) to unlock AudioContext */
   const startSession = useCallback(async () => {
@@ -1563,7 +2002,7 @@ export function useVoiceSession({
       type: "conversation.item.create",
       item: { type: "message", role: "user", content: [{ type: "input_text", text }] },
     });
-    send({ type: "response.create" });
+    send({ type: "response.create", response: { output_modalities: ["text"] } });
   }, [send, appendChatMessage]);
 
   return {
@@ -1577,6 +2016,14 @@ export function useVoiceSession({
     savedAnswers,
     explainOverlayData,
     chatMessages,
+    voicePhase,
+    termsSubStep,
+    productSuggestion,
+    confirmProduct,
+    revisitQuestions,
+    moveToTerms1,
+    confirmTerms1,
+    confirmTerms2,
     notifyChatOpen,
     startSession,
     toggleMute,

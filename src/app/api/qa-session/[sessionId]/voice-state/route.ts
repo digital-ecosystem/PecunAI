@@ -16,16 +16,26 @@ export async function GET(
     if (!user) return NextResponse.json({ message: "Ungültiges Token" }, { status: 401 });
 
     const { sessionId } = await params;
-    const ws = await prisma.sessionWorkflowState.findUnique({
-      where:  { qaSessionId: sessionId },
-      select: { stepData: true },
-    });
+    const [ws, sessionRecord] = await Promise.all([
+      prisma.sessionWorkflowState.findUnique({
+        where:  { qaSessionId: sessionId },
+        select: { stepData: true },
+      }),
+      prisma.qASession.findUnique({
+        where:  { id: sessionId },
+        select: { phase: true },
+      }),
+    ]);
 
     const stepData  = (ws?.stepData ?? {}) as Record<string, unknown>;
     const voice     = (stepData.voice ?? {}) as Record<string, unknown>;
     const lastIndex = typeof voice.lastQuestionIndex === "number" ? voice.lastQuestionIndex : 0;
 
-    return NextResponse.json({ success: true, lastQuestionIndex: lastIndex });
+    return NextResponse.json({
+      success:          true,
+      lastQuestionIndex: lastIndex,
+      currentPhase:      sessionRecord?.phase ?? null,
+    });
   } catch (error) {
     console.error("voice-state GET error:", error);
     return NextResponse.json({ success: false }, { status: 500 });
