@@ -464,7 +464,9 @@ export function useVoiceSession({
   );
 
   // Explain overlay — set by explain_topic tool call, cleared on close_explanation or manual close
-  const [explainOverlayData, setExplainOverlayData] = useState<ExplainOverlayData | null>(null);
+  const [explainOverlayData,   setExplainOverlayData]   = useState<ExplainOverlayData | null>(null);
+  // Tells the overlay to start its closing animation (voice-triggered close path)
+  const [explainTriggerClose, setExplainTriggerClose] = useState(false);
 
   // Chat log — mirrors all questions and answers for the chat modal
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -1005,34 +1007,11 @@ export function useVoiceSession({
       }
 
       if (name === "close_explanation") {
-        setExplainOverlayData(null);
-        if (!mutedRef.current) dispatch({ type: "AI_SPEAKING" });
-        const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current);
-        if (currentQ) setCard(currentQ.id);
+        // Acknowledge the function call immediately, then let the overlay play its
+        // exit animation. closeExplainOverlay (called by onClose after 1300 ms) sends
+        // the WS resume messages once the animation is done.
         sendResult({ success: true });
-
-        const wasExplained  = currentQ ? explainedQuestionsRef.current.has(currentQ.id) : false;
-        const alreadyAnswered = currentQ ? answeredIdsRef.current.has(currentQ.id) : false;
-        const navInstruction = currentQ ? ` Call navigate(questionId: "${currentQ.id}") first to sync the carousel.` : "";
-
-        let nextInstruction: string;
-        if (wasExplained && currentQ && !alreadyAnswered) {
-          nextInstruction = ` Then re-ask the "${currentQ.category}" question naturally with context — e.g. "Now that I've walked you through that, [original question]?" — wait for their answer and submit it.`;
-        } else if (currentQ && !alreadyAnswered) {
-          nextInstruction = ` Then continue naturally with the "${currentQ.category}" question.`;
-        } else {
-          nextInstruction = " Then resume the consultation naturally.";
-        }
-
-        send({
-          type: "conversation.item.create",
-          item: {
-            type: "message",
-            role: "user",
-            content: [{ type: "input_text", text: `[SYSTEM: Explanation overlay closed.${navInstruction}${nextInstruction}]` }],
-          },
-        });
-        send({ type: "response.create" });
+        setExplainTriggerClose(true);
         return;
       }
 
@@ -1297,7 +1276,7 @@ export function useVoiceSession({
               audio: {
                 input: {
                   format: { type: "audio/pcm", rate: 24000 },
-                  turn_detection: voicePhaseRef.current === 0 ? null : { type: "semantic_vad" },
+                  turn_detection: { type: "semantic_vad" },
                   transcription: { model: "gpt-4o-transcribe" },
                 },
                 output: {
@@ -1338,6 +1317,7 @@ export function useVoiceSession({
               if (!ws || ws.readyState !== WebSocket.OPEN) return;
               if (stateRef.current.session !== "listening") return;
               if (chatOpenRef.current) return;
+              if (voicePhaseRef.current === 0) return;
               const bytes = new Uint8Array(e.data);
               let binary = "";
               for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
@@ -1809,8 +1789,9 @@ export function useVoiceSession({
     send({ type: "response.create" });
   }, [send]);
 
-  /** Closes the explain overlay and tells the AI to resume. Called by the overlay's back button. */
+  /** Closes the explain overlay and tells the AI to resume. Called by the overlay's back button or after voice-triggered animation. */
   const closeExplainOverlay = useCallback(() => {
+    setExplainTriggerClose(false);
     setExplainOverlayData(null);
     if (!mutedRef.current) dispatch({ type: "AI_SPEAKING" });
     const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current);
@@ -1958,8 +1939,6 @@ export function useVoiceSession({
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ sessionId, phase: "QUESTIONS1" }),
     });
-    // Re-enable server VAD now that Phase 0 is complete
-    send({ type: "session.update", session: { audio: { input: { turn_detection: { type: "semantic_vad" } } } } });
     setTermsSubStep(null);
     setVoicePhase(1);
     send({
@@ -2015,6 +1994,7 @@ export function useVoiceSession({
     pendingVoiceAnswer,
     savedAnswers,
     explainOverlayData,
+    explainTriggerClose,
     chatMessages,
     voicePhase,
     termsSubStep,

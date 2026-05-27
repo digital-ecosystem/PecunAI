@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { Menu, User, Mic } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
 import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
@@ -13,6 +13,18 @@ import ControlBar from "./ControlBar";
 import VoiceProductPhase from "./VoiceProductPhase";
 import VoiceTermsPhase from "./VoiceTermsPhase";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
+
+// ── Phase slide variants ──────────────────────────────────────────
+
+const phaseSlideVariants = {
+  enter: (dir: "forward" | "backward") => ({
+    x: dir === "forward" ? "100%" : "-100%",
+  }),
+  center: { x: 0 },
+  exit: (dir: "forward" | "backward") => ({
+    x: dir === "forward" ? "-100%" : "100%",
+  }),
+};
 
 // ── Status labels ─────────────────────────────────────────────────
 
@@ -48,8 +60,17 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen, sendChatMessage, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2 } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen, sendChatMessage, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2 } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex, initialTermsPhase });
+
+  // Track phase transition direction for the slide animation.
+  // Updated synchronously during render so the direction is correct before motion reads it.
+  const prevPhaseRef   = useRef(voicePhase);
+  const slideDirection = useRef<"forward" | "backward">("forward");
+  if ((voicePhase === 1 || voicePhase === 2) && voicePhase !== prevPhaseRef.current) {
+    slideDirection.current = voicePhase > prevPhaseRef.current ? "forward" : "backward";
+    prevPhaseRef.current   = voicePhase;
+  }
 
   const [modalOpen, setModalOpen] = useState(false);
   const [chatOpen,  setChatOpen]  = useState(false);
@@ -299,35 +320,47 @@ export default function VoiceSessionShell({
     );
   }
 
-  // ── Phase 2 — product suggestion screen ─────────────��────────────
-  if (voicePhase === 2 && productSuggestion) {
-    return (
-      <>
-        <VoiceProductPhase
-          product={productSuggestion}
-          isSpeaking={isSpeaking}
-          isListening={isListening}
-          isMuted={isMuted}
-          sessionState={state.session}
-          analyserNode={isMuted ? null : analyserNode}
-          micAnalyserNode={micAnalyserNode}
-          onMuteToggle={toggleMute}
-          onChatClick={() => setChatOpen(true)}
-          onConfirm={confirmProduct}
-          onRevisit={revisitQuestions}
-        />
-        <VoiceChatModal
-          isOpen={chatOpen}
-          onClose={() => setChatOpen(false)}
-          messages={chatMessages}
-          onSendMessage={sendChatMessage}
-        />
-      </>
-    );
-  }
-
   return (
     <>
+      {/* ── Phase 1 / 2 slide container ───────────────────────────── */}
+      <div style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
+        <AnimatePresence initial={false} custom={slideDirection.current} mode="sync">
+          {voicePhase === 2 && productSuggestion ? (
+            <motion.div
+              key="phase-2"
+              custom={slideDirection.current}
+              variants={phaseSlideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, minHeight: "100vh", willChange: "transform" }}
+            >
+              <VoiceProductPhase
+                product={productSuggestion}
+                isSpeaking={isSpeaking}
+                isListening={isListening}
+                isMuted={isMuted}
+                sessionState={state.session}
+                analyserNode={isMuted ? null : analyserNode}
+                micAnalyserNode={micAnalyserNode}
+                onMuteToggle={toggleMute}
+                onChatClick={() => setChatOpen(true)}
+                onConfirm={confirmProduct}
+                onRevisit={revisitQuestions}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="phase-1"
+              custom={slideDirection.current}
+              variants={phaseSlideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, minHeight: "100vh", willChange: "transform" }}
+            >
       <div
         className="min-h-screen flex flex-col relative overflow-hidden"
         style={{
@@ -488,8 +521,12 @@ export default function VoiceSessionShell({
           micGranted={micGranted}
         />
       </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* ── Overlays ─────────────────────────────────────────────── */}
+      {/* ── Overlays (fixed-position, outside the slide container) ── */}
 
       <VoiceChatModal
         isOpen={chatOpen}
@@ -510,6 +547,7 @@ export default function VoiceSessionShell({
           analyserNode={analyserNode}
           micAnalyserNode={micAnalyserNode}
           isAISpeaking={isAISpeaking}
+          triggerClose={explainTriggerClose}
           onClose={closeExplainOverlay}
           onFollowUp={closeExplainOverlay}
         />

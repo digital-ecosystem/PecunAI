@@ -10,6 +10,7 @@ interface PDFViewerClientProps {
   fileUrl:       string;
   currentPage:   number; // 1-based
   onLoadSuccess: (numPages: number) => void;
+  allowScroll?:  boolean;
 }
 
 // Hide scrollbars visually without blocking programmatic scroll (needed for jumpToPage)
@@ -25,7 +26,7 @@ const HIDE_SCROLLBAR_CSS = `
   }
 `;
 
-export default function PDFViewerClient({ fileUrl, currentPage, onLoadSuccess }: PDFViewerClientProps) {
+export default function PDFViewerClient({ fileUrl, currentPage, onLoadSuccess, allowScroll }: PDFViewerClientProps) {
   const jumpRef   = useRef<((page: number) => Promise<void>) | null>(null);
   const wrapRef   = useRef<HTMLDivElement>(null);
   const prevPage  = useRef(currentPage);
@@ -42,8 +43,10 @@ export default function PDFViewerClient({ fileUrl, currentPage, onLoadSuccess }:
     jumpRef.current?.(currentPage - 1);
   }, [currentPage]);
 
-  // Block user scroll (non-passive so preventDefault works)
+  // Block user scroll in compact mode — parent controls pages via buttons.
+  // Skipped in full-screen mode (allowScroll) so the user can read the full page.
   useEffect(() => {
+    if (allowScroll) return;
     const el = wrapRef.current;
     if (!el) return;
     const block = (e: Event) => e.preventDefault();
@@ -53,7 +56,7 @@ export default function PDFViewerClient({ fileUrl, currentPage, onLoadSuccess }:
       el.removeEventListener("wheel",     block);
       el.removeEventListener("touchmove", block);
     };
-  }, []);
+  }, [allowScroll]);
 
   return (
     <div ref={wrapRef} className="pdf-ns" style={{ overflow: "hidden", width: "100%", height: "100%" }}>

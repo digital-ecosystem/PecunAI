@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, TrendingUp, DollarSign, PieChart } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
@@ -22,6 +22,7 @@ interface VoiceExplainOverlayProps {
   analyserNode:     AnalyserNode | null;
   micAnalyserNode:  AnalyserNode | null;
   isAISpeaking:     boolean;
+  triggerClose?:    boolean;
   onClose:          () => void;
   onFollowUp:       () => void;
 }
@@ -119,15 +120,36 @@ export default function VoiceExplainOverlay({
   analyserNode,
   micAnalyserNode,
   isAISpeaking,
+  triggerClose,
   onClose,
   onFollowUp,
 }: VoiceExplainOverlayProps) {
   const [showTransition, setShowTransition] = useState(true);
+  const [closing,        setClosing]        = useState(false);
+  const closingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowTransition(false), 1500);
     return () => clearTimeout(timer);
   }, []);
+
+  // Voice-triggered close: start the exit animation without the isAISpeaking guard
+  useEffect(() => {
+    if (!triggerClose || closing) return;
+    setClosing(true);
+    closingTimerRef.current = setTimeout(onClose, 280);
+  }, [triggerClose, closing, onClose]);
+
+  // Cleanup closing timer on unmount
+  useEffect(() => () => {
+    if (closingTimerRef.current) clearTimeout(closingTimerRef.current);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    if (isAISpeaking || closing) return;
+    setClosing(true);
+    closingTimerRef.current = setTimeout(onClose, 280);
+  }, [isAISpeaking, closing, onClose]);
 
   return (
     <motion.div
@@ -137,8 +159,8 @@ export default function VoiceExplainOverlay({
           "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 30%, rgba(249,250,251,1) 100%)",
       }}
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
+      animate={{ opacity: closing ? 0 : 1 }}
+      transition={{ duration: closing ? 0.25 : 0.2 }}
     >
       {/* Ambient background waves */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -243,7 +265,7 @@ export default function VoiceExplainOverlay({
         className="relative z-10 w-full px-6 py-5 flex-shrink-0"
         initial={{ opacity: 0 }}
         animate={{ opacity: showTransition ? 0 : 1 }}
-        transition={{ delay: showTransition ? 0 : 0.3, duration: 0.4 }}
+        transition={{ duration: 0.4, delay: showTransition ? 0 : 0.3 }}
       >
         <motion.button
           className="flex items-center justify-center rounded-full"
@@ -259,8 +281,8 @@ export default function VoiceExplainOverlay({
             transition:     "opacity 0.3s ease",
           }}
           whileTap={isAISpeaking ? {} : { scale: 0.95 }}
-          onClick={isAISpeaking ? undefined : onClose}
-          aria-disabled={isAISpeaking}
+          onClick={handleClose}
+          aria-disabled={isAISpeaking || closing}
         >
           <ArrowLeft size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
         </motion.button>
@@ -274,7 +296,7 @@ export default function VoiceExplainOverlay({
           opacity: showTransition ? 0 : 1,
           y:       showTransition ? 20 : 0,
         }}
-        transition={{ delay: showTransition ? 0 : 0.5, duration: 0.6 }}
+        transition={{ duration: 0.6, delay: showTransition ? 0 : 0.5 }}
       >
         {/* Waveform — blue for AI speech, green for customer speech */}
         <WaveformBars analyserNode={analyserNode} micAnalyserNode={micAnalyserNode} />

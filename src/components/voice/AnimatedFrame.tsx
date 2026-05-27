@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 
 interface AnimatedFrameProps {
   isListening:    boolean;
@@ -12,7 +12,7 @@ interface AnimatedFrameProps {
   contentHeight:  number;
 }
 
-const WAVE_PAD     = 32;
+const WAVE_PAD     = 56;
 const NODE_SPACING = 18;
 
 const COLORS = {
@@ -32,7 +32,6 @@ export function AnimatedFrame({
   const canvasRef       = useRef<HTMLCanvasElement>(null);
   const contentRef      = useRef<HTMLDivElement>(null);
   const animRef         = useRef<number>(0);
-  const [canvasRect, setCanvasRect] = useState({ left: 0, top: 0, width: 0, height: 0 });
   const isSpeakingRef   = useRef(isSpeaking);
   const isListeningRef  = useRef(isListening);
   const analyserRef     = useRef(analyserNode ?? null);
@@ -47,27 +46,6 @@ export function AnimatedFrame({
   useEffect(() => {
     colorRef.current = isListening ? COLORS.listening : COLORS.speaking;
   }, [isListening]);
-
-  useEffect(() => {
-    const update = () => {
-      const rect = contentRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setCanvasRect({
-        left:   rect.left   - WAVE_PAD,
-        top:    rect.top    - WAVE_PAD,
-        width:  rect.width  + 2 * WAVE_PAD,
-        height: rect.height + 2 * WAVE_PAD,
-      });
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    if (contentRef.current) ro.observe(contentRef.current);
-    window.addEventListener("scroll", update, { passive: true });
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("scroll", update);
-    };
-  }, []);
 
   const cornerRadius = Math.round(contentWidth * 0.04);
 
@@ -84,7 +62,6 @@ export function AnimatedFrame({
     canvas.height = canvasH * dpr;
     ctx.scale(dpr, dpr);
 
-    // Seeded-ish random using index so it's stable across re-renders
     const rng = (seed: number) => {
       const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
       return x - Math.floor(x);
@@ -96,34 +73,76 @@ export function AnimatedFrame({
       normalX: number; normalY: number;
       phase:   number;
       energy:  number;
-      depth:   number; // 0–1, affects size/opacity like sphere z-depth
+      depth:   number;
     };
 
     const nodes: Node[] = [];
 
+    const pushNode = (
+      bx: number, by: number,
+      nX: number, nY: number,
+      depth: number,
+    ) => {
+      const seed = nodes.length;
+      nodes.push({
+        baseX: bx, baseY: by, x: bx, y: by,
+        normalX: nX, normalY: nY,
+        phase:  seed * 0.42 + rng(seed + 1) * Math.PI,
+        energy: 0,
+        depth,
+      });
+    };
+
+    // Three-layer border band per edge position + extra corner density
     const addEdge = (
       x1: number, y1: number,
       x2: number, y2: number,
       nX: number, nY: number,
     ) => {
       const len   = Math.hypot(x2 - x1, y2 - y1);
-      const count = Math.max(2, Math.floor(len / NODE_SPACING));
+      const count = Math.max(3, Math.floor(len / NODE_SPACING));
+
       for (let i = 0; i <= count; i++) {
-        const seed = nodes.length;
-        // Random jitter along the edge (±30% of spacing)
-        const jitter = (rng(seed) - 0.5) * NODE_SPACING * 0.6;
-        const t  = Math.max(0, Math.min(1, i / count + jitter / len));
-        // Random scatter perpendicular to edge: 0 to WAVE_PAD * 0.85
-        const perpOffset = rng(seed + 0.5) * WAVE_PAD * 0.85;
-        const bx = WAVE_PAD + x1 + (x2 - x1) * t + nX * perpOffset;
-        const by = WAVE_PAD + y1 + (y2 - y1) * t + nY * perpOffset;
-        nodes.push({
-          baseX: bx, baseY: by, x: bx, y: by,
-          normalX: nX, normalY: nY,
-          phase: seed * 0.42 + t * Math.PI * 2 + rng(seed + 1) * Math.PI,
-          energy: 0,
-          depth: rng(seed + 2), // random depth for size/opacity variation
-        });
+        const t = i / count;
+
+        // Corner zone: double passes near each end
+        const isCorner = i <= 1 || i >= count - 1;
+        const passes   = isCorner ? 2 : 1;
+
+        for (let p = 0; p < passes; p++) {
+          const sid  = nodes.length;
+          // Slight jitter along edge for second pass at corners
+          const jt   = p === 0 ? 0 : (rng(sid + 7) - 0.5) * 0.35;
+          const tc   = Math.max(0, Math.min(1, t + jt));
+          const cx   = x1 + (x2 - x1) * tc;
+          const cy   = y1 + (y2 - y1) * tc;
+
+          // Layer 1 — inner: 2–6px inside the border
+          const innerOff = 2 + rng(nodes.length) * 4;
+          pushNode(
+            WAVE_PAD + cx - nX * innerOff,
+            WAVE_PAD + cy - nY * innerOff,
+            nX, nY,
+            0.1 + rng(nodes.length + 2) * 0.25,
+          );
+
+          // Layer 2 — border: right on the edge
+          pushNode(
+            WAVE_PAD + cx,
+            WAVE_PAD + cy,
+            nX, nY,
+            0.55 + rng(nodes.length + 2) * 0.35,
+          );
+
+          // Layer 3 — outer: 0 to WAVE_PAD outside, creates aura bloom
+          const outerOff = rng(nodes.length) * WAVE_PAD;
+          pushNode(
+            WAVE_PAD + cx + nX * outerOff,
+            WAVE_PAD + cy + nY * outerOff,
+            nX, nY,
+            0.35 + rng(nodes.length + 2) * 0.45,
+          );
+        }
       }
     };
 
@@ -132,8 +151,6 @@ export function AnimatedFrame({
     addEdge(contentWidth, contentHeight, 0,             contentHeight, 0,   1);
     addEdge(0,            contentHeight, 0,             0,            -1,   0);
 
-    // Wider connection threshold — lets nodes from different edges connect,
-    // especially near corners, creating cross-web like the sphere
     const maxDist = NODE_SPACING * 4.5;
     const connections: Array<[number, number]> = [];
     for (let i = 0; i < nodes.length; i++) {
@@ -144,12 +161,17 @@ export function AnimatedFrame({
       }
     }
 
-    // Smoothly lerped colour
     let curR  = 59,  curG  = 130, curB  = 246;
     let curR2 = 147, curG2 = 197, curB2 = 253;
     let time  = 0;
 
     const animate = () => {
+      const rect = contentRef.current?.getBoundingClientRect();
+      if (rect && canvas) {
+        canvas.style.left = `${rect.left - WAVE_PAD}px`;
+        canvas.style.top  = `${rect.top  - WAVE_PAD}px`;
+      }
+
       ctx.clearRect(0, 0, canvasW, canvasH);
       time += 0.016;
 
@@ -164,7 +186,6 @@ export function AnimatedFrame({
       const r  = Math.round(curR),  g  = Math.round(curG),  b  = Math.round(curB);
       const r2 = Math.round(curR2), g2 = Math.round(curG2), b2 = Math.round(curB2);
 
-      // ── Same audio energy logic as VoiceSphere ────────────────────
       let audioData: number[] = [];
       let audioAvg            = 0;
 
@@ -185,18 +206,15 @@ export function AnimatedFrame({
 
       nodes.forEach((node, i) => {
         if (active && audioData.length > 0) {
-          // Real audio — raw frequency per node + overall volume, same as sphere
           const idx   = Math.floor((i / nodes.length) * audioData.length);
           const freq  = audioData[idx] / 255;
           node.energy = freq * 0.7 + audioAvg * 0.3;
         } else if (active) {
-          // Simulated while waiting for first audio frame
           const freq   = Math.sin(time * 8  + node.phase)       * 0.5 + 0.5;
           const bass   = Math.sin(time * 3  + i * 0.15)         * 0.5 + 0.5;
           const treble = Math.sin(time * 12 + node.phase * 1.4) * 0.5 + 0.5;
           node.energy  = (freq * 0.5 + bass * 0.3 + treble * 0.2) * 0.8;
         } else {
-          // Idle — looks like current speaking mode: high energy, staggered wave
           const w1    = Math.sin(time * 6   + node.phase)       * 0.5 + 0.5;
           const w2    = Math.sin(time * 3.5 + node.phase * 1.3) * 0.5 + 0.5;
           const w3    = Math.sin(time * 9   + i * 0.22)         * 0.5 + 0.5;
@@ -204,15 +222,12 @@ export function AnimatedFrame({
         }
       });
 
-      // Idle uses same dispScale as active — it should move and look alive
-      // Active cranked higher so real audio volume hits much harder
-      const dispScale = active ? 48 : 22;
+      const dispScale = active ? 52 : 18;
       nodes.forEach(node => {
         node.x = node.baseX + node.normalX * node.energy * dispScale;
         node.y = node.baseY + node.normalY * node.energy * dispScale;
       });
 
-      // Draw connections
       connections.forEach(([i, j]) => {
         const a   = nodes[i], bn = nodes[j];
         const avg = (a.energy + bn.energy) / 2;
@@ -225,7 +240,6 @@ export function AnimatedFrame({
         ctx.stroke();
       });
 
-      // Draw nodes
       nodes.forEach(node => {
         const e     = node.energy;
         const scale = 0.5 + node.depth * 0.8;
@@ -259,23 +273,19 @@ export function AnimatedFrame({
 
   return (
     <div ref={contentRef} className="relative" style={{ width: contentWidth, height: contentHeight }}>
-      {/* PDF content — isolated stacking context so its internal z-indexes stay contained */}
       <div
         className="absolute inset-0 overflow-hidden"
         style={{ borderRadius: cornerRadius, zIndex: 1, isolation: "isolate" }}
       >
         {children}
       </div>
-      {/* Canvas rendered fixed so no parent overflow can clip it */}
       <canvas
         ref={canvasRef}
         className="pointer-events-none"
         style={{
           position: "fixed",
-          left:     canvasRect.left,
-          top:      canvasRect.top,
-          width:    canvasRect.width,
-          height:   canvasRect.height,
+          width:    contentWidth  + 2 * WAVE_PAD,
+          height:   contentHeight + 2 * WAVE_PAD,
           zIndex:   50,
         }}
       />
