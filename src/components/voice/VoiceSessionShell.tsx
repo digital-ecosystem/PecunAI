@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, User, Mic } from "lucide-react";
+import { Menu, User, Mic, VolumeX, Hand } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
 import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
 import VoiceQuestionModal from "./VoiceQuestionModal";
@@ -131,6 +131,117 @@ export default function VoiceSessionShell({
   const isSpeaking        = !isMuted && (sessionIsSpeaking || isAISpeaking);
   const isListening       = state.session === "listening";
 
+  // ── Tap-to-start overlay — shared across all three phase branches ─
+  const tapOverlay = !started ? (
+    <motion.div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+      style={{ background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <motion.div
+        className="flex flex-col items-center gap-5 w-full max-w-sm px-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15, duration: 0.5 }}
+      >
+        {/* Pulsing mic orb */}
+        <motion.div
+          className="flex items-center justify-center rounded-full"
+          style={{ width: 88, height: 88, background: "rgba(59,130,246,0.1)", border: "1.5px solid rgba(59,130,246,0.2)" }}
+          animate={{ scale: [1, 1.06, 1], opacity: [0.75, 1, 0.75] }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Mic size={36} style={{ color: "rgba(59,130,246,0.8)" }} strokeWidth={1.5} />
+        </motion.div>
+
+        {/* Title */}
+        <div className="flex flex-col items-center gap-1 text-center">
+          <h1
+            className="text-2xl font-bold tracking-tight"
+            style={{
+              background:           "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor:  "transparent",
+              backgroundClip:       "text",
+            }}
+          >
+            PecunAI Beratung
+          </h1>
+          <p className="text-sm" style={{ color: "rgba(100,116,139,0.85)" }}>
+            Ihre persönliche KI-Finanzberatung
+          </p>
+        </div>
+
+        {/* Instruction cards */}
+        {([
+          {
+            icon: <Mic size={17} style={{ color: "rgba(59,130,246,0.85)" }} />,
+            title: "Sprachbasierte Beratung",
+            desc:  "PecunAI führt Sie per Stimme durch die gesamte Beratung.",
+          },
+          {
+            icon: <VolumeX size={17} style={{ color: "rgba(59,130,246,0.85)" }} />,
+            title: "Ruhige Umgebung empfohlen",
+            desc:  "Bitte sorgen Sie für eine Umgebung ohne Hintergrundgeräusche.",
+          },
+          {
+            icon: <Hand size={17} style={{ color: "rgba(59,130,246,0.85)" }} />,
+            title: "Tippen als Alternative",
+            desc:  "Alle Antworten können auch durch Antippen gegeben werden.",
+          },
+        ] as const).map((item, i) => (
+          <motion.div
+            key={i}
+            className="w-full flex items-center gap-3 rounded-2xl px-4 py-3"
+            style={{
+              background:     "rgba(255,255,255,0.75)",
+              backdropFilter: "blur(10px)",
+              border:         "1px solid rgba(59,130,246,0.1)",
+              boxShadow:      "0 2px 8px rgba(59,130,246,0.06)",
+            }}
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.35 + i * 0.12, duration: 0.4 }}
+          >
+            <div
+              className="flex items-center justify-center rounded-full flex-shrink-0"
+              style={{ width: 34, height: 34, background: "rgba(59,130,246,0.08)" }}
+            >
+              {item.icon}
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: "rgba(15,23,42,0.85)" }}>
+                {item.title}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(100,116,139,0.75)" }}>
+                {item.desc}
+              </p>
+            </div>
+          </motion.div>
+        ))}
+
+        {/* Start button */}
+        <motion.button
+          className="w-full rounded-2xl text-white font-semibold text-base"
+          style={{
+            height:     54,
+            background: "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+            boxShadow:  "0 4px 20px rgba(59,130,246,0.38)",
+          }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.75, duration: 0.4 }}
+          whileTap={{ scale: 0.97 }}
+          whileHover={{ scale: 1.01 }}
+          onClick={startSession}
+        >
+          Beratung starten
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  ) : null;
+
   // ── Phase 0 — intro: orb + status, no carousel or control bar ───
   if (voicePhase === 0 && termsSubStep === 'intro') {
     return (
@@ -205,55 +316,7 @@ export default function VoiceSessionShell({
           </div>
         </div>
 
-        {/* Tap-to-start overlay */}
-        {!started && (
-          <motion.div
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
-            style={{
-              background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)",
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            onClick={startSession}
-          >
-            <motion.div
-              className="flex flex-col items-center gap-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
-              <motion.div
-                className="flex items-center justify-center rounded-full"
-                style={{
-                  width:      88,
-                  height:     88,
-                  background: "rgba(59,130,246,0.1)",
-                  border:     "1px solid rgba(59,130,246,0.2)",
-                }}
-                animate={{ scale: [1, 1.05, 1], opacity: [0.8, 1, 0.8] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <Mic size={36} style={{ color: "rgba(59,130,246,0.8)" }} strokeWidth={1.5} />
-              </motion.div>
-              <div className="flex flex-col items-center gap-1">
-                <motion.h1
-                  className="text-2xl font-bold tracking-tight"
-                  style={{
-                    background:           "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor:  "transparent",
-                    backgroundClip:       "text",
-                  }}
-                >
-                  PecunAI Beratung
-                </motion.h1>
-                <p className="text-sm" style={{ color: "rgba(59,130,246,0.6)" }}>
-                  Tippen um zu starten
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
+        {tapOverlay}
       </>
     );
   }

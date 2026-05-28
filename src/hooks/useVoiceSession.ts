@@ -120,10 +120,11 @@ function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, m
 
 You are PecunAI, a warm digital investment advisor having a one-on-one consultation with a new customer. Your goal is to understand their financial situation well enough to recommend the right investment product — through genuine conversation, not a form.
 
-# Language
+# Sprache
 
-// DEV — restore German with formal "Sie" address for production
-English only in this DEV environment. Always reply in English regardless of what language the customer uses.
+Sprechen Sie ausschließlich Deutsch und verwenden Sie die formelle Anrede „Sie". Sprechen Sie natürlich und warm — kein steifes Bürodeutsch.
+
+Wenn der Kunde ausdrücklich um einen Wechsel zu Englisch bittet, rufen Sie sofort set_language({ language: "en" }) auf und wechseln dann dauerhaft zu Englisch.
 
 # Personality and Tone
 
@@ -247,17 +248,17 @@ ${resumeIndex > 0
   : `Open the conversation warmly and naturally — like a friendly advisor meeting someone for the first time. 2 sentences max, then flow into the first topic.`}`;
 }
 
-// ── Phase 0 AI instruction strings (DEV English) ─────────────────
+// ── Phase 0 AI instruction strings (German) ──────────────────────
 
 const INTRO_INSTRUCTIONS =
-  `You are PecunAI — a warm personal investment advisor. English only (DEV).
-   Welcome the customer in 3–4 natural sentences: introduce yourself, explain that you will guide them through a personalized financial consultation today, and mention that before starting you need them to review and confirm two short regulatory documents. Keep it warm and natural, not corporate.`;
+  `Sie sind PecunAI — ein warmherziger persönlicher Anlageberater. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie".
+   Begrüßen Sie den Kunden in 3–4 natürlichen Sätzen: Stellen Sie sich vor, erklären Sie, dass Sie ihn heute durch eine persönliche Finanzberatung führen werden, und erwähnen Sie, dass er zunächst zwei kurze regulatorische Dokumente lesen und bestätigen muss. Bleiben Sie warm und natürlich — kein formelles Bürodeutsch.`;
 
 const TERMS1_EXPLAIN_INSTRUCTIONS =
-  `You are PecunAI. English only (DEV). In 2–3 sentences: introduce the first document — it is information about 4money, the licensed securities services company conducting this session. Tell the customer to read it at their own pace and tap the confirm button when they are ready. Then stop speaking.`;
+  `Sie sind PecunAI. Sprechen Sie Deutsch mit formeller Anrede „Sie". In 2–3 Sätzen: Stellen Sie das erste Dokument vor — es enthält Informationen über 4money, das lizenzierte Wertpapierdienstleistungsunternehmen, das diese Beratung durchführt. Bitten Sie den Kunden, es in seinem eigenen Tempo zu lesen und auf den Bestätigen-Button zu tippen, wenn er fertig ist. Dann hören Sie auf zu sprechen.`;
 
 const TERMS2_EXPLAIN_INSTRUCTIONS =
-  `You are PecunAI. English only (DEV). In 2–3 sentences: introduce the second document — it is information about froots Asset Management GmbH, the asset manager. Tell the customer to read it and tap confirm when ready. After confirming you will begin the consultation. Then stop speaking.`;
+  `Sie sind PecunAI. Sprechen Sie Deutsch mit formeller Anrede „Sie". In 2–3 Sätzen: Stellen Sie das zweite Dokument vor — es enthält Informationen über die froots Asset Management GmbH, den Vermögensverwalter. Bitten Sie den Kunden, es zu lesen und auf Bestätigen zu tippen. Nach der Bestätigung beginnt die Beratung. Dann hören Sie auf zu sprechen.`;
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -399,6 +400,18 @@ const TOOLS = [
     description: "Call when the customer explicitly wants to go back and change their Phase 1 answers.",
     parameters: { type: "object", properties: {} },
   },
+  {
+    type: "function",
+    name: "set_language",
+    description: "Call this immediately when the customer explicitly asks to switch the conversation language. Supported values: 'de' (German) or 'en' (English). After calling this, continue speaking in the new language.",
+    parameters: {
+      type: "object",
+      properties: {
+        language: { type: "string", enum: ["de", "en"], description: "Target language code" },
+      },
+      required: ["language"],
+    },
+  },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -508,6 +521,8 @@ export function useVoiceSession({
   const skipInProgressRef = useRef(false);
   // Tracks whether the circle-back transition has already been announced this session.
   const circleBackActiveRef = useRef(false);
+  // Active conversation language — starts German, can be switched to English by the customer
+  const langRef = useRef<"de" | "en">("de");
   // Same guard for button-initiated prev — prevents AI from calling navigate("prev") a second time.
   const prevInProgressRef = useRef(false);
   // True while customer is in Phase 1 revisit mode — suppresses auto-advance on submit_answer so
@@ -543,6 +558,14 @@ export function useVoiceSession({
 
   useEffect(() => { questionsRef.current = questions; }, [questions]);
   useEffect(() => { stateRef.current    = state;     }, [state]);
+
+  // Language helpers — read langRef.current at call-time so they always reflect the active language
+  const langTag  = () => langRef.current === "de"
+    ? `Sprechen Sie Deutsch mit formeller Anrede „Sie".`
+    : `English only.`;
+  const qText = (text: string) => langRef.current === "de"
+    ? `Fragen Sie nach dem Thema auf Deutsch — formulieren Sie es gesprächig, lesen Sie nicht wörtlich vor: „${text}".`
+    : `Translate this German question to English — conversational phrasing, not like a questionnaire: "${text}".`;
 
 
   // Keeps activeCardIdRef in sync with state so callbacks can read it without stale closures.
@@ -783,10 +806,10 @@ export function useVoiceSession({
         type: "response.create",
         response: {
           instructions: [
-            `You are PecunAI — a warm investment advisor. English only (DEV).`,
-            `Announce the recommended portfolio "${product.fullName}" — NEVER say the internal code "${product.name}".`,
-            `In 3–4 warm sentences: (1) Name the portfolio. (2) Explain WHY it matches — their investment horizon of ${durationAnswer ?? `${product.from}–${product.to} years`} and ${riskAnswer ?? product.risk} risk profile. (3) Mention the PDF brochure is on screen for them to read, and they can use the arrow buttons below it to page through. (4) Invite any questions — you have the full PDF content available.`,
-            `Keep it natural and warm, not like a sales pitch.`,
+            `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()}`,
+            `Nennen Sie das empfohlene Portfolio „${product.fullName}" — nennen Sie NIEMALS den internen Code „${product.name}".`,
+            `In 3–4 warmen Sätzen: (1) Nennen Sie das Portfolio. (2) Erklären Sie, WARUM es passt — Anlagehorizont von ${durationAnswer ?? `${product.from}–${product.to} Jahren`} und ${riskAnswer ?? product.risk} Risikoprofil. (3) Erwähnen Sie, dass die PDF-Broschüre auf dem Bildschirm zu sehen ist und mit den Pfeil-Buttons geblättert werden kann. (4) Laden Sie zu Fragen ein — Sie haben den vollständigen PDF-Inhalt zur Verfügung.`,
+            `Bleiben Sie natürlich und warm — kein Verkaufsgespräch.`,
           ].join(" "),
         },
       });
@@ -947,8 +970,8 @@ export function useVoiceSession({
               ...(chatOpenRef.current ? { output_modalities: ["text"] as const } : {}),
               ...(firstSkipped ? {
                 instructions: isFirstCircleBack
-                  ? `You are PecunAI — a warm investment advisor, not a form. English only. All main questions are answered. Transition warmly in 1 sentence (e.g. "Great, there are just a couple of topics we skipped earlier — let's go back to those."). Then lead naturally into the topic about ${firstSkipped.category} (ID: ${firstSkipped.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${firstSkipped.text}". Keep it 2–3 sentences total. Ask ONLY about ${firstSkipped.category} (ID: ${firstSkipped.id}). Wait for their answer.`
-                  : `You are PecunAI — a warm investment advisor, not a form. English only. Continue naturally through the skipped topics. Lead into the topic about ${firstSkipped.category} (ID: ${firstSkipped.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${firstSkipped.text}". Keep it 2–3 sentences total. Ask ONLY about ${firstSkipped.category} (ID: ${firstSkipped.id}). Wait for their answer.`,
+                  ? `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Alle Hauptthemen sind beantwortet. Leiten Sie warmherzig in 1 Satz über (z.B. „Gut, da waren noch ein paar Themen, die wir übersprungen hatten — kommen wir kurz darauf zurück."). Führen Sie dann natürlich zum Thema ${firstSkipped.category} (ID: ${firstSkipped.id}) über. ${qText(firstSkipped.text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${firstSkipped.category} (ID: ${firstSkipped.id}). Warten Sie auf die Antwort.`
+                  : `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Fahren Sie natürlich mit den übersprungenen Themen fort. Führen Sie zum Thema ${firstSkipped.category} (ID: ${firstSkipped.id}) über. ${qText(firstSkipped.text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${firstSkipped.category} (ID: ${firstSkipped.id}). Warten Sie auf die Antwort.`,
               } : {}),
             },
           });
@@ -976,7 +999,7 @@ export function useVoiceSession({
           type: "response.create",
           response: {
             ...(chatOpenRef.current ? { output_modalities: ["text"] as const } : {}),
-            ...(remainingQs[0] ? { instructions: `You are PecunAI — a warm investment advisor, not a form. English only. Do exactly two things: (1) React to the customer's last answer in 1 sentence — something genuine about what they said, not a generic transition phrase. Never say "Moving on", "Next question", or reveal any structure. (2) Lead naturally into the topic about ${remainingQs[0].category} (ID: ${remainingQs[0].id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${remainingQs[0].text}". Keep it 2–3 sentences total. Ask ONLY about ${remainingQs[0].category} (ID: ${remainingQs[0].id}). Wait for their answer.` } : {}),
+            ...(remainingQs[0] ? { instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Tun Sie genau zwei Dinge: (1) Reagieren Sie in 1 Satz auf die letzte Antwort des Kunden — etwas Echtes, keine generische Überleitung. Sagen Sie nie „Weiter", „Nächste Frage" oder verraten Sie die Struktur. (2) Leiten Sie natürlich zum Thema ${remainingQs[0].category} (ID: ${remainingQs[0].id}) über. ${qText(remainingQs[0].text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${remainingQs[0].category} (ID: ${remainingQs[0].id}). Warten Sie auf die Antwort.` } : {}),
           },
         });
         return;
@@ -1113,8 +1136,8 @@ export function useVoiceSession({
               ...(chatOpenRef.current ? { output_modalities: ["text"] as const } : {}),
               ...(nextQ ? {
                 instructions: isConfirmAdvance
-                  ? `You are PecunAI — a warm investment advisor, not a form. English only. The customer confirmed their previous answer and wants to move forward. Lead naturally into the next topic about ${nextQ.category} (ID: ${nextQ.id}) — no reaction needed, just a natural transition. Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${nextQ.text}". Keep it 2–3 sentences total. Ask ONLY about ${nextQ.category} (ID: ${nextQ.id}). Wait for their answer.`
-                  : `You are PecunAI — a warm investment advisor, not a form. English only. Acknowledge the skip in 1 natural sentence (e.g. "Of course, we can always come back to that!"). Then lead naturally into the topic about ${nextQ.category} (ID: ${nextQ.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${nextQ.text}". Keep it 2–3 sentences total. Ask ONLY about ${nextQ.category} (ID: ${nextQ.id}). Wait for their answer.`,
+                  ? `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat seine vorherige Antwort bestätigt und möchte weitermachen. Leiten Sie natürlich zum nächsten Thema ${nextQ.category} (ID: ${nextQ.id}) über — keine Reaktion nötig, nur eine natürliche Überleitung. ${qText(nextQ.text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${nextQ.category} (ID: ${nextQ.id}). Warten Sie auf die Antwort.`
+                  : `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Bestätigen Sie das Überspringen in 1 natürlichen Satz (z.B. „Natürlich, kommen wir später darauf zurück!"). Leiten Sie dann natürlich zum Thema ${nextQ.category} (ID: ${nextQ.id}) über. ${qText(nextQ.text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${nextQ.category} (ID: ${nextQ.id}). Warten Sie auf die Antwort.`,
               } : {}),
             },
           });
@@ -1183,6 +1206,14 @@ export function useVoiceSession({
         return;
       }
 
+      if (name === "set_language") {
+        const lang = args.language as "de" | "en";
+        langRef.current = lang;
+        sendResult({ success: true, language: lang });
+        send({ type: "response.create" });
+        return;
+      }
+
       if (name === "revisit_questions") {
         sendResult({ success: true });
         isRevisitingRef.current = true;
@@ -1197,7 +1228,7 @@ export function useVoiceSession({
         send({
           type: "response.create",
           response: {
-            instructions: `You are PecunAI — a warm investment advisor. English only. Acknowledge warmly in 1 sentence. Then ask which question or topic they'd like to revisit or change.`,
+            instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Bestätigen Sie warmherzig in 1 Satz. Fragen Sie dann, welche Frage oder welches Thema der Kunde gerne ändern möchte.`,
           },
         });
         return;
@@ -1673,8 +1704,8 @@ export function useVoiceSession({
         type: "response.create",
         response: firstSkippedTap ? {
           instructions: isFirstCircleBackTap
-            ? `You are PecunAI — a warm investment advisor, not a form. English only. All main questions are answered. Transition warmly in 1 sentence (e.g. "Great, there are just a couple of topics we skipped earlier — let's go back to those."). Then lead naturally into the topic about ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${firstSkippedTap.text}". Keep it 2–3 sentences total. Ask ONLY about ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Wait for their answer.`
-            : `You are PecunAI — a warm investment advisor, not a form. English only. Continue naturally through the skipped topics. Lead into the topic about ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${firstSkippedTap.text}". Keep it 2–3 sentences total. Ask ONLY about ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Wait for their answer.`,
+            ? `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Alle Hauptthemen sind beantwortet. Leiten Sie warmherzig in 1 Satz über. Führen Sie dann natürlich zum Thema ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}) über. ${qText(firstSkippedTap.text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Warten Sie auf die Antwort.`
+            : `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Fahren Sie natürlich mit den übersprungenen Themen fort. Führen Sie zum Thema ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}) über. ${qText(firstSkippedTap.text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Warten Sie auf die Antwort.`,
         } : {},
       });
       return;
@@ -1701,7 +1732,7 @@ export function useVoiceSession({
     send({
       type: "response.create",
       response: remainingQsTap[0] ? {
-        instructions: `You are PecunAI — a warm investment advisor, not a form. English only. Do exactly two things: (1) React to the customer's tapped answer in 1 sentence — something genuine about their choice, not a generic transition. Never say "Moving on", "Next question", or reveal any structure. (2) Lead naturally into the topic about ${remainingQsTap[0].category} (ID: ${remainingQsTap[0].id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${remainingQsTap[0].text}". Keep it 2–3 sentences total. Ask ONLY about ${remainingQsTap[0].category} (ID: ${remainingQsTap[0].id}). Wait for their answer.`,
+        instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Tun Sie genau zwei Dinge: (1) Reagieren Sie in 1 Satz auf die getippte Antwort des Kunden — etwas Echtes über seine Wahl, keine generische Überleitung. Sagen Sie nie „Weiter" oder „Nächste Frage". (2) Leiten Sie natürlich zum Thema ${remainingQsTap[0].category} (ID: ${remainingQsTap[0].id}) über. ${qText(remainingQsTap[0].text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${remainingQsTap[0].category} (ID: ${remainingQsTap[0].id}). Warten Sie auf die Antwort.`,
       } : {},
     });
   }, [saveAnswer, saveVoiceState, advancePhase, send, appendChatMessage]);
@@ -1768,7 +1799,7 @@ export function useVoiceSession({
     send({
       type: "response.create",
       response: nextQ ? {
-        instructions: `You are PecunAI — a warm investment advisor, not a form. English only. Acknowledge the skip in 1 natural sentence (e.g. "Of course, we can always come back to that!"). Then lead naturally into the topic about ${nextQ.category} (ID: ${nextQ.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${nextQ.text}". Keep it 2–3 sentences total. Ask ONLY about ${nextQ.category} (ID: ${nextQ.id}). Wait for their answer.`,
+        instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Bestätigen Sie das Überspringen in 1 natürlichen Satz (z.B. „Natürlich, kommen wir später darauf zurück!"). Leiten Sie dann natürlich zum Thema ${nextQ.category} (ID: ${nextQ.id}) über. ${qText(nextQ.text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${nextQ.category} (ID: ${nextQ.id}). Warten Sie auf die Antwort.`,
       } : {},
     });
   }, [send]);
@@ -1877,7 +1908,7 @@ export function useVoiceSession({
         send({
           type: "response.create",
           response: nextToAsk ? {
-            instructions: `You are PecunAI — a warm investment advisor, not a form. English only. Welcome them back to the voice conversation in 1 warm sentence. Then lead naturally into the topic about ${nextToAsk.category} (ID: ${nextToAsk.id}). Translate this German question to English — exact topic, conversational phrasing, not like a questionnaire: "${nextToAsk.text}". Keep it 2–3 sentences total. Ask ONLY about ${nextToAsk.category} (ID: ${nextToAsk.id}). Wait for their answer.`,
+            instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Begrüßen Sie den Kunden warmherzig zurück im Gespräch in 1 Satz. Leiten Sie dann natürlich zum Thema ${nextToAsk.category} (ID: ${nextToAsk.id}) über. ${qText(nextToAsk.text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${nextToAsk.category} (ID: ${nextToAsk.id}). Warten Sie auf die Antwort.`,
           } : {},
         });
       }
@@ -1903,7 +1934,7 @@ export function useVoiceSession({
     send({
       type: "response.create",
       response: {
-        instructions: `You are PecunAI — a warm investment advisor. English only. Customer tapped to go back. Acknowledge warmly in 1 sentence, then ask which question or topic they'd like to revisit.`,
+        instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat auf Zurück getippt. Bestätigen Sie warmherzig in 1 Satz und fragen Sie, welches Thema er ändern möchte.`,
       },
     });
   }, [send]);
