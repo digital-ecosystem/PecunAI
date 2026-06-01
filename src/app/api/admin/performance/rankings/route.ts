@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAdmin, buildDateWhere, isCompleted, sumVolumes, SessionStatus } from '../_lib';
+import { requireAdmin, buildSessionWhere, isCompleted, sumVolumes, SessionStatus } from '../_lib';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin();
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const dateWhere = buildDateWhere(searchParams.get('from'), searchParams.get('to'));
+    const sessionFilter = buildSessionWhere({ from: searchParams.get('from'), to: searchParams.get('to') });
 
     const [rawTeams, rawAdvisors, rawAgents] = await Promise.all([
       prisma.team.findMany({
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
           members: {
             select: {
               qaSessions: {
-                where: dateWhere,
+                where: sessionFilter,
                 select: { status: true, oneTimeVolume: true, recurringVolume: true },
               },
             },
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         include: {
           team: { select: { name: true } },
           qaSessions: {
-            where: dateWhere,
+            where: sessionFilter,
             select: { status: true, oneTimeVolume: true, recurringVolume: true },
           },
         },
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         where: { isActive: true },
         include: {
           qaSessions: {
-            where: dateWhere,
+            where: sessionFilter,
             select: { status: true, oneTimeVolume: true, recurringVolume: true },
           },
         },

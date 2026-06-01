@@ -50,6 +50,7 @@ export function buildSessionWhere(params: {
 }) {
   const { from, to, teamId, partnerId, agentId } = params;
   return {
+    excludedFromReport: false,
     ...buildDateWhere(from, to),
     ...(teamId ? { partner: { teamId } } : {}),
     ...(partnerId ? { partnerId } : {}),
