@@ -1,3 +1,10 @@
+export interface Agent {
+  id: string
+  firstName: string
+  lastName: string
+  agentCode: string
+}
+
 export interface Session {
   id: string
   userId: string
@@ -7,6 +14,8 @@ export interface Session {
   updatedAt: string
   partnerId?: string
   referralCode?: string
+  agentId?: string | null
+  agent?: Agent | null
   user: User
   answers?: Answer[]
   personalInfo?: PersonalInfo | null

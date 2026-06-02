@@ -93,7 +93,6 @@ export default function Chatbot({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [isRecording, setIsRecording] = useState(false)
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const [permissionDenied, setPermissionDenied] = useState(false)
   const [audioUploading, setAudioUploading] = useState(false)
   const [audioUploadProgress, setAudioUploadProgress] = useState<number | null>(null)
@@ -186,228 +185,228 @@ export default function Chatbot({
     }
   }
 
-  const toggleRecording = async () => {
-    if (isRecording) {
-      // Stop recording
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop()
-        } catch (error) {
-          console.log('Error stopping speech recognition:', error)
-        }
-      }
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        try {
-          mediaRecorder.stop()
-        } catch (error) {
-          console.log('Error stopping media recorder:', error)
-        }
-      }
-      // Stop all audio tracks
-      if (audioStreamRef.current) {
-        audioStreamRef.current.getTracks().forEach(track => {
-          track.stop()
-        })
-        audioStreamRef.current = null
-      }
-      setIsRecording(false)
-    } else {
-      // Start recording
-      try {
-        // Check if microphone permission was previously denied
-        if (navigator.permissions && navigator.permissions.query) {
-          try {
-            const permissionResult = await navigator.permissions.query({ name: 'microphone' as PermissionName })
-            console.log("🚀 ~ toggleRecording ~ permissionResult:", permissionResult)
+  // const toggleRecording = async () => {
+  //   if (isRecording) {
+  //     // Stop recording
+  //     if (recognitionRef.current) {
+  //       try {
+  //         recognitionRef.current.stop()
+  //       } catch (error) {
+  //         console.log('Error stopping speech recognition:', error)
+  //       }
+  //     }
+  //     if (mediaRecorder && mediaRecorder.state === 'recording') {
+  //       try {
+  //         mediaRecorder.stop()
+  //       } catch (error) {
+  //         console.log('Error stopping media recorder:', error)
+  //       }
+  //     }
+  //     // Stop all audio tracks
+  //     if (audioStreamRef.current) {
+  //       audioStreamRef.current.getTracks().forEach(track => {
+  //         track.stop()
+  //       })
+  //       audioStreamRef.current = null
+  //     }
+  //     setIsRecording(false)
+  //   } else {
+  //     // Start recording
+  //     try {
+  //       // Check if microphone permission was previously denied
+  //       if (navigator.permissions && navigator.permissions.query) {
+  //         try {
+  //           const permissionResult = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+  //           console.log("🚀 ~ toggleRecording ~ permissionResult:", permissionResult)
 
-            // Only block if permission is explicitly denied
-            if (permissionResult.state === 'denied') {
-              setPermissionDenied(true)
-              alert(
-                'Mikrofonzugriff verweigert.\n\n' +
-                'Bitte erlauben Sie den Mikrofonzugriff in Ihren Browser-Einstellungen:\n\n' +
-                'iOS Safari:\n' +
-                '1. Öffnen Sie Einstellungen > Safari\n' +
-                '2. Scrollen Sie zu "Einstellungen für Websites"\n' +
-                '3. Tippen Sie auf "Mikrofon"\n' +
-                '4. Wählen Sie "Erlauben"\n\n' +
-                'Chrome/Firefox:\n' +
-                '1. Tippen Sie auf das Schloss-Symbol in der Adressleiste\n' +
-                '2. Aktivieren Sie "Mikrofon"\n' +
-                '3. Laden Sie die Seite neu'
-              )
-              return
-            }
-            // If state is 'granted' or 'prompt', continue to getUserMedia
-          } catch {
-            // Permissions API not supported, continue with getUserMedia
-            console.log('Permissions API not supported, attempting direct access')
-          }
-        }
+  //           // Only block if permission is explicitly denied
+  //           if (permissionResult.state === 'denied') {
+  //             setPermissionDenied(true)
+  //             alert(
+  //               'Mikrofonzugriff verweigert.\n\n' +
+  //               'Bitte erlauben Sie den Mikrofonzugriff in Ihren Browser-Einstellungen:\n\n' +
+  //               'iOS Safari:\n' +
+  //               '1. Öffnen Sie Einstellungen > Safari\n' +
+  //               '2. Scrollen Sie zu "Einstellungen für Websites"\n' +
+  //               '3. Tippen Sie auf "Mikrofon"\n' +
+  //               '4. Wählen Sie "Erlauben"\n\n' +
+  //               'Chrome/Firefox:\n' +
+  //               '1. Tippen Sie auf das Schloss-Symbol in der Adressleiste\n' +
+  //               '2. Aktivieren Sie "Mikrofon"\n' +
+  //               '3. Laden Sie die Seite neu'
+  //             )
+  //             return
+  //           }
+  //           // If state is 'granted' or 'prompt', continue to getUserMedia
+  //         } catch {
+  //           // Permissions API not supported, continue with getUserMedia
+  //           console.log('Permissions API not supported, attempting direct access')
+  //         }
+  //       }
 
-        // Try Speech Recognition first (better for voice-to-text on supported browsers)
-        if (recognitionRef.current) {
-          // Try to start SpeechRecognition and keep going to also start MediaRecorder
-          try {
-            recognitionRef.current.start()
-            setPermissionDenied(false)
-            // keep isRecording true only after MediaRecorder starts or immediately for UI feedback
-            setIsRecording(true)
-            // Continue to start MediaRecorder as well so we capture audio for upload
-          } catch (speechError) {
-            console.log('Speech Recognition failed, will try MediaRecorder only:', speechError)
-          }
-        }
+  //       // Try Speech Recognition first (better for voice-to-text on supported browsers)
+  //       if (recognitionRef.current) {
+  //         // Try to start SpeechRecognition and keep going to also start MediaRecorder
+  //         try {
+  //           recognitionRef.current.start()
+  //           setPermissionDenied(false)
+  //           // keep isRecording true only after MediaRecorder starts or immediately for UI feedback
+  //           setIsRecording(true)
+  //           // Continue to start MediaRecorder as well so we capture audio for upload
+  //         } catch (speechError) {
+  //           console.log('Speech Recognition failed, will try MediaRecorder only:', speechError)
+  //         }
+  //       }
 
-        // Fallback to MediaRecorder (works better on iOS)
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-            }
-          })
+  //       // Fallback to MediaRecorder (works better on iOS)
+  //       try {
+  //         const stream = await navigator.mediaDevices.getUserMedia({
+  //           audio: {
+  //             echoCancellation: true,
+  //             noiseSuppression: true,
+  //             autoGainControl: true,
+  //           }
+  //         })
 
-          audioStreamRef.current = stream
-          setPermissionDenied(false)
+  //         audioStreamRef.current = stream
+  //         setPermissionDenied(false)
 
-          const recorder = new MediaRecorder(stream)
-          const audioChunks: BlobPart[] = []
+  //         const recorder = new MediaRecorder(stream)
+  //         const audioChunks: BlobPart[] = []
 
-          recorder.ondataavailable = (event) => {
-            if (event.data.size > 0) {
-              audioChunks.push(event.data)
-            }
-          }
+  //         recorder.ondataavailable = (event) => {
+  //           if (event.data.size > 0) {
+  //             audioChunks.push(event.data)
+  //           }
+  //         }
 
-          recorder.onstop = async () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
+  //         recorder.onstop = async () => {
+  //           const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
 
-            // Stop all tracks
-            stream.getTracks().forEach(track => track.stop())
+  //           // Stop all tracks
+  //           stream.getTracks().forEach(track => track.stop())
 
-            // Upload audio file and transcribe
-            await uploadAndTranscribeAudio(audioBlob)
-          }
+  //           // Upload audio file and transcribe
+  //           await uploadAndTranscribeAudio(audioBlob)
+  //         }
 
-          recorder.onerror = (event) => {
-            console.log('MediaRecorder error:', event)
-            alert('Fehler beim Aufnehmen. Bitte versuchen Sie es erneut.')
-            stream.getTracks().forEach(track => track.stop())
-            setIsRecording(false)
-          }
+  //         recorder.onerror = (event) => {
+  //           console.log('MediaRecorder error:', event)
+  //           alert('Fehler beim Aufnehmen. Bitte versuchen Sie es erneut.')
+  //           stream.getTracks().forEach(track => track.stop())
+  //           setIsRecording(false)
+  //         }
 
-          recorder.start()
-          setMediaRecorder(recorder)
-          // Ensure recording UI is active (keeps or sets it)
-          setIsRecording(true)
-        } catch (error) {
-          setPermissionDenied(true)
-          console.log('Error accessing microphone:', error)
+  //         recorder.start()
+  //         setMediaRecorder(recorder)
+  //         // Ensure recording UI is active (keeps or sets it)
+  //         setIsRecording(true)
+  //       } catch (error) {
+  //         setPermissionDenied(true)
+  //         console.log('Error accessing microphone:', error)
 
-          // Provide specific error messages
-          const err = error as { name?: string; message?: string }
-          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-            alert(
-              'Mikrofonzugriff verweigert.\n\n' +
-              'Um Sprachaufnahmen zu nutzen, müssen Sie den Mikrofonzugriff erlauben.\n\n' +
-              'Bitte aktualisieren Sie die Berechtigung in Ihren Browser-Einstellungen und laden Sie die Seite neu.'
-            )
-          } else if (err.name === 'NotFoundError') {
-            alert('Kein Mikrofon gefunden. Bitte überprüfen Sie, ob ein Mikrofon angeschlossen ist.')
-          } else if (err.name === 'NotReadableError') {
-            alert('Mikrofon wird bereits von einer anderen Anwendung verwendet.')
-          } else {
-            alert('Fehler beim Zugriff auf das Mikrofon. Bitte versuchen Sie es erneut.')
-          }
-        }
-      } catch (error) {
-        setIsRecording(false)
-        console.log('Unexpected error in toggleRecording:', error)
-        alert('Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.')
-      }
-    }
-  }
+  //         // Provide specific error messages
+  //         const err = error as { name?: string; message?: string }
+  //         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+  //           alert(
+  //             'Mikrofonzugriff verweigert.\n\n' +
+  //             'Um Sprachaufnahmen zu nutzen, müssen Sie den Mikrofonzugriff erlauben.\n\n' +
+  //             'Bitte aktualisieren Sie die Berechtigung in Ihren Browser-Einstellungen und laden Sie die Seite neu.'
+  //           )
+  //         } else if (err.name === 'NotFoundError') {
+  //           alert('Kein Mikrofon gefunden. Bitte überprüfen Sie, ob ein Mikrofon angeschlossen ist.')
+  //         } else if (err.name === 'NotReadableError') {
+  //           alert('Mikrofon wird bereits von einer anderen Anwendung verwendet.')
+  //         } else {
+  //           alert('Fehler beim Zugriff auf das Mikrofon. Bitte versuchen Sie es erneut.')
+  //         }
+  //       }
+  //     } catch (error) {
+  //       setIsRecording(false)
+  //       console.log('Unexpected error in toggleRecording:', error)
+  //       alert('Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.')
+  //     }
+  //   }
+  // }
 
-  const uploadAndTranscribeAudio = async (audioBlob: Blob) => {
-    setAudioUploading(true)
-    setAudioUploadProgress(0)
-    try {
-      const formData = new FormData()
-      formData.append('audio', audioBlob)
-      formData.append('threadId', threadId || 'default')
+  // const uploadAndTranscribeAudio = async (audioBlob: Blob) => {
+  //   setAudioUploading(true)
+  //   setAudioUploadProgress(0)
+  //   try {
+  //     const formData = new FormData()
+  //     formData.append('audio', audioBlob)
+  //     formData.append('threadId', threadId || 'default')
 
-      // include sessionId so server stores audio under session folder
-      if (sessionId) {
-        formData.append('sessionId', sessionId)
-      }
+  //     // include sessionId so server stores audio under session folder
+  //     if (sessionId) {
+  //       formData.append('sessionId', sessionId)
+  //     }
 
-      // Upload audio file via XHR to track progress
-      const uploadData = await new Promise<{ audioFileId: string }>((resolve, reject) => {
-        try {
-          const xhr = new XMLHttpRequest()
-          xhr.open('POST', '/api/audio/upload')
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const json = JSON.parse(xhr.responseText)
-                resolve(json as { audioFileId: string })
-              } catch (parseErr) {
-                reject(parseErr)
-              }
-            } else {
-              reject(new Error(`Upload failed with status ${xhr.status}`))
-            }
-          }
-          xhr.onerror = () => reject(new Error('Network error during upload'))
-          xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-              const percent = Math.round((event.loaded / event.total) * 100)
-              setAudioUploadProgress(percent)
-            }
-          }
-          xhr.send(formData)
-        } catch (err) {
-          reject(err)
-        }
-      })
+  //     // Upload audio file via XHR to track progress
+  //     const uploadData = await new Promise<{ audioFileId: string }>((resolve, reject) => {
+  //       try {
+  //         const xhr = new XMLHttpRequest()
+  //         xhr.open('POST', '/api/audio/upload')
+  //         xhr.onload = () => {
+  //           if (xhr.status >= 200 && xhr.status < 300) {
+  //             try {
+  //               const json = JSON.parse(xhr.responseText)
+  //               resolve(json as { audioFileId: string })
+  //             } catch (parseErr) {
+  //               reject(parseErr)
+  //             }
+  //           } else {
+  //             reject(new Error(`Upload failed with status ${xhr.status}`))
+  //           }
+  //         }
+  //         xhr.onerror = () => reject(new Error('Network error during upload'))
+  //         xhr.upload.onprogress = (event) => {
+  //           if (event.lengthComputable) {
+  //             const percent = Math.round((event.loaded / event.total) * 100)
+  //             setAudioUploadProgress(percent)
+  //           }
+  //         }
+  //         xhr.send(formData)
+  //       } catch (err) {
+  //         reject(err)
+  //       }
+  //     })
 
-      const audioFileId = uploadData.audioFileId
-      // mark upload complete
-      setAudioUploadProgress(100)
+  //     const audioFileId = uploadData.audioFileId
+  //     // mark upload complete
+  //     setAudioUploadProgress(100)
 
-      // Audio file has been uploaded and message appears in chat immediately
-      // Clear input field and loading state so user sees message appeared
-      if (setInput) {
-        setInput('')
-      }
+  //     // Audio file has been uploaded and message appears in chat immediately
+  //     // Clear input field and loading state so user sees message appeared
+  //     if (setInput) {
+  //       setInput('')
+  //     }
 
-      // Clear live transcript
-      setLiveTranscript('')
+  //     // Clear live transcript
+  //     setLiveTranscript('')
 
-      // Trigger parent component to refresh messages - this makes the audio message appear
-      if (onAudioProcessed) {
-        onAudioProcessed()
-      }
+  //     // Trigger parent component to refresh messages - this makes the audio message appear
+  //     if (onAudioProcessed) {
+  //       onAudioProcessed()
+  //     }
 
-      // Clear loading UI state immediately after message appears
-      setAudioUploading(false)
-      setAudioUploadProgress(null)
+  //     // Clear loading UI state immediately after message appears
+  //     setAudioUploading(false)
+  //     setAudioUploadProgress(null)
 
-      // Now handle transcription and AI response in the background
-      // Start background processing without blocking the UI
-      processAudioInBackground(audioFileId)
+  //     // Now handle transcription and AI response in the background
+  //     // Start background processing without blocking the UI
+  //     processAudioInBackground(audioFileId)
 
-      // Log success for debugging
-      console.log('Audio uploaded successfully. Processing in background...')
-    } catch (error) {
-      console.error('Error uploading audio:', error)
-      alert('Fehler beim Verarbeiten der Audioaufnahme. Bitte versuchen Sie es erneut.')
-      setAudioUploading(false)
-      setAudioUploadProgress(null)
-    }
-  }
+  //     // Log success for debugging
+  //     console.log('Audio uploaded successfully. Processing in background...')
+  //   } catch (error) {
+  //     console.error('Error uploading audio:', error)
+  //     alert('Fehler beim Verarbeiten der Audioaufnahme. Bitte versuchen Sie es erneut.')
+  //     setAudioUploading(false)
+  //     setAudioUploadProgress(null)
+  //   }
+  // }
 
   const processAudioInBackground = async (audioFileId: string) => {
     try {

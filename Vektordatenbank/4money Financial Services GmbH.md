@@ -113,13 +113,13 @@ Seit 2025 wird dieser Prozess schrittweise über **digitale Onboarding-Lösungen
 | **Externe Produktkosten (TER)** | ETF-Kosten innerhalb der Produkte | ca. 0,17 % p.a. |
 | **Transaktionsspesen** | 50 Transaktionen pro Jahr kostenfrei, danach 2,40 € je Transaktion | ≈ 0,02 % p.a. |
 | **Servicegebühr (4money)** | Laufendes Beratungshonorar auf Depotwert | 1,11 % p.a. |
-| **Einmalige Set-Up-Fee** | Vermittlungsgebühr bei Erstabschluss (je nach Modell) | bis zu 5 % Einmalbetrag oder 2,5× Monatsrate |
+| **Einmalige Set-Up-Fee** | Vermittlungsgebühr bei Erstabschluss (je nach Modell) | bis zu 5 % Einmalbetrag oder 3× Monatsrate |
 
 **Gesamtkosten (typisch):**  
 ≈ 2,0 % bis 2,2 % pro Jahr inklusive aller Komponenten.
 
 ### 2. Beratervergütung (4money-Partner)
-- **Einmalige Set-Up-Fee:** bis zu 5 % bei Einmalveranlagungen, bzw. 2,5× Monatsrate bei Sparplänen  
+- **Einmalige Set-Up-Fee:** bis zu 5 % bei Einmalveranlagungen, bzw. 3× Monatsrate bei Sparplänen  
 - **Laufende Servicegebühr:** 1,11 % p.a. vom Depotwert  
 - **Zusätzliche Provisionen:** Abschluss- und Folgeprovisionen aus den Produktkosten bis 1,2 % p.a.
 

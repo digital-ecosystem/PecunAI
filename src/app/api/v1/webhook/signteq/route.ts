@@ -4,13 +4,11 @@ import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { prisma } from '@/lib/prisma';
 import { CONFIG } from '@/config/constants';
-import crypto from 'crypto';
 import { downloadLegtitationPDF } from '@/utils/downloadVerfiyPersonPDF';
 import { createAdviosrSignTeqRequest } from '@/utils/adviosrRequest';
 
 const SIGNTEQ_API_TOKEN = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_API_KEY_PRO || '' : process.env.SIGNTEQ_API_KEY_DEV || '';
 const SIGNTEQ_ORG_ID = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_ORG_ID_PRO || '' : process.env.SIGNTEQ_ORG_ID_DEV || '';
-const SIGNTEQ_WEBHOOK_SECRET = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_WEBHOOK_SECRET_PRO || '' : process.env.SIGNTEQ_WEBHOOK_SECRET_DEV || '';
 
 type SignTeqWebhookPayload = {
 	event?: string;
@@ -30,29 +28,29 @@ export async function GET() {
 	return NextResponse.json({ success: true });
 }
 
-function verifyWebhookSignature(payload: string, signature: string | null): boolean {
-	if (!signature) {
-		console.warn('⚠️ Webhook: No signature header provided');
-		return false;
-	}
+// function verifyWebhookSignature(payload: string, signature: string | null): boolean {
+// 	if (!signature) {
+// 		console.warn('⚠️ Webhook: No signature header provided');
+// 		return false;
+// 	}
 
-	if (!SIGNTEQ_WEBHOOK_SECRET) {
-		console.warn('⚠️ Webhook: No webhook secret configured');
-		return false;
-	}
+// 	if (!SIGNTEQ_WEBHOOK_SECRET) {
+// 		console.warn('⚠️ Webhook: No webhook secret configured');
+// 		return false;
+// 	}
 
-	try {
-		const expectedSignature = crypto
-			.createHmac('sha256', SIGNTEQ_WEBHOOK_SECRET)
-			.update(payload)
-			.digest('hex');
+// 	try {
+// 		const expectedSignature = crypto
+// 			.createHmac('sha256', SIGNTEQ_WEBHOOK_SECRET)
+// 			.update(payload)
+// 			.digest('hex');
 
-		return signature === expectedSignature;
-	} catch (error) {
-		console.error('❌ Webhook: Signature verification error:', error);
-		return false;
-	}
-}
+// 		return signature === expectedSignature;
+// 	} catch (error) {
+// 		console.error('❌ Webhook: Signature verification error:', error);
+// 		return false;
+// 	}
+// }
 
 async function resolveQaSessionIdFromWorkflowState(input: {
 	requestId?: string;

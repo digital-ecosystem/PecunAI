@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { SessionStatus } from "@/types";
-import { logger } from "@/lib/logger";
 import { handleApiError } from "@/lib/api-error";
 
 export async function POST(request: Request) {

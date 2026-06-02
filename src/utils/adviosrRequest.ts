@@ -1,8 +1,6 @@
 import axios from 'axios';
 import { prisma } from '@/lib/prisma';
 import { CONFIG } from "@/config/constants";
-import fs from 'fs/promises';
-import { request } from 'https';
 
 const SIGNTEQ_API_TOKEN = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_API_KEY_PRO || '' : process.env.SIGNTEQ_API_KEY_DEV || '';
 const SIGNTEQ_ORG_ID = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_ORG_ID_PRO || '' : process.env.SIGNTEQ_ORG_ID_DEV || '';
