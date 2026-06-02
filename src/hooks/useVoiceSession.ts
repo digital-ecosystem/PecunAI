@@ -761,38 +761,22 @@ export function useVoiceSession({
         body: JSON.stringify({ sessionId, productId: product.id }),
       }).catch(() => console.warn("[voice] chat/init skipped — no Thread for this session"));
 
-      // Extract PDF text page-by-page so AI can answer section-specific questions
-      let pdfPages: string[] = [];
-      try {
-        const cleanName = product.fileName.replace(/^\/products\//, "");
-        const textRes   = await fetch(`/api/products/text/${cleanName}`);
-        if (textRes.ok) {
-          const textJson = await textRes.json() as { pages?: string[] };
-          pdfPages = textJson.pages ?? [];
-        }
-      } catch {
-        // PDF extraction is best-effort — proceed without it
-      }
-
       setProductSuggestion(product);
       setVoicePhase(2);
 
-      const pdfSection = pdfPages.length > 0
-        ? `\nPDF content (page by page — use this to answer section-specific questions):\n` +
-          pdfPages.map((text, i) => `[Page ${i + 1}]\n${text}`).join("\n\n")
-        : "";
+      // Cap the product prompt to avoid oversized WebSocket frames through proxies
+      const productPrompt = (product.aiSettings?.prompt ?? "").slice(0, 3000);
 
       const systemMsg = [
         `[SYSTEM: Phase 1 complete. Recommended portfolio: "${product.fullName}".`,
         `Investment horizon answered: ${durationAnswer ?? "unknown"}. Risk tolerance answered: ${riskAnswer ?? "unknown"}.`,
-        `Product knowledge base:\n${product.aiSettings?.prompt ?? ""}`,
-        pdfSection,
+        `Product knowledge base:\n${productPrompt}`,
         `Your role now:`,
         `1. Announce "${product.fullName}" by public name only — NEVER say "${product.name}"`,
         `2. Explain WHY it was recommended based on the customer's answers (horizon + risk)`,
         `3. Tell the customer the full PDF brochure is visible on screen — invite them to read it`,
         `4. Mention there are navigation buttons (← →) below the PDF to page through it`,
-        `5. Answer customer questions — you can reference specific pages/sections from the PDF content above`,
+        `5. Answer customer questions using the product knowledge base above`,
         `6. When customer confirms: call confirm_product()`,
         `7. If customer wants to revisit Phase 1: call revisit_questions()]`,
       ].join("\n");
@@ -808,7 +792,7 @@ export function useVoiceSession({
           instructions: [
             `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()}`,
             `Nennen Sie das empfohlene Portfolio „${product.fullName}" — nennen Sie NIEMALS den internen Code „${product.name}".`,
-            `In 3–4 warmen Sätzen: (1) Nennen Sie das Portfolio. (2) Erklären Sie, WARUM es passt — Anlagehorizont von ${durationAnswer ?? `${product.from}–${product.to} Jahren`} und ${riskAnswer ?? product.risk} Risikoprofil. (3) Erwähnen Sie, dass die PDF-Broschüre auf dem Bildschirm zu sehen ist und mit den Pfeil-Buttons geblättert werden kann. (4) Laden Sie zu Fragen ein — Sie haben den vollständigen PDF-Inhalt zur Verfügung.`,
+            `In 3–4 warmen Sätzen: (1) Nennen Sie das Portfolio. (2) Erklären Sie, WARUM es passt — Anlagehorizont von ${durationAnswer ?? `${product.from}–${product.to} Jahren`} und ${riskAnswer ?? product.risk} Risikoprofil. (3) Erwähnen Sie, dass die PDF-Broschüre auf dem Bildschirm zu sehen ist und mit den Pfeil-Buttons geblättert werden kann. (4) Laden Sie zu Fragen ein.`,
             `Bleiben Sie natürlich und warm — kein Verkaufsgespräch.`,
           ].join(" "),
         },
@@ -1298,12 +1282,11 @@ export function useVoiceSession({
             type: "session.update",
             session: {
               type:              "realtime",
-              model:             "gpt-realtime-2",
+              model:             "gpt-realtime-1.5",
               output_modalities: ["audio"],
               instructions:      buildSystemPrompt(questionsRef.current, initialIndexRef.current, micGrantedRef.current),
               tools:             TOOLS,
               tool_choice:       "auto",
-              reasoning:         { effort: "minimal" },
               audio: {
                 input: {
                   format: { type: "audio/pcm", rate: 24000 },
