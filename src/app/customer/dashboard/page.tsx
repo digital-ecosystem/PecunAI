@@ -44,6 +44,8 @@ const Dashboard = () => {
     const [isLoadingSessions, setIsLoadingSessions] = useState(false);
     const [allSessionsForStats, setAllSessionsForStats] = useState<Session[]>([]);
     const drawerScrollRef = useRef<HTMLDivElement>(null);
+    const [blockedSessionModal, setBlockedSessionModal] = useState<{ id: string } | null>(null);
+    const [isDeletingSession, setIsDeletingSession] = useState(false);
 
     const getCookieValue = (name: string) => {
         if (typeof document === 'undefined') return '';
@@ -431,7 +433,7 @@ const Dashboard = () => {
                                                         Sie haben bereits eine offene Beratung. Bitte zuerst abschließen.
                                                     </p>
                                                     <button
-                                                        onClick={() => router.push('/customer/stepper/' + openSession.id)}
+                                                        onClick={() => setBlockedSessionModal({ id: openSession.id })}
                                                         className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                                                     >
                                                         Fortsetzen
@@ -712,7 +714,7 @@ const Dashboard = () => {
                                                         {sessions.map((session) => (
                                                             <tr key={session.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
                                                                 if (session.status === SessionStatus.DRAFT) {
-                                                                    router.push(`/customer/stepper/${session.id}`);
+                                                                    setBlockedSessionModal({ id: session.id });
                                                                 }
                                                             }}>
                                                                 <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
@@ -765,7 +767,7 @@ const Dashboard = () => {
                                                 {sessions.map((session) => (
                                                     <div key={session.id} className="p-4 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
                                                         if (session.status === SessionStatus.DRAFT) {
-                                                            router.push(`/customer/stepper/${session.id}`);
+                                                            setBlockedSessionModal({ id: session.id });
                                                         }
                                                     }}>
                                                         <div className="flex items-start space-x-3">
@@ -891,7 +893,7 @@ const Dashboard = () => {
                             {/* Floating Action Button */}
                             <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
                                 <button
-                                    onClick={openSession?.id ? () => router.push('/customer/stepper/' + openSession.id) : handleStartNow}
+                                    onClick={openSession?.id ? () => setBlockedSessionModal({ id: openSession.id }) : handleStartNow}
                                     className={
                                         'px-4 py-3 sm:px-6 sm:py-3 rounded-full shadow-lg transition-all duration-200 text-sm sm:text-base font-medium ' +
                                         (!openSession?.id
@@ -913,6 +915,62 @@ const Dashboard = () => {
                     </React.Fragment>
                 )
             }
+
+        {/* V2 session blocked modal */}
+        {blockedSessionModal && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={() => setBlockedSessionModal(null)}>
+                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+                <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8" onClick={e => e.stopPropagation()}>
+                    {/* Icon */}
+                    <div className="flex items-center justify-center w-14 h-14 rounded-full bg-blue-50 mx-auto mb-5">
+                        <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                    </div>
+
+                    <h2 className="text-lg font-semibold text-gray-900 text-center mb-3">
+                        Diese Funktion wird noch entwickelt
+                    </h2>
+
+                    <p className="text-sm text-gray-600 text-center leading-relaxed mb-2">
+                        Wir arbeiten intensiv an PecunAI V2 und der vollständigen Sitzungsübersicht. Diese Funktion steht in Kürze zur Verfügung.
+                    </p>
+                    <p className="text-sm text-gray-600 text-center leading-relaxed mb-6">
+                        Wenn Sie PecunAI V2 erneut testen möchten, müssen Sie diese Sitzung zunächst löschen — danach können Sie direkt eine neue Beratung starten.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                            onClick={() => setBlockedSessionModal(null)}
+                            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                            Abbrechen
+                        </button>
+                        <button
+                            disabled={isDeletingSession}
+                            onClick={async () => {
+                                setIsDeletingSession(true);
+                                try {
+                                    const res = await fetch(`/api/qa-session/${blockedSessionModal.id}`, { method: 'DELETE' });
+                                    if (res.ok) {
+                                        setBlockedSessionModal(null);
+                                        // Refresh the session lists
+                                        setSessions([]);
+                                        setAllSessionsForStats([]);
+                                        window.location.reload();
+                                    }
+                                } finally {
+                                    setIsDeletingSession(false);
+                                }
+                            }}
+                            className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isDeletingSession ? 'Wird gelöscht…' : 'Sitzung löschen'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
 
         </>
     );
