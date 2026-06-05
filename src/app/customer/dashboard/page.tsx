@@ -259,7 +259,7 @@ const Dashboard = () => {
         });
     };
 
-    const startSessionV2 = async (opts?: { partnerCode?: string }) => {
+    const startSessionV2 = async (opts?: { partnerCode?: string; agentCode?: string }) => {
         setStartError(null);
         setLoading(true);
         let didNavigate = false;
@@ -271,6 +271,14 @@ const Dashboard = () => {
             });
             const res = await response.json();
             if (res?.success && res?.session?.id) {
+                // Assign agent code if provided (same as V1 flow)
+                if (opts?.agentCode) {
+                    await fetch('/api/qa-session/agent', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sessionId: res.session.id, agentCode: opts.agentCode }),
+                    }).catch(() => console.warn('[v2] agent code assignment failed'));
+                }
                 setIsStartDrawerOpen(false);
                 didNavigate = true;
                 router.push('/customer/voice-session/' + res.session.id);
@@ -286,9 +294,14 @@ const Dashboard = () => {
 
     const handleWelcomeContinueV2 = async () => {
         const queuedPartnerCode = pendingStartPartnerCode;
+        const queuedAgentCode   = pendingStartAgentCode;
         setShowOnboardingWelcomePopup(false);
         setPendingStartPartnerCode(null);
-        await startSessionV2(queuedPartnerCode ? { partnerCode: queuedPartnerCode } : undefined);
+        setPendingStartAgentCode(null);
+        await startSessionV2({
+            ...(queuedPartnerCode ? { partnerCode: queuedPartnerCode } : {}),
+            ...(queuedAgentCode   ? { agentCode:   queuedAgentCode   } : {}),
+        });
     };
 
     const handleLookupBoth = async () => {

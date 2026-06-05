@@ -93,20 +93,26 @@ function base64ToPCM16AudioBuffer(base64: string, ctx: AudioContext): AudioBuffe
 
 // DEV: English for testing. For production restore German: "Sprechen Sie ausschließlich Deutsch, formelle Anrede „Sie""
 function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, micGranted: boolean | null): string {
-  const list = questions.map((q, i) => {
-    let extra = "";
-    if (q.options?.length) {
-      extra = `\n  Valid values: ${q.options.map(o => `"${o.value ?? o.label}"`).join(", ")}`;
-    } else if (q.questionType === "number") {
-      const min = q.minValue !== undefined ? `, min ${q.minValue}` : "";
-      const max = q.maxValue !== undefined ? `, max ${q.maxValue}` : "";
-      extra = `\n  Format: number${min}${max}`;
-    } else {
-      extra = `\n  Format: free text`;
-    }
-    const skipped = i < resumeIndex ? "  ← already collected — skip" : "";
-    return `[${i + 1}]${skipped}\nID: ${q.id}\nTopic: ${q.category}\nContext (what you need to find out — rephrase naturally, do NOT read this verbatim): ${q.text}${extra}`;
-  }).join("\n\n");
+  const list = questions
+    .filter(q => q.questionOrder === undefined || q.questionOrder % 1 === 0) // exclude sub-questions (12.1, 13.1, 14.1) — injected dynamically via SYSTEM message
+    .map((q, i) => {
+      let extra = "";
+      if (q.options?.length) {
+        extra = `\n  Valid values: ${q.options.map(o => `"${o.value ?? o.label}"`).join(", ")}`;
+      } else if (q.questionType === "number") {
+        const min = q.minValue !== undefined ? `, min ${q.minValue}` : "";
+        const max = q.maxValue !== undefined ? `, max ${q.maxValue}` : "";
+        extra = `\n  Format: number${min}${max}`;
+      } else {
+        extra = `\n  Format: free text`;
+      }
+      // Footnote — legal context the AI can cite when customer asks why
+      if (q.footnote) {
+        extra += `\n  Legal context (cite when customer asks why this is asked): ${q.footnote}`;
+      }
+      const skipped = i < resumeIndex ? "  ← already collected — skip" : "";
+      return `[${i + 1}]${skipped}\nID: ${q.id}\nTopic: ${q.category}\nContext (what you need to find out — rephrase naturally, do NOT read this verbatim): ${q.text}${extra}`;
+    }).join("\n\n");
 
   const resumeBlock = resumeIndex > 0
     ? `\n\nYou already collected topics 1–${resumeIndex} in a previous session (marked above). Open with a warm one-sentence welcome-back and pick up naturally from topic ${resumeIndex + 1}.`
@@ -251,11 +257,11 @@ ${resumeIndex > 0
 // ── Phase 0 AI instruction strings (German) ──────────────────────
 
 const INTRO_INSTRUCTIONS =
-  `Sie sind PecunAI — ein warmherziger persönlicher Anlageberater. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie".
-   Begrüßen Sie den Kunden in 3–4 natürlichen Sätzen: Stellen Sie sich vor, erklären Sie, dass Sie ihn heute durch eine persönliche Finanzberatung führen werden, und erwähnen Sie, dass er zunächst zwei kurze regulatorische Dokumente lesen und bestätigen muss. Bleiben Sie warm und natürlich — kein formelles Bürodeutsch.`;
+  `Sie sind PecunAI. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie".
+   Begrüßen Sie den Kunden in 2–3 sachlichen Sätzen: Stellen Sie sich als digitalen Anlageberater vor, erklären Sie dass Sie ihn Schritt für Schritt durch die digitale Beratung führen werden, und erwähnen Sie dass er jederzeit sprechen oder die Optionen auf dem Bildschirm antippen kann. Bleiben Sie professionell und freundlich — kein übertrieben emotionaler Ton.`;
 
 const TERMS1_EXPLAIN_INSTRUCTIONS =
-  `Sie sind PecunAI. Sprechen Sie Deutsch mit formeller Anrede „Sie". In 2–3 Sätzen: Stellen Sie das erste Dokument vor — es enthält Informationen über 4money, das lizenzierte Wertpapierdienstleistungsunternehmen, das diese Beratung durchführt. Bitten Sie den Kunden, es in seinem eigenen Tempo zu lesen und auf den Bestätigen-Button zu tippen, wenn er fertig ist. Dann hören Sie auf zu sprechen.`;
+  `Sie sind PecunAI. Sprechen Sie Deutsch mit formeller Anrede „Sie". In 2–3 Sätzen: Stellen Sie das erste Dokument vor — es enthält wichtige Informationen über 4money, das lizenzierte Wertpapierdienstleistungsunternehmen, das diese Beratung durchführt: wer wir sind, welche Dienstleistungen wir erbringen und welche Rechte Sie haben. Bitten Sie den Kunden, es in seinem eigenen Tempo zu lesen und auf den Bestätigen-Button zu tippen, wenn er fertig ist. Dann hören Sie auf zu sprechen.`;
 
 const TERMS2_EXPLAIN_INSTRUCTIONS =
   `Sie sind PecunAI. Sprechen Sie Deutsch mit formeller Anrede „Sie". In 2–3 Sätzen: Stellen Sie das zweite Dokument vor — es enthält Informationen über die froots Asset Management GmbH, den Vermögensverwalter. Bitten Sie den Kunden, es zu lesen und auf Bestätigen zu tippen. Nach der Bestätigung beginnt die Beratung. Dann hören Sie auf zu sprechen.`;
@@ -539,6 +545,7 @@ export function useVoiceSession({
   const pendingCall             = useRef<{ callId: string; name: string; args: string } | null>(null);
   const aiTextBufferRef         = useRef<string>("");   // text-mode (chat open): response.output_text.* events
   const aiAudioTranscriptRef    = useRef<string>("");   // voice-mode: response.output_audio_transcript.* events
+  const lastAITranscriptRef     = useRef<string>("");   // captures final transcript of current response for cost monitoring
   const pendingVoiceTranscriptRef = useRef<string | null>(null); // verbatim transcript of last user speech turn
   const currentSpeechItemIdRef    = useRef<string | null>(null); // item_id of the current user speech turn
   const applyPendingTranscriptRef = useRef<((transcript: string) => void) | null>(null); // retroactive chat bubble update when transcript arrives late
@@ -551,8 +558,10 @@ export function useVoiceSession({
   const micAnalyserRef     = useRef<AnalyserNode | null>(null);
   const mutedRef               = useRef(false); // source of truth for mute — persists across state transitions
   const explainOpenRef         = useRef(false); // mirrors explainOverlayData !== null for stable WS closures
+  const latencyStartRef        = useRef<number>(0); // VOICE-001: timestamp when user speech stopped, for latency measurement
   const chatOpenRef            = useRef(false); // true while chat modal is open
   const chatAnsweredRef        = useRef(0);     // count of answers given while chat was open
+  const voiceThreadIdRef       = useRef<string | null>(null); // threadId from chat/init, used to persist V2 chat messages
   const explainIdleTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetExplainIdleRef    = useRef<() => void>(() => {});
 
@@ -722,8 +731,10 @@ export function useVoiceSession({
 
   const advancePhase = useCallback(async () => {
     isRevisitingRef.current = false; // clear revisit mode before fetching product
-    const durationAnswer = savedAnswersRef.current[questionsRef.current[1]?.id];
-    const riskAnswer     = savedAnswersRef.current[questionsRef.current[4]?.id];
+    const durationQ      = questionsRef.current.find(q => q.questionOrder === 2);
+    const riskQ          = questionsRef.current.find(q => q.questionOrder === 5);
+    const durationAnswer = durationQ ? savedAnswersRef.current[durationQ.id] : undefined;
+    const riskAnswer     = riskQ     ? savedAnswersRef.current[riskQ.id]     : undefined;
 
     try {
       const params = new URLSearchParams();
@@ -754,12 +765,18 @@ export function useVoiceSession({
         body: JSON.stringify({ sessionId, phase: "SUGGESTIONS" }),
       });
 
-      // Best-effort — voice sessions may not have a Thread record (V1-only concept)
-      fetch("/api/phase/chat/init", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, productId: product.id }),
-      }).catch(() => console.warn("[voice] chat/init skipped — no Thread for this session"));
+      // Create or get the Thread for this session so V2 chat messages are persisted
+      try {
+        const initRes  = await fetch("/api/phase/chat/init", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId, productId: product.id }),
+        });
+        const initJson = await initRes.json();
+        if (initJson?.threadId) voiceThreadIdRef.current = initJson.threadId;
+      } catch {
+        console.warn("[voice] chat/init failed — chat messages will not be persisted to DB");
+      }
 
       setProductSuggestion(product);
       setVoicePhase(2);
@@ -839,6 +856,18 @@ export function useVoiceSession({
         // Rejects hallucinated values (e.g. fragments of ambient audio like "And")
         // that don't match any valid option or type constraint.
         const validatingQ = questionsRef.current.find(q => q.id === questionId);
+
+        // Reject conditional sub-questions (e.g. 12.1, 13.1, 14.1) if parent answer ≠ "good"
+        if (validatingQ?.questionOrder !== undefined && validatingQ.questionOrder % 1 !== 0) {
+          const parentOrder = Math.floor(validatingQ.questionOrder);
+          const parentQ     = questionsRef.current.find(q => q.questionOrder === parentOrder);
+          if (parentQ && savedAnswersRef.current[parentQ.id] !== "good") {
+            pendingVoiceTranscriptRef.current = null;
+            sendResult({ success: false, reason: `Question ${validatingQ.questionOrder} is conditional and should be skipped — parent question ${parentOrder} was not answered "good".` });
+            return;
+          }
+        }
+
         if (validatingQ) {
           if (validatingQ.options?.length) {
             const validValues = validatingQ.options.map(o => o.value ?? o.id);
@@ -854,10 +883,19 @@ export function useVoiceSession({
               sendResult({ success: false, reason: `"${value}" is not a valid number.` });
               return;
             }
-            if (validatingQ.minValue !== undefined && num < validatingQ.minValue) {
-              pendingVoiceTranscriptRef.current = null;
-              sendResult({ success: false, reason: `Value must be at least ${validatingQ.minValue}.` });
-              return;
+            // FORM-001: Q19 (monthly savings) allows 0 (no plan) or 75+. 1–74 is invalid.
+            if (validatingQ.questionOrder === 19) {
+              if (num !== 0 && num < 75) {
+                pendingVoiceTranscriptRef.current = null;
+                sendResult({ success: false, reason: `Monthly savings must be either 0 (no savings plan) or at least €75. Values between 1 and 74 are not valid.` });
+                return;
+              }
+            } else {
+              if (validatingQ.minValue !== undefined && num < validatingQ.minValue) {
+                pendingVoiceTranscriptRef.current = null;
+                sendResult({ success: false, reason: `Value must be at least ${validatingQ.minValue}.` });
+                return;
+              }
             }
             if (validatingQ.maxValue !== undefined && num > validatingQ.maxValue) {
               pendingVoiceTranscriptRef.current = null;
@@ -887,6 +925,31 @@ export function useVoiceSession({
         skippedIdsRef.current.delete(questionId);
         setSavedAnswers(prev => ({ ...prev, [questionId]: value }));
         savedAnswersRef.current = { ...savedAnswersRef.current, [questionId]: value };
+
+        // Handle sub-questions (12.1, 13.1, 14.1) based on parent answer.
+        // Sub-questions are NOT in the system prompt — they are injected via SYSTEM message only when needed.
+        const parentQ = questionsRef.current.find(q => q.id === questionId);
+        if (parentQ?.questionOrder !== undefined && parentQ.questionOrder % 1 === 0) {
+          const subQs = questionsRef.current.filter(q =>
+            q.questionOrder !== undefined &&
+            q.questionOrder % 1 !== 0 &&
+            Math.floor(q.questionOrder) === parentQ.questionOrder
+          );
+          if (value === "good" && subQs.length > 0) {
+            // Parent = "good" → inject SYSTEM message so AI knows to ask the sub-question next
+            const sq = subQs[0];
+            const sqOptions = sq.options?.map(o => `"${o.value ?? o.label}"`).join(", ") ?? "";
+            send({
+              type: "conversation.item.create",
+              item: { type: "message", role: "user", content: [{ type: "input_text",
+                text: `[SYSTEM: Customer confirmed they have used ${parentQ.category}. Now ask the follow-up: "${sq.text}" (ID: ${sq.id}). Valid values: ${sqOptions}. Ask it naturally, then wait for the answer before moving on.]`,
+              }]},
+            });
+          } else {
+            // Parent ≠ "good" → auto-skip all sub-questions so remaining-filter ignores them
+            subQs.forEach(sq => skippedIdsRef.current.add(sq.id));
+          }
+        }
         const answeredQ   = questionsRef.current[qIdx];
         const voiceLabel  = (answeredQ?.options ?? []).find(o => o.value === value || o.id === value)?.label ?? value;
         // In chat mode the user bubble was already appended by sendChatMessage — skip it here.
@@ -1360,6 +1423,10 @@ export function useVoiceSession({
           if (!isAISpeakingRef.current) {
             isAISpeakingRef.current = true;
             setIsAISpeaking(true);
+            if (latencyStartRef.current) {
+              console.log(`[latency] first audio delta — ${Date.now() - latencyStartRef.current}ms since speech_stopped`);
+              latencyStartRef.current = 0;
+            }
           }
           if (!mutedRef.current) dispatch({ type: "AI_SPEAKING" });
           scheduleChunk(msg.delta as string);
@@ -1400,23 +1467,43 @@ export function useVoiceSession({
           aiTextBufferRef.current += (msg.delta as string) ?? "";
           break;
 
-        case "response.output_text.done":
-          if (aiTextBufferRef.current.trim()) {
-            appendChatMessage(aiTextBufferRef.current.trim(), "ai");
+        case "response.output_text.done": {
+          const textContent = aiTextBufferRef.current.trim();
+          if (textContent) {
+            lastAITranscriptRef.current = textContent;
+            appendChatMessage(textContent, "ai");
+            if (voiceThreadIdRef.current) {
+              fetch("/api/phase/chat/message", {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ threadId: voiceThreadIdRef.current, role: "assistant", content: textContent }),
+              }).catch(() => {});
+            }
           }
           aiTextBufferRef.current = "";
           break;
+        }
 
         case "response.output_audio_transcript.delta":
           aiAudioTranscriptRef.current += (msg.delta as string) ?? "";
           break;
 
-        case "response.output_audio_transcript.done":
-          if (aiAudioTranscriptRef.current.trim()) {
-            appendChatMessage(aiAudioTranscriptRef.current.trim(), "ai");
+        case "response.output_audio_transcript.done": {
+          const audioTranscript = aiAudioTranscriptRef.current.trim();
+          if (audioTranscript) {
+            lastAITranscriptRef.current = audioTranscript;
+            appendChatMessage(audioTranscript, "ai");
+            if (voiceThreadIdRef.current) {
+              fetch("/api/phase/chat/message", {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ threadId: voiceThreadIdRef.current, role: "assistant", content: audioTranscript }),
+              }).catch(() => {});
+            }
           }
           aiAudioTranscriptRef.current = "";
           break;
+        }
 
         case "response.done": {
           const pc = pendingCall.current;
@@ -1488,14 +1575,25 @@ export function useVoiceSession({
         }
 
         case "input_audio_buffer.speech_started": {
-          // New speech turn — record its item_id and clear any stale transcript / retroactive updater
-          // from the previous turn so they can't bleed into the next submit_answer.
           const speechItemId = msg.item_id as string | undefined;
           if (speechItemId) currentSpeechItemIdRef.current = speechItemId;
           pendingVoiceTranscriptRef.current = null;
           applyPendingTranscriptRef.current = null;
           needsTranscriptBubbleRef.current = false;
           if (explainOpenRef.current) resetExplainIdleRef.current();
+          break;
+        }
+
+        case "input_audio_buffer.speech_stopped": {
+          latencyStartRef.current = Date.now();
+          console.log("[latency] speech_stopped — waiting for AI response");
+          break;
+        }
+
+        case "response.created": {
+          if (latencyStartRef.current) {
+            console.log(`[latency] response.created — ${Date.now() - latencyStartRef.current}ms since speech_stopped`);
+          }
           break;
         }
 
@@ -1991,6 +2089,14 @@ export function useVoiceSession({
 
   const sendChatMessage = useCallback((text: string) => {
     appendChatMessage(text, "user");
+    // Persist to DB if we have a thread (Phase 2+)
+    if (voiceThreadIdRef.current) {
+      fetch("/api/phase/chat/message", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ threadId: voiceThreadIdRef.current, role: "user", content: text }),
+      }).catch(() => console.warn("[voice] failed to persist chat message"));
+    }
     send({
       type: "conversation.item.create",
       item: { type: "message", role: "user", content: [{ type: "input_text", text }] },

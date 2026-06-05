@@ -15,14 +15,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'SessionId is required' }, { status: 400 });
     }
 
-    // Get the thread for this session
-    const thread = await prisma.thread.findUnique({
-      where: { qaSessionId: sessionId }
+    // Get or create the thread for this session (V2 sessions don't pre-create threads)
+    const thread = await prisma.thread.upsert({
+      where:  { qaSessionId: sessionId },
+      update: {},
+      create: { qaSessionId: sessionId },
     });
-
-    if (!thread) {
-      return NextResponse.json({ message: 'Thread not found for session' }, { status: 404 });
-    }
 
     // Check if we already have messages in this thread
     const existingMessages = await getChatMessages(thread.id);

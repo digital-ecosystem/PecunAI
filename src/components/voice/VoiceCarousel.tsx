@@ -13,6 +13,8 @@ export interface CarouselQuestion {
   minValue?: number;
   maxValue?: number;
   inputPlaceholder?: string;
+  questionOrder?: number;
+  footnote?: string;
 }
 
 interface VoiceCarouselProps {
