@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAdmin, buildDateWhere, SessionStatus } from '../_lib';
+import { requireAdmin, buildSessionWhere, SessionStatus } from '../_lib';
 
 type ProductAccum = {
   productId: string;
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const sessionWhere = {
-      ...buildDateWhere(searchParams.get('from'), searchParams.get('to')),
+      ...buildSessionWhere({ from: searchParams.get('from'), to: searchParams.get('to') }),
       productSuggestions: { isNot: null },
     };
 

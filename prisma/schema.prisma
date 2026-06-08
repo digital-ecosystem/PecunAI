@@ -144,6 +144,7 @@ model QASession {
   referralCode       String
   oneTimeVolume      Decimal?                  @db.Decimal(10, 2)
   recurringVolume    Decimal?                  @db.Decimal(10, 2)
+  excludedFromReport Boolean                   @default(false)
   answers            Answer[]
   personalInfo       PersonalInfo?
   user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
