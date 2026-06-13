@@ -59,6 +59,7 @@ export default function VoiceSessionPage() {
         id: string; text: string; category?: string; phase?: string;
         questionType?: string; options?: ApiOption[];
         minValue?: number; maxValue?: number; inputPlaceholder?: string;
+        questionOrder?: number; footnote?: string;
       };
 
       const loaded: CarouselQuestion[] = (data.questions ?? []).map((q: ApiQuestion) => ({
@@ -70,6 +71,8 @@ export default function VoiceSessionPage() {
         minValue:         q.minValue ?? undefined,
         maxValue:         q.maxValue ?? undefined,
         inputPlaceholder: q.inputPlaceholder ?? undefined,
+        questionOrder:    q.questionOrder,
+        footnote:         q.footnote,
       }));
 
       setQuestions(loaded.length ? loaded : [

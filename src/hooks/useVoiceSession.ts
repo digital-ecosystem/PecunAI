@@ -126,11 +126,10 @@ function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, m
 
 You are PecunAI, a warm digital investment advisor having a one-on-one consultation with a new customer. Your goal is to understand their financial situation well enough to recommend the right investment product — through genuine conversation, not a form.
 
-# Sprache
+# Language
 
-Sprechen Sie ausschließlich Deutsch und verwenden Sie die formelle Anrede „Sie". Sprechen Sie natürlich und warm — kein steifes Bürodeutsch.
-
-Wenn der Kunde ausdrücklich um einen Wechsel zu Englisch bittet, rufen Sie sofort set_language({ language: "en" }) auf und wechseln dann dauerhaft zu Englisch.
+// DEV MODE: Speak English only. For production, restore German with formal "Sie" address.
+Speak English throughout the entire session.
 
 # Personality and Tone
 
@@ -256,15 +255,16 @@ ${resumeIndex > 0
 
 // ── Phase 0 AI instruction strings (German) ──────────────────────
 
+// DEV: English instructions. For production restore the German versions below.
 const INTRO_INSTRUCTIONS =
-  `Sie sind PecunAI. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie".
-   Begrüßen Sie den Kunden in 2–3 sachlichen Sätzen: Stellen Sie sich als digitalen Anlageberater vor, erklären Sie dass Sie ihn Schritt für Schritt durch die digitale Beratung führen werden, und erwähnen Sie dass er jederzeit sprechen oder die Optionen auf dem Bildschirm antippen kann. Bleiben Sie professionell und freundlich — kein übertrieben emotionaler Ton.`;
+  `You are PecunAI. Speak English only.
+   Welcome the customer in 2–3 professional sentences: introduce yourself as a digital investment advisor, explain you will guide them step by step through the advisory process, and mention they can speak or tap the options on screen at any time. Stay professional and friendly — no overly emotional tone.`;
 
 const TERMS1_EXPLAIN_INSTRUCTIONS =
-  `Sie sind PecunAI. Sprechen Sie Deutsch mit formeller Anrede „Sie". In 2–3 Sätzen: Stellen Sie das erste Dokument vor — es enthält wichtige Informationen über 4money, das lizenzierte Wertpapierdienstleistungsunternehmen, das diese Beratung durchführt: wer wir sind, welche Dienstleistungen wir erbringen und welche Rechte Sie haben. Bitten Sie den Kunden, es in seinem eigenen Tempo zu lesen und auf den Bestätigen-Button zu tippen, wenn er fertig ist. Dann hören Sie auf zu sprechen.`;
+  `You are PecunAI. Speak English only. In 2–3 sentences: introduce the first document — it contains important information about 4money, the licensed investment services firm conducting this consultation: who we are, what services we provide, and what rights the customer has. Ask them to read it at their own pace and tap the confirm button when done. Then stop speaking.`;
 
 const TERMS2_EXPLAIN_INSTRUCTIONS =
-  `Sie sind PecunAI. Sprechen Sie Deutsch mit formeller Anrede „Sie". In 2–3 Sätzen: Stellen Sie das zweite Dokument vor — es enthält Informationen über die froots Asset Management GmbH, den Vermögensverwalter. Bitten Sie den Kunden, es zu lesen und auf Bestätigen zu tippen. Nach der Bestätigung beginnt die Beratung. Dann hören Sie auf zu sprechen.`;
+  `You are PecunAI. Speak English only. In 2–3 sentences: introduce the second document — it contains information about froots Asset Management GmbH, the portfolio manager. Ask the customer to read it and tap confirm. After confirmation, the advisory session begins. Then stop speaking.`;
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -527,8 +527,8 @@ export function useVoiceSession({
   const skipInProgressRef = useRef(false);
   // Tracks whether the circle-back transition has already been announced this session.
   const circleBackActiveRef = useRef(false);
-  // Active conversation language — starts German, can be switched to English by the customer
-  const langRef = useRef<"de" | "en">("de");
+  // DEV: forced English for debugging. For production change back to "de".
+  const langRef = useRef<"de" | "en">("en");
   // Same guard for button-initiated prev — prevents AI from calling navigate("prev") a second time.
   const prevInProgressRef = useRef(false);
   // True while customer is in Phase 1 revisit mode — suppresses auto-advance on submit_answer so
@@ -925,6 +925,43 @@ export function useVoiceSession({
         skippedIdsRef.current.delete(questionId);
         setSavedAnswers(prev => ({ ...prev, [questionId]: value }));
         savedAnswersRef.current = { ...savedAnswersRef.current, [questionId]: value };
+
+        // ── BLOCKER: Q4 sustainability preference ────────────────────────
+        // "yes" (must have sustainable) or "no" (refuses all sustainable) → session ends.
+        // "neutral" → continue normally.
+        if (validatingQ?.questionOrder === 4 && (value === "yes" || value === "no")) {
+          pendingVoiceTranscriptRef.current = null;
+          sendResult({ success: true });
+          send({
+            type: "response.create",
+            response: {
+              instructions: `Sie sind PecunAI. ${langTag()} Der Kunde hat eine Nachhaltigkeitspräferenz angegeben, die mit dem aktuellen Produktangebot nicht abgedeckt werden kann. Erklären Sie in 2–3 Sätzen freundlich aber klar: Aufgrund der angegebenen Nachhaltigkeitspräferenzen ist eine persönliche Beratung erforderlich — das aktuelle Produktangebot deckt diese Präferenz nicht vollständig ab. Ein Berater wird sich in Kürze bei Ihnen melden. Verabschieden Sie sich herzlich.`,
+            },
+          });
+          setTimeout(() => router.push("/customer/dashboard"), 7000);
+          return;
+        }
+
+        // ── BLOCKER: Q7 income check — monthly income minus expenses ≤ €150 ──
+        // Q7 is monthly expenses. Check after it's answered, using Q6 (income) already saved.
+        if (validatingQ?.questionOrder === 7) {
+          const q6         = questionsRef.current.find(q => q.questionOrder === 6);
+          const incomeStr  = q6 ? savedAnswersRef.current[q6.id] : undefined;
+          const income     = parseFloat(incomeStr ?? "0");
+          const expenses   = parseFloat(value);
+          if (!isNaN(income) && !isNaN(expenses) && (income - expenses) <= 150) {
+            pendingVoiceTranscriptRef.current = null;
+            sendResult({ success: true });
+            send({
+              type: "response.create",
+              response: {
+                instructions: `Sie sind PecunAI. ${langTag()} Das verfügbare monatliche Einkommen des Kunden beträgt nach Abzug der Ausgaben weniger als 150 Euro. Erklären Sie in 2–3 Sätzen verständnisvoll: Aufgrund der angegebenen finanziellen Verhältnisse ist eine Investition zum aktuellen Zeitpunkt leider nicht empfehlenswert — das verfügbare monatliche Budget reicht für eine sinnvolle Anlage nicht aus. Eine persönliche Beratung wird empfohlen. Verabschieden Sie sich herzlich.`,
+              },
+            });
+            setTimeout(() => router.push("/customer/dashboard"), 7000);
+            return;
+          }
+        }
 
         // Handle sub-questions (12.1, 13.1, 14.1) based on parent answer.
         // Sub-questions are NOT in the system prompt — they are injected via SYSTEM message only when needed.
