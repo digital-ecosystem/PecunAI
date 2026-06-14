@@ -79,7 +79,12 @@ export default function VoiceQuestionModal({ question, onClose, onNext, preSelec
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-    onNext(isChoice ? selected! : inputValue);
+    if (isChoice) {
+      const selectedOpt = question.options.find(o => o.id === selected);
+      onNext(selectedOpt?.value ?? selected!);
+    } else {
+      onNext(inputValue);
+    }
   };
 
   const progress = question.number / question.total;

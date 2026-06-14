@@ -559,6 +559,8 @@ export function useVoiceSession({
   const mutedRef               = useRef(false); // source of truth for mute — persists across state transitions
   const explainOpenRef         = useRef(false); // mirrors explainOverlayData !== null for stable WS closures
   const latencyStartRef        = useRef<number>(0); // VOICE-001: timestamp when user speech stopped, for latency measurement
+  const activeSourcesRef        = useRef<AudioBufferSourceNode[]>([]); // all currently scheduled/playing audio sources — cleared on stopAudio
+  const serverResponseActiveRef = useRef(false); // true between response.created and response.done — prevents spurious cancel when no active response
   const chatOpenRef            = useRef(false); // true while chat modal is open
   const chatAnsweredRef        = useRef(0);     // count of answers given while chat was open
   const voiceThreadIdRef       = useRef<string | null>(null); // threadId from chat/init, used to persist V2 chat messages
@@ -641,6 +643,10 @@ export function useVoiceSession({
       const startAt          = Math.max(nextPlayTimeRef.current, ctx.currentTime + 0.02);
       source.start(startAt);
       nextPlayTimeRef.current = startAt + buf.duration;
+      activeSourcesRef.current.push(source);
+      source.onended = () => {
+        activeSourcesRef.current = activeSourcesRef.current.filter(s => s !== source);
+      };
     } catch (err) {
       console.error("[voice] scheduleChunk error:", err);
     }
@@ -1341,6 +1347,32 @@ export function useVoiceSession({
     }, remaining + 200);
   }, []);
 
+  // ── Stop AI audio (tap barge-in) ──────────────────────────────
+  // Immediately kills buffered audio, cancels the current OpenAI response,
+  // and returns the session to "listening" so navigation can proceed.
+  const stopAudio = useCallback(() => {
+    // Kill every scheduled / in-flight AudioBufferSourceNode
+    activeSourcesRef.current.forEach(s => { try { s.stop(0); } catch {} });
+    activeSourcesRef.current = [];
+    nextPlayTimeRef.current = 0;
+    if (audioEndTimer.current) {
+      clearTimeout(audioEndTimer.current);
+      audioEndTimer.current = null;
+    }
+    // Cancel only if the server is still generating a response.
+    // serverResponseActiveRef is true only between response.created and response.done,
+    // so this never fires when audio is local-only (response already done server-side).
+    if (serverResponseActiveRef.current) send({ type: "response.cancel" });
+    // Drop any in-flight function call so response.done doesn't replay it
+    pendingCall.current = null;
+    isAISpeakingRef.current = false;
+    setIsAISpeaking(false);
+    // Unlock navigation guards so the tap action can run immediately
+    skipInProgressRef.current = false;
+    prevInProgressRef.current = false;
+    if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+  }, [send]);
+
   // ── WebSocket lifecycle ────────────────────────────────────────
 
   useEffect(() => {
@@ -1429,7 +1461,9 @@ export function useVoiceSession({
             workletNode.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
               const ws = wsRef.current;
               if (!ws || ws.readyState !== WebSocket.OPEN) return;
-              if (stateRef.current.session !== "listening") return;
+              // Allow mic streaming during AI speech so semantic_vad can detect barge-in.
+              // Block only in states where the session is not actively live.
+              if (["idle", "connecting", "error", "paused", "muted"].includes(stateRef.current.session)) return;
               if (chatOpenRef.current) return;
               if (voicePhaseRef.current === 0) return;
               const bytes = new Uint8Array(e.data);
@@ -1543,6 +1577,7 @@ export function useVoiceSession({
         }
 
         case "response.done": {
+          serverResponseActiveRef.current = false;
           const pc = pendingCall.current;
           if (pc) {
             pendingCall.current = null;
@@ -1618,6 +1653,20 @@ export function useVoiceSession({
           applyPendingTranscriptRef.current = null;
           needsTranscriptBubbleRef.current = false;
           if (explainOpenRef.current) resetExplainIdleRef.current();
+          // Voice barge-in: flush locally buffered audio so the customer hears silence
+          // immediately. semantic_vad handles server-side response cancellation automatically.
+          activeSourcesRef.current.forEach(s => { try { s.stop(0); } catch {} });
+          activeSourcesRef.current = [];
+          nextPlayTimeRef.current = 0;
+          if (audioEndTimer.current) {
+            clearTimeout(audioEndTimer.current);
+            audioEndTimer.current = null;
+          }
+          isAISpeakingRef.current = false;
+          setIsAISpeaking(false);
+          // Transition state machine to "listening" so the sphere switches to mic
+          // visualization immediately (green + voice-reactive) instead of staying purple.
+          if (!mutedRef.current) dispatch({ type: "AI_DONE" });
           break;
         }
 
@@ -1628,6 +1677,7 @@ export function useVoiceSession({
         }
 
         case "response.created": {
+          serverResponseActiveRef.current = true;
           if (latencyStartRef.current) {
             console.log(`[latency] response.created — ${Date.now() - latencyStartRef.current}ms since speech_stopped`);
           }
@@ -1636,8 +1686,10 @@ export function useVoiceSession({
 
         case "error": {
           const err = msg.error as Record<string, unknown>;
-          console.error("[voice] OpenAI error:", err);
-          dispatch({ type: "ERROR", message: String(err?.message ?? "Verbindungsfehler") });
+          console.error("[voice] OpenAI error:", JSON.stringify(err));
+          // Most OpenAI API errors (e.g. response.cancel with no active response) are non-fatal —
+          // the session WS is still open. Only hard connection failures are caught by ws.onclose.
+          // Avoid killing the session on every API-level error.
           break;
         }
       }
@@ -1734,6 +1786,36 @@ export function useVoiceSession({
     savedAnswersRef.current = { ...savedAnswersRef.current, [question.id]: value };
     const tapLabel = (question.options ?? []).find(o => o.value === value || o.id === value)?.label ?? value;
     appendChatMessage(tapLabel, "user", question.id);
+
+    // ── BLOCKER: Q4 sustainability preference ────────────────────────
+    if (question.questionOrder === 4 && (value === "yes" || value === "no")) {
+      send({
+        type: "response.create",
+        response: {
+          instructions: `Sie sind PecunAI. ${langTag()} Der Kunde hat eine Nachhaltigkeitspräferenz angegeben, die mit dem aktuellen Produktangebot nicht abgedeckt werden kann. Erklären Sie in 2–3 Sätzen freundlich aber klar: Aufgrund der angegebenen Nachhaltigkeitspräferenzen ist eine persönliche Beratung erforderlich — das aktuelle Produktangebot deckt diese Präferenz nicht vollständig ab. Ein Berater wird sich in Kürze bei Ihnen melden. Verabschieden Sie sich herzlich.`,
+        },
+      });
+      setTimeout(() => router.push("/customer/dashboard"), 7000);
+      return;
+    }
+
+    // ── BLOCKER: Q7 income check ─────────────────────────────────────
+    if (question.questionOrder === 7) {
+      const q6        = questionsRef.current.find(q => q.questionOrder === 6);
+      const incomeStr = q6 ? savedAnswersRef.current[q6.id] : undefined;
+      const income    = parseFloat(incomeStr ?? "0");
+      const expenses  = parseFloat(value);
+      if (!isNaN(income) && !isNaN(expenses) && (income - expenses) <= 150) {
+        send({
+          type: "response.create",
+          response: {
+            instructions: `Sie sind PecunAI. ${langTag()} Das verfügbare monatliche Einkommen des Kunden beträgt nach Abzug der Ausgaben weniger als 150 Euro. Erklären Sie in 2–3 Sätzen verständnisvoll: Aufgrund der angegebenen finanziellen Verhältnisse ist eine Investition zum aktuellen Zeitpunkt leider nicht empfehlenswert — das verfügbare monatliche Budget reicht für eine sinnvolle Anlage nicht aus. Eine persönliche Beratung wird empfohlen. Verabschieden Sie sich herzlich.`,
+          },
+        });
+        setTimeout(() => router.push("/customer/dashboard"), 7000);
+        return;
+      }
+    }
 
     if (chatOpenRef.current) {
       chatAnsweredRef.current++;
@@ -1853,7 +1935,7 @@ export function useVoiceSession({
         instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Tun Sie genau zwei Dinge: (1) Reagieren Sie in 1 Satz auf die getippte Antwort des Kunden — etwas Echtes über seine Wahl, keine generische Überleitung. Sagen Sie nie „Weiter" oder „Nächste Frage". (2) Leiten Sie natürlich zum Thema ${remainingQsTap[0].category} (ID: ${remainingQsTap[0].id}) über. ${qText(remainingQsTap[0].text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${remainingQsTap[0].category} (ID: ${remainingQsTap[0].id}). Warten Sie auf die Antwort.`,
       } : {},
     });
-  }, [saveAnswer, saveVoiceState, advancePhase, send, appendChatMessage]);
+  }, [saveAnswer, saveVoiceState, advancePhase, send, appendChatMessage, router]);
 
   /** Clears the AI-proposed highlight — called when customer rejects or modal closes without submitting */
   const clearPendingVoiceAnswer = useCallback(() => {
@@ -2168,6 +2250,7 @@ export function useVoiceSession({
     clearPendingVoiceAnswer,
     onPrev,
     skipQuestion,
+    stopAudio,
     activeCardId,
     requestExplanation,
     closeExplainOverlay,

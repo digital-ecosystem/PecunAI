@@ -60,7 +60,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen, sendChatMessage, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2 } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen, sendChatMessage, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2 } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex, initialTermsPhase });
 
   // Track phase transition direction for the slide animation.
@@ -84,6 +84,19 @@ export default function VoiceSessionShell({
 
   useEffect(() => {
     suppressAutoModalRef.current = false;
+  }, [activeCardId]);
+
+  // Auto-open the modal when the AI navigates to a choice question.
+  // Only fires when activeCardId changes — intentional, so the user can close and
+  // browse without the modal snapping back open on the same question.
+  useEffect(() => {
+    if (!activeQ?.options?.length) return;
+    if (modalOpen) return;
+    if (suppressAutoModalRef.current) return;
+    if (chatOpen) return;
+    if (!started) return;
+    setModalOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCardId]);
 
   useEffect(() => {
@@ -551,13 +564,13 @@ export default function VoiceSessionShell({
               questions={questions}
               currentIndex={viewIndex}
               onNext={() => {
-                if (state.session !== "listening") return;
                 if (viewIndex >= n - 1) return;
+                stopAudio();
                 skipQuestion(questions[viewIndex]);
               }}
               onPrev={() => {
-                if (state.session !== "listening") return;
                 if (viewIndex === 0) return;
+                stopAudio();
                 onPrev();
               }}
               onActiveCardClick={() => setModalOpen(true)}
@@ -571,13 +584,13 @@ export default function VoiceSessionShell({
           isMuted={isMuted}
           onMuteToggle={toggleMute}
           onPrevious={() => {
-            if (state.session !== "listening") return;
             if (viewIndex === 0) return;
+            stopAudio();
             onPrev();
           }}
           onNext={() => {
-            if (state.session !== "listening") return;
             if (viewIndex >= n - 1) return;
+            stopAudio();
             skipQuestion(questions[viewIndex]);
           }}
           onChatClick={() => setChatOpen(true)}
@@ -640,6 +653,7 @@ export default function VoiceSessionShell({
             clearPendingVoiceAnswer();
           }}
           onNext={async value => {
+            stopAudio();
             setModalOpen(false);
             clearPendingVoiceAnswer();
             if (modalQ) await onAnswerConfirmed(modalQ, value);
