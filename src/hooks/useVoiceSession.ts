@@ -306,6 +306,55 @@ export interface ChatMessage {
   timestamp:   Date;
 }
 
+// Asset-class explanation data for Q12/13/14 "none" knowledge blocker overlay
+const ASSET_CLASS_OVERLAY: Record<number, { data: ExplainOverlayData; nameEn: string }> = {
+  12: {
+    data: {
+      title:     "Aktien & Aktienfonds",
+      keyPoints: [
+        "Unternehmensanteile an börsennotierten Gesellschaften",
+        "Langfristig höheres Wachstumspotenzial als das Sparbuch",
+        "Kursschwankungen möglich — Geduld wird langfristig belohnt",
+      ],
+      stats: [
+        { label: "Wachstumspotenzial", value: 78, color: "#6366f1" },
+        { label: "Risikoniveau",       value: 65, color: "#f59e0b" },
+      ],
+    },
+    nameEn: "stocks, stock funds, and equity ETFs",
+  },
+  13: {
+    data: {
+      title:     "Anleihen & Anleihenfonds",
+      keyPoints: [
+        "Darlehen an Staaten oder Unternehmen gegen Zinszahlung",
+        "Stabiler als Aktien — geringeres Risiko, geringere Rendite",
+        "Dienen zur Portfolio-Balance und als Einkommensquelle",
+      ],
+      stats: [
+        { label: "Wachstumspotenzial", value: 42, color: "#6366f1" },
+        { label: "Risikoniveau",       value: 32, color: "#f59e0b" },
+      ],
+    },
+    nameEn: "bonds and bond funds",
+  },
+  14: {
+    data: {
+      title:     "Edelmetalle (z. B. Gold)",
+      keyPoints: [
+        "Physische Vermögenswerte wie Gold und Silber",
+        "Klassischer Wertspeicher in unsicheren Marktphasen",
+        "Kein laufender Ertrag — Gewinn durch Preissteigerung",
+      ],
+      stats: [
+        { label: "Wachstumspotenzial", value: 50, color: "#6366f1" },
+        { label: "Risikoniveau",       value: 44, color: "#f59e0b" },
+      ],
+    },
+    nameEn: "precious metals (e.g. gold)",
+  },
+};
+
 // ── OpenAI function tools ─────────────────────────────────────────
 
 const TOOLS = [
@@ -473,11 +522,11 @@ export function useVoiceSession({
   const [productSuggestion, setProductSuggestion] = useState<ProductData | null>(null);
 
   // Phase 0 sub-step: which screen within the intro/terms gate
-  const [termsSubStep, setTermsSubStep] = useState<'intro' | 'terms1' | 'terms2' | null>(
+  const [termsSubStep, setTermsSubStep] = useState<'intro' | 'terms1' | 'terms2' | 'sustainabilityTerms' | null>(
     initialTermsPhase === 'skip'   ? null    :
     initialTermsPhase === 'terms2' ? 'terms2': 'intro'
   );
-  const termsSubStepRef = useRef<'intro' | 'terms1' | 'terms2' | null>(
+  const termsSubStepRef = useRef<'intro' | 'terms1' | 'terms2' | 'sustainabilityTerms' | null>(
     initialTermsPhase === 'skip'   ? null    :
     initialTermsPhase === 'terms2' ? 'terms2': 'intro'
   );
@@ -560,7 +609,10 @@ export function useVoiceSession({
   const explainOpenRef         = useRef(false); // mirrors explainOverlayData !== null for stable WS closures
   const latencyStartRef        = useRef<number>(0); // VOICE-001: timestamp when user speech stopped, for latency measurement
   const activeSourcesRef        = useRef<AudioBufferSourceNode[]>([]); // all currently scheduled/playing audio sources — cleared on stopAudio
-  const serverResponseActiveRef = useRef(false); // true between response.created and response.done — prevents spurious cancel when no active response
+  const serverResponseActiveRef    = useRef(false); // true between response.created and response.done — prevents spurious cancel when no active response
+  const knowledgeBlockerNextQRef   = useRef<CarouselQuestion | null>(null); // next question to ask after a knowledge-blocker overlay closes
+  const kbExplanationStartedRef    = useRef(false); // true once the first explanation audio delta arrives — guards against stale cancelled-response audio.done closing the overlay early
+  const kbExplanationResponseIdRef = useRef<string | null>(null); // response ID of the KB explanation response — stale cancelled-response events have a different ID and are ignored
   const chatOpenRef            = useRef(false); // true while chat modal is open
   const chatAnsweredRef        = useRef(0);     // count of answers given while chat was open
   const voiceThreadIdRef       = useRef<string | null>(null); // threadId from chat/init, used to persist V2 chat messages
@@ -809,13 +861,19 @@ export function useVoiceSession({
         item: { type: "message", role: "user", content: [{ type: "input_text", text: systemMsg }] },
       });
 
+      const opening = product.aiSettings?.firstMessage
+        ? `Open with this client-approved message (adapt naturally for voice, do not read verbatim): "${product.aiSettings.firstMessage}"`
+        : `Erklären Sie in 2–3 Sätzen, WARUM dieses Portfolio passt — Anlagehorizont von ${durationAnswer ?? `${product.from}–${product.to} Jahren`} und ${riskAnswer ?? product.risk} Risikoprofil.`;
+
       send({
         type: "response.create",
         response: {
           instructions: [
             `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()}`,
             `Nennen Sie das empfohlene Portfolio „${product.fullName}" — nennen Sie NIEMALS den internen Code „${product.name}".`,
-            `In 3–4 warmen Sätzen: (1) Nennen Sie das Portfolio. (2) Erklären Sie, WARUM es passt — Anlagehorizont von ${durationAnswer ?? `${product.from}–${product.to} Jahren`} und ${riskAnswer ?? product.risk} Risikoprofil. (3) Erwähnen Sie, dass die PDF-Broschüre auf dem Bildschirm zu sehen ist und mit den Pfeil-Buttons geblättert werden kann. (4) Laden Sie zu Fragen ein.`,
+            opening,
+            `Mention the SRI (Synthetic Risk Indicator) rating of ${product.sri} out of 7 — this is an EU regulatory requirement.`,
+            `Erwähnen Sie außerdem, dass die PDF-Broschüre auf dem Bildschirm zu sehen ist und mit den Pfeil-Buttons geblättert werden kann. Laden Sie zu Fragen ein.`,
             `Bleiben Sie natürlich und warm — kein Verkaufsgespräch.`,
           ].join(" "),
         },
@@ -932,6 +990,20 @@ export function useVoiceSession({
         setSavedAnswers(prev => ({ ...prev, [questionId]: value }));
         savedAnswersRef.current = { ...savedAnswersRef.current, [questionId]: value };
 
+        // ── BLOCKER: Q3 sustainability info not received → session ends ──
+        if (validatingQ?.questionOrder === 3 && value === "no") {
+          pendingVoiceTranscriptRef.current = null;
+          sendResult({ success: true });
+          send({
+            type: "response.create",
+            response: {
+              instructions: `Sie sind PecunAI. ${langTag()} Der Kunde hat angegeben, die Nachhaltigkeitsinformationen nicht erhalten zu haben. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist es erforderlich, dass Sie die Nachhaltigkeitsinformationen zur Kenntnis genommen haben, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`,
+            },
+          });
+          setTimeout(() => router.push("/customer/dashboard"), 7000);
+          return;
+        }
+
         // ── BLOCKER: Q4 sustainability preference ────────────────────────
         // "yes" (must have sustainable) or "no" (refuses all sustainable) → session ends.
         // "neutral" → continue normally.
@@ -967,6 +1039,18 @@ export function useVoiceSession({
             setTimeout(() => router.push("/customer/dashboard"), 7000);
             return;
           }
+        }
+
+        // ── SUSTAINABILITY TERMS: show disclosure modal after Q2 is answered ──
+        // AI stays silent while the modal is visible — no response.create sent here.
+        // confirmSustainabilityTerms() will ask Q3 once the customer presses the button.
+        if (validatingQ?.questionOrder === 2) {
+          pendingVoiceTranscriptRef.current = null;
+          sendResult({ success: true });
+          setTermsSubStep('sustainabilityTerms');
+          termsSubStepRef.current = 'sustainabilityTerms';
+          dispatch({ type: "AI_DONE" });
+          return;
         }
 
         // Handle sub-questions (12.1, 13.1, 14.1) based on parent answer.
@@ -1026,6 +1110,36 @@ export function useVoiceSession({
           .map(q => q.id);
 
         sendResult({ success: true });
+
+        // ── KNOWLEDGE BLOCKER: Q12/13/14 "none" → open explain overlay for this asset class ──
+        if (validatingQ?.questionOrder !== undefined &&
+            [12, 13, 14].includes(validatingQ.questionOrder) &&
+            value === "none") {
+          const overlayEntry = ASSET_CLASS_OVERLAY[validatingQ.questionOrder];
+          if (overlayEntry) {
+            const nextQObj = remaining
+              .map(id => questionsRef.current.find(q => q.id === id))
+              .filter(Boolean)[0] as CarouselQuestion | undefined;
+            knowledgeBlockerNextQRef.current = nextQObj ?? null;
+            kbExplanationStartedRef.current  = false;
+            if (audioEndTimer.current) { clearTimeout(audioEndTimer.current); audioEndTimer.current = null; }
+            dispatch({ type: "ANSWER_SAVED" });
+            setExplainOverlayData(overlayEntry.data);
+            send({
+              type: "conversation.item.create",
+              item: { type: "message", role: "user", content: [{ type: "input_text",
+                text: `[SYSTEM: Explanation overlay for "${overlayEntry.data.title}" is open. Speak a 2–3 sentence verbal explanation of what ${overlayEntry.nameEn} are and why they matter for investing. Do NOT say "take a look" or reference the screen — explain verbally. The overlay closes automatically when you finish speaking.]`,
+              }]},
+            });
+            send({
+              type: "response.create",
+              response: {
+                instructions: `You are PecunAI. Speak English only. The explanation overlay is open. Verbally explain what ${overlayEntry.nameEn} are in 2–3 simple, friendly sentences — what they are and why everyday investors care about them. Do NOT say "take a look at the screen" or reference the overlay visually. Just speak naturally. After you finish, pause — the session continues automatically.`,
+              },
+            });
+            return;
+          }
+        }
 
         const allAnswered            = answeredIdsRef.current.size === questionsRef.current.length;
         const allCoveredExceptSkipped = answeredIdsRef.current.size + skippedIdsRef.current.size === questionsRef.current.length;
@@ -1120,9 +1234,11 @@ export function useVoiceSession({
       }
 
       if (name === "close_explanation") {
-        // Acknowledge the function call immediately, then let the overlay play its
-        // exit animation. closeExplainOverlay (called by onClose after 1300 ms) sends
-        // the WS resume messages once the animation is done.
+        if (knowledgeBlockerNextQRef.current) {
+          // KB overlay closes automatically when audio finishes — block AI from calling this early.
+          sendResult({ success: false, reason: "Do not call close_explanation during a knowledge explanation — the overlay closes automatically when you finish speaking." });
+          return;
+        }
         sendResult({ success: true });
         setExplainTriggerClose(true);
         return;
@@ -1337,6 +1453,10 @@ export function useVoiceSession({
       isAISpeakingRef.current = false;
       setIsAISpeaking(false);
       if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+      if (knowledgeBlockerNextQRef.current && kbExplanationStartedRef.current) {
+        kbExplanationStartedRef.current = false;
+        setExplainTriggerClose(true);
+      }
       return;
     }
     const remaining = Math.max(0, (nextPlayTimeRef.current - ctx.currentTime)) * 1000;
@@ -1344,6 +1464,10 @@ export function useVoiceSession({
       isAISpeakingRef.current = false;
       setIsAISpeaking(false);
       if (!pendingCall.current && !mutedRef.current) dispatch({ type: "AI_DONE" });
+      if (knowledgeBlockerNextQRef.current && kbExplanationStartedRef.current) {
+        kbExplanationStartedRef.current = false;
+        setExplainTriggerClose(true);
+      }
     }, remaining + 200);
   }, []);
 
@@ -1466,6 +1590,7 @@ export function useVoiceSession({
               if (["idle", "connecting", "error", "paused", "muted"].includes(stateRef.current.session)) return;
               if (chatOpenRef.current) return;
               if (voicePhaseRef.current === 0) return;
+              if (termsSubStepRef.current === 'sustainabilityTerms') return;
               const bytes = new Uint8Array(e.data);
               let binary = "";
               for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
@@ -1491,6 +1616,12 @@ export function useVoiceSession({
         }
 
         case "response.output_audio.delta": {
+          if (knowledgeBlockerNextQRef.current) {
+            const responseId = (msg as { response_id?: string }).response_id;
+            if (responseId === kbExplanationResponseIdRef.current) {
+              kbExplanationStartedRef.current = true;
+            }
+          }
           if (!isAISpeakingRef.current) {
             isAISpeakingRef.current = true;
             setIsAISpeaking(true);
@@ -1504,10 +1635,17 @@ export function useVoiceSession({
           break;
         }
 
-        case "response.output_audio.done":
+        case "response.output_audio.done": {
+          // If KB overlay is active and this done event belongs to the cancelled response
+          // (not the KB explanation response), ignore it — stopAudio already cleaned up.
+          if (knowledgeBlockerNextQRef.current) {
+            const responseId = (msg as { response_id?: string }).response_id;
+            if (responseId !== kbExplanationResponseIdRef.current) break;
+          }
           // Schedule AI_DONE to fire once the buffered audio finishes playing
           if (!pendingCall.current) scheduleAIDone();
           break;
+        }
 
         case "response.output_item.added": {
           const item = msg.item as Record<string, unknown>;
@@ -1678,6 +1816,12 @@ export function useVoiceSession({
 
         case "response.created": {
           serverResponseActiveRef.current = true;
+          if (knowledgeBlockerNextQRef.current) {
+            // Track which response is the KB explanation so stale cancelled-response events
+            // (which share the same knowledgeBlockerNextQRef window) are filtered out.
+            kbExplanationResponseIdRef.current = (msg.response as { id: string }).id;
+            kbExplanationStartedRef.current    = false; // reset so only THIS response's deltas count
+          }
           if (latencyStartRef.current) {
             console.log(`[latency] response.created — ${Date.now() - latencyStartRef.current}ms since speech_stopped`);
           }
@@ -1787,6 +1931,28 @@ export function useVoiceSession({
     const tapLabel = (question.options ?? []).find(o => o.value === value || o.id === value)?.label ?? value;
     appendChatMessage(tapLabel, "user", question.id);
 
+    // ── SUSTAINABILITY TERMS: show disclosure modal after Q2 is answered ──
+    // AI stays silent while the modal is visible — no response.create sent here.
+    // confirmSustainabilityTerms() will ask Q3 once the customer presses the button.
+    if (question.questionOrder === 2) {
+      setTermsSubStep('sustainabilityTerms');
+      termsSubStepRef.current = 'sustainabilityTerms';
+      dispatch({ type: "AI_DONE" });
+      return;
+    }
+
+    // ── BLOCKER: Q3 sustainability info not received → session ends ──
+    if (question.questionOrder === 3 && value === "no") {
+      send({
+        type: "response.create",
+        response: {
+          instructions: `Sie sind PecunAI. ${langTag()} Der Kunde hat angegeben, die Nachhaltigkeitsinformationen nicht erhalten zu haben. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist es erforderlich, dass Sie die Nachhaltigkeitsinformationen zur Kenntnis genommen haben, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`,
+        },
+      });
+      setTimeout(() => router.push("/customer/dashboard"), 7000);
+      return;
+    }
+
     // ── BLOCKER: Q4 sustainability preference ────────────────────────
     if (question.questionOrder === 4 && (value === "yes" || value === "no")) {
       send({
@@ -1815,6 +1981,16 @@ export function useVoiceSession({
         setTimeout(() => router.push("/customer/dashboard"), 7000);
         return;
       }
+    }
+
+    // Sub-question auto-skip: if value != "good", skip decimal-order sub-questions (mirrors voice path).
+    const subQsTap = questionsRef.current.filter(q =>
+      q.questionOrder !== undefined &&
+      q.questionOrder % 1 !== 0 &&
+      Math.floor(q.questionOrder) === question.questionOrder
+    );
+    if (subQsTap.length > 0 && value !== "good") {
+      subQsTap.forEach(sq => skippedIdsRef.current.add(sq.id));
     }
 
     if (chatOpenRef.current) {
@@ -1881,6 +2057,34 @@ export function useVoiceSession({
     const remaining = questionsRef.current
       .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
       .map(q => q.id);
+
+    // ── KNOWLEDGE BLOCKER: Q12/13/14 "none" → open explain overlay for this asset class ──
+    if (question.questionOrder !== undefined && [12, 13, 14].includes(question.questionOrder) && value === "none") {
+      const overlayEntry = ASSET_CLASS_OVERLAY[question.questionOrder];
+      if (overlayEntry) {
+        const nextQObj = remaining
+          .map(id => questionsRef.current.find(q => q.id === id))
+          .filter(Boolean)[0] as CarouselQuestion | undefined;
+        knowledgeBlockerNextQRef.current = nextQObj ?? null;
+        kbExplanationStartedRef.current  = false;
+        if (audioEndTimer.current) { clearTimeout(audioEndTimer.current); audioEndTimer.current = null; }
+        dispatch({ type: "ANSWER_SAVED" });
+        setExplainOverlayData(overlayEntry.data);
+        send({
+          type: "conversation.item.create",
+          item: { type: "message", role: "user", content: [{ type: "input_text",
+            text: `[SYSTEM: Explanation overlay for "${overlayEntry.data.title}" is open. Speak a 2–3 sentence verbal explanation of what ${overlayEntry.nameEn} are and why they matter for investing. Do NOT say "take a look" or reference the screen — explain verbally. The overlay closes automatically when you finish speaking.]`,
+          }]},
+        });
+        send({
+          type: "response.create",
+          response: {
+            instructions: `You are PecunAI. Speak English only. The explanation overlay is open. Verbally explain what ${overlayEntry.nameEn} are in 2–3 simple, friendly sentences — what they are and why everyday investors care about them. Do NOT say "take a look at the screen" or reference the overlay visually. Just speak naturally. After you finish, pause — the session continues automatically.`,
+          },
+        });
+        return;
+      }
+    }
 
     if (allCoveredExceptSkipped && skippedIdsRef.current.size > 0 && !isRevisitingRef.current) {
       const firstSkippedTap = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));
@@ -2025,6 +2229,30 @@ export function useVoiceSession({
     setExplainTriggerClose(false);
     setExplainOverlayData(null);
     if (!mutedRef.current) dispatch({ type: "AI_SPEAKING" });
+
+    // ── Knowledge-blocker path: advance carousel and ask the stored next question ──
+    const kbNextQ = knowledgeBlockerNextQRef.current;
+    if (kbNextQ) {
+      knowledgeBlockerNextQRef.current    = null;
+      kbExplanationResponseIdRef.current  = null;
+      const nextIdx = questionsRef.current.findIndex(q => q.id === kbNextQ.id);
+      if (nextIdx >= 0) dispatch({ type: "SET_INDEX", index: nextIdx });
+      setCard(kbNextQ.id);
+      send({
+        type: "conversation.item.create",
+        item: { type: "message", role: "user", content: [{ type: "input_text",
+          text: `[SYSTEM: Explanation overlay closed. Now ask the next question naturally: "${kbNextQ.text}" (ID: ${kbNextQ.id}). Wait for the customer's answer.]`,
+        }]},
+      });
+      send({
+        type: "response.create",
+        response: {
+          instructions: `You are PecunAI. Speak English only. The explanation is complete. Transition naturally to the next question: "${kbNextQ.text}" (ID: ${kbNextQ.id}). Keep it brief and warm. Wait for the customer's answer.`,
+        },
+      });
+      return;
+    }
+
     const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current);
     if (currentQ) setCard(currentQ.id);
 
@@ -2183,6 +2411,33 @@ export function useVoiceSession({
     send({ type: "response.create" });
   }, [sessionId, send]);
 
+  /** Customer tapped "Verstanden" on the sustainability disclosure — dismisses modal and asks Q3 */
+  const confirmSustainabilityTerms = useCallback(async () => {
+    setTermsSubStep(null);
+    termsSubStepRef.current = null;
+    const q3 = questionsRef.current.find(q => q.questionOrder === 3);
+    if (q3) {
+      const q3Idx = questionsRef.current.findIndex(q => q.id === q3.id);
+      if (q3Idx >= 0) dispatch({ type: "SET_INDEX", index: q3Idx });
+      setCard(q3.id);
+      const remaining = questionsRef.current
+        .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
+        .map(q => q.id);
+      send({
+        type: "conversation.item.create",
+        item: { type: "message", role: "user", content: [{ type: "input_text",
+          text: makeNextTopicMsg(q3, remaining.slice(1), false),
+        }]},
+      });
+      send({
+        type: "response.create",
+        response: {
+          instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat die Nachhaltigkeitsinformationen gelesen und bestätigt. Fragen Sie jetzt, ob er die Nachhaltigkeitsinformationen zur Kenntnis genommen hat. ${qText(q3.text)} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
+        },
+      });
+    }
+  }, [send, setCard]);
+
   /** Must be called from a user-gesture handler (tap/click) to unlock AudioContext */
   const startSession = useCallback(async () => {
     await setupAudio();
@@ -2243,6 +2498,7 @@ export function useVoiceSession({
     moveToTerms1,
     confirmTerms1,
     confirmTerms2,
+    confirmSustainabilityTerms,
     notifyChatOpen,
     startSession,
     toggleMute,

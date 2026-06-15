@@ -5,17 +5,18 @@ import { motion, AnimatePresence } from "motion/react";
 import VoiceSphere from "./VoiceSphere";
 import { FourMoneyInfo } from "@/components/terms/FourMoneyInfo";
 import { FrootsCustomerInfo } from "@/components/terms/FrootsCustomerInfo";
+import { SustainabilityRisksInfo } from "@/components/terms/SustainabilityRisksInfo";
 
 interface VoiceTermsPhaseProps {
-  which:      'terms1' | 'terms2';
+  which:      'terms1' | 'terms2' | 'sustainabilityTerms';
   isSpeaking: boolean;
   onConfirm:  () => Promise<void>;
 }
 
 export default function VoiceTermsPhase({ which, onConfirm }: VoiceTermsPhaseProps) {
   // terms1: orb-dissolve transition plays for 1.5s before content appears
-  // terms2: no orb — content is immediately visible as the screen slides in from the right
-  const isTerms2 = which === 'terms2';
+  // terms2 / sustainabilityTerms: no orb — content slides in from the right immediately
+  const isTerms2 = which !== 'terms1';
 
   const [showTransition, setShowTransition] = useState(!isTerms2);
   const [confirmed,      setConfirmed]      = useState(false);
@@ -34,9 +35,15 @@ export default function VoiceTermsPhase({ which, onConfirm }: VoiceTermsPhasePro
     setTimeout(() => { onConfirm(); }, 1500);
   };
 
-  const title    = isTerms2 ? "Asset Management by froots GmbH" : "4money";
-  const subtitle = isTerms2
+  const title    = which === 'terms2'
+    ? "Asset Management by froots GmbH"
+    : which === 'sustainabilityTerms'
+    ? "Nachhaltigkeitsinformationen"
+    : "4money";
+  const subtitle = which === 'terms2'
     ? "Informationen über den Vermögensverwalter"
+    : which === 'sustainabilityTerms'
+    ? "Gesetzlich vorgeschriebene Information gemäß EU-Vorschriften"
     : "Information über das Wertpapierdienstleistungsunternehmen";
 
   const bg = "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)";
@@ -144,7 +151,7 @@ export default function VoiceTermsPhase({ which, onConfirm }: VoiceTermsPhasePro
             <p className="text-xs mt-1" style={{ color: "rgba(59,130,246,0.7)" }}>{subtitle}</p>
           </div>
           <div className="px-5 pb-5 text-sm" style={{ color: "rgba(15,23,42,0.75)", lineHeight: 1.7 }}>
-            {isTerms2 ? <FrootsCustomerInfo /> : <FourMoneyInfo />}
+            {which === 'terms2' ? <FrootsCustomerInfo /> : which === 'sustainabilityTerms' ? <SustainabilityRisksInfo /> : <FourMoneyInfo />}
           </div>
         </div>
       </motion.div>

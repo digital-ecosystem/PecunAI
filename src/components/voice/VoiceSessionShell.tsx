@@ -60,7 +60,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen, sendChatMessage, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2 } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen, sendChatMessage, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex, initialTermsPhase });
 
   // Track phase transition direction for the slide animation.
@@ -79,25 +79,54 @@ export default function VoiceSessionShell({
   const explainOpen = explainOverlayData !== null;
 
   // Set when the customer manually closes the modal — prevents it from immediately re-opening.
-  // Cleared when activeCardId changes (AI moved to a new question), so the next question auto-opens normally.
+  // suppressAutoModalRef: set when user manually closes the modal; cleared on next card change.
   const suppressAutoModalRef = useRef(false);
+  // hasSpokenForCardRef: true once the AI has started speaking since the active card changed.
+  // Prevents the modal from opening immediately on skip/prev/phase-start before the AI speaks.
+  const hasSpokenForCardRef = useRef(false);
 
   useEffect(() => {
     suppressAutoModalRef.current = false;
+    hasSpokenForCardRef.current  = false;
   }, [activeCardId]);
 
-  // Auto-open the modal when the AI navigates to a choice question.
-  // Only fires when activeCardId changes — intentional, so the user can close and
-  // browse without the modal snapping back open on the same question.
+  // Reset state when entering the questions phase.
+  // Root cause: effects run unconditionally (before the early return that shows VoiceTermsPhase),
+  // so the auto-modal effect fires during phase 0 while the modal is invisible. When voicePhase
+  // becomes 1 the early return disappears and the modal is immediately visible with stale true state.
+  // Fix: clear both the flag and any stale modalOpen state when entering phase 1.
   useEffect(() => {
+    if (voicePhase === 1) {
+      hasSpokenForCardRef.current = false;
+      setModalOpen(false);
+    }
+  }, [voicePhase]);
+
+  // Track when AI starts speaking so we know it has asked the current question.
+  useEffect(() => {
+    if (isAISpeaking) hasSpokenForCardRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAISpeaking]);
+
+  // Auto-open the modal for choice questions — but only after the AI has spoken AND finished.
+  // This prevents immediate open on skip/prev navigation or phase start, where state is
+  // already "listening" before the AI has asked the new question.
+  // voicePhase guard: effects run before the early-return that hides the modal during phase 0,
+  // so without this guard the effect fires during terms and leaves modalOpen=true as hidden state.
+  useEffect(() => {
+    if (voicePhase !== 1) return;               // only auto-open during questions phase
+    if (!hasSpokenForCardRef.current) return;   // AI hasn't spoken for this card yet
+    if (isAISpeaking) return;                    // AI still playing audio
+    if (state.session !== "listening") return;
     if (!activeQ?.options?.length) return;
     if (modalOpen) return;
     if (suppressAutoModalRef.current) return;
     if (chatOpen) return;
+    if (explainOpen) return;
     if (!started) return;
     setModalOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCardId]);
+  }, [activeCardId, isAISpeaking, state.session, voicePhase]);
 
   useEffect(() => {
     notifyChatOpen(chatOpen);
@@ -117,10 +146,10 @@ export default function VoiceSessionShell({
   // doesn't have to manually find and tap the carousel card.
   // suppressAutoModalRef prevents re-opening after a manual close until the question changes.
   useEffect(() => {
-    if (micGranted === false && state.session === "listening" && !modalOpen && !suppressAutoModalRef.current && !chatOpen) {
+    if (micGranted === false && state.session === "listening" && !modalOpen && !suppressAutoModalRef.current && !chatOpen && !explainOpen) {
       setModalOpen(true);
     }
-  }, [micGranted, state.session, modalOpen]);
+  }, [micGranted, state.session, modalOpen, explainOpen]);
 
   // viewIndex is derived directly from activeCardId — the hook's explicit source of truth
   // for which question the AI is currently on. No state machine sync needed.
@@ -603,6 +632,14 @@ export default function VoiceSessionShell({
       </div>
 
       {/* ── Overlays (fixed-position, outside the slide container) ── */}
+
+      {termsSubStep === 'sustainabilityTerms' && (
+        <VoiceTermsPhase
+          which="sustainabilityTerms"
+          isSpeaking={isSpeaking}
+          onConfirm={confirmSustainabilityTerms}
+        />
+      )}
 
       <VoiceChatModal
         isOpen={chatOpen}
