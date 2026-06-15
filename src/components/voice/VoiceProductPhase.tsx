@@ -48,8 +48,6 @@ interface VoiceProductPhaseProps {
   isListening:      boolean;
   isMuted:          boolean;
   sessionState:     SessionState;
-  analyserNode?:    AnalyserNode | null;
-  micAnalyserNode?: AnalyserNode | null;
   onMuteToggle: () => void;
   onChatClick:  () => void;
   onConfirm:    () => void;
@@ -62,8 +60,6 @@ export default function VoiceProductPhase({
   isListening,
   isMuted,
   sessionState,
-  analyserNode,
-  micAnalyserNode,
   onMuteToggle,
   onConfirm,
   onRevisit,
@@ -159,8 +155,6 @@ export default function VoiceProductPhase({
             <AnimatedFrame
               isSpeaking={isSpeaking}
               isListening={isListening}
-              analyserNode={analyserNode}
-              micAnalyserNode={micAnalyserNode}
               contentWidth={pdfSize.width}
               contentHeight={pdfSize.height}
             >

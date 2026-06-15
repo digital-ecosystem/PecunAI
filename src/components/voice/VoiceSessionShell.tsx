@@ -470,8 +470,6 @@ export default function VoiceSessionShell({
                 isListening={isListening}
                 isMuted={isMuted}
                 sessionState={state.session}
-                analyserNode={isMuted ? null : analyserNode}
-                micAnalyserNode={micAnalyserNode}
                 onMuteToggle={toggleMute}
                 onChatClick={() => setChatOpen(true)}
                 onConfirm={confirmProduct}

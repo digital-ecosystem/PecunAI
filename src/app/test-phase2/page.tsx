@@ -57,8 +57,6 @@ export default function TestPhase2() {
         isListening={isListening}
         isMuted={isMuted}
         sessionState={isSpeaking ? "speaking" : isListening ? "listening" : "idle"}
-        analyserNode={null}
-        micAnalyserNode={null}
         onMuteToggle={() => setIsMuted(m => !m)}
         onChatClick={() => alert("chat")}
         onConfirm={() => alert("confirm")}
