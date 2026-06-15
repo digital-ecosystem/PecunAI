@@ -392,7 +392,9 @@ export default function VoiceSessionShell({
           key={termsSubStep}
           which={termsSubStep}
           isSpeaking={isSpeaking}
-          onConfirm={termsSubStep === 'terms1' ? confirmTerms1 : confirmTerms2}
+          onConfirm={termsSubStep === 'terms1'
+            ? () => { stopAudio(); return confirmTerms1(); }
+            : () => { stopAudio(); return confirmTerms2(); }}
         />
         {!started && (
           <motion.div
@@ -658,7 +660,7 @@ export default function VoiceSessionShell({
         <VoiceTermsPhase
           which="sustainabilityTerms"
           isSpeaking={isSpeaking}
-          onConfirm={confirmSustainabilityTerms}
+          onConfirm={() => { stopAudio(); return confirmSustainabilityTerms(); }}
         />
       )}
 
