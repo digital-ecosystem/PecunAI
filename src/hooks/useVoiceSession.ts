@@ -514,6 +514,11 @@ export function useVoiceSession({
   const [micGranted,      setMicGranted]      = useState<boolean | null>(null);
   const [isAISpeaking,    setIsAISpeaking]    = useState(false);
   const isAISpeakingRef = useRef(false);
+  const [bargeInActive,   setBargeInActive]   = useState(false);
+  const bargeInActiveRef = useRef(false);
+  // Increments each time the voice path successfully saves an answer — lets the shell close
+  // the modal immediately without waiting for a card change (e.g. KB blocker, Q3/Q4/Q7 blockers).
+  const [voiceAnswerCount, setVoiceAnswerCount] = useState(0);
 
   // Phase 0 / 1 / 2 — 0 = terms/intro, 1 = questions, 2 = product suggestion
   const startPhase: 0 | 1 | 2 = initialTermsPhase === 'skip' ? 1 : 0;
@@ -1110,6 +1115,7 @@ export function useVoiceSession({
           .map(q => q.id);
 
         sendResult({ success: true });
+        setVoiceAnswerCount(c => c + 1);
 
         // ── KNOWLEDGE BLOCKER: Q12/13/14 "none" → open explain overlay for this asset class ──
         if (validatingQ?.questionOrder !== undefined &&
@@ -1302,6 +1308,17 @@ export function useVoiceSession({
           }
           const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current)
             ?? questionsRef.current[stateRef.current.currentQuestionIndex];
+
+          // Q2 is a legal requirement — customer must see sustainability info before Q3,
+          // even if they try to skip. Mirror the same guard in skipQuestion().
+          if (currentQ?.questionOrder === 2) {
+            skippedIdsRef.current.add(currentQ.id); // keep remaining filter consistent — circles back at end
+            setTermsSubStep('sustainabilityTerms');
+            termsSubStepRef.current = 'sustainabilityTerms';
+            dispatch({ type: "AI_DONE" });
+            sendResult({ success: true, instruction: "Sustainability disclosure is now showing on screen. Stay silent — the session resumes automatically when the customer confirms." });
+            return;
+          }
 
           // If the current card is already answered, this is a confirm-advance (customer confirmed
           // their existing answer while back-navigated), NOT a skip. Don't mark it skipped.
@@ -1622,6 +1639,11 @@ export function useVoiceSession({
               kbExplanationStartedRef.current = true;
             }
           }
+          // New AI audio arriving — barge-in processing is complete, re-enable auto-modal.
+          if (bargeInActiveRef.current) {
+            bargeInActiveRef.current = false;
+            setBargeInActive(false);
+          }
           if (!isAISpeakingRef.current) {
             isAISpeakingRef.current = true;
             setIsAISpeaking(true);
@@ -1791,6 +1813,13 @@ export function useVoiceSession({
           applyPendingTranscriptRef.current = null;
           needsTranscriptBubbleRef.current = false;
           if (explainOpenRef.current) resetExplainIdleRef.current();
+          // If AI was actively speaking, suppress the auto-modal until the new AI response
+          // starts sending audio — prevents the previous card's modal from incorrectly opening
+          // during the 1–2s gap between barge-in and the navigate/submit function call.
+          if (isAISpeakingRef.current) {
+            bargeInActiveRef.current = true;
+            setBargeInActive(true);
+          }
           // Voice barge-in: flush locally buffered audio so the customer hears silence
           // immediately. semantic_vad handles server-side response cancellation automatically.
           activeSourcesRef.current.forEach(s => { try { s.stop(0); } catch {} });
@@ -2176,6 +2205,16 @@ export function useVoiceSession({
     if (skipInProgressRef.current) return; // block until AI finishes and session returns to "listening"
     skipInProgressRef.current = true;
 
+    // Q2 is the sustainability acknowledgment — show the disclosure regardless of skip.
+    // Legal requirement: customer must see sustainability info before proceeding to Q3.
+    if (question.questionOrder === 2) {
+      skippedIdsRef.current.add(question.id); // keep remaining filter consistent — circles back at end
+      setTermsSubStep('sustainabilityTerms');
+      termsSubStepRef.current = 'sustainabilityTerms';
+      dispatch({ type: "AI_DONE" }); // → state "listening" → skipInProgressRef reset via useEffect
+      return;
+    }
+
     skippedIdsRef.current.add(question.id);
 
     // Use the same remaining algorithm as navigate("next") — not raw index+1,
@@ -2485,6 +2524,8 @@ export function useVoiceSession({
     micAnalyserNode,
     micGranted,
     isAISpeaking,
+    bargeInActive,
+    voiceAnswerCount,
     pendingVoiceAnswer,
     savedAnswers,
     explainOverlayData,

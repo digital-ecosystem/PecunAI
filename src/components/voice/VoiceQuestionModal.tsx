@@ -16,6 +16,7 @@ export interface ModalQuestion {
   text:             string;
   options:          QuestionOption[];
   questionType?:    string;
+  questionOrder?:   number;
   minValue?:        number;
   maxValue?:        number;
   inputPlaceholder?: string;
@@ -67,7 +68,9 @@ export default function VoiceQuestionModal({ question, onClose, onNext, preSelec
   }, [preSelectedValue, question.options, isChoice]);
 
   const numVal   = isNumber ? parseInt(inputValue, 10) : NaN;
-  const belowMin = isNumber && question.minValue !== undefined && !isNaN(numVal) && numVal < question.minValue;
+  // Q19 (monthly savings): 0 is valid (no savings plan), 1–74 invalid, 75+ valid.
+  const belowMin = isNumber && question.minValue !== undefined && !isNaN(numVal) &&
+    (question.questionOrder === 19 ? (numVal !== 0 && numVal < question.minValue) : numVal < question.minValue);
   const aboveMax = isNumber && question.maxValue !== undefined && !isNaN(numVal) && numVal > question.maxValue;
   const hasError = belowMin || aboveMax;
 
@@ -267,7 +270,9 @@ export default function VoiceQuestionModal({ question, onClose, onNext, preSelec
               />
               {question.minValue !== undefined && (
                 <p className="text-xs" style={{ color: "rgba(100,116,139,0.6)" }}>
-                  Mindestwert: {formatValue(question.minValue, question.inputPlaceholder)}
+                  {question.questionOrder === 19
+                    ? `Entweder 0 (kein Sparplan) oder mind. ${formatValue(question.minValue, question.inputPlaceholder)}`
+                    : `Mindestwert: ${formatValue(question.minValue, question.inputPlaceholder)}`}
                 </p>
               )}
               {question.maxValue !== undefined && (
@@ -278,7 +283,9 @@ export default function VoiceQuestionModal({ question, onClose, onNext, preSelec
               {hasError && (
                 <p className="text-sm" style={{ color: "rgba(239,68,68,1)" }}>
                   {belowMin
-                    ? `Mindestwert ist ${question.minValue?.toLocaleString("de-AT")}`
+                    ? question.questionOrder === 19
+                      ? `Bitte 0 (kein Sparplan) oder mindestens €${question.minValue?.toLocaleString("de-AT")} eingeben`
+                      : `Mindestwert ist ${question.minValue?.toLocaleString("de-AT")}`
                     : `Höchstwert ist ${question.maxValue?.toLocaleString("de-AT")}`}
                 </p>
               )}

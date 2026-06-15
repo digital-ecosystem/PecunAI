@@ -60,7 +60,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen, sendChatMessage, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen, sendChatMessage, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex, initialTermsPhase });
 
   // Track phase transition direction for the slide animation.
@@ -88,7 +88,20 @@ export default function VoiceSessionShell({
   useEffect(() => {
     suppressAutoModalRef.current = false;
     hasSpokenForCardRef.current  = false;
+    setModalOpen(false);
   }, [activeCardId]);
+
+  // Close the modal whenever the voice path saves an answer successfully.
+  // The voice path normally closes the modal by calling setCard() (which changes activeCardId
+  // and triggers the effect above). But some paths don't advance the card — the KB overlay blocker
+  // (Q12/13/14 = "none") opens the explain overlay without a card change, and the Q3/Q4/Q7
+  // session-ending blockers redirect without a card change. Without this effect those paths
+  // leave the modal sitting open under the overlay or during the AI goodbye.
+  useEffect(() => {
+    if (voiceAnswerCount === 0) return; // skip initial render
+    setModalOpen(false);
+    suppressAutoModalRef.current = true; // prevent auto-modal re-opening on the same card
+  }, [voiceAnswerCount]);
 
   // Reset state when entering the questions phase.
   // Root cause: effects run unconditionally (before the early return that shows VoiceTermsPhase),
@@ -114,9 +127,11 @@ export default function VoiceSessionShell({
   // voicePhase guard: effects run before the early-return that hides the modal during phase 0,
   // so without this guard the effect fires during terms and leaves modalOpen=true as hidden state.
   useEffect(() => {
-    if (voicePhase !== 1) return;               // only auto-open during questions phase
-    if (!hasSpokenForCardRef.current) return;   // AI hasn't spoken for this card yet
-    if (isAISpeaking) return;                    // AI still playing audio
+    if (voicePhase !== 1) return;                              // only auto-open during questions phase
+    if (termsSubStep === 'sustainabilityTerms') return;        // sustainability overlay is showing
+    if (bargeInActive) return;                                 // barge-in in flight — wrong card's modal would open
+    if (!hasSpokenForCardRef.current) return;                  // AI hasn't spoken for this card yet
+    if (isAISpeaking) return;                                  // AI still playing audio
     if (state.session !== "listening") return;
     if (!activeQ?.options?.length) return;
     if (modalOpen) return;
@@ -126,7 +141,7 @@ export default function VoiceSessionShell({
     if (!started) return;
     setModalOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCardId, isAISpeaking, state.session, voicePhase]);
+  }, [activeCardId, isAISpeaking, state.session, voicePhase, termsSubStep, bargeInActive]);
 
   useEffect(() => {
     notifyChatOpen(chatOpen);
@@ -675,6 +690,7 @@ export default function VoiceSessionShell({
             text:             modalQ.text,
             options:          modalQ.options ?? [],
             questionType:     modalQ.questionType,
+            questionOrder:    modalQ.questionOrder,
             minValue:         modalQ.minValue,
             maxValue:         modalQ.maxValue,
             inputPlaceholder: modalQ.inputPlaceholder,
@@ -690,6 +706,7 @@ export default function VoiceSessionShell({
             clearPendingVoiceAnswer();
           }}
           onNext={async value => {
+            suppressAutoModalRef.current = true;
             stopAudio();
             setModalOpen(false);
             clearPendingVoiceAnswer();
