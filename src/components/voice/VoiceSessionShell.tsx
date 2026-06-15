@@ -60,7 +60,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, notifyChatOpen, sendChatMessage, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex, initialTermsPhase });
 
   // Track phase transition direction for the slide animation.
@@ -145,6 +145,12 @@ export default function VoiceSessionShell({
 
   useEffect(() => {
     notifyChatOpen(chatOpen);
+    if (!chatOpen) {
+      // Allow the auto-modal to re-open once the AI speaks the question again.
+      // Without this reset, a user who closed the modal before opening chat would
+      // see suppressAutoModalRef=true on return and never get the modal back.
+      suppressAutoModalRef.current = false;
+    }
   }, [chatOpen, notifyChatOpen]);
 
   // Phase 0 auto-advance: when AI finishes the intro speech, transition to terms1 screen
@@ -661,6 +667,7 @@ export default function VoiceSessionShell({
         onClose={() => setChatOpen(false)}
         messages={chatMessages}
         onSendMessage={sendChatMessage}
+        isAITyping={isChatAITyping}
       />
 
       {explainOpen && activeQ && explainOverlayData && (

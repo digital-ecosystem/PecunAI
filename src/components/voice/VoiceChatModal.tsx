@@ -10,6 +10,7 @@ interface VoiceChatModalProps {
   onClose:       () => void;
   messages:      ChatMessage[];
   onSendMessage: (text: string) => void;
+  isAITyping:    boolean;
 }
 
 export default function VoiceChatModal({
@@ -17,6 +18,7 @@ export default function VoiceChatModal({
   onClose,
   messages,
   onSendMessage,
+  isAITyping,
 }: VoiceChatModalProps) {
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef              = useRef<HTMLDivElement>(null);
@@ -25,13 +27,14 @@ export default function VoiceChatModal({
   useEffect(() => {
     if (!isOpen) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isOpen]);
+  }, [messages, isOpen, isAITyping]);
 
   useEffect(() => {
     if (isOpen) setTimeout(() => inputRef.current?.focus(), 300);
   }, [isOpen]);
 
   const handleSend = () => {
+    if (isAITyping) return;
     const text = inputValue.trim();
     if (!text) return;
     setInputValue("");
@@ -41,6 +44,8 @@ export default function VoiceChatModal({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
+
+  const canSend = !!inputValue.trim() && !isAITyping;
 
   return (
     <AnimatePresence>
@@ -81,7 +86,7 @@ export default function VoiceChatModal({
                   Chat mit PecunAI
                 </h2>
                 <p className="text-sm mt-1" style={{ color: "rgba(59,130,246,0.6)" }}>
-                  Online und bereit zu helfen
+                  {isAITyping ? "PecunAI schreibt…" : "Online und bereit zu helfen"}
                 </p>
               </div>
               <motion.button
@@ -96,7 +101,7 @@ export default function VoiceChatModal({
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
-              {messages.length === 0 ? (
+              {messages.length === 0 && !isAITyping ? (
                 <p className="text-center text-sm py-8" style={{ color: "rgba(59,130,246,0.4)" }}>
                   Das Gespräch erscheint hier, sobald es beginnt.
                 </p>
@@ -127,6 +132,39 @@ export default function VoiceChatModal({
                       </div>
                     </motion.div>
                   ))}
+
+                  {/* Typing indicator */}
+                  <AnimatePresence>
+                    {isAITyping && (
+                      <motion.div
+                        className="flex justify-start"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 6 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <div
+                          className="px-5 py-3 rounded-3xl flex items-center gap-1.5"
+                          style={{
+                            background: "rgba(255,255,255,0.9)",
+                            border: "1px solid rgba(59,130,246,0.15)",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                          }}
+                        >
+                          {[0, 1, 2].map(i => (
+                            <motion.span
+                              key={i}
+                              className="block rounded-full"
+                              style={{ width: 7, height: 7, background: "rgba(59,130,246,0.5)" }}
+                              animate={{ opacity: [0.3, 1, 0.3], y: [0, -4, 0] }}
+                              transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.18, ease: "easeInOut" }}
+                            />
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <div ref={messagesEndRef} />
                 </div>
               )}
@@ -138,33 +176,40 @@ export default function VoiceChatModal({
               style={{ borderTop: "1px solid rgba(59,130,246,0.1)", background: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)" }}
             >
               <div
-                className="flex items-center gap-3 px-5 py-3 rounded-full"
-                style={{ background: "rgba(255,255,255,0.9)", border: "1px solid rgba(59,130,246,0.2)", boxShadow: "0 2px 8px rgba(59,130,246,0.1)" }}
+                className="flex items-center gap-3 px-5 py-3 rounded-full transition-opacity"
+                style={{
+                  background: "rgba(255,255,255,0.9)",
+                  border: "1px solid rgba(59,130,246,0.2)",
+                  boxShadow: "0 2px 8px rgba(59,130,246,0.1)",
+                  opacity: isAITyping ? 0.55 : 1,
+                }}
               >
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder="Nachricht schreiben..."
+                  placeholder={isAITyping ? "Bitte warten…" : "Nachricht schreiben…"}
                   value={inputValue}
                   onChange={e => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="flex-1 bg-transparent outline-none text-sm"
+                  disabled={isAITyping}
+                  className="flex-1 bg-transparent outline-none text-sm disabled:cursor-not-allowed"
                   style={{ color: "rgba(30,58,138,0.9)" }}
                 />
                 <motion.button
                   className="flex items-center justify-center rounded-full"
                   style={{
                     width: 36, height: 36,
-                    background: inputValue.trim()
+                    background: canSend
                       ? "linear-gradient(135deg, rgba(59,130,246,0.9) 0%, rgba(37,99,235,0.9) 100%)"
                       : "rgba(59,130,246,0.15)",
                     border: "1px solid rgba(59,130,246,0.2)",
+                    cursor: canSend ? "pointer" : "not-allowed",
                   }}
-                  whileTap={{ scale: 0.95 }}
+                  whileTap={canSend ? { scale: 0.95 } : {}}
                   onClick={handleSend}
-                  disabled={!inputValue.trim()}
+                  disabled={!canSend}
                 >
-                  <Send size={16} style={{ color: inputValue.trim() ? "white" : "rgba(59,130,246,0.4)" }} />
+                  <Send size={16} style={{ color: canSend ? "white" : "rgba(59,130,246,0.4)" }} />
                 </motion.button>
               </div>
             </div>

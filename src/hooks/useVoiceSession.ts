@@ -542,7 +542,8 @@ export function useVoiceSession({
   const [explainTriggerClose, setExplainTriggerClose] = useState(false);
 
   // Chat log — mirrors all questions and answers for the chat modal
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatMessages,    setChatMessages]    = useState<ChatMessage[]>([]);
+  const [isChatAITyping, setIsChatAITyping] = useState(false);
 
   // Pending voice answer — set by highlight_answer, cleared on submit or rejection
   const [pendingVoiceAnswer, setPendingVoiceAnswer] = useState<{
@@ -1700,6 +1701,7 @@ export function useVoiceSession({
 
         case "response.output_text.done": {
           const textContent = aiTextBufferRef.current.trim();
+          setIsChatAITyping(false);
           if (textContent) {
             lastAITranscriptRef.current = textContent;
             appendChatMessage(textContent, "ai");
@@ -1750,6 +1752,8 @@ export function useVoiceSession({
             }
             await handleFunctionCall(pc.name, pc.args, pc.callId);
           }
+          // Safety: if AI responded without text (e.g. audio slip-through), clear the typing indicator.
+          if (chatOpenRef.current) setIsChatAITyping(false);
           // In text mode (chat open), audio events don't fire — trigger AI_DONE here.
           if (chatOpenRef.current && !pc && !mutedRef.current) {
             dispatch({ type: "AI_DONE" });
@@ -2326,27 +2330,41 @@ export function useVoiceSession({
       chatOpenRef.current   = true;
       chatAnsweredRef.current = 0;
       pendingVoiceTranscriptRef.current = null;
+      setIsChatAITyping(false);
       if (gainRef.current) gainRef.current.gain.value = 0;
     } else {
       chatOpenRef.current = false;
       if (gainRef.current) gainRef.current.gain.value = mutedRef.current ? 0 : 1;
 
+      // Cancel any in-flight text response before sending the new audio response.
+      // Without this, response.create would error if OpenAI still has an active response
+      // (e.g. user closed chat while the AI was still generating a reply).
+      if (serverResponseActiveRef.current) {
+        send({ type: "response.cancel" });
+        serverResponseActiveRef.current = false;
+      }
+
+      // Move state to "processing" immediately so the sphere shows neutral (not green/listening)
+      // during the ~1s gap before the AI starts speaking its audio response.
+      // This also blocks the auto-modal from firing during the gap (modal requires state="listening").
+      if (!mutedRef.current) dispatch({ type: "ANSWER_RECEIVED" });
+
+      // Flush stale buffered audio that accumulated while gain was 0.
+      if (audioCtxRef.current) nextPlayTimeRef.current = audioCtxRef.current.currentTime;
+
+      const remainingNonSkipped = questionsRef.current.filter(
+        q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
+      );
+      const skippedRemaining = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
+      const currentQ         = questionsRef.current.find(q => q.id === activeCardIdRef.current);
+
+      // The question the AI must ask next — used to pin response.create instructions.
+      const nextToAsk = remainingNonSkipped.length > 0
+        ? (currentQ ?? remainingNonSkipped[0])
+        : skippedRemaining[0] ?? null;
+
+      let systemText: string;
       if (chatAnsweredRef.current > 0) {
-        // Flush the audio queue so stale buffered speech doesn't play
-        if (audioCtxRef.current) nextPlayTimeRef.current = audioCtxRef.current.currentTime;
-
-        const remainingNonSkipped = questionsRef.current.filter(
-          q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
-        );
-        const skippedRemaining = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
-        const currentQ         = questionsRef.current.find(q => q.id === activeCardIdRef.current);
-
-        // The question the AI must ask next — used to pin response.create instructions.
-        const nextToAsk = remainingNonSkipped.length > 0
-          ? (currentQ ?? remainingNonSkipped[0])
-          : skippedRemaining[0] ?? null;
-
-        let systemText: string;
         if (remainingNonSkipped.length === 0 && skippedRemaining.length > 0) {
           // All non-skipped done — AI must circle back to skipped topics
           const skippedList = skippedRemaining.map(q => `"${q.id}" (${q.category})`).join(", ");
@@ -2354,7 +2372,8 @@ export function useVoiceSession({
             `[SYSTEM: Customer answered ${chatAnsweredRef.current} question(s) via chat. ` +
             `All main topics covered. These topics were skipped earlier and still need answers: ` +
             `${skippedList}. The carousel is already showing the first skipped topic. ` +
-            `Ask about it naturally and continue through them one by one.]`;
+            `Ask about it naturally and continue through them one by one. ` +
+            `Do NOT call submit_answer — wait for the customer to answer by voice.]`;
         } else {
           const remainingIds = remainingNonSkipped.map(q => q.id).join(", ") || "none";
           const skippedPart  = skippedRemaining.length > 0
@@ -2365,20 +2384,32 @@ export function useVoiceSession({
             `Current topic: "${currentQ?.category ?? "unknown"}"` +
             (currentQ ? ` (ID: ${currentQ.id})` : "") + `. ` +
             `Remaining topic IDs (in order): ${remainingIds}.` +
-            `${skippedPart} Resume naturally from the current topic.]`;
+            `${skippedPart} Resume naturally from the current topic. ` +
+            `Do NOT call submit_answer — wait for the customer to answer by voice.]`;
         }
-
-        send({
-          type: "conversation.item.create",
-          item: { type: "message", role: "user", content: [{ type: "input_text", text: systemText }]},
-        });
-        send({
-          type: "response.create",
-          response: nextToAsk ? {
-            instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Begrüßen Sie den Kunden warmherzig zurück im Gespräch in 1 Satz. Leiten Sie dann natürlich zum Thema ${nextToAsk.category} (ID: ${nextToAsk.id}) über. ${qText(nextToAsk.text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${nextToAsk.category} (ID: ${nextToAsk.id}). Warten Sie auf die Antwort.`,
-          } : {},
-        });
+      } else {
+        // User had a text conversation (questions, clarifications) but answered nothing formally.
+        const currentTopic = nextToAsk
+          ? `"${nextToAsk.category}" (ID: ${nextToAsk.id})`
+          : "the current topic";
+        systemText =
+          `[SYSTEM: The customer was asking questions via text chat and has now returned to voice. ` +
+          `Resume the voice advisory interview from ${currentTopic}. ` +
+          `Do NOT call submit_answer — wait for the customer to answer by voice.]`;
       }
+
+      send({
+        type: "conversation.item.create",
+        item: { type: "message", role: "user", content: [{ type: "input_text", text: systemText }]},
+      });
+      send({
+        type: "response.create",
+        response: nextToAsk ? {
+          // No welcome-back preamble — just pick up naturally where the session left off.
+          // The customer knows they closed chat; no ceremony needed.
+          instructions: `You are PecunAI — a warm investment advisor. ${langTag()} Continue the voice interview naturally — no preamble or welcome-back line. Ask directly about ${nextToAsk.category} (ID: ${nextToAsk.id}). ${qText(nextToAsk.text)} Maximum 1–2 sentences. Do NOT call submit_answer — wait for the customer to respond by voice.`,
+        } : {},
+      });
     }
   }, [send]);
 
@@ -2502,6 +2533,7 @@ export function useVoiceSession({
 
   const sendChatMessage = useCallback((text: string) => {
     appendChatMessage(text, "user");
+    setIsChatAITyping(true);
     // Persist to DB if we have a thread (Phase 2+)
     if (voiceThreadIdRef.current) {
       fetch("/api/phase/chat/message", {
@@ -2552,5 +2584,6 @@ export function useVoiceSession({
     requestExplanation,
     closeExplainOverlay,
     sendChatMessage,
+    isChatAITyping,
   };
 }

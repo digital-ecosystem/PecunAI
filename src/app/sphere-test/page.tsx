@@ -148,7 +148,7 @@ export default function SphereTestPage() {
       </div>
 
       {/* ── Chat modal ──────────────────────────────────────────── */}
-      {chatOpen && <VoiceChatModal isOpen={chatOpen} messages={[]} onSendMessage={() => {}} onClose={() => setChatOpen(false)} />}
+      {chatOpen && <VoiceChatModal isOpen={chatOpen} messages={[]} onSendMessage={() => {}} onClose={() => setChatOpen(false)} isAITyping={false} />}
 
       {/* ── Explain overlay ─────────────────────────────────────── */}
       {explainOpen && (
