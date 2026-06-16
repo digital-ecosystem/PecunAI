@@ -266,6 +266,9 @@ const TERMS1_EXPLAIN_INSTRUCTIONS =
 const TERMS2_EXPLAIN_INSTRUCTIONS =
   `You are PecunAI. Speak English only. In 2–3 sentences: introduce the second document — it contains information about froots Asset Management GmbH, the portfolio manager. Ask the customer to read it and tap confirm. After confirmation, the advisory session begins. Then stop speaking.`;
 
+const SUSTAINABILITY_EXPLAIN_INSTRUCTIONS =
+  `You are PecunAI. Speak English only. In 2–3 sentences: introduce this screen — it is a legally required EU disclosure explaining how sustainability risks may affect investment performance. Ask the customer to read it and tap the confirm button. Mention they can press and hold the microphone button to ask questions. Then stop speaking.`;
+
 const SEARCH_DOCUMENT_TOOL = {
   type: "function" as const,
   name: "search_document",
@@ -596,6 +599,10 @@ export function useVoiceSession({
   const skipInProgressRef = useRef(false);
   // Tracks whether the circle-back transition has already been announced this session.
   const circleBackActiveRef = useRef(false);
+  // True once the customer has confirmed the sustainability disclosure — prevents the modal from
+  // showing more than once per session (e.g. if Q2 is skipped and later circles back).
+  // TODO: persist in DB instead of localStorage when the session-state API supports it (Sprint 4).
+  const sustainabilityConfirmedRef = useRef(false);
   // DEV: forced English for debugging. For production change back to "de".
   const langRef = useRef<"de" | "en">("en");
   // Same guard for button-initiated prev — prevents AI from calling navigate("prev") a second time.
@@ -640,6 +647,7 @@ export function useVoiceSession({
   const resetExplainIdleRef    = useRef<() => void>(() => {});
   const productVectorIdRef     = useRef<string | null>(null); // vector store ID for the recommended product (set in advancePhase)
   const pttVectorStoreRef      = useRef<string>("vs_6904b6e10a8081918b0dcff9a413660f"); // active vector store for current PTT context
+  const pttActiveRef           = useRef(false); // true while PTT button is held — bypasses sustainability mic guard
 
   useEffect(() => { questionsRef.current = questions; }, [questions]);
   useEffect(() => { stateRef.current    = state;     }, [state]);
@@ -658,6 +666,16 @@ export function useVoiceSession({
     activeCardIdRef.current = id;
     setActiveCardId(id);
   }, []);
+
+  // Initialise sustainabilityConfirmedRef from localStorage so the disclosure is never shown twice
+  // even if the page is refreshed mid-session before Sprint 4 persists skip-state to the DB.
+  useEffect(() => {
+    try {
+      const key = `pecunai_sus_${sessionId}`;
+      if (localStorage.getItem(key)) sustainabilityConfirmedRef.current = true;
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
   const appendChatMessage = useCallback((text: string, sender: "ai" | "user", questionId?: string) => {
     setChatMessages(prev => [...prev, {
@@ -1065,15 +1083,16 @@ export function useVoiceSession({
         }
 
         // ── SUSTAINABILITY TERMS: show disclosure modal after Q2 is answered ──
-        // AI stays silent while the modal is visible — no response.create sent here.
-        // confirmSustainabilityTerms() will ask Q3 once the customer presses the button.
         if (validatingQ?.questionOrder === 2) {
           pendingVoiceTranscriptRef.current = null;
           sendResult({ success: true });
-          setTermsSubStep('sustainabilityTerms');
-          termsSubStepRef.current = 'sustainabilityTerms';
-          dispatch({ type: "AI_DONE" });
-          return;
+          if (!sustainabilityConfirmedRef.current) {
+            setTermsSubStep('sustainabilityTerms');
+            termsSubStepRef.current = 'sustainabilityTerms';
+            send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS } });
+            return;
+          }
+          // Sustainability already confirmed this session — skip modal and fall through to normal advance.
         }
 
         // Handle sub-questions (12.1, 13.1, 14.1) based on parent answer.
@@ -1096,8 +1115,8 @@ export function useVoiceSession({
               }]},
             });
           } else {
-            // Parent ≠ "good" → auto-skip all sub-questions so remaining-filter ignores them
-            subQs.forEach(sq => skippedIdsRef.current.add(sq.id));
+            // Parent ≠ "good" → mark sub-questions as answered so they never appear in remaining or circle-back
+            subQs.forEach(sq => answeredIdsRef.current.add(sq.id));
           }
         }
         const answeredQ   = questionsRef.current[qIdx];
@@ -1329,12 +1348,12 @@ export function useVoiceSession({
 
           // Q2 is a legal requirement — customer must see sustainability info before Q3,
           // even if they try to skip. Mirror the same guard in skipQuestion().
-          if (currentQ?.questionOrder === 2) {
+          if (currentQ?.questionOrder === 2 && !sustainabilityConfirmedRef.current) {
             skippedIdsRef.current.add(currentQ.id); // keep remaining filter consistent — circles back at end
             setTermsSubStep('sustainabilityTerms');
             termsSubStepRef.current = 'sustainabilityTerms';
-            dispatch({ type: "AI_DONE" });
-            sendResult({ success: true, instruction: "Sustainability disclosure is now showing on screen. Stay silent — the session resumes automatically when the customer confirms." });
+            sendResult({ success: true });
+            send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS } });
             return;
           }
 
@@ -1643,7 +1662,7 @@ export function useVoiceSession({
               if (["idle", "connecting", "error", "paused", "muted"].includes(stateRef.current.session)) return;
               if (chatOpenRef.current) return;
               if (voicePhaseRef.current === 0) return;
-              if (termsSubStepRef.current === 'sustainabilityTerms') return;
+              if (termsSubStepRef.current === 'sustainabilityTerms' && !pttActiveRef.current) return;
               const bytes = new Uint8Array(e.data);
               let binary = "";
               for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
@@ -2000,13 +2019,14 @@ export function useVoiceSession({
     appendChatMessage(tapLabel, "user", question.id);
 
     // ── SUSTAINABILITY TERMS: show disclosure modal after Q2 is answered ──
-    // AI stays silent while the modal is visible — no response.create sent here.
-    // confirmSustainabilityTerms() will ask Q3 once the customer presses the button.
     if (question.questionOrder === 2) {
-      setTermsSubStep('sustainabilityTerms');
-      termsSubStepRef.current = 'sustainabilityTerms';
-      dispatch({ type: "AI_DONE" });
-      return;
+      if (!sustainabilityConfirmedRef.current) {
+        setTermsSubStep('sustainabilityTerms');
+        termsSubStepRef.current = 'sustainabilityTerms';
+        send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS } });
+        return;
+      }
+      // Sustainability already confirmed — skip modal and fall through to normal advance.
     }
 
     // ── BLOCKER: Q3 sustainability info not received → session ends ──
@@ -2058,7 +2078,7 @@ export function useVoiceSession({
       Math.floor(q.questionOrder) === question.questionOrder
     );
     if (subQsTap.length > 0 && value !== "good") {
-      subQsTap.forEach(sq => skippedIdsRef.current.add(sq.id));
+      subQsTap.forEach(sq => answeredIdsRef.current.add(sq.id));
     }
 
     if (chatOpenRef.current) {
@@ -2244,13 +2264,14 @@ export function useVoiceSession({
     if (skipInProgressRef.current) return; // block until AI finishes and session returns to "listening"
     skipInProgressRef.current = true;
 
-    // Q2 is the sustainability acknowledgment — show the disclosure regardless of skip.
-    // Legal requirement: customer must see sustainability info before proceeding to Q3.
-    if (question.questionOrder === 2) {
+    // Q2 is the sustainability acknowledgment — show the disclosure on first encounter (legal requirement).
+    // If already confirmed this session (sustainabilityConfirmedRef), skip the modal and let the
+    // normal skip flow handle Q2 like any other question.
+    if (question.questionOrder === 2 && !sustainabilityConfirmedRef.current) {
       skippedIdsRef.current.add(question.id); // keep remaining filter consistent — circles back at end
       setTermsSubStep('sustainabilityTerms');
       termsSubStepRef.current = 'sustainabilityTerms';
-      dispatch({ type: "AI_DONE" }); // → state "listening" → skipInProgressRef reset via useEffect
+      send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS } });
       return;
     }
 
@@ -2516,18 +2537,33 @@ export function useVoiceSession({
     send({ type: "response.create" });
   }, [sessionId, send]);
 
-  /** Customer tapped "Verstanden" on the sustainability disclosure — dismisses modal and asks Q3 */
+  /** Customer tapped "Verstanden" on the sustainability disclosure — dismisses modal and advances. */
   const confirmSustainabilityTerms = useCallback(async () => {
     setTermsSubStep(null);
     termsSubStepRef.current = null;
+
+    // Mark as confirmed so the modal is never shown again this session.
+    sustainabilityConfirmedRef.current = true;
+    try { localStorage.setItem(`pecunai_sus_${sessionId}`, "1"); } catch {}
+
+    // If Q2 was skipped (not answered), promote it to answered so it doesn't appear in circle-back.
+    const q2 = questionsRef.current.find(q => q.questionOrder === 2);
+    if (q2 && skippedIdsRef.current.has(q2.id)) {
+      skippedIdsRef.current.delete(q2.id);
+      answeredIdsRef.current.add(q2.id);
+    }
+
     const q3 = questionsRef.current.find(q => q.questionOrder === 3);
-    if (q3) {
+    // Recompute remaining after the Q2 skipped→answered promotion above.
+    const remaining = questionsRef.current
+      .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
+      .map(q => q.id);
+
+    if (q3 && !answeredIdsRef.current.has(q3.id)) {
+      // Normal first-time flow: Q3 not yet answered — navigate to Q3 and ask it.
       const q3Idx = questionsRef.current.findIndex(q => q.id === q3.id);
       if (q3Idx >= 0) dispatch({ type: "SET_INDEX", index: q3Idx });
       setCard(q3.id);
-      const remaining = questionsRef.current
-        .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
-        .map(q => q.id);
       send({
         type: "conversation.item.create",
         item: { type: "message", role: "user", content: [{ type: "input_text",
@@ -2540,8 +2576,30 @@ export function useVoiceSession({
           instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat die Nachhaltigkeitsinformationen gelesen und bestätigt. Fragen Sie jetzt, ob er die Nachhaltigkeitsinformationen zur Kenntnis genommen hat. ${qText(q3.text)} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
         },
       });
+    } else {
+      // Q3 is already answered (e.g. sustainability was shown during circle-back).
+      // Navigate to the actual next remaining question instead of looping back to Q3.
+      const nextId = remaining[0] ?? null;
+      const nextQ  = nextId ? questionsRef.current.find(q => q.id === nextId) : null;
+      if (nextQ) {
+        const nextQIdx = questionsRef.current.findIndex(q => q.id === nextQ.id);
+        if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
+        setCard(nextQ.id);
+        send({
+          type: "conversation.item.create",
+          item: { type: "message", role: "user", content: [{ type: "input_text",
+            text: makeNextTopicMsg(nextQ, remaining.slice(1), false),
+          }]},
+        });
+        send({
+          type: "response.create",
+          response: {
+            instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat die Nachhaltigkeitsinformationen bestätigt. Leiten Sie natürlich zum nächsten Thema über. ${qText(nextQ.text)} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
+          },
+        });
+      }
     }
-  }, [send, setCard]);
+  }, [send, setCard, sessionId]);
 
   /** Must be called from a user-gesture handler (tap/click) to unlock AudioContext */
   const startSession = useCallback(async () => {
@@ -2566,7 +2624,13 @@ export function useVoiceSession({
     setStarted(true);
   }, [setupAudio]);
 
+  const startPTT = useCallback(() => {
+    pttActiveRef.current = true;
+    stopAudio();
+  }, [stopAudio]);
+
   const submitPTTQuestion = useCallback((context: 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2') => {
+    pttActiveRef.current = false;
     // Set the vector store to search for this PTT context
     pttVectorStoreRef.current = context === 'phase2'
       ? (productVectorIdRef.current ?? "vs_6904b6e10a8081918b0dcff9a413660f")
@@ -2642,6 +2706,7 @@ export function useVoiceSession({
     requestExplanation,
     closeExplainOverlay,
     sendChatMessage,
+    startPTT,
     submitPTTQuestion,
     isChatAITyping,
   };
