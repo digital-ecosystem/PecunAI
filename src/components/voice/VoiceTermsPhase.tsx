@@ -10,9 +10,11 @@ import { FrootsCustomerInfo } from "@/components/terms/FrootsCustomerInfo";
 import { SustainabilityRisksInfo } from "@/components/terms/SustainabilityRisksInfo";
 
 interface VoiceTermsPhaseProps {
-  which:      'terms1' | 'terms2' | 'sustainabilityTerms';
-  isSpeaking: boolean;
-  onConfirm:  () => Promise<void>;
+  which:          'terms1' | 'terms2' | 'sustainabilityTerms';
+  isSpeaking:     boolean;
+  onConfirm:      () => Promise<void>;
+  onPTTStart?:   () => void;
+  onPTTRelease?: (which: 'terms1' | 'terms2' | 'sustainabilityTerms') => void;
 }
 
 function getContentSize() {
@@ -30,7 +32,7 @@ function getContentSize() {
   }
 }
 
-export default function VoiceTermsPhase({ which, isSpeaking, onConfirm }: VoiceTermsPhaseProps) {
+export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTStart, onPTTRelease }: VoiceTermsPhaseProps) {
   const isTerms2 = which !== 'terms1';
 
   const [showTransition, setShowTransition] = useState(!isTerms2);
@@ -203,7 +205,7 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm }: VoiceT
         )}
       </div>
 
-      {/* ── Push-to-talk button — UI only, mic wiring comes in Task 3.13 ── */}
+      {/* ── Push-to-talk button ── */}
       <div className="fixed bottom-8 right-6 flex flex-col items-center gap-2 z-[60]">
         <AnimatePresence>
           {!isPTTActive && !isSpeaking && (
@@ -229,12 +231,12 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm }: VoiceT
           }}
           animate={isPTTActive ? { scale: [0.93, 0.96, 0.93] } : { scale: 1 }}
           transition={isPTTActive ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" } : {}}
-          onMouseDown={startPTT}
-          onMouseUp={stopPTT}
-          onMouseLeave={isPTTActive ? stopPTT : undefined}
-          onTouchStart={startPTT}
-          onTouchEnd={stopPTT}
-          onTouchCancel={stopPTT}
+          onMouseDown={() => { startPTT(); onPTTStart?.(); }}
+          onMouseUp={() => { stopPTT(); onPTTRelease?.(which); }}
+          onMouseLeave={isPTTActive ? () => { stopPTT(); onPTTRelease?.(which); } : undefined}
+          onTouchStart={() => { startPTT(); onPTTStart?.(); }}
+          onTouchEnd={() => { stopPTT(); onPTTRelease?.(which); }}
+          onTouchCancel={() => { stopPTT(); onPTTRelease?.(which); }}
         >
           <Mic className="text-white" size={26} />
         </motion.button>

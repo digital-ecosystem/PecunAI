@@ -266,6 +266,19 @@ const TERMS1_EXPLAIN_INSTRUCTIONS =
 const TERMS2_EXPLAIN_INSTRUCTIONS =
   `You are PecunAI. Speak English only. In 2–3 sentences: introduce the second document — it contains information about froots Asset Management GmbH, the portfolio manager. Ask the customer to read it and tap confirm. After confirmation, the advisory session begins. Then stop speaking.`;
 
+const SEARCH_DOCUMENT_TOOL = {
+  type: "function" as const,
+  name: "search_document",
+  description: "Search the knowledge base documents to answer the customer's question accurately. Always call this first before answering any question about the documents.",
+  parameters: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "The customer's question or topic to search for" },
+    },
+    required: ["query"],
+  },
+};
+
 // ── Types ─────────────────────────────────────────────────────────
 
 export interface ProductData {
@@ -283,6 +296,7 @@ export interface ProductData {
   aiSettings:  {
     prompt:        string;
     firstMessage?: string;
+    vectorId?:     string;
   };
 }
 
@@ -624,6 +638,8 @@ export function useVoiceSession({
   const voiceThreadIdRef       = useRef<string | null>(null); // threadId from chat/init, used to persist V2 chat messages
   const explainIdleTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetExplainIdleRef    = useRef<() => void>(() => {});
+  const productVectorIdRef     = useRef<string | null>(null); // vector store ID for the recommended product (set in advancePhase)
+  const pttVectorStoreRef      = useRef<string>("vs_6904b6e10a8081918b0dcff9a413660f"); // active vector store for current PTT context
 
   useEffect(() => { questionsRef.current = questions; }, [questions]);
   useEffect(() => { stateRef.current    = state;     }, [state]);
@@ -843,6 +859,7 @@ export function useVoiceSession({
       }
 
       setProductSuggestion(product);
+      productVectorIdRef.current = product.aiSettings?.vectorId ?? "vs_6904b6e10a8081918b0dcff9a413660f";
       setVoicePhase(2);
 
       // Cap the product prompt to avoid oversized WebSocket frames through proxies
@@ -1435,6 +1452,24 @@ export function useVoiceSession({
         langRef.current = lang;
         sendResult({ success: true, language: lang });
         send({ type: "response.create" });
+        return;
+      }
+
+      if (name === "search_document") {
+        const { query } = args;
+        if (!query) { sendResult({ error: "query is required" }); return; }
+        try {
+          const res = await fetch("/api/documents/search", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query, vectorStoreId: pttVectorStoreRef.current }),
+          });
+          const { results } = await res.json() as { results: string };
+          sendResult({ results });
+        } catch {
+          sendResult({ error: "Search failed — answer from general knowledge." });
+        }
+        send({ type: "response.create", response: {} });
         return;
       }
 
@@ -2531,6 +2566,29 @@ export function useVoiceSession({
     setStarted(true);
   }, [setupAudio]);
 
+  const submitPTTQuestion = useCallback((context: 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2') => {
+    // Set the vector store to search for this PTT context
+    pttVectorStoreRef.current = context === 'phase2'
+      ? (productVectorIdRef.current ?? "vs_6904b6e10a8081918b0dcff9a413660f")
+      : "vs_6904b6e10a8081918b0dcff9a413660f";
+
+    const docLabel = context === 'phase2'
+      ? "the recommended product PDF"
+      : context === 'terms1'
+      ? "the 4money company information document"
+      : context === 'terms2'
+      ? "the froots GmbH document"
+      : "the sustainability risks disclosure";
+
+    send({
+      type: "response.create",
+      response: {
+        instructions: `You are PecunAI. The customer just asked a question about ${docLabel}. IMPORTANT: You MUST call search_document with their question first — do not answer from memory. After you receive the search results, answer in 2–3 sentences based on those results. Speak English only (dev mode).`,
+        tools: [SEARCH_DOCUMENT_TOOL],
+      },
+    });
+  }, [send]);
+
   const sendChatMessage = useCallback((text: string) => {
     appendChatMessage(text, "user");
     setIsChatAITyping(true);
@@ -2584,6 +2642,7 @@ export function useVoiceSession({
     requestExplanation,
     closeExplainOverlay,
     sendChatMessage,
+    submitPTTQuestion,
     isChatAITyping,
   };
 }

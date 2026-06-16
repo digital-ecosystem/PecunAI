@@ -48,10 +48,11 @@ interface VoiceProductPhaseProps {
   isListening:      boolean;
   isMuted:          boolean;
   sessionState:     SessionState;
-  onMuteToggle: () => void;
-  onChatClick:  () => void;
-  onConfirm:    () => void;
-  onRevisit:    () => void;
+  onMuteToggle:  () => void;
+  onPTTStart:    () => void;
+  onPTTRelease:  () => void;
+  onConfirm:     () => void;
+  onRevisit:     () => void;
 }
 
 export default function VoiceProductPhase({
@@ -61,6 +62,8 @@ export default function VoiceProductPhase({
   isMuted,
   sessionState,
   onMuteToggle,
+  onPTTStart,
+  onPTTRelease,
   onConfirm,
   onRevisit,
 }: VoiceProductPhaseProps) {
@@ -68,6 +71,7 @@ export default function VoiceProductPhase({
   const [pageNumber,    setPageNumber]    = useState(1);
   const [numPages,      setNumPages]      = useState(0);
   const [pdfFullscreen, setPdfFullscreen] = useState(false);
+  const [isPTTActive,   setIsPTTActive]   = useState(false);
 
   const handlePdfLoad = useCallback((n: number) => setNumPages(n), []);
 
@@ -273,6 +277,43 @@ export default function VoiceProductPhase({
           onClick={onConfirm}
         >
           Bestätigen
+        </motion.button>
+      </div>
+
+      {/* ── PTT button — fixed bottom-right ────────────────────── */}
+      <div className="fixed bottom-8 right-6 flex flex-col items-center gap-2 z-20">
+        <AnimatePresence>
+          {!isPTTActive && !isSpeaking && (
+            <motion.p
+              className="text-xs font-medium text-center"
+              style={{ color: "rgba(59,130,246,0.7)" }}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+            >
+              Halten zum<br />Sprechen
+            </motion.p>
+          )}
+        </AnimatePresence>
+        <motion.button
+          className="flex items-center justify-center rounded-full shadow-xl border-2"
+          style={{
+            width: 64, height: 64,
+            background: isPTTActive
+              ? "linear-gradient(135deg, rgba(37,99,235,1) 0%, rgba(29,78,216,1) 100%)"
+              : "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+            borderColor: isPTTActive ? "rgba(29,78,216,0.8)" : "rgba(59,130,246,0.3)",
+          }}
+          animate={isPTTActive ? { scale: [0.93, 0.96, 0.93] } : { scale: 1 }}
+          transition={isPTTActive ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" } : {}}
+          onMouseDown={() => { setIsPTTActive(true); onPTTStart(); }}
+          onMouseUp={() => { setIsPTTActive(false); onPTTRelease(); }}
+          onMouseLeave={isPTTActive ? () => { setIsPTTActive(false); onPTTRelease(); } : undefined}
+          onTouchStart={() => { setIsPTTActive(true); onPTTStart(); }}
+          onTouchEnd={() => { setIsPTTActive(false); onPTTRelease(); }}
+          onTouchCancel={() => { setIsPTTActive(false); onPTTRelease(); }}
+        >
+          <Mic className="text-white" size={26} />
         </motion.button>
       </div>
 

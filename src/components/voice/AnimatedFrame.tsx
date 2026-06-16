@@ -342,6 +342,14 @@ export function AnimatedFrame({ isListening, isSpeaking, children, contentWidth,
       const maxNearbyNodes = contentWidth < 400 ? 15 : 20;
       const maxConnectionDist = contentWidth < 400 ? 70 : 80;
 
+      // Green when user is speaking (listening), blue when AI is speaking or idle
+      const lineColor   = isListening ? "34, 197, 94"  : "59, 130, 246";
+      const nodeLight   = isListening ? "134, 239, 172" : "147, 197, 253";
+      const nodeMid     = isListening ? "34, 197, 94"  : "59, 130, 246";
+      const nodeDark    = isListening ? "22, 163, 74"  : "37, 99, 235";
+      const nodeDarkest = isListening ? "21, 128, 61"  : "29, 78, 216";
+      const nodeCore    = isListening ? "187, 247, 208" : "191, 219, 254";
+
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < Math.min(i + maxNearbyNodes, nodes.length); j++) {
           const dx = nodes[i].x - nodes[j].x;
@@ -354,7 +362,7 @@ export function AnimatedFrame({ isListening, isSpeaking, children, contentWidth,
             const alpha = (0.12 + avgEnergy * 0.2 + sameSpikeBonus);
             const lineWidthMultiplier = contentWidth < 400 ? 0.36 : 0.42;
 
-            ctx.strokeStyle = `rgba(59, 130, 246, ${alpha})`;
+            ctx.strokeStyle = `rgba(${lineColor}, ${alpha})`;
             ctx.lineWidth = (0.8 + avgEnergy * 0.8) * lineWidthMultiplier;
             ctx.beginPath();
             ctx.moveTo(nodes[i].x, nodes[i].y);
@@ -370,17 +378,17 @@ export function AnimatedFrame({ isListening, isSpeaking, children, contentWidth,
         const alpha = 0.5 + node.energy * 0.3;
 
         const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, nodeSize * 2);
-        gradient.addColorStop(0, `rgba(147, 197, 253, ${alpha})`);
-        gradient.addColorStop(0.4, `rgba(59, 130, 246, ${alpha * 0.5})`);
-        gradient.addColorStop(0.7, `rgba(37, 99, 235, ${alpha * 0.2})`);
-        gradient.addColorStop(1, "rgba(29, 78, 216, 0)");
+        gradient.addColorStop(0, `rgba(${nodeLight}, ${alpha})`);
+        gradient.addColorStop(0.4, `rgba(${nodeMid}, ${alpha * 0.5})`);
+        gradient.addColorStop(0.7, `rgba(${nodeDark}, ${alpha * 0.2})`);
+        gradient.addColorStop(1, `rgba(${nodeDarkest}, 0)`);
 
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(node.x, node.y, nodeSize * 2, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = `rgba(191, 219, 254, ${alpha})`;
+        ctx.fillStyle = `rgba(${nodeCore}, ${alpha})`;
         ctx.beginPath();
         ctx.arc(node.x, node.y, nodeSize * 0.6, 0, Math.PI * 2);
         ctx.fill();
@@ -415,18 +423,20 @@ export function AnimatedFrame({ isListening, isSpeaking, children, contentWidth,
           top: -WAVE_PAD,
           width: contentWidth + 2 * WAVE_PAD,
           height: contentHeight + 2 * WAVE_PAD,
-          background: "radial-gradient(ellipse, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0) 65%)",
+          background: isListening
+            ? "radial-gradient(ellipse, rgba(34, 197, 94, 0.14) 0%, rgba(34, 197, 94, 0) 65%)"
+            : "radial-gradient(ellipse, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0) 65%)",
           filter: `blur(${outerBlur}px)`,
         }}
         animate={isSpeaking ? {
           opacity: [0.58, 0.8, 0.58],
         } : isListening ? {
-          opacity: [0.48, 0.72, 0.48],
+          opacity: [0.52, 0.82, 0.52],
         } : {
           opacity: [0.36, 0.52, 0.36],
         }}
         transition={{
-          duration: isSpeaking ? 2.4 : isListening ? 2.8 : 3.4,
+          duration: isSpeaking ? 2.4 : isListening ? 1.8 : 3.4,
           repeat: Infinity,
           ease: "easeInOut",
         }}
@@ -440,18 +450,20 @@ export function AnimatedFrame({ isListening, isSpeaking, children, contentWidth,
           top: -WAVE_PAD,
           width: contentWidth + 2 * WAVE_PAD,
           height: contentHeight + 2 * WAVE_PAD,
-          background: "radial-gradient(ellipse, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 55%)",
+          background: isListening
+            ? "radial-gradient(ellipse, rgba(34, 197, 94, 0.18) 0%, rgba(34, 197, 94, 0) 55%)"
+            : "radial-gradient(ellipse, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 55%)",
           filter: `blur(${innerBlur}px)`,
         }}
         animate={isSpeaking ? {
           opacity: [0.6, 0.82, 0.6],
         } : isListening ? {
-          opacity: [0.48, 0.74, 0.48],
+          opacity: [0.55, 0.88, 0.55],
         } : {
           opacity: [0.28, 0.46, 0.28],
         }}
         transition={{
-          duration: isSpeaking ? 2.2 : isListening ? 2.6 : 3.5,
+          duration: isSpeaking ? 2.2 : isListening ? 1.6 : 3.5,
           repeat: Infinity,
           ease: "easeInOut",
           delay: 0.15,

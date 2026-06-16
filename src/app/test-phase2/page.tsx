@@ -58,7 +58,8 @@ export default function TestPhase2() {
         isMuted={isMuted}
         sessionState={isSpeaking ? "speaking" : isListening ? "listening" : "idle"}
         onMuteToggle={() => setIsMuted(m => !m)}
-        onChatClick={() => alert("chat")}
+        onPTTStart={() => {}}
+        onPTTRelease={() => alert("PTT released")}
         onConfirm={() => alert("confirm")}
         onRevisit={() => alert("revisit")}
       />

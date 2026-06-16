@@ -60,7 +60,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
     useVoiceSession({ sessionId, questions, initialQuestionIndex, initialTermsPhase });
 
   // Track phase transition direction for the slide animation.
@@ -395,6 +395,8 @@ export default function VoiceSessionShell({
           onConfirm={termsSubStep === 'terms1'
             ? () => { stopAudio(); return confirmTerms1(); }
             : () => { stopAudio(); return confirmTerms2(); }}
+          onPTTStart={stopAudio}
+          onPTTRelease={submitPTTQuestion}
         />
         {!started && (
           <motion.div
@@ -471,7 +473,8 @@ export default function VoiceSessionShell({
                 isMuted={isMuted}
                 sessionState={state.session}
                 onMuteToggle={toggleMute}
-                onChatClick={() => setChatOpen(true)}
+                onPTTStart={stopAudio}
+                onPTTRelease={() => submitPTTQuestion('phase2')}
                 onConfirm={confirmProduct}
                 onRevisit={revisitQuestions}
               />
@@ -659,6 +662,8 @@ export default function VoiceSessionShell({
           which="sustainabilityTerms"
           isSpeaking={isSpeaking}
           onConfirm={() => { stopAudio(); return confirmSustainabilityTerms(); }}
+          onPTTStart={stopAudio}
+          onPTTRelease={submitPTTQuestion}
         />
       )}
 
