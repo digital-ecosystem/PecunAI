@@ -16,6 +16,7 @@ export default function VoiceSessionPage() {
   const [questions,            setQuestions]            = useState<CarouselQuestion[]>([]);
   const [initialQuestionIndex, setInitialQuestionIndex] = useState(0);
   const [initialTermsPhase,    setInitialTermsPhase]    = useState<InitialTermsPhase>(null);
+  const [termsVectorId,        setTermsVectorId]        = useState<string | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -38,6 +39,10 @@ export default function VoiceSessionPage() {
       } else if (currentPhase && currentPhase !== 'TERMS1') {
         setInitialTermsPhase('skip');
       }
+
+      const vcRes  = await fetch("/api/voice/config");
+      const vcData = await vcRes.json().catch(() => null);
+      if (vcData?.termsVectorId) setTermsVectorId(vcData.termsVectorId);
 
       const res  = await fetch(`/api/phase?id=${sessionId}`);
       const data = await res.json();
@@ -103,6 +108,7 @@ export default function VoiceSessionPage() {
       questions={questions}
       initialQuestionIndex={initialQuestionIndex}
       initialTermsPhase={initialTermsPhase}
+      termsVectorId={termsVectorId}
     />
   );
 }

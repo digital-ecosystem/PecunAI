@@ -100,9 +100,15 @@ function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, m
       if (q.options?.length) {
         extra = `\n  Valid values: ${q.options.map(o => `"${o.value ?? o.label}"`).join(", ")}`;
       } else if (q.questionType === "number") {
-        const min = q.minValue !== undefined ? `, min ${q.minValue}` : "";
-        const max = q.maxValue !== undefined ? `, max ${q.maxValue}` : "";
-        extra = `\n  Format: number${min}${max}`;
+        if (q.questionOrder === 19) {
+          // Monthly savings: 0 = no savings plan (valid), 1–74 invalid, 75+ valid
+          const max = q.maxValue !== undefined ? `, max ${q.maxValue}` : "";
+          extra = `\n  Format: number${max}\n  RULE: 0 is valid (customer wants no monthly savings plan). 1–74 is invalid. 75 or more is valid. If the customer says 0 or "no monthly savings plan" or "no recurring investment", accept it and call submit_answer with "0".`;
+        } else {
+          const min = q.minValue !== undefined ? `, min ${q.minValue}` : "";
+          const max = q.maxValue !== undefined ? `, max ${q.maxValue}` : "";
+          extra = `\n  Format: number${min}${max}`;
+        }
       } else {
         extra = `\n  Format: free text`;
       }
@@ -267,7 +273,7 @@ const TERMS2_EXPLAIN_INSTRUCTIONS =
   `You are PecunAI. Speak English only. In 2–3 sentences: introduce the second document — it contains information about froots Asset Management GmbH, the portfolio manager. Ask the customer to read it and tap confirm. After confirmation, the advisory session begins. Then stop speaking.`;
 
 const SUSTAINABILITY_EXPLAIN_INSTRUCTIONS =
-  `You are PecunAI. Speak English only. In 2–3 sentences: introduce this screen — it is a legally required EU disclosure explaining how sustainability risks may affect investment performance. Ask the customer to read it and tap the confirm button. Mention they can press and hold the microphone button to ask questions. Then stop speaking.`;
+  `You are PecunAI. Speak English only. IMPORTANT: Phase 1 is now PAUSED — do NOT ask any more advisory questions. A mandatory EU sustainability disclosure is displayed on screen. In 1–2 warm sentences: tell the customer this is a legally required EU document explaining how sustainability risks may affect their investments — they need to read it before we continue. Tell them to tap the confirm button when they are done, and that they can hold the microphone button to ask you any questions about this document. Then STOP completely — do not ask Phase 1 questions, do not navigate, wait for the customer to confirm.`;
 
 const SEARCH_DOCUMENT_TOOL = {
   type: "function" as const,
@@ -512,6 +518,7 @@ interface UseVoiceSessionOptions {
   questions:            CarouselQuestion[];
   initialQuestionIndex: number;
   initialTermsPhase?:   'terms2' | 'skip' | null;
+  termsVectorId:        string | null;
 }
 
 export function useVoiceSession({
@@ -519,6 +526,7 @@ export function useVoiceSession({
   questions,
   initialQuestionIndex,
   initialTermsPhase,
+  termsVectorId,
 }: UseVoiceSessionOptions) {
   const router = useRouter();
 
@@ -646,8 +654,9 @@ export function useVoiceSession({
   const explainIdleTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetExplainIdleRef    = useRef<() => void>(() => {});
   const productVectorIdRef     = useRef<string | null>(null); // vector store ID for the recommended product (set in advancePhase)
-  const pttVectorStoreRef      = useRef<string>("vs_6904b6e10a8081918b0dcff9a413660f"); // active vector store for current PTT context
+  const pttVectorStoreRef      = useRef<string>(termsVectorId ?? ""); // active vector store for current PTT context
   const pttActiveRef           = useRef(false); // true while PTT button is held — bypasses sustainability mic guard
+  const pttContextRef          = useRef<'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | null>(null); // set while PTT response is in flight — cleared on response.done to restore VAD
 
   useEffect(() => { questionsRef.current = questions; }, [questions]);
   useEffect(() => { stateRef.current    = state;     }, [state]);
@@ -877,7 +886,7 @@ export function useVoiceSession({
       }
 
       setProductSuggestion(product);
-      productVectorIdRef.current = product.aiSettings?.vectorId ?? "vs_6904b6e10a8081918b0dcff9a413660f";
+      productVectorIdRef.current = product.aiSettings?.vectorId ?? null;
       setVoicePhase(2);
 
       // Cap the product prompt to avoid oversized WebSocket frames through proxies
@@ -953,6 +962,10 @@ export function useVoiceSession({
       if (name === "submit_answer") {
         if (explainOpenRef.current) {
           sendResult({ success: false, reason: "Explanation overlay is open — do not submit answers here" });
+          return;
+        }
+        if (termsSubStepRef.current === 'sustainabilityTerms') {
+          sendResult({ success: false, reason: "Sustainability disclosure is open — Phase 1 answers are blocked until the customer confirms" });
           return;
         }
         const { questionId, value } = args;
@@ -1089,6 +1102,12 @@ export function useVoiceSession({
           if (!sustainabilityConfirmedRef.current) {
             setTermsSubStep('sustainabilityTerms');
             termsSubStepRef.current = 'sustainabilityTerms';
+            send({
+              type: "conversation.item.create",
+              item: { type: "message", role: "user", content: [{ type: "input_text",
+                text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is now displayed on screen. STOP asking Phase 1 questions. Introduce this document (1–2 sentences), tell the customer to read it and tap confirm, mention they can hold the microphone button to ask questions about it. Then STOP — do not speak further until they confirm.]",
+              }]},
+            });
             send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS } });
             return;
           }
@@ -1253,6 +1272,18 @@ export function useVoiceSession({
       }
 
       if (name === "explain_topic") {
+        // Sustainability modal is open — answer verbally, never open the Phase 1 explain overlay
+        if (termsSubStepRef.current === 'sustainabilityTerms') {
+          sendResult({ success: false, reason: "Sustainability disclosure is open — explain this topic verbally in your audio response, do not open an overlay." });
+          send({ type: "response.create" });
+          return;
+        }
+        // Phase 2 product page — answer verbally, never open the Phase 1 explain overlay
+        if (voicePhaseRef.current === 2) {
+          sendResult({ success: false, reason: "Product phase is showing — explain this topic verbally in your audio response, do not open an overlay." });
+          send({ type: "response.create" });
+          return;
+        }
         // Chat modal is open — explain inline in text, never open the overlay
         if (chatOpenRef.current) {
           sendResult({ success: false, reason: "Chat is open — do not open the explanation overlay. Explain the topic directly in your text response instead." });
@@ -1290,6 +1321,10 @@ export function useVoiceSession({
       if (name === "navigate") {
         if (explainOpenRef.current) {
           sendResult({ success: false, reason: "Explanation overlay is open — navigation blocked" });
+          return;
+        }
+        if (termsSubStepRef.current === 'sustainabilityTerms') {
+          sendResult({ success: false, reason: "Sustainability disclosure is open — navigation is blocked until the customer confirms" });
           return;
         }
         const { direction, questionId: targetId } = args;
@@ -1353,6 +1388,12 @@ export function useVoiceSession({
             setTermsSubStep('sustainabilityTerms');
             termsSubStepRef.current = 'sustainabilityTerms';
             sendResult({ success: true });
+            send({
+              type: "conversation.item.create",
+              item: { type: "message", role: "user", content: [{ type: "input_text",
+                text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is now displayed on screen. STOP asking Phase 1 questions. Introduce this document (1–2 sentences), tell the customer to read it and tap confirm, mention they can hold the microphone button to ask questions about it. Then STOP — do not speak further until they confirm.]",
+              }]},
+            });
             send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS } });
             return;
           }
@@ -1477,18 +1518,54 @@ export function useVoiceSession({
       if (name === "search_document") {
         const { query } = args;
         if (!query) { sendResult({ error: "query is required" }); return; }
+
+        const vectorStoreId = pttVectorStoreRef.current;
+        if (!vectorStoreId) {
+          sendResult({ error: "No vector store configured." });
+          send({
+            type: "response.create",
+            response: {
+              instructions: `You are PecunAI. The document search system is not configured. Apologize briefly and let the customer know you cannot search the document right now. ${langTag()}`,
+            },
+          });
+          return;
+        }
+
         try {
           const res = await fetch("/api/documents/search", {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query, vectorStoreId: pttVectorStoreRef.current }),
+            body: JSON.stringify({ query, vectorStoreId }),
           });
           const { results } = await res.json() as { results: string };
+
+          if (!results || results.trim() === "" || results === "No relevant content found.") {
+            sendResult({ results: "No relevant content found in the document." });
+            send({
+              type: "response.create",
+              response: {
+                instructions: `You are PecunAI. The document search returned no results for this question. Let the customer know you could not find that specific information in the document, and invite them to ask another question or contact support. ${langTag()}`,
+              },
+            });
+            return;
+          }
+
           sendResult({ results });
+          send({
+            type: "response.create",
+            response: {
+              instructions: `You are PecunAI. The document search returned the following content:\n\n${results}\n\nUsing ONLY the above content, answer the customer's question in 2–3 clear and natural sentences. Do not add information from your training data or memory. If the results do not directly answer the question, say so honestly and suggest they ask another question. ${langTag()}`,
+            },
+          });
         } catch {
-          sendResult({ error: "Search failed — answer from general knowledge." });
+          sendResult({ error: "Search failed." });
+          send({
+            type: "response.create",
+            response: {
+              instructions: `You are PecunAI. The document search failed due to a technical error. Apologize briefly and suggest the customer try again or contact support. ${langTag()}`,
+            },
+          });
         }
-        send({ type: "response.create", response: {} });
         return;
       }
 
@@ -1661,7 +1738,7 @@ export function useVoiceSession({
               // Block only in states where the session is not actively live.
               if (["idle", "connecting", "error", "paused", "muted"].includes(stateRef.current.session)) return;
               if (chatOpenRef.current) return;
-              if (voicePhaseRef.current === 0) return;
+              if (voicePhaseRef.current === 0 && !pttActiveRef.current) return;
               if (termsSubStepRef.current === 'sustainabilityTerms' && !pttActiveRef.current) return;
               const bytes = new Uint8Array(e.data);
               let binary = "";
@@ -1794,6 +1871,16 @@ export function useVoiceSession({
 
         case "response.done": {
           serverResponseActiveRef.current = false;
+
+          // PTT response cycle complete — restore semantic_vad so Phase 1 interview continues normally
+          if (pttContextRef.current) {
+            pttContextRef.current = null;
+            send({
+              type: "session.update",
+              session: { type: "realtime", audio: { input: { turn_detection: { type: "semantic_vad" } } } },
+            });
+          }
+
           const pc = pendingCall.current;
           if (pc) {
             pendingCall.current = null;
@@ -2023,6 +2110,12 @@ export function useVoiceSession({
       if (!sustainabilityConfirmedRef.current) {
         setTermsSubStep('sustainabilityTerms');
         termsSubStepRef.current = 'sustainabilityTerms';
+        send({
+          type: "conversation.item.create",
+          item: { type: "message", role: "user", content: [{ type: "input_text",
+            text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is now displayed on screen. STOP asking Phase 1 questions. Introduce this document (1–2 sentences), tell the customer to read it and tap confirm, mention they can hold the microphone button to ask questions about it. Then STOP — do not speak further until they confirm.]",
+          }]},
+        });
         send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS } });
         return;
       }
@@ -2271,6 +2364,12 @@ export function useVoiceSession({
       skippedIdsRef.current.add(question.id); // keep remaining filter consistent — circles back at end
       setTermsSubStep('sustainabilityTerms');
       termsSubStepRef.current = 'sustainabilityTerms';
+      send({
+        type: "conversation.item.create",
+        item: { type: "message", role: "user", content: [{ type: "input_text",
+          text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is now displayed on screen. STOP asking Phase 1 questions. Introduce this document (1–2 sentences), tell the customer to read it and tap confirm, mention they can hold the microphone button to ask questions about it. Then STOP — do not speak further until they confirm.]",
+        }]},
+      });
       send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS } });
       return;
     }
@@ -2559,6 +2658,15 @@ export function useVoiceSession({
       .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
       .map(q => q.id);
 
+    // Resume SYSTEM message — counters the "PHASE 1 PAUSED" entry still in history and
+    // prevents the AI from calling explain_topic because ESG was just discussed.
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: "[SYSTEM: Customer confirmed the sustainability disclosure. PHASE 1 RESUMED. Do NOT call explain_topic — ask the next question directly without opening any overlay.]",
+      }]},
+    });
+
     if (q3 && !answeredIdsRef.current.has(q3.id)) {
       // Normal first-time flow: Q3 not yet answered — navigate to Q3 and ask it.
       const q3Idx = questionsRef.current.findIndex(q => q.id === q3.id);
@@ -2573,7 +2681,7 @@ export function useVoiceSession({
       send({
         type: "response.create",
         response: {
-          instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat die Nachhaltigkeitsinformationen gelesen und bestätigt. Fragen Sie jetzt, ob er die Nachhaltigkeitsinformationen zur Kenntnis genommen hat. ${qText(q3.text)} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
+          instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat die Nachhaltigkeitsinformationen gelesen und bestätigt. Phase 1 läuft weiter. Rufen Sie NICHT explain_topic auf. Fragen Sie jetzt direkt, ob der Kunde die Nachhaltigkeitsinformationen zur Kenntnis genommen hat. ${qText(q3.text)} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
         },
       });
     } else {
@@ -2594,7 +2702,7 @@ export function useVoiceSession({
         send({
           type: "response.create",
           response: {
-            instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat die Nachhaltigkeitsinformationen bestätigt. Leiten Sie natürlich zum nächsten Thema über. ${qText(nextQ.text)} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
+            instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat die Nachhaltigkeitsinformationen bestätigt. Phase 1 läuft weiter. Rufen Sie NICHT explain_topic auf. Leiten Sie natürlich zum nächsten Thema über. ${qText(nextQ.text)} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
           },
         });
       }
@@ -2627,14 +2735,41 @@ export function useVoiceSession({
   const startPTT = useCallback(() => {
     pttActiveRef.current = true;
     stopAudio();
-  }, [stopAudio]);
+
+    // Disable VAD on document screens so the customer's speech doesn't trigger an
+    // auto-response — we fire response.create manually on PTT release instead.
+    const isDocumentScreen =
+      voicePhaseRef.current === 0 ||
+      termsSubStepRef.current === 'sustainabilityTerms' ||
+      voicePhaseRef.current === 2;
+
+    if (isDocumentScreen) {
+      send({
+        type: "session.update",
+        session: { type: "realtime", audio: { input: { turn_detection: null } } },
+      });
+    }
+  }, [stopAudio, send]);
 
   const submitPTTQuestion = useCallback((context: 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2') => {
-    pttActiveRef.current = false;
-    // Set the vector store to search for this PTT context
+    pttActiveRef.current  = false;
+    pttContextRef.current = context; // response.done will clear this and restore VAD
+
+    // Set the correct vector store for this PTT context — no hardcoded fallbacks
     pttVectorStoreRef.current = context === 'phase2'
-      ? (productVectorIdRef.current ?? "vs_6904b6e10a8081918b0dcff9a413660f")
-      : "vs_6904b6e10a8081918b0dcff9a413660f";
+      ? (productVectorIdRef.current ?? termsVectorId ?? "")
+      : (termsVectorId ?? "");
+
+    if (!pttVectorStoreRef.current) {
+      // No vector store configured — tell the AI to apologise rather than searching
+      send({
+        type: "response.create",
+        response: {
+          instructions: `You are PecunAI. The document search system is not configured for this session. Apologize briefly and let the customer know you cannot search the document right now. ${langTag()}`,
+        },
+      });
+      return;
+    }
 
     const docLabel = context === 'phase2'
       ? "the recommended product PDF"
@@ -2644,14 +2779,18 @@ export function useVoiceSession({
       ? "the froots GmbH document"
       : "the sustainability risks disclosure";
 
+    // Commit the buffered audio — closes the user's speech turn on the server.
+    // VAD is disabled during PTT so this is the only way OpenAI knows the turn ended.
+    send({ type: "input_audio_buffer.commit" });
+
     send({
       type: "response.create",
       response: {
-        instructions: `You are PecunAI. The customer just asked a question about ${docLabel}. IMPORTANT: You MUST call search_document with their question first — do not answer from memory. After you receive the search results, answer in 2–3 sentences based on those results. Speak English only (dev mode).`,
+        instructions: `You are PecunAI. The customer just asked a question about ${docLabel}. You MUST call search_document with their exact question as the query — do not answer from memory or training data. After receiving the search results, answer in 2–3 clear sentences based on those results only. ${langTag()}`,
         tools: [SEARCH_DOCUMENT_TOOL],
       },
     });
-  }, [send]);
+  }, [send, termsVectorId]);
 
   const sendChatMessage = useCallback((text: string) => {
     appendChatMessage(text, "user");

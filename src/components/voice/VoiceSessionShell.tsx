@@ -48,6 +48,7 @@ interface VoiceSessionShellProps {
   questions:            CarouselQuestion[];
   initialQuestionIndex: number;
   initialTermsPhase?:   'terms2' | 'skip' | null;
+  termsVectorId?:       string | null;
 }
 
 // ── Component ─────────────────────────────────────────────────────
@@ -57,11 +58,12 @@ export default function VoiceSessionShell({
   questions,
   initialQuestionIndex,
   initialTermsPhase,
+  termsVectorId,
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
   const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
-    useVoiceSession({ sessionId, questions, initialQuestionIndex, initialTermsPhase });
+    useVoiceSession({ sessionId, questions, initialQuestionIndex, initialTermsPhase, termsVectorId: termsVectorId ?? null });
 
   // Track phase transition direction for the slide animation.
   // Updated synchronously during render so the direction is correct before motion reads it.
@@ -85,23 +87,26 @@ export default function VoiceSessionShell({
   // Prevents the modal from opening immediately on skip/prev/phase-start before the AI speaks.
   const hasSpokenForCardRef = useRef(false);
 
-  useEffect(() => {
-    suppressAutoModalRef.current = false;
-    hasSpokenForCardRef.current  = false;
-    setModalOpen(false);
-  }, [activeCardId]);
-
   // Close the modal whenever the voice path saves an answer successfully.
   // The voice path normally closes the modal by calling setCard() (which changes activeCardId
-  // and triggers the effect above). But some paths don't advance the card — the KB overlay blocker
+  // and triggers the effect below). But some paths don't advance the card — the KB overlay blocker
   // (Q12/13/14 = "none") opens the explain overlay without a card change, and the Q3/Q4/Q7
   // session-ending blockers redirect without a card change. Without this effect those paths
   // leave the modal sitting open under the overlay or during the AI goodbye.
+  // ORDERING: this effect must be declared BEFORE the activeCardId effect so that when both
+  // fire in the same render (normal voice answer), activeCardId runs second and resets
+  // suppressAutoModalRef back to false — allowing the auto-modal to open for the next question.
   useEffect(() => {
     if (voiceAnswerCount === 0) return; // skip initial render
     setModalOpen(false);
     suppressAutoModalRef.current = true; // prevent auto-modal re-opening on the same card
   }, [voiceAnswerCount]);
+
+  useEffect(() => {
+    suppressAutoModalRef.current = false;
+    hasSpokenForCardRef.current  = false;
+    setModalOpen(false);
+  }, [activeCardId]);
 
   // Reset state when entering the questions phase.
   // Root cause: effects run unconditionally (before the early return that shows VoiceTermsPhase),

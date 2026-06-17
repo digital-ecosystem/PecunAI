@@ -398,9 +398,9 @@ export default function VoiceProductPhase({
                   <ChevronLeft size={18} style={{ color: "rgba(255,255,255,0.8)" }} />
                 </motion.button>
 
-                <span className="text-sm font-medium tabular-nums" style={{ color: "rgba(255,255,255,0.6)", minWidth: 60, textAlign: "center" }}>
+                {/* <span className="text-sm font-medium tabular-nums" style={{ color: "rgba(255,255,255,0.6)", minWidth: 60, textAlign: "center" }}>
                   {pageNumber} / {numPages || "—"}
-                </span>
+                </span> */}
 
                 <motion.button
                   className="flex items-center justify-center rounded-full"
