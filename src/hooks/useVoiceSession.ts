@@ -888,6 +888,10 @@ export function useVoiceSession({
       setProductSuggestion(product);
       productVectorIdRef.current = product.aiSettings?.vectorId ?? null;
       setVoicePhase(2);
+      send({
+        type: "session.update",
+        session: { type: "realtime", audio: { input: { turn_detection: null } } },
+      });
 
       // Cap the product prompt to avoid oversized WebSocket frames through proxies
       const productPrompt = (product.aiSettings?.prompt ?? "").slice(0, 3000);
@@ -1740,6 +1744,7 @@ export function useVoiceSession({
               if (chatOpenRef.current) return;
               if (voicePhaseRef.current === 0 && !pttActiveRef.current) return;
               if (termsSubStepRef.current === 'sustainabilityTerms' && !pttActiveRef.current) return;
+              if (voicePhaseRef.current === 2 && !pttActiveRef.current) return;
               const bytes = new Uint8Array(e.data);
               let binary = "";
               for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
@@ -1872,13 +1877,16 @@ export function useVoiceSession({
         case "response.done": {
           serverResponseActiveRef.current = false;
 
-          // PTT response cycle complete — restore semantic_vad so Phase 1 interview continues normally
+          // PTT response cycle complete — restore semantic_vad so Phase 1 interview continues normally.
+          // Phase 2 is PTT-only: keep VAD off between presses. Only restore for Phase 0/1 contexts.
           if (pttContextRef.current) {
             pttContextRef.current = null;
-            send({
-              type: "session.update",
-              session: { type: "realtime", audio: { input: { turn_detection: { type: "semantic_vad" } } } },
-            });
+            if (voicePhaseRef.current !== 2) {
+              send({
+                type: "session.update",
+                session: { type: "realtime", audio: { input: { turn_detection: { type: "semantic_vad" } } } },
+              });
+            }
           }
 
           const pc = pendingCall.current;
@@ -2578,6 +2586,10 @@ export function useVoiceSession({
     isRevisitingRef.current = true;
     setVoicePhase(1);
     setProductSuggestion(null);
+    send({
+      type: "session.update",
+      session: { type: "realtime", audio: { input: { turn_detection: { type: "semantic_vad" } } } },
+    });
     send({
       type: "conversation.item.create",
       item: { type: "message", role: "user", content: [{ type: "input_text",

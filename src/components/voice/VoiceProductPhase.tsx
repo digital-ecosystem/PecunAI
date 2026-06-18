@@ -75,6 +75,11 @@ export default function VoiceProductPhase({
 
   const handlePdfLoad = useCallback((n: number) => setNumPages(n), []);
 
+  // Use window.innerWidth for the narrow check — pdfSize.width is height-driven on desktop
+  // so it can't reliably distinguish mobile from desktop. Re-evaluated on every render;
+  // pdfSize state (which updates on resize) triggers re-renders so this stays in sync.
+  const isNarrow = typeof window === 'undefined' || window.innerWidth < 768;
+
   useEffect(() => {
     setPdfSize(getPdfSize());
     const onResize = () => setPdfSize(getPdfSize());
@@ -150,7 +155,6 @@ export default function VoiceProductPhase({
           <div className="w-full flex justify-center">
           <motion.div
             className="relative cursor-pointer"
-            style={{ marginBottom: 56 }}
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.15 }}
@@ -158,7 +162,7 @@ export default function VoiceProductPhase({
           >
             <AnimatedFrame
               isSpeaking={isSpeaking}
-              isListening={isListening}
+              isListening={isPTTActive}
               contentWidth={pdfSize.width}
               contentHeight={pdfSize.height}
             >
@@ -181,6 +185,7 @@ export default function VoiceProductPhase({
               backdropFilter: "blur(10px)",
               border: "1px solid rgba(59,130,246,0.15)",
               boxShadow: "0 2px 8px rgba(59,130,246,0.08)",
+              marginTop: 10,
             }}
           >
             <button
@@ -202,86 +207,67 @@ export default function VoiceProductPhase({
           </div>
         )}
 
-        {/* Status text + mute chip */}
-        <div className="flex flex-col items-center gap-3">
-          <motion.p
-            className="text-sm font-medium"
-            style={{ color: "rgba(59,130,246,0.7)" }}
-            animate={{ opacity: [0.7, 1, 0.7] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          >
-            {statusLabel}
-          </motion.p>
-
-          <motion.button
-            className="flex items-center justify-center rounded-full"
+        {/* ── Action buttons — stacked centered, like Phase 0 confirm button ── */}
+        {pdfSize && (
+          <div
             style={{
-              width:          36,
-              height:         36,
-              background:     isMuted
-                ? "rgba(254,226,226,0.85)"
-                : "rgba(255,255,255,0.85)",
-              backdropFilter: "blur(10px)",
-              border: isMuted
-                ? "1px solid rgba(239,68,68,0.35)"
-                : "1px solid rgba(59,130,246,0.2)",
-              boxShadow:      "0 2px 10px rgba(0,0,0,0.08)",
+              display:        'flex',
+              flexDirection:  isNarrow ? 'column' : 'row',
+              alignItems:     'stretch',
+              gap:            14,
+              width:          pdfSize.width,
+              paddingLeft:    isNarrow ? 16 : 0,
+              paddingRight:   isNarrow ? 16 : 0,
+              boxSizing:      'border-box',
+              marginTop:      10,
+              marginBottom:   32,
             }}
-            whileTap={{ scale: 0.91 }}
-            onClick={onMuteToggle}
           >
-            {isMuted
-              ? <MicOff size={16} style={{ color: "rgba(239,68,68,0.85)" }} />
-              : <Mic    size={16} style={{ color: "rgba(59,130,246,0.85)" }} />
-            }
-          </motion.button>
-        </div>
-      </div>
+            {/* Bestätigen — filled primary */}
+            <motion.button
+              className="text-sm font-semibold rounded-2xl text-white"
+              style={{
+                flex:           1,
+                paddingTop:     12,
+                paddingBottom:  12,
+                paddingLeft:    16,
+                paddingRight:   16,
+                background:     "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+                boxShadow:      "0 4px 16px rgba(59,130,246,0.35)",
+              }}
+              whileTap={{ scale: 0.97 }}
+              onClick={onConfirm}
+            >
+              Bestätigen
+            </motion.button>
 
-      {/* ── Bottom bar — two buttons only ───────────────────────── */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-30 flex items-center px-5 py-4 gap-3"
-        style={{
-          background:     "linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.95) 100%)",
-          backdropFilter: "blur(20px)",
-          borderTop:      "1px solid rgba(255,255,255,0.5)",
-          boxShadow:      "0 -4px 24px rgba(59,130,246,0.08)",
-        }}
-      >
-        {/* Fragen ändern — outlined secondary */}
-        <motion.button
-          className="flex-1 text-sm font-semibold rounded-2xl"
-          style={{
-            height:         52,
-            background:     "rgba(255,255,255,0.85)",
-            backdropFilter: "blur(10px)",
-            border:         "1.5px solid rgba(59,130,246,0.5)",
-            color:          "rgba(37,99,235,0.9)",
-            boxShadow:      "0 2px 8px rgba(59,130,246,0.06)",
-          }}
-          whileTap={{ scale: 0.97 }}
-          onClick={onRevisit}
-        >
-          Fragen ändern
-        </motion.button>
+            {/* Fragen ändern — outlined secondary */}
+            <motion.button
+              className="text-sm font-semibold rounded-2xl"
+              style={{
+                flex:           1,
+                paddingTop:     12,
+                paddingBottom:  12,
+                paddingLeft:    16,
+                paddingRight:   16,
+                background:     "rgba(255,255,255,0.85)",
+                backdropFilter: "blur(10px)",
+                border:         "1.5px solid rgba(59,130,246,0.5)",
+                color:          "rgba(37,99,235,0.9)",
+                boxShadow:      "0 2px 8px rgba(59,130,246,0.06)",
+              }}
+              whileTap={{ scale: 0.97 }}
+              onClick={onRevisit}
+            >
+              Fragen ändern
+            </motion.button>
+          </div>
+        )}
 
-        {/* Bestätigen — filled primary */}
-        <motion.button
-          className="flex-1 text-sm font-semibold rounded-2xl text-white"
-          style={{
-            height:    52,
-            background: "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
-            boxShadow:  "0 4px 16px rgba(59,130,246,0.35)",
-          }}
-          whileTap={{ scale: 0.97 }}
-          onClick={onConfirm}
-        >
-          Bestätigen
-        </motion.button>
       </div>
 
       {/* ── PTT button — fixed bottom-right ────────────────────── */}
-      <div className="fixed bottom-8 right-6 flex flex-col items-center gap-2 z-20">
+      <div className="fixed bottom-8 right-6 flex flex-col items-center gap-2 z-[60]">
         <AnimatePresence>
           {!isPTTActive && !isSpeaking && (
             <motion.p
