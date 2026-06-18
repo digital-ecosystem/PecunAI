@@ -273,7 +273,7 @@ const TERMS2_EXPLAIN_INSTRUCTIONS =
   `You are PecunAI. Speak English only. In 2–3 sentences: introduce the second document — it contains information about froots Asset Management GmbH, the portfolio manager. Ask the customer to read it and tap confirm. After confirmation, the advisory session begins. Then stop speaking.`;
 
 const SUSTAINABILITY_EXPLAIN_INSTRUCTIONS =
-  `You are PecunAI. Speak English only. IMPORTANT: Phase 1 is now PAUSED — do NOT ask any more advisory questions. A mandatory EU sustainability disclosure is displayed on screen. In 1–2 warm sentences: tell the customer this is a legally required EU document explaining how sustainability risks may affect their investments — they need to read it before we continue. Tell them to tap the confirm button when they are done, and that they can hold the microphone button to ask you any questions about this document. Then STOP completely — do not ask Phase 1 questions, do not navigate, wait for the customer to confirm.`;
+  `You are PecunAI. Speak English only. Say exactly 1–2 warm sentences: explain that a legally required EU document about sustainability risks is now shown on screen, that the customer should read it at their own pace and tap the confirm button when done, and that they can hold the microphone button to ask you questions about it at any time. After speaking those sentences, do NOT say anything else — do NOT ask Phase 1 questions, do NOT navigate. Simply wait for the customer to tap confirm.`;
 
 const SEARCH_DOCUMENT_TOOL = {
   type: "function" as const,
@@ -2690,10 +2690,13 @@ export function useVoiceSession({
           text: makeNextTopicMsg(q3, remaining.slice(1), false),
         }]},
       });
+      const q3Options = q3.options?.length
+        ? ` Valid values the customer must choose from: ${q3.options.map(o => `"${o.value ?? o.label}"`).join(", ")}.`
+        : "";
       send({
         type: "response.create",
         response: {
-          instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat die Nachhaltigkeitsinformationen gelesen und bestätigt. Phase 1 läuft weiter. Rufen Sie NICHT explain_topic auf. Fragen Sie jetzt direkt, ob der Kunde die Nachhaltigkeitsinformationen zur Kenntnis genommen hat. ${qText(q3.text)} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
+          instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat die Nachhaltigkeitsinformationen gelesen und bestätigt. Phase 1 läuft weiter. Rufen Sie NICHT explain_topic auf. Fragen Sie jetzt direkt, ob der Kunde die Nachhaltigkeitsinformationen zur Kenntnis genommen hat. ${qText(q3.text)}${q3Options} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
         },
       });
     } else {
