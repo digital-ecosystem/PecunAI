@@ -104,9 +104,17 @@ export default function VoiceSessionShell({
 
   useEffect(() => {
     suppressAutoModalRef.current = false;
-    hasSpokenForCardRef.current  = false;
+    // If the AI is already speaking when the card changes, the previous response contained
+    // audio + submit_answer in the same turn. isAISpeakingRef stays true through the card
+    // transition so setIsAISpeaking(true) never re-fires for the new card's audio — meaning
+    // the isAISpeaking effect below never sets hasSpokenForCardRef. Credit the in-progress
+    // speech to the new card so the modal opens when that audio ends.
+    // isAISpeaking is intentionally NOT in the dep array — this effect must only run on card
+    // changes, not on every speaking toggle (that would reset suppressAutoModalRef mid-question).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    hasSpokenForCardRef.current  = isAISpeaking;
     setModalOpen(false);
-  }, [activeCardId]);
+  }, [activeCardId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset state when entering the questions phase.
   // Root cause: effects run unconditionally (before the early return that shows VoiceTermsPhase),
