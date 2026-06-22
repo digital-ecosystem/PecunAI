@@ -91,7 +91,6 @@ function base64ToPCM16AudioBuffer(base64: string, ctx: AudioContext): AudioBuffe
 
 // ── System prompt ─────────────────────────────────────────────────
 
-// DEV: English for testing. For production restore German: "Sprechen Sie ausschließlich Deutsch, formelle Anrede „Sie""
 function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, micGranted: boolean | null): string {
   const list = questions
     .filter(q => q.questionOrder === undefined || q.questionOrder % 1 === 0) // exclude sub-questions (12.1, 13.1, 14.1) — injected dynamically via SYSTEM message
@@ -134,8 +133,7 @@ You are PecunAI, a warm digital investment advisor having a one-on-one consultat
 
 # Language
 
-// DEV MODE: Speak English only. For production, restore German with formal "Sie" address.
-Speak English throughout the entire session.
+Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie".
 
 # Personality and Tone
 
@@ -261,19 +259,18 @@ ${resumeIndex > 0
 
 // ── Phase 0 AI instruction strings (German) ──────────────────────
 
-// DEV: English instructions. For production restore the German versions below.
 const INTRO_INSTRUCTIONS =
-  `You are PecunAI. Speak English only.
-   Welcome the customer in 2–3 professional sentences: introduce yourself as a digital investment advisor, explain you will guide them step by step through the advisory process, and mention they can speak or tap the options on screen at any time. Stay professional and friendly — no overly emotional tone.`;
+  `Sie sind PecunAI. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie".
+   Begrüßen Sie den Kunden in 2–3 professionellen Sätzen: Stellen Sie sich als digitaler Anlageberater vor, erklären Sie, dass Sie Schritt für Schritt durch den Beratungsprozess begleiten werden, und erwähnen Sie, dass der Kunde jederzeit sprechen oder die Optionen auf dem Bildschirm antippen kann. Bleiben Sie professionell und freundlich — kein übermäßig emotionaler Ton.`;
 
 const TERMS1_EXPLAIN_INSTRUCTIONS =
-  `You are PecunAI. Speak English only. In 2–3 sentences: introduce the first document — it contains important information about 4money, the licensed investment services firm conducting this consultation: who we are, what services we provide, and what rights the customer has. Ask them to read it at their own pace and tap the confirm button when done. Then stop speaking.`;
+  `Sie sind PecunAI. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Stellen Sie in 2–3 Sätzen das erste Dokument vor — es enthält wichtige Informationen über 4money, das lizenzierte Wertpapierdienstleistungsunternehmen, das diese Beratung durchführt: wer wir sind, welche Dienstleistungen wir anbieten und welche Rechte der Kunde hat. Bitten Sie den Kunden, es in seinem eigenen Tempo zu lesen und auf die Bestätigungsschaltfläche zu tippen, wenn er fertig ist. Hören Sie dann auf zu sprechen.`;
 
 const TERMS2_EXPLAIN_INSTRUCTIONS =
-  `You are PecunAI. Speak English only. In 2–3 sentences: introduce the second document — it contains information about froots Asset Management GmbH, the portfolio manager. Ask the customer to read it and tap confirm. After confirmation, the advisory session begins. Then stop speaking.`;
+  `Sie sind PecunAI. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Stellen Sie in 2–3 Sätzen das zweite Dokument vor — es enthält Informationen über die froots Asset Management GmbH, den Portfoliomanager. Bitten Sie den Kunden, es zu lesen und zu bestätigen. Nach der Bestätigung beginnt die Beratungssitzung. Hören Sie dann auf zu sprechen.`;
 
 const SUSTAINABILITY_EXPLAIN_INSTRUCTIONS =
-  `You are PecunAI. Speak English only. Say exactly 1–2 warm sentences: explain that a legally required EU document about sustainability risks is now shown on screen, that the customer should read it at their own pace and tap the confirm button when done, and that they can hold the microphone button to ask you questions about it at any time. After speaking those sentences, do NOT say anything else — do NOT ask Phase 1 questions, do NOT navigate. Simply wait for the customer to tap confirm.`;
+  `Sie sind PecunAI. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Sagen Sie genau 1–2 warme Sätze: Erklären Sie, dass jetzt ein gesetzlich vorgeschriebenes EU-Dokument über Nachhaltigkeitsrisiken auf dem Bildschirm zu sehen ist, dass der Kunde es in seinem eigenen Tempo lesen und auf die Bestätigungsschaltfläche tippen soll, wenn er fertig ist, und dass er jederzeit die Mikrofontaste gedrückt halten kann, um Fragen dazu zu stellen. Sagen Sie danach NICHTS mehr — stellen Sie KEINE Phase-1-Fragen, navigieren Sie NICHT. Warten Sie einfach darauf, dass der Kunde die Bestätigung antippt.`;
 
 const SEARCH_DOCUMENT_TOOL = {
   type: "function" as const,
@@ -611,8 +608,7 @@ export function useVoiceSession({
   // showing more than once per session (e.g. if Q2 is skipped and later circles back).
   // TODO: persist in DB instead of localStorage when the session-state API supports it (Sprint 4).
   const sustainabilityConfirmedRef = useRef(false);
-  // DEV: forced English for debugging. For production change back to "de".
-  const langRef = useRef<"de" | "en">("en");
+  const langRef = useRef<"de" | "en">("de");
   // Same guard for button-initiated prev — prevents AI from calling navigate("prev") a second time.
   const prevInProgressRef = useRef(false);
   // True while customer is in Phase 1 revisit mode — suppresses auto-advance on submit_answer so
@@ -657,6 +653,10 @@ export function useVoiceSession({
   const pttVectorStoreRef      = useRef<string>(termsVectorId ?? ""); // active vector store for current PTT context
   const pttActiveRef           = useRef(false); // true while PTT button is held — bypasses sustainability mic guard
   const pttContextRef          = useRef<'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | null>(null); // set while PTT response is in flight — cleared on response.done to restore VAD
+  const pttSearchPendingRef    = useRef(false);  // true after commit — waiting for transcription to run search server-side
+  const pttDocLabelRef         = useRef<string>(""); // human-readable doc name for PTT response instructions
+  const pttPartialTranscriptRef   = useRef<string>(""); // accumulated delta text for speculative search
+  const pttSpeculativeSearchRef   = useRef<Promise<string> | null>(null); // in-flight speculative search promise
 
   useEffect(() => { questionsRef.current = questions; }, [questions]);
   useEffect(() => { stateRef.current    = state;     }, [state]);
@@ -1200,7 +1200,7 @@ export function useVoiceSession({
             send({
               type: "response.create",
               response: {
-                instructions: `You are PecunAI. Speak English only. The explanation overlay is open. Verbally explain what ${overlayEntry.nameEn} are in 2–3 simple, friendly sentences — what they are and why everyday investors care about them. Do NOT say "take a look at the screen" or reference the overlay visually. Just speak naturally. After you finish, pause — the session continues automatically.`,
+                instructions: `Sie sind PecunAI. ${langTag()} Das Erläuterungsfenster ist geöffnet. Erklären Sie mündlich in 2–3 einfachen, freundlichen Sätzen, was ${overlayEntry.data.title} sind und warum sie für Anleger relevant sind. Sagen Sie NICHT „schauen Sie auf den Bildschirm" und beziehen Sie sich nicht auf das Overlay. Sprechen Sie natürlich. Warten Sie danach — die Sitzung wird automatisch fortgesetzt.`,
               },
             });
             return;
@@ -1880,11 +1880,24 @@ export function useVoiceSession({
           // PTT response cycle complete — restore semantic_vad so Phase 1 interview continues normally.
           // Phase 2 is PTT-only: keep VAD off between presses. Only restore for Phase 0/1 contexts.
           if (pttContextRef.current) {
+            const finishedPttContext = pttContextRef.current;
             pttContextRef.current = null;
             if (voicePhaseRef.current !== 2) {
               send({
                 type: "session.update",
                 session: { type: "realtime", audio: { input: { turn_detection: { type: "semantic_vad" } } } },
+              });
+            }
+            // After a PTT exchange inside the sustainability modal, the conversation history
+            // contains the bot answering a question about sustainability content. Without this
+            // marker the model confuses that Q&A with Q3 ("Have you received sustainability
+            // info?") being implicitly answered and skips to Q4/Q5 or asks Q3 oddly.
+            if (finishedPttContext === 'sustainabilityTerms') {
+              send({
+                type: "conversation.item.create",
+                item: { type: "message", role: "user", content: [{ type: "input_text",
+                  text: "[SYSTEM: The above was a PTT document Q&A about the sustainability disclosure content — it is NOT a Phase 1 answer. Phase 1 is still PAUSED. Q3 (sustainability acknowledgment question) has NOT been answered. Do NOT ask any Phase 1 questions — wait for the customer to tap the confirm button on the disclosure document.]",
+                }]},
               });
             }
           }
@@ -1931,11 +1944,85 @@ export function useVoiceSession({
           break;
         }
 
+        case "conversation.item.input_audio_transcription.delta": {
+          // Accumulate partial transcript and fire a speculative vector search as soon as we have enough text.
+          // This runs the search in parallel with the remaining transcription so the result is ready (or nearly
+          // ready) by the time transcription.completed fires — cutting 1–2 s off PTT response latency.
+          if (!pttSearchPendingRef.current || pttSpeculativeSearchRef.current) break;
+          const delta = (msg.delta as string | undefined) ?? "";
+          pttPartialTranscriptRef.current += delta;
+          if (pttPartialTranscriptRef.current.length >= 15) {
+            const vectorStoreId = pttVectorStoreRef.current;
+            if (vectorStoreId) {
+              const querySnapshot = pttPartialTranscriptRef.current;
+              pttSpeculativeSearchRef.current = fetch("/api/documents/search", {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body:    JSON.stringify({ query: querySnapshot, vectorStoreId }),
+              })
+                .then(r => r.json() as Promise<{ results?: string }>)
+                .then(d => d.results ?? "")
+                .catch(() => "");
+            }
+          }
+          break;
+        }
+
         case "conversation.item.input_audio_transcription.completed": {
           const transcriptItemId = msg.item_id as string | undefined;
           const transcript       = (msg.transcript as string | undefined)?.trim() || null;
           if (!transcript) break;
-          // Guard against stale transcripts from previous speech turns
+
+          // PTT search: run vector search server-side with exact transcript, embed results in response.create.
+          // Must be checked BEFORE the stale-transcript guard — with VAD off (turn_detection: null),
+          // speech_started never fires so currentSpeechItemIdRef is null and the guard would reject this.
+          if (pttSearchPendingRef.current) {
+            pttSearchPendingRef.current = false;
+            const vectorStoreId  = pttVectorStoreRef.current;
+            const docLabel       = pttDocLabelRef.current;
+            const speculativeHit = pttSpeculativeSearchRef.current;
+            // Reset speculative state for next PTT press
+            pttSpeculativeSearchRef.current  = null;
+            pttPartialTranscriptRef.current  = "";
+            if (!vectorStoreId) {
+              send({ type: "response.create", response: { instructions: `You are PecunAI. The document search system is not configured for this session. Apologize briefly. ${langTag()}` } });
+              break;
+            }
+            // Use the speculative search (already in-flight since first delta) if available,
+            // otherwise fall back to a fresh search with the full transcript.
+            const fullTranscriptSearch = () => fetch("/api/documents/search", {
+              method:  "POST",
+              headers: { "Content-Type": "application/json" },
+              body:    JSON.stringify({ query: transcript, vectorStoreId }),
+            })
+              .then(r => r.json() as Promise<{ results?: string }>)
+              .then(d => d.results ?? "")
+              .catch(() => "");
+            // speculativeHit is a Promise (never null once partial transcript hit 15 chars) —
+            // ?? only catches null/undefined, NOT an empty resolved value. For short German
+            // compound words like "Vermögensverwalter" the partial query ("Was ist ein Ver")
+            // often returns nothing. We must retry with the full exact transcript in that case.
+            const searchPromise = speculativeHit
+              ? speculativeHit.then(specResult =>
+                  (!specResult || specResult.trim() === "" || specResult === "No relevant content found.")
+                    ? fullTranscriptSearch()
+                    : specResult
+                )
+              : fullTranscriptSearch();
+
+            searchPromise.then(results => {
+              if (!results || results.trim() === "" || results === "No relevant content found.") {
+                send({ type: "response.create", response: { instructions: `Sie sind PecunAI. ${langTag()} Die Suche in ${docLabel} hat für diese Frage keine passende Antwort gefunden. Teilen Sie dem Kunden freundlich mit, dass diese spezifische Information nicht im Dokument verfügbar ist, und laden Sie ihn ein, eine andere Frage zu stellen.` } });
+              } else {
+                send({ type: "response.create", response: { instructions: `Sie sind PecunAI. ${langTag()} Die Dokumentensuche hat folgende Informationen geliefert:\n\n${results}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
+              }
+            }).catch(() => {
+              send({ type: "response.create", response: { instructions: `Sie sind PecunAI. ${langTag()} Bei der Dokumentensuche ist ein technischer Fehler aufgetreten. Entschuldigen Sie sich kurz und bitten Sie den Kunden, es erneut zu versuchen.` } });
+            });
+            break;
+          }
+
+          // Guard against stale transcripts from previous speech turns (VAD-mode only — PTT is handled above)
           if (transcriptItemId && transcriptItemId !== currentSpeechItemIdRef.current) break;
 
           if (applyPendingTranscriptRef.current) {
@@ -2268,7 +2355,7 @@ export function useVoiceSession({
         send({
           type: "response.create",
           response: {
-            instructions: `You are PecunAI. Speak English only. The explanation overlay is open. Verbally explain what ${overlayEntry.nameEn} are in 2–3 simple, friendly sentences — what they are and why everyday investors care about them. Do NOT say "take a look at the screen" or reference the overlay visually. Just speak naturally. After you finish, pause — the session continues automatically.`,
+            instructions: `Sie sind PecunAI. ${langTag()} Das Erläuterungsfenster ist geöffnet. Erklären Sie mündlich in 2–3 einfachen, freundlichen Sätzen, was ${overlayEntry.data.title} sind und warum sie für Anleger relevant sind. Sagen Sie NICHT „schauen Sie auf den Bildschirm" und beziehen Sie sich nicht auf das Overlay. Sprechen Sie natürlich. Warten Sie danach — die Sitzung wird automatisch fortgesetzt.`,
           },
         });
         return;
@@ -2453,7 +2540,7 @@ export function useVoiceSession({
       send({
         type: "response.create",
         response: {
-          instructions: `You are PecunAI. Speak English only. The explanation is complete. Transition naturally to the next question: "${kbNextQ.text}" (ID: ${kbNextQ.id}). Keep it brief and warm. Wait for the customer's answer.`,
+          instructions: `Sie sind PecunAI. ${langTag()} Die Erklärung ist abgeschlossen. Leiten Sie natürlich zur nächsten Frage über. ${qText(kbNextQ.text)} (ID: ${kbNextQ.id}). Kurz und herzlich. Warten Sie auf die Antwort des Kunden.`,
         },
       });
       return;
@@ -2786,7 +2873,7 @@ export function useVoiceSession({
       return;
     }
 
-    const docLabel = context === 'phase2'
+    pttDocLabelRef.current = context === 'phase2'
       ? "the recommended product PDF"
       : context === 'terms1'
       ? "the 4money company information document"
@@ -2796,15 +2883,13 @@ export function useVoiceSession({
 
     // Commit the buffered audio — closes the user's speech turn on the server.
     // VAD is disabled during PTT so this is the only way OpenAI knows the turn ended.
+    // We do NOT send response.create here. The transcription.completed event fires next
+    // with the exact transcript. We run the search there and embed results directly
+    // in response.create — bypassing the unreliable model function-call step entirely.
+    pttPartialTranscriptRef.current  = "";
+    pttSpeculativeSearchRef.current  = null;
+    pttSearchPendingRef.current      = true;
     send({ type: "input_audio_buffer.commit" });
-
-    send({
-      type: "response.create",
-      response: {
-        instructions: `You are PecunAI. The customer just asked a question about ${docLabel}. You MUST call search_document with their exact question as the query — do not answer from memory or training data. After receiving the search results, answer in 2–3 clear sentences based on those results only. ${langTag()}`,
-        tools: [SEARCH_DOCUMENT_TOOL],
-      },
-    });
   }, [send, termsVectorId]);
 
   const sendChatMessage = useCallback((text: string) => {

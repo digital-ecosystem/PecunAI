@@ -156,14 +156,13 @@ export default function VoiceQuestionModal({ question, onClose, onNext, preSelec
           {/* Choice options */}
           {isChoice && (
             <div className="space-y-3">
-              {/* AI-proposed hint — DEV: English. Restore German ("Ich habe diese Antwort gehört – ist das korrekt?") before production */}
               {aiProposed && selected && (
                 <motion.p
                   className="text-xs font-medium text-center pb-1"
                   style={{ color: "rgba(217,119,6,0.8)" }}
                   initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
                 >
-                  I heard this answer — is that correct?
+                  Ich habe diese Antwort gehört – ist das korrekt?
                 </motion.p>
               )}
               {question.options.map(opt => {
@@ -233,14 +232,13 @@ export default function VoiceQuestionModal({ question, onClose, onNext, preSelec
           {/* Number / text input */}
           {(isNumber || isText) && (
             <div className="space-y-3">
-              {/* AI-proposed hint — DEV: English. Restore German before production */}
               {aiProposed && inputValue !== "" && (
                 <motion.p
                   className="text-xs font-medium text-center pb-1"
                   style={{ color: "rgba(217,119,6,0.8)" }}
                   initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
                 >
-                  I heard this answer — is that correct?
+                  Ich habe diese Antwort gehört – ist das korrekt?
                 </motion.p>
               )}
               <input
