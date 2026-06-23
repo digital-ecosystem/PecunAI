@@ -3,6 +3,7 @@
 import { useReducer, useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CarouselQuestion } from "@/components/voice/VoiceCarousel";
+import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 
 // ── State machine ─────────────────────────────────────────────────
 
@@ -91,7 +92,7 @@ function base64ToPCM16AudioBuffer(base64: string, ctx: AudioContext): AudioBuffe
 
 // ── System prompt ─────────────────────────────────────────────────
 
-function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, micGranted: boolean | null): string {
+function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, micGranted: boolean | null, skippedIds?: ReadonlySet<string>): string {
   const list = questions
     .filter(q => q.questionOrder === undefined || q.questionOrder % 1 === 0) // exclude sub-questions (12.1, 13.1, 14.1) — injected dynamically via SYSTEM message
     .map((q, i) => {
@@ -115,12 +116,17 @@ function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, m
       if (q.footnote) {
         extra += `\n  Legal context (cite when customer asks why this is asked): ${q.footnote}`;
       }
-      const skipped = i < resumeIndex ? "  ← already collected — skip" : "";
+      const isSkipped  = skippedIds?.has(q.id) ?? false;
+      const isAnswered = !isSkipped && i < resumeIndex;
+      const skipped    = isSkipped  ? "  ← SKIPPED in previous session — not yet answered, will circle back at the end"
+                       : isAnswered ? "  ← already collected — skip"
+                       : "";
       return `[${i + 1}]${skipped}\nID: ${q.id}\nTopic: ${q.category}\nContext (what you need to find out — rephrase naturally, do NOT read this verbatim): ${q.text}${extra}`;
     }).join("\n\n");
 
+  const skippedCount = skippedIds?.size ?? 0;
   const resumeBlock = resumeIndex > 0
-    ? `\n\nYou already collected topics 1–${resumeIndex} in a previous session (marked above). Open with a warm one-sentence welcome-back and pick up naturally from topic ${resumeIndex + 1}.`
+    ? `\n\nYou resumed a previous session (topics marked above). Open with a warm one-sentence welcome-back and pick up naturally from topic ${resumeIndex + 1}.${skippedCount > 0 ? ` Note: ${skippedCount} topic(s) earlier were skipped (marked SKIPPED above) — do NOT ask them now, they will circle back automatically at the end.` : ""}`
     : "";
 
   const micBlock = micGranted === false
@@ -516,6 +522,9 @@ interface UseVoiceSessionOptions {
   initialQuestionIndex: number;
   initialTermsPhase?:   'terms2' | 'skip' | null;
   termsVectorId:        string | null;
+  initialAnsweredIds?:  string[];
+  initialSkippedIds?:   string[];
+  initialSavedAnswers?: Record<string, string>;
 }
 
 export function useVoiceSession({
@@ -524,6 +533,9 @@ export function useVoiceSession({
   initialQuestionIndex,
   initialTermsPhase,
   termsVectorId,
+  initialAnsweredIds  = [],
+  initialSkippedIds   = [],
+  initialSavedAnswers = {},
 }: UseVoiceSessionOptions) {
   const router = useRouter();
 
@@ -576,8 +588,8 @@ export function useVoiceSession({
 
   // All confirmed answers in this session — keyed by questionId.
   // Used to pre-populate the modal when user taps a card for an already-answered question.
-  const [savedAnswers, setSavedAnswers] = useState<Record<string, string>>({});
-  const savedAnswersRef = useRef<Record<string, string>>({});
+  const [savedAnswers, setSavedAnswers] = useState<Record<string, string>>(initialSavedAnswers);
+  const savedAnswersRef = useRef<Record<string, string>>(initialSavedAnswers);
 
   // Dedicated state for the carousel card position — ONLY updated when we know exactly
   // what question the AI will talk about next. Decoupled from the state machine index.
@@ -595,9 +607,9 @@ export function useVoiceSession({
   // Stable ref for mic permission — set in startSession() before WS opens so it's ready at session.created time.
   const micGrantedRef    = useRef<boolean | null>(null);
   // Tracks answered question IDs in the current session — injected into each AI response so it never loses track.
-  const answeredIdsRef   = useRef<Set<string>>(new Set());
+  const answeredIdsRef   = useRef<Set<string>>(new Set(initialAnsweredIds));
   // Tracks explicitly skipped question IDs — cleared when the question is later answered.
-  const skippedIdsRef    = useRef<Set<string>>(new Set());
+  const skippedIdsRef    = useRef<Set<string>>(new Set(initialSkippedIds));
   // Tracks question IDs that were explained via explain_topic — used to instruct AI to re-ask with context after returning.
   const explainedQuestionsRef = useRef<Set<string>>(new Set());
   // One skip at a time — locked until the AI finishes speaking and returns to "listening".
@@ -674,6 +686,7 @@ export function useVoiceSession({
   const setCard = useCallback((id: string | null) => {
     activeCardIdRef.current = id;
     setActiveCardId(id);
+    useVoiceSessionStore.getState().setActiveCard(id);
   }, []);
 
   // Initialise sustainabilityConfirmedRef from localStorage so the disclosure is never shown twice
@@ -785,8 +798,8 @@ export function useVoiceSession({
 
   // Keep a stable ref so the WS closure can call the latest version
   useEffect(() => { resetExplainIdleRef.current = resetExplainIdleTimer; }, [resetExplainIdleTimer]);
-  useEffect(() => { voicePhaseRef.current    = voicePhase;    }, [voicePhase]);
-  useEffect(() => { termsSubStepRef.current = termsSubStep; }, [termsSubStep]);
+  useEffect(() => { voicePhaseRef.current = voicePhase; useVoiceSessionStore.getState().setPhase(voicePhase as 0 | 1 | 2); }, [voicePhase]);
+  useEffect(() => { termsSubStepRef.current = termsSubStep; useVoiceSessionStore.getState().setTermsSubStep(termsSubStep); }, [termsSubStep]);
 
   // Start/stop the idle timer whenever the overlay opens or closes
   useEffect(() => {
@@ -824,7 +837,12 @@ export function useVoiceSession({
       const res = await fetch(`/api/qa-session/${sessionId}/voice-state`, {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lastQuestionIndex: index }),
+        body: JSON.stringify({
+          lastQuestionIndex: index,
+          skippedIds:        [...skippedIdsRef.current],
+          voicePhase:        voicePhaseRef.current,
+          termsSubStep:      termsSubStepRef.current,
+        }),
       });
       if (!res.ok) {
         console.warn("[voice] saveVoiceState PATCH failed:", res.status, "index:", index);
@@ -1047,6 +1065,7 @@ export function useVoiceSession({
         skippedIdsRef.current.delete(questionId);
         setSavedAnswers(prev => ({ ...prev, [questionId]: value }));
         savedAnswersRef.current = { ...savedAnswersRef.current, [questionId]: value };
+        useVoiceSessionStore.getState().markAnswered(questionId, value);
 
         // ── BLOCKER: Q3 sustainability info not received → session ends ──
         if (validatingQ?.questionOrder === 3 && value === "no") {
@@ -1408,6 +1427,7 @@ export function useVoiceSession({
           if (currentQ && !isConfirmAdvance) {
             skippedIdsRef.current.add(currentQ.id);
             skipInProgressRef.current = true;
+            useVoiceSessionStore.getState().markSkipped(currentQ.id);
           }
 
           const remaining = questionsRef.current.filter(
@@ -1418,6 +1438,7 @@ export function useVoiceSession({
 
           if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
           setCard(nextQ?.id ?? null);
+          saveVoiceState(nextQIdx >= 0 ? nextQIdx : 0).catch(() => {});
 
           sendResult(nextQ ? {
             success: true,
@@ -1489,6 +1510,18 @@ export function useVoiceSession({
             type: "conversation.item.create",
             item: { type: "message", role: "user", content: [{ type: "input_text", text: msg }] },
           });
+          send({
+            type: "response.create",
+            response: {
+              ...(chatOpenRef.current ? { output_modalities: ["text"] as const } : {}),
+              ...(prevQuestion ? {
+                instructions: prevAnswer
+                  ? `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde möchte zurück zu Thema „${prevQuestion.category}" (ID: ${prevQuestion.id}). Seine bisherige Antwort war „${prevAnswer}". Fragen Sie warmherzig, ob er sie ändern möchte. Maximal 2 Sätze.`
+                  : `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde möchte zurück zu Thema „${prevQuestion.category}" (ID: ${prevQuestion.id}), das übersprungen wurde und noch keine Antwort hat. ${qText(prevQuestion.text)} Maximal 2 Sätze.`,
+              } : {}),
+            },
+          });
+          return;
         } else {
           sendResult({ success: false, reason: "Unknown navigate parameters" });
         }
@@ -1693,7 +1726,7 @@ export function useVoiceSession({
               type:              "realtime",
               model:             "gpt-realtime-1.5",
               output_modalities: ["audio"],
-              instructions:      buildSystemPrompt(questionsRef.current, initialIndexRef.current, micGrantedRef.current),
+              instructions:      buildSystemPrompt(questionsRef.current, initialIndexRef.current, micGrantedRef.current, skippedIdsRef.current),
               tools:             TOOLS,
               tool_choice:       "auto",
               audio: {
@@ -2197,6 +2230,7 @@ export function useVoiceSession({
     skippedIdsRef.current.delete(question.id);
     setSavedAnswers(prev => ({ ...prev, [question.id]: value }));
     savedAnswersRef.current = { ...savedAnswersRef.current, [question.id]: value };
+    useVoiceSessionStore.getState().markAnswered(question.id, value);
     const tapLabel = (question.options ?? []).find(o => o.value === value || o.id === value)?.label ?? value;
     appendChatMessage(tapLabel, "user", question.id);
 
@@ -2445,7 +2479,14 @@ export function useVoiceSession({
       type: "conversation.item.create",
       item: { type: "message", role: "user", content: [{ type: "input_text", text: msg }] },
     });
-    send({ type: "response.create" });
+    send({
+      type: "response.create",
+      response: prevQuestion ? {
+        instructions: prevAnswer
+          ? `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat zurücknavigiert zu Thema „${prevQuestion.category}" (ID: ${prevQuestion.id}). Seine bisherige Antwort war „${prevAnswer}". Fragen Sie warmherzig in 1–2 Sätzen, ob er sie ändern möchte. Warten Sie auf die Antwort.`
+          : `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat zurücknavigiert zu Thema „${prevQuestion.category}" (ID: ${prevQuestion.id}), das übersprungen wurde und noch keine Antwort hat. ${qText(prevQuestion.text)} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
+      } : {},
+    });
   }, [send]);
 
   const skipQuestion = useCallback((question: CarouselQuestion) => {
@@ -2470,6 +2511,7 @@ export function useVoiceSession({
     }
 
     skippedIdsRef.current.add(question.id);
+    useVoiceSessionStore.getState().markSkipped(question.id);
 
     // Use the same remaining algorithm as navigate("next") — not raw index+1,
     // which could land on an already-answered or already-skipped slot.
@@ -2481,6 +2523,7 @@ export function useVoiceSession({
 
     if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
     setCard(nextQ?.id ?? null);
+    saveVoiceState(nextQIdx >= 0 ? nextQIdx : 0).catch(() => {});
 
     send({
       type: "conversation.item.create",

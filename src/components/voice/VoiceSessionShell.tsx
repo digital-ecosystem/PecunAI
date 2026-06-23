@@ -49,6 +49,9 @@ interface VoiceSessionShellProps {
   initialQuestionIndex: number;
   initialTermsPhase?:   'terms2' | 'skip' | null;
   termsVectorId?:       string | null;
+  initialAnsweredIds?:  string[];
+  initialSkippedIds?:   string[];
+  initialSavedAnswers?: Record<string, string>;
 }
 
 // ── Component ─────────────────────────────────────────────────────
@@ -59,11 +62,23 @@ export default function VoiceSessionShell({
   initialQuestionIndex,
   initialTermsPhase,
   termsVectorId,
+  initialAnsweredIds,
+  initialSkippedIds,
+  initialSavedAnswers,
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
   const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
-    useVoiceSession({ sessionId, questions, initialQuestionIndex, initialTermsPhase, termsVectorId: termsVectorId ?? null });
+    useVoiceSession({
+      sessionId,
+      questions,
+      initialQuestionIndex,
+      initialTermsPhase,
+      termsVectorId:       termsVectorId ?? null,
+      initialAnsweredIds:  initialAnsweredIds  ?? [],
+      initialSkippedIds:   initialSkippedIds   ?? [],
+      initialSavedAnswers: initialSavedAnswers ?? {},
+    });
 
   // Track phase transition direction for the slide animation.
   // Updated synchronously during render so the direction is correct before motion reads it.

@@ -52,7 +52,8 @@
     "ws": "^8.20.0",
     "xlsx": "^0.18.5",
     "yup": "^1.7.1",
-    "zod": "3.25.6"
+    "zod": "3.25.6",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

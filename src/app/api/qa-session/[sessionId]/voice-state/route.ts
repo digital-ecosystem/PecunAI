@@ -29,11 +29,18 @@ export async function GET(
 
     const stepData  = (ws?.stepData ?? {}) as Record<string, unknown>;
     const voice     = (stepData.voice ?? {}) as Record<string, unknown>;
-    const lastIndex = typeof voice.lastQuestionIndex === "number" ? voice.lastQuestionIndex : 0;
+
+    const lastIndex   = typeof voice.lastQuestionIndex === "number" ? voice.lastQuestionIndex : 0;
+    const skippedIds  = Array.isArray(voice.skippedIds)   ? (voice.skippedIds as string[]) : [];
+    const voicePhase  = typeof voice.voicePhase === "number" ? (voice.voicePhase as 0 | 1 | 2) : null;
+    const termsSubStep = typeof voice.termsSubStep === "string" ? (voice.termsSubStep as string) : null;
 
     return NextResponse.json({
-      success:          true,
+      success:           true,
       lastQuestionIndex: lastIndex,
+      skippedIds,
+      voicePhase,
+      termsSubStep,
       currentPhase:      sessionRecord?.phase ?? null,
     });
   } catch (error) {
@@ -49,49 +56,52 @@ export async function PATCH(
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth-token")?.value;
-
-    if (!token) {
-      return NextResponse.json({ message: "Nicht authentifiziert" }, { status: 401 });
-    }
+    if (!token) return NextResponse.json({ message: "Nicht authentifiziert" }, { status: 401 });
 
     const user = await AuthService.getUserFromToken(token);
-    if (!user) {
-      return NextResponse.json({ message: "Ungültiges Token" }, { status: 401 });
-    }
+    if (!user) return NextResponse.json({ message: "Ungültiges Token" }, { status: 401 });
 
     const { sessionId } = await params;
-    const { lastQuestionIndex } = await req.json();
+    const body = await req.json();
+    const { lastQuestionIndex, skippedIds, voicePhase, termsSubStep } = body as {
+      lastQuestionIndex: number;
+      skippedIds?:       string[];
+      voicePhase?:       0 | 1 | 2;
+      termsSubStep?:     string | null;
+    };
 
     if (typeof lastQuestionIndex !== "number") {
       return NextResponse.json({ message: "lastQuestionIndex fehlt" }, { status: 400 });
     }
 
-    // Verify session belongs to user
     const session = await prisma.qASession.findFirst({
-      where: { id: sessionId, userId: user.id },
+      where:  { id: sessionId, userId: user.id },
       select: { id: true },
     });
-
     if (!session) {
       return NextResponse.json({ message: "Sitzung nicht gefunden" }, { status: 404 });
     }
 
-    // Upsert workflow state and merge voice data into stepData
+    // Read existing stepData so we merge instead of overwriting unrelated keys.
     const existing = await prisma.sessionWorkflowState.findUnique({
-      where: { qaSessionId: sessionId },
+      where:  { qaSessionId: sessionId },
       select: { stepData: true },
     });
-
     const currentStepData = (existing?.stepData ?? {}) as Record<string, unknown>;
-    const updatedStepData = {
-      ...currentStepData,
-      voice: { lastQuestionIndex },
+    const currentVoice    = (currentStepData.voice ?? {}) as Record<string, unknown>;
+
+    const updatedVoice: Record<string, unknown> = {
+      ...currentVoice,
+      lastQuestionIndex,
     };
+    if (Array.isArray(skippedIds))          updatedVoice.skippedIds   = skippedIds;
+    if (voicePhase !== undefined)           updatedVoice.voicePhase   = voicePhase;
+    if (termsSubStep !== undefined)         updatedVoice.termsSubStep = termsSubStep;
 
     await prisma.sessionWorkflowState.upsert({
       where:  { qaSessionId: sessionId },
-      create: { qaSessionId: sessionId, stepData: updatedStepData, lastActivity: new Date() },
-      update: { stepData: updatedStepData, lastActivity: new Date() },
+      create: { qaSessionId: sessionId, stepData: { ...currentStepData, voice: updatedVoice }, lastActivity: new Date() },
+      update: { stepData: { ...currentStepData, voice: updatedVoice }, lastActivity: new Date() },
     });
 
     return NextResponse.json({ success: true });
