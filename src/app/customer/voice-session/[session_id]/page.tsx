@@ -23,6 +23,7 @@ export default function VoiceSessionPage() {
   const [initialAnsweredIds,  setInitialAnsweredIds]  = useState<string[]>([]);
   const [initialSkippedIds,   setInitialSkippedIds]   = useState<string[]>([]);
   const [initialSavedAnswers, setInitialSavedAnswers] = useState<Record<string, string>>({});
+  const [initialVoicePhase,   setInitialVoicePhase]   = useState<0 | 1 | 2 | undefined>(undefined);
 
   useEffect(() => {
     const init = async () => {
@@ -30,16 +31,19 @@ export default function VoiceSessionPage() {
       // If Zustand has data for this session in localStorage, use it immediately
       // so we can skip the loading spinner for returning visitors on the same device.
       const cached = useVoiceSessionStore.getState();
-      if (cached.sessionId === sessionId && cached.answeredIds.length > 0) {
+      if (cached.sessionId === sessionId) {
         setInitialAnsweredIds(cached.answeredIds);
         setInitialSkippedIds(cached.skippedIds);
         setInitialSavedAnswers(cached.savedAnswers);
-        // Restore termsPhase from cached voicePhase
-        if (cached.voicePhase === 1 || cached.voicePhase === 2) {
+        setInitialVoicePhase(cached.voicePhase);
+        if (cached.voicePhase === 1) {
           setInitialTermsPhase('skip');
-        } else if (cached.voicePhase === 0 && (cached.termsSubStep === 'terms2' || cached.termsSubStep === 'sustainabilityTerms')) {
+        } else if (cached.voicePhase === 2) {
+          setInitialTermsPhase('skip');
+        } else if (cached.termsSubStep === 'terms2' || cached.termsSubStep === 'sustainabilityTerms') {
           setInitialTermsPhase('terms2');
         }
+        // voicePhase 0 + termsSubStep 'intro'/'terms1' → initialTermsPhase stays null → starts from beginning of terms
         // We still need questions + auth check — don't set ready yet, but data is pre-loaded.
       }
 
@@ -141,22 +145,27 @@ export default function VoiceSessionPage() {
       setInitialSkippedIds(resolvedSkippedIds);
       setInitialSavedAnswers(dbAnswers);
 
-      // ── Derive termsPhase from voice-state ───────────────────────
+      // ── Derive termsPhase and voicePhase from voice-state ───────────────────────
       const dbVoicePhase: number | null = vsData?.voicePhase ?? null;
       const currentPhase = vsData?.currentPhase as string | null | undefined;
 
-      if (dbVoicePhase === 1 || dbVoicePhase === 2) {
+      if (dbVoicePhase !== null && dbVoicePhase !== undefined) {
+        setInitialVoicePhase(dbVoicePhase as 0 | 1 | 2);
+      }
+      if (dbVoicePhase === 1) {
         setInitialTermsPhase('skip');
-      } else if (currentPhase === 'TERMS_FROOTS') {
+      } else if (dbVoicePhase === 2) {
+        setInitialTermsPhase('skip');
+      } else if (vsData?.termsSubStep === 'terms2' || vsData?.termsSubStep === 'sustainabilityTerms') {
         setInitialTermsPhase('terms2');
-      } else if (currentPhase && currentPhase !== 'TERMS1') {
-        setInitialTermsPhase('skip');
+      } else if (currentPhase === 'TERMS_FROOTS') {
+        setInitialTermsPhase('terms2');  // fallback for old sessions before termsSubStep was saved to DB
       }
 
       // ── Hydrate Zustand for next same-browser visit ──────────────
       useVoiceSessionStore.getState().hydrate({
         sessionId,
-        voicePhase:   (dbVoicePhase as 0 | 1 | 2) ?? 1,
+        voicePhase:   (dbVoicePhase as 0 | 1 | 2) ?? 0,
         termsSubStep: (vsData?.termsSubStep as "intro" | "terms1" | "terms2" | "sustainabilityTerms" | null) ?? null,
         activeCardId: finalQuestions[safeIndex]?.id ?? null,
         answeredIds:  allAnsweredIds,
@@ -189,6 +198,7 @@ export default function VoiceSessionPage() {
       initialAnsweredIds={initialAnsweredIds}
       initialSkippedIds={initialSkippedIds}
       initialSavedAnswers={initialSavedAnswers}
+      initialVoicePhase={initialVoicePhase}
     />
   );
 }

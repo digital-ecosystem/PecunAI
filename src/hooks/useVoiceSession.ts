@@ -525,6 +525,7 @@ interface UseVoiceSessionOptions {
   initialAnsweredIds?:  string[];
   initialSkippedIds?:   string[];
   initialSavedAnswers?: Record<string, string>;
+  initialVoicePhase?:   0 | 1 | 2;
 }
 
 export function useVoiceSession({
@@ -536,6 +537,7 @@ export function useVoiceSession({
   initialAnsweredIds  = [],
   initialSkippedIds   = [],
   initialSavedAnswers = {},
+  initialVoicePhase,
 }: UseVoiceSessionOptions) {
   const router = useRouter();
 
@@ -555,7 +557,7 @@ export function useVoiceSession({
   const [voiceAnswerCount, setVoiceAnswerCount] = useState(0);
 
   // Phase 0 / 1 / 2 — 0 = terms/intro, 1 = questions, 2 = product suggestion
-  const startPhase: 0 | 1 | 2 = initialTermsPhase === 'skip' ? 1 : 0;
+  const startPhase: 0 | 1 | 2 = initialVoicePhase ?? (initialTermsPhase === 'skip' ? 1 : 0);
   const [voicePhase,        setVoicePhase]        = useState<0 | 1 | 2>(startPhase);
   const voicePhaseRef                             = useRef<0 | 1 | 2>(startPhase);
   const [productSuggestion, setProductSuggestion] = useState<ProductData | null>(null);
@@ -662,6 +664,7 @@ export function useVoiceSession({
   const explainIdleTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetExplainIdleRef    = useRef<() => void>(() => {});
   const productVectorIdRef     = useRef<string | null>(null); // vector store ID for the recommended product (set in advancePhase)
+  const productRef             = useRef<ProductData | null>(null); // stable product data ref for session.updated Phase 2 branch
   const pttVectorStoreRef      = useRef<string>(termsVectorId ?? ""); // active vector store for current PTT context
   const pttActiveRef           = useRef(false); // true while PTT button is held — bypasses sustainability mic guard
   const pttContextRef          = useRef<'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | null>(null); // set while PTT response is in flight — cleared on response.done to restore VAD
@@ -801,6 +804,32 @@ export function useVoiceSession({
   useEffect(() => { voicePhaseRef.current = voicePhase; useVoiceSessionStore.getState().setPhase(voicePhase as 0 | 1 | 2); }, [voicePhase]);
   useEffect(() => { termsSubStepRef.current = termsSubStep; useVoiceSessionStore.getState().setTermsSubStep(termsSubStep); }, [termsSubStep]);
 
+  // Phase 2 resume — re-fetch product data on mount so productRef and productSuggestion are
+  // populated before the user taps start. The WS isn't open yet so send() calls are no-ops.
+  useEffect(() => {
+    if (startPhase !== 2) return;
+    const refetch = async () => {
+      try {
+        const durationQ      = questionsRef.current.find(q => q.questionOrder === 2);
+        const riskQ          = questionsRef.current.find(q => q.questionOrder === 5);
+        const durationAnswer = durationQ ? savedAnswersRef.current[durationQ.id] : undefined;
+        const riskAnswer     = riskQ     ? savedAnswersRef.current[riskQ.id]     : undefined;
+        const params = new URLSearchParams();
+        if (durationAnswer) params.set("duration", durationAnswer);
+        if (riskAnswer)     params.set("risk",     riskAnswer);
+        const res  = await fetch(`/api/phase/product?${params.toString()}`);
+        const json = await res.json();
+        const product: ProductData = json.data ?? json;
+        productRef.current             = product;
+        productVectorIdRef.current     = product.aiSettings?.vectorId ?? null;
+        setProductSuggestion(product);
+      } catch {
+        // Silent — Phase 2 screen will still render, AI greeting will be generic
+      }
+    };
+    refetch();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Start/stop the idle timer whenever the overlay opens or closes
   useEffect(() => {
     explainOpenRef.current = explainOverlayData !== null;
@@ -903,9 +932,12 @@ export function useVoiceSession({
         console.warn("[voice] chat/init failed — chat messages will not be persisted to DB");
       }
 
+      productRef.current             = product;
+      productVectorIdRef.current     = product.aiSettings?.vectorId ?? null;
       setProductSuggestion(product);
-      productVectorIdRef.current = product.aiSettings?.vectorId ?? null;
+      voicePhaseRef.current = 2;
       setVoicePhase(2);
+      saveVoiceState(questionsRef.current.length).catch(() => {});
       send({
         type: "session.update",
         session: { type: "realtime", audio: { input: { turn_detection: null } } },
@@ -1720,13 +1752,17 @@ export function useVoiceSession({
         case "session.created": {
           // Use initialIndexRef (set once at mount) — guaranteed correct even if
           // the stateRef effect hasn't fired yet when this message arrives.
+          // For Phase 2 resume, pass the full question count so all Qs show as "already collected".
+          const resumeIdx = voicePhaseRef.current === 2
+            ? questionsRef.current.length
+            : initialIndexRef.current;
           send({
             type: "session.update",
             session: {
               type:              "realtime",
               model:             "gpt-realtime-1.5",
               output_modalities: ["audio"],
-              instructions:      buildSystemPrompt(questionsRef.current, initialIndexRef.current, micGrantedRef.current, skippedIdsRef.current),
+              instructions:      buildSystemPrompt(questionsRef.current, resumeIdx, micGrantedRef.current, skippedIdsRef.current),
               tools:             TOOLS,
               tool_choice:       "auto",
               audio: {
@@ -1795,6 +1831,44 @@ export function useVoiceSession({
           } else if (voicePhaseRef.current === 0) {
             // Fresh start: welcome intro before terms
             send({ type: "response.create", response: { instructions: INTRO_INSTRUCTIONS } });
+          } else if (voicePhaseRef.current === 2) {
+            // Phase 2 resume — re-inject product context and greet back
+            const product = productRef.current;
+            if (product) {
+              const durationQ      = questionsRef.current.find(q => q.questionOrder === 2);
+              const riskQ          = questionsRef.current.find(q => q.questionOrder === 5);
+              const durationAnswer = durationQ ? savedAnswersRef.current[durationQ.id] : undefined;
+              const riskAnswer     = riskQ     ? savedAnswersRef.current[riskQ.id]     : undefined;
+              const productPrompt  = (product.aiSettings?.prompt ?? "").slice(0, 3000);
+              const systemMsg = [
+                `[SYSTEM: Resuming Phase 2 — Product Suggestion. Recommended portfolio: "${product.fullName}".`,
+                `Customer's investment horizon: ${durationAnswer ?? "unknown"}. Risk tolerance: ${riskAnswer ?? "unknown"}.`,
+                `Product knowledge base:\n${productPrompt}`,
+                `Your role: welcome the customer back warmly, briefly recap the recommended portfolio and why it fits them,`,
+                `invite questions or ask them to confirm to proceed.`,
+                `When customer confirms: call confirm_product(). If they want to revisit questions: call revisit_questions().]`,
+              ].join("\n");
+              send({
+                type: "conversation.item.create",
+                item: { type: "message", role: "user", content: [{ type: "input_text", text: systemMsg }] },
+              });
+              const durationLabel = durationAnswer ?? `${product.from}–${product.to} Jahren`;
+              send({
+                type: "response.create",
+                response: {
+                  instructions: [
+                    `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()}`,
+                    `Die Sitzung wird fortgesetzt. Begrüßen Sie den Kunden herzlich zurück in 1 Satz.`,
+                    `Empfehlen Sie dann kurz das Portfolio "${product.fullName}" — nennen Sie NIEMALS den internen Code "${product.name}".`,
+                    `Erinnern Sie in 1–2 Sätzen, warum es empfohlen wurde (Horizont: ${durationLabel}, Risiko: ${riskAnswer ?? product.risk}).`,
+                    `Laden Sie zu Fragen ein oder fragen Sie, ob der Kunde fortfahren möchte. Maximal 3 Sätze gesamt.`,
+                  ].join(" "),
+                },
+              });
+            } else {
+              // Product not loaded yet (refetch slow) — bare greeting, AI will pick up from context
+              send({ type: "response.create" });
+            }
           } else {
             // Phase 1 (skip mode or after confirmTerms2) — normal greeting
             send({ type: "response.create" });
@@ -2743,9 +2817,11 @@ export function useVoiceSession({
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ sessionId, phase: "TERMS1" }),
     });
+    termsSubStepRef.current = 'terms1';
     setTermsSubStep('terms1');
+    saveVoiceState(0).catch(() => {});
     send({ type: "response.create", response: { instructions: TERMS1_EXPLAIN_INSTRUCTIONS } });
-  }, [sessionId, send]);
+  }, [sessionId, send, saveVoiceState]);
 
   /** Customer tapped "Ich bestätige" on the 4money (terms1) document */
   const confirmTerms1 = useCallback(async () => {
@@ -2754,9 +2830,11 @@ export function useVoiceSession({
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ sessionId, phase: "TERMS_FROOTS" }),
     });
+    termsSubStepRef.current = 'terms2';
     setTermsSubStep('terms2');
+    saveVoiceState(0).catch(() => {});
     send({ type: "response.create", response: { instructions: TERMS2_EXPLAIN_INSTRUCTIONS } });
-  }, [sessionId, send]);
+  }, [sessionId, send, saveVoiceState]);
 
   /** Customer tapped "Ich bestätige" on the froots (terms2) document — transitions to Phase 1 */
   const confirmTerms2 = useCallback(async () => {
@@ -2765,8 +2843,11 @@ export function useVoiceSession({
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ sessionId, phase: "QUESTIONS1" }),
     });
+    voicePhaseRef.current   = 1;
+    termsSubStepRef.current = null;
     setTermsSubStep(null);
     setVoicePhase(1);
+    saveVoiceState(0).catch(() => {});
     send({
       type: "conversation.item.create",
       item: {
@@ -2776,7 +2857,7 @@ export function useVoiceSession({
       },
     });
     send({ type: "response.create" });
-  }, [sessionId, send]);
+  }, [sessionId, send, saveVoiceState]);
 
   /** Customer tapped "Verstanden" on the sustainability disclosure — dismisses modal and advances. */
   const confirmSustainabilityTerms = useCallback(async () => {
