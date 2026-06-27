@@ -72,7 +72,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, confirmProduct, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, confirmProduct, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
     useVoiceSession({
       sessionId,
       questions,
@@ -162,6 +162,7 @@ export default function VoiceSessionShell({
   // so without this guard the effect fires during terms and leaves modalOpen=true as hidden state.
   useEffect(() => {
     if (voicePhase !== 1) return;                              // only auto-open during questions phase
+    if (isRevisiting) return;                                  // browsing to pick a question — modal opens only after AI navigates to one
     if (termsSubStep === 'sustainabilityTerms') return;        // sustainability overlay is showing
     if (bargeInActive) return;                                 // barge-in in flight — wrong card's modal would open
     if (!hasSpokenForCardRef.current) return;                  // AI hasn't spoken for this card yet
@@ -175,7 +176,7 @@ export default function VoiceSessionShell({
     if (!started) return;
     setModalOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCardId, isAISpeaking, state.session, voicePhase, termsSubStep, bargeInActive]);
+  }, [activeCardId, isAISpeaking, state.session, voicePhase, termsSubStep, bargeInActive, isRevisiting]);
 
   useEffect(() => {
     notifyChatOpen(chatOpen);
@@ -653,11 +654,13 @@ export default function VoiceSessionShell({
               onNext={() => {
                 if (viewIndex >= n - 1) return;
                 stopAudio();
+                if (isRevisiting) { scrollCarousel(questions[viewIndex + 1].id); return; }
                 skipQuestion(questions[viewIndex]);
               }}
               onPrev={() => {
                 if (viewIndex === 0) return;
                 stopAudio();
+                if (isRevisiting) { scrollCarousel(questions[viewIndex - 1].id); return; }
                 onPrev();
               }}
               onActiveCardClick={() => setModalOpen(true)}
@@ -673,11 +676,13 @@ export default function VoiceSessionShell({
           onPrevious={() => {
             if (viewIndex === 0) return;
             stopAudio();
+            if (isRevisiting) { scrollCarousel(questions[viewIndex - 1].id); return; }
             onPrev();
           }}
           onNext={() => {
             if (viewIndex >= n - 1) return;
             stopAudio();
+            if (isRevisiting) { scrollCarousel(questions[viewIndex + 1].id); return; }
             skipQuestion(questions[viewIndex]);
           }}
           onChatClick={() => setChatOpen(true)}

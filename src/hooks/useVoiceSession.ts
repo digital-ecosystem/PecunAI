@@ -631,7 +631,8 @@ export function useVoiceSession({
   const prevInProgressRef = useRef(false);
   // True while customer is in Phase 1 revisit mode — suppresses auto-advance on submit_answer so
   // the user can change multiple answers freely before confirm_product() triggers advancePhase().
-  const isRevisitingRef = useRef(initialIsRevisiting);
+  const isRevisitingRef                            = useRef(initialIsRevisiting);
+  const [isRevisiting, setIsRevisiting_internal]   = useState(initialIsRevisiting);
 
   // Internal refs — stable across renders
   const wsRef              = useRef<WebSocket | null>(null);
@@ -890,6 +891,7 @@ export function useVoiceSession({
 
   const advancePhase = useCallback(async () => {
     isRevisitingRef.current = false; // clear revisit mode before fetching product
+    setIsRevisiting_internal(false);
     useVoiceSessionStore.getState().setIsRevisiting(false);
     const durationQ      = questionsRef.current.find(q => q.questionOrder === 2);
     const riskQ          = questionsRef.current.find(q => q.questionOrder === 5);
@@ -1305,6 +1307,23 @@ export function useVoiceSession({
           return;
         }
 
+        if (isRevisitingRef.current) {
+          dispatch({ type: "ANSWER_SAVED" });
+          send({
+            type: "conversation.item.create",
+            item: { type: "message", role: "user", content: [{ type: "input_text",
+              text: `[SYSTEM: Answer saved for topic "${validatingQ?.category}" (ID: ${validatingQ?.id}) — new value: "${value}". Revisit mode active. Ask warmly if the customer wants to change anything else, or is ready to see the updated product recommendation.]`,
+            }]},
+          });
+          send({
+            type: "response.create",
+            response: {
+              instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Die Antwort wurde gespeichert. Fragen Sie warmherzig in 1 Satz, ob der Kunde noch etwas anderes ändern möchte oder bereit ist, die aktualisierte Produktempfehlung zu sehen.`,
+            },
+          });
+          return;
+        }
+
         const remainingQs = remaining.map(id => questionsRef.current.find(q => q.id === id)!).filter(Boolean) as CarouselQuestion[];
         send({
           type: "conversation.item.create",
@@ -1647,6 +1666,12 @@ export function useVoiceSession({
       if (name === "revisit_questions") {
         sendResult({ success: true });
         isRevisitingRef.current = true;
+        setIsRevisiting_internal(true);
+        // Snap carousel to first main question — safe landing instead of Q13.1 or wherever Phase 2 left off
+        const firstMainQ = questionsRef.current.find(
+          q => q.questionOrder === undefined || q.questionOrder % 1 === 0
+        ) ?? questionsRef.current[0];
+        if (firstMainQ) setCard(firstMainQ.id);
         setVoicePhase(1);
         setProductSuggestion(null);
         send({
@@ -2506,6 +2531,23 @@ export function useVoiceSession({
     }
 
     dispatch({ type: "ANSWER_SAVED" });
+
+    if (isRevisitingRef.current) {
+      send({
+        type: "conversation.item.create",
+        item: { type: "message", role: "user", content: [{ type: "input_text",
+          text: `[SYSTEM: Answer saved for topic "${question.category}" (ID: ${question.id}) — new value: "${value}". Revisit mode is still active. Ask warmly in 1 sentence if the customer wants to change anything else, or if they are ready to see the updated product recommendation. Do NOT call submit_answer or navigate. Wait for their response.]`,
+        }]},
+      });
+      send({
+        type: "response.create",
+        response: {
+          instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Die Antwort wurde gespeichert. Fragen Sie warmherzig in 1 Satz: Möchte der Kunde noch etwas anderes ändern, oder ist er bereit, die aktualisierte Produktempfehlung zu sehen?`,
+        },
+      });
+      return;
+    }
+
     const nextQIdx = remaining.length > 0 ? questionsRef.current.findIndex(q => q.id === remaining[0]) : -1;
     if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
     setCard(remaining[0] ?? null);
@@ -2791,12 +2833,52 @@ export function useVoiceSession({
     router.push("/customer/dashboard"); // Phase 3 placeholder
   }, [router]);
 
+  /** Pure carousel scroll — moves the card position with no AI message, no skip, no DB write.
+   *  Used by the shell's next/prev buttons in revisit mode so browsing doesn't corrupt skippedIds. */
+  const scrollCarousel = useCallback((id: string) => {
+    const idx = questionsRef.current.findIndex(q => q.id === id);
+    if (idx < 0) return;
+    setCard(id);
+    dispatch({ type: "SET_INDEX", index: idx });
+    const q = questionsRef.current[idx];
+    if (q) {
+      const savedAnswer = savedAnswersRef.current[q.id];
+      if (isRevisitingRef.current) {
+        send({
+          type: "conversation.item.create",
+          item: { type: "message", role: "user", content: [{ type: "input_text",
+            text: `[SYSTEM: Customer navigated to topic "${q.category}" (ID: ${q.id}) using the carousel button.${savedAnswer ? ` Their saved answer was "${savedAnswer}".` : ""} Ask warmly in 1 sentence whether they want to change this answer. Wait for their response.]`,
+          }]},
+        });
+        send({
+          type: "response.create",
+          response: {
+            instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat auf die Navigationspfeile geklickt und ist zu "${q.category}" navigiert.${savedAnswer ? ` Ihre bisherige Antwort war "${savedAnswer}".` : ""} Fragen Sie warmherzig in 1 Satz, ob sie diese Antwort ändern möchten. Warten Sie auf ihre Antwort.`,
+          },
+        });
+      } else {
+        send({
+          type: "conversation.item.create",
+          item: { type: "message", role: "user", content: [{ type: "input_text",
+            text: `[SYSTEM: Customer browsed to topic "${q.category}" (ID: ${q.id}).${savedAnswer ? ` Their saved answer was "${savedAnswer}".` : ""} Do NOT ask about this topic yet — wait for the customer to confirm they want to change it. Stay available.]`,
+          }]},
+        });
+      }
+    }
+  }, [send]);
+
   /** Tap handler — customer wants to revisit Phase 1 answers (Phase 2 button) */
   const revisitQuestions = useCallback(() => {
     isRevisitingRef.current = true;
+    setIsRevisiting_internal(true);
     voicePhaseRef.current   = 1;  // set ref before saveVoiceState reads it
     saveVoiceState(questionsRef.current.length).catch(() => {});  // persist isRevisiting: true + voicePhase: 1
     useVoiceSessionStore.getState().setIsRevisiting(true);        // Zustand dual-write for same-browser path
+    // Snap carousel to first main question — safe landing instead of whatever Q was active in Phase 2
+    const firstMainQ = questionsRef.current.find(
+      q => q.questionOrder === undefined || q.questionOrder % 1 === 0
+    ) ?? questionsRef.current[0];
+    if (firstMainQ) setCard(firstMainQ.id);
     setVoicePhase(1);
     setProductSuggestion(null);
     send({
@@ -3061,6 +3143,8 @@ export function useVoiceSession({
     termsSubStep,
     productSuggestion,
     confirmProduct,
+    isRevisiting,
+    scrollCarousel,
     revisitQuestions,
     moveToTerms1,
     confirmTerms1,
