@@ -13,17 +13,21 @@ export interface VoiceSessionSnapshot {
   answeredIds:  string[];
   skippedIds:   string[];
   savedAnswers: Record<string, string>;
+  // True while customer is in Phase 1 revisit mode. Persisted so the auto-advance
+  // guard survives browser close/reopen without looping back to Phase 2.
+  isRevisiting: boolean;
 }
 
 interface VoiceSessionActions {
-  hydrate:         (data: Partial<VoiceSessionSnapshot> & { sessionId: string }) => void;
-  markAnswered:    (id: string, value: string) => void;
-  markSkipped:     (id: string) => void;
-  unmarkSkipped:   (id: string) => void;
-  setActiveCard:   (id: string | null) => void;
-  setPhase:        (phase: 0 | 1 | 2) => void;
-  setTermsSubStep: (step: VoiceSessionSnapshot["termsSubStep"]) => void;
-  reset:           () => void;
+  hydrate:          (data: Partial<VoiceSessionSnapshot> & { sessionId: string }) => void;
+  markAnswered:     (id: string, value: string) => void;
+  markSkipped:      (id: string) => void;
+  unmarkSkipped:    (id: string) => void;
+  setActiveCard:    (id: string | null) => void;
+  setPhase:         (phase: 0 | 1 | 2) => void;
+  setTermsSubStep:  (step: VoiceSessionSnapshot["termsSubStep"]) => void;
+  setIsRevisiting:  (v: boolean) => void;
+  reset:            () => void;
 }
 
 type VoiceSessionStore = VoiceSessionSnapshot & VoiceSessionActions;
@@ -38,6 +42,7 @@ const INITIAL_STATE: VoiceSessionSnapshot = {
   answeredIds:  [],
   skippedIds:   [],
   savedAnswers: {},
+  isRevisiting: false,
 };
 
 // ── Store ─────────────────────────────────────────────────────────
@@ -70,6 +75,7 @@ export const useVoiceSessionStore = create<VoiceSessionStore>()(
       setActiveCard:   (id)   => set({ activeCardId: id }),
       setPhase:        (p)    => set({ voicePhase: p }),
       setTermsSubStep: (step) => set({ termsSubStep: step }),
+      setIsRevisiting: (v)    => set({ isRevisiting: v }),
       reset:           ()     => set(INITIAL_STATE),
     }),
     {
@@ -87,6 +93,7 @@ export const useVoiceSessionStore = create<VoiceSessionStore>()(
         answeredIds:  state.answeredIds,
         skippedIds:   state.skippedIds,
         savedAnswers: state.savedAnswers,
+        isRevisiting: state.isRevisiting,
       }),
     }
   )

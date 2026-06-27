@@ -92,7 +92,7 @@ function base64ToPCM16AudioBuffer(base64: string, ctx: AudioContext): AudioBuffe
 
 // ── System prompt ─────────────────────────────────────────────────
 
-function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, micGranted: boolean | null, skippedIds?: ReadonlySet<string>): string {
+function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, micGranted: boolean | null, skippedIds?: ReadonlySet<string>, isRevisiting?: boolean): string {
   const list = questions
     .filter(q => q.questionOrder === undefined || q.questionOrder % 1 === 0) // exclude sub-questions (12.1, 13.1, 14.1) — injected dynamically via SYSTEM message
     .map((q, i) => {
@@ -125,9 +125,11 @@ function buildSystemPrompt(questions: CarouselQuestion[], resumeIndex: number, m
     }).join("\n\n");
 
   const skippedCount = skippedIds?.size ?? 0;
-  const resumeBlock = resumeIndex > 0
-    ? `\n\nYou resumed a previous session (topics marked above). Open with a warm one-sentence welcome-back and pick up naturally from topic ${resumeIndex + 1}.${skippedCount > 0 ? ` Note: ${skippedCount} topic(s) earlier were skipped (marked SKIPPED above) — do NOT ask them now, they will circle back automatically at the end.` : ""}`
-    : "";
+  const resumeBlock = isRevisiting
+    ? `\n\nDer Kunde hat die Produktempfehlung gesehen und möchte einige seiner Antworten ändern. Alle Themen sind oben als „already collected" markiert. Begrüßen Sie ihn herzlich mit einem Satz und fragen Sie warmherzig, welches Thema er ändern möchte. Warten Sie auf seine Antwort.`
+    : (resumeIndex > 0
+      ? `\n\nYou resumed a previous session (topics marked above). Open with a warm one-sentence welcome-back and pick up naturally from topic ${resumeIndex + 1}.${skippedCount > 0 ? ` Note: ${skippedCount} topic(s) earlier were skipped (marked SKIPPED above) — do NOT ask them now, they will circle back automatically at the end.` : ""}`
+      : "");
 
   const micBlock = micGranted === false
     ? `\n\n## Mic Access\n\nThe customer has not granted microphone access — they are in tap-only mode. Answer cards appear on screen automatically after you finish speaking each topic. In your opening greeting, mention this naturally — e.g. "I noticed you haven't given microphone access, no worries at all — answer cards will appear on screen for you to tap. You can always enable your mic in browser settings if you change your mind." Do not repeat this reminder after the greeting.`
@@ -526,6 +528,7 @@ interface UseVoiceSessionOptions {
   initialSkippedIds?:   string[];
   initialSavedAnswers?: Record<string, string>;
   initialVoicePhase?:   0 | 1 | 2;
+  initialIsRevisiting?: boolean;
 }
 
 export function useVoiceSession({
@@ -538,6 +541,7 @@ export function useVoiceSession({
   initialSkippedIds   = [],
   initialSavedAnswers = {},
   initialVoicePhase,
+  initialIsRevisiting = false,
 }: UseVoiceSessionOptions) {
   const router = useRouter();
 
@@ -627,7 +631,7 @@ export function useVoiceSession({
   const prevInProgressRef = useRef(false);
   // True while customer is in Phase 1 revisit mode — suppresses auto-advance on submit_answer so
   // the user can change multiple answers freely before confirm_product() triggers advancePhase().
-  const isRevisitingRef = useRef(false);
+  const isRevisitingRef = useRef(initialIsRevisiting);
 
   // Internal refs — stable across renders
   const wsRef              = useRef<WebSocket | null>(null);
@@ -871,6 +875,7 @@ export function useVoiceSession({
           skippedIds:        [...skippedIdsRef.current],
           voicePhase:        voicePhaseRef.current,
           termsSubStep:      termsSubStepRef.current,
+          isRevisiting:      isRevisitingRef.current,
         }),
       });
       if (!res.ok) {
@@ -885,6 +890,7 @@ export function useVoiceSession({
 
   const advancePhase = useCallback(async () => {
     isRevisitingRef.current = false; // clear revisit mode before fetching product
+    useVoiceSessionStore.getState().setIsRevisiting(false);
     const durationQ      = questionsRef.current.find(q => q.questionOrder === 2);
     const riskQ          = questionsRef.current.find(q => q.questionOrder === 5);
     const durationAnswer = durationQ ? savedAnswersRef.current[durationQ.id] : undefined;
@@ -1753,7 +1759,7 @@ export function useVoiceSession({
           // Use initialIndexRef (set once at mount) — guaranteed correct even if
           // the stateRef effect hasn't fired yet when this message arrives.
           // For Phase 2 resume, pass the full question count so all Qs show as "already collected".
-          const resumeIdx = voicePhaseRef.current === 2
+          const resumeIdx = (voicePhaseRef.current === 2 || isRevisitingRef.current)
             ? questionsRef.current.length
             : initialIndexRef.current;
           send({
@@ -1762,7 +1768,7 @@ export function useVoiceSession({
               type:              "realtime",
               model:             "gpt-realtime-1.5",
               output_modalities: ["audio"],
-              instructions:      buildSystemPrompt(questionsRef.current, resumeIdx, micGrantedRef.current, skippedIdsRef.current),
+              instructions:      buildSystemPrompt(questionsRef.current, resumeIdx, micGrantedRef.current, skippedIdsRef.current, isRevisitingRef.current),
               tools:             TOOLS,
               tool_choice:       "auto",
               audio: {
@@ -2788,6 +2794,9 @@ export function useVoiceSession({
   /** Tap handler — customer wants to revisit Phase 1 answers (Phase 2 button) */
   const revisitQuestions = useCallback(() => {
     isRevisitingRef.current = true;
+    voicePhaseRef.current   = 1;  // set ref before saveVoiceState reads it
+    saveVoiceState(questionsRef.current.length).catch(() => {});  // persist isRevisiting: true + voicePhase: 1
+    useVoiceSessionStore.getState().setIsRevisiting(true);        // Zustand dual-write for same-browser path
     setVoicePhase(1);
     setProductSuggestion(null);
     send({
@@ -2806,7 +2815,7 @@ export function useVoiceSession({
         instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat auf Zurück getippt. Bestätigen Sie warmherzig in 1 Satz und fragen Sie, welches Thema er ändern möchte.`,
       },
     });
-  }, [send]);
+  }, [send, saveVoiceState]);
 
   // ── Phase 0 — terms gate ───────────────────────────────────────
 

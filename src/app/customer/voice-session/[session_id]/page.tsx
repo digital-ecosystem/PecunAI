@@ -24,6 +24,7 @@ export default function VoiceSessionPage() {
   const [initialSkippedIds,   setInitialSkippedIds]   = useState<string[]>([]);
   const [initialSavedAnswers, setInitialSavedAnswers] = useState<Record<string, string>>({});
   const [initialVoicePhase,   setInitialVoicePhase]   = useState<0 | 1 | 2 | undefined>(undefined);
+  const [initialIsRevisiting, setInitialIsRevisiting] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -36,6 +37,7 @@ export default function VoiceSessionPage() {
         setInitialSkippedIds(cached.skippedIds);
         setInitialSavedAnswers(cached.savedAnswers);
         setInitialVoicePhase(cached.voicePhase);
+        setInitialIsRevisiting(cached.isRevisiting ?? false);
         if (cached.voicePhase === 1) {
           setInitialTermsPhase('skip');
         } else if (cached.voicePhase === 2) {
@@ -152,6 +154,7 @@ export default function VoiceSessionPage() {
       if (dbVoicePhase !== null && dbVoicePhase !== undefined) {
         setInitialVoicePhase(dbVoicePhase as 0 | 1 | 2);
       }
+      if (vsData?.isRevisiting === true) setInitialIsRevisiting(true);
       if (dbVoicePhase === 1) {
         setInitialTermsPhase('skip');
       } else if (dbVoicePhase === 2) {
@@ -171,6 +174,7 @@ export default function VoiceSessionPage() {
         answeredIds:  allAnsweredIds,
         skippedIds:   resolvedSkippedIds,
         savedAnswers: dbAnswers,
+        isRevisiting: vsData?.isRevisiting === true,
       });
 
       setReady(true);
@@ -199,6 +203,7 @@ export default function VoiceSessionPage() {
       initialSkippedIds={initialSkippedIds}
       initialSavedAnswers={initialSavedAnswers}
       initialVoicePhase={initialVoicePhase}
+      initialIsRevisiting={initialIsRevisiting}
     />
   );
 }

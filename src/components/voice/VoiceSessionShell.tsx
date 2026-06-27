@@ -53,6 +53,7 @@ interface VoiceSessionShellProps {
   initialSkippedIds?:   string[];
   initialSavedAnswers?: Record<string, string>;
   initialVoicePhase?:   0 | 1 | 2;
+  initialIsRevisiting?: boolean;
 }
 
 // ── Component ─────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ export default function VoiceSessionShell({
   initialSkippedIds,
   initialSavedAnswers,
   initialVoicePhase,
+  initialIsRevisiting,
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
@@ -81,6 +83,7 @@ export default function VoiceSessionShell({
       initialSkippedIds:   initialSkippedIds   ?? [],
       initialSavedAnswers: initialSavedAnswers ?? {},
       initialVoicePhase,
+      initialIsRevisiting,
     });
 
   // Track phase transition direction for the slide animation.

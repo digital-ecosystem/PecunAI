@@ -30,10 +30,11 @@ export async function GET(
     const stepData  = (ws?.stepData ?? {}) as Record<string, unknown>;
     const voice     = (stepData.voice ?? {}) as Record<string, unknown>;
 
-    const lastIndex   = typeof voice.lastQuestionIndex === "number" ? voice.lastQuestionIndex : 0;
-    const skippedIds  = Array.isArray(voice.skippedIds)   ? (voice.skippedIds as string[]) : [];
-    const voicePhase  = typeof voice.voicePhase === "number" ? (voice.voicePhase as 0 | 1 | 2) : null;
+    const lastIndex    = typeof voice.lastQuestionIndex === "number" ? voice.lastQuestionIndex : 0;
+    const skippedIds   = Array.isArray(voice.skippedIds)   ? (voice.skippedIds as string[]) : [];
+    const voicePhase   = typeof voice.voicePhase === "number" ? (voice.voicePhase as 0 | 1 | 2) : null;
     const termsSubStep = typeof voice.termsSubStep === "string" ? (voice.termsSubStep as string) : null;
+    const isRevisiting = voice.isRevisiting === true;
 
     return NextResponse.json({
       success:           true,
@@ -41,6 +42,7 @@ export async function GET(
       skippedIds,
       voicePhase,
       termsSubStep,
+      isRevisiting,
       currentPhase:      sessionRecord?.phase ?? null,
     });
   } catch (error) {
@@ -63,11 +65,12 @@ export async function PATCH(
 
     const { sessionId } = await params;
     const body = await req.json();
-    const { lastQuestionIndex, skippedIds, voicePhase, termsSubStep } = body as {
+    const { lastQuestionIndex, skippedIds, voicePhase, termsSubStep, isRevisiting } = body as {
       lastQuestionIndex: number;
       skippedIds?:       string[];
       voicePhase?:       0 | 1 | 2;
       termsSubStep?:     string | null;
+      isRevisiting?:     boolean;
     };
 
     if (typeof lastQuestionIndex !== "number") {
@@ -97,6 +100,7 @@ export async function PATCH(
     if (Array.isArray(skippedIds))          updatedVoice.skippedIds   = skippedIds;
     if (voicePhase !== undefined)           updatedVoice.voicePhase   = voicePhase;
     if (termsSubStep !== undefined)         updatedVoice.termsSubStep = termsSubStep;
+    if (isRevisiting !== undefined)         updatedVoice.isRevisiting = isRevisiting;
 
     await prisma.sessionWorkflowState.upsert({
       where:  { qaSessionId: sessionId },
