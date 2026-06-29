@@ -11,7 +11,7 @@ export default function VoiceSessionPage() {
   const params    = useParams();
   const sessionId = params?.session_id as string;
 
-  type InitialTermsPhase = 'terms2' | 'skip' | null;
+  type InitialTermsPhase = 'terms2' | 'skip' | 'sustainabilityTerms' | null;
 
   const [ready,                setReady]                = useState(false);
   const [questions,            setQuestions]            = useState<CarouselQuestion[]>([]);
@@ -38,11 +38,13 @@ export default function VoiceSessionPage() {
         setInitialSavedAnswers(cached.savedAnswers);
         setInitialVoicePhase(cached.voicePhase);
         setInitialIsRevisiting(cached.isRevisiting ?? false);
-        if (cached.voicePhase === 1) {
+        if (cached.termsSubStep === 'sustainabilityTerms') {
+          setInitialTermsPhase('sustainabilityTerms');
+        } else if (cached.voicePhase === 1) {
           setInitialTermsPhase('skip');
         } else if (cached.voicePhase === 2) {
           setInitialTermsPhase('skip');
-        } else if (cached.termsSubStep === 'terms2' || cached.termsSubStep === 'sustainabilityTerms') {
+        } else if (cached.termsSubStep === 'terms2') {
           setInitialTermsPhase('terms2');
         }
         // voicePhase 0 + termsSubStep 'intro'/'terms1' → initialTermsPhase stays null → starts from beginning of terms
@@ -155,11 +157,13 @@ export default function VoiceSessionPage() {
         setInitialVoicePhase(dbVoicePhase as 0 | 1 | 2);
       }
       if (vsData?.isRevisiting === true) setInitialIsRevisiting(true);
-      if (dbVoicePhase === 1) {
+      if (vsData?.termsSubStep === 'sustainabilityTerms') {
+        setInitialTermsPhase('sustainabilityTerms');
+      } else if (dbVoicePhase === 1) {
         setInitialTermsPhase('skip');
       } else if (dbVoicePhase === 2) {
         setInitialTermsPhase('skip');
-      } else if (vsData?.termsSubStep === 'terms2' || vsData?.termsSubStep === 'sustainabilityTerms') {
+      } else if (vsData?.termsSubStep === 'terms2') {
         setInitialTermsPhase('terms2');
       } else if (currentPhase === 'TERMS_FROOTS') {
         setInitialTermsPhase('terms2');  // fallback for old sessions before termsSubStep was saved to DB

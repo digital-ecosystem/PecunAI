@@ -522,7 +522,7 @@ interface UseVoiceSessionOptions {
   sessionId:            string;
   questions:            CarouselQuestion[];
   initialQuestionIndex: number;
-  initialTermsPhase?:   'terms2' | 'skip' | null;
+  initialTermsPhase?:   'terms2' | 'skip' | 'sustainabilityTerms' | null;
   termsVectorId:        string | null;
   initialAnsweredIds?:  string[];
   initialSkippedIds?:   string[];
@@ -568,12 +568,14 @@ export function useVoiceSession({
 
   // Phase 0 sub-step: which screen within the intro/terms gate
   const [termsSubStep, setTermsSubStep] = useState<'intro' | 'terms1' | 'terms2' | 'sustainabilityTerms' | null>(
-    initialTermsPhase === 'skip'   ? null    :
-    initialTermsPhase === 'terms2' ? 'terms2': 'intro'
+    initialTermsPhase === 'sustainabilityTerms' ? 'sustainabilityTerms' :
+    initialTermsPhase === 'skip'               ? null    :
+    initialTermsPhase === 'terms2'             ? 'terms2': 'intro'
   );
   const termsSubStepRef = useRef<'intro' | 'terms1' | 'terms2' | 'sustainabilityTerms' | null>(
-    initialTermsPhase === 'skip'   ? null    :
-    initialTermsPhase === 'terms2' ? 'terms2': 'intro'
+    initialTermsPhase === 'sustainabilityTerms' ? 'sustainabilityTerms' :
+    initialTermsPhase === 'skip'               ? null    :
+    initialTermsPhase === 'terms2'             ? 'terms2': 'intro'
   );
 
   // Explain overlay — set by explain_topic tool call, cleared on close_explanation or manual close
@@ -1165,6 +1167,7 @@ export function useVoiceSession({
           if (!sustainabilityConfirmedRef.current) {
             setTermsSubStep('sustainabilityTerms');
             termsSubStepRef.current = 'sustainabilityTerms';
+            saveVoiceState(questionsRef.current.findIndex(q => q.id === questionId)).catch(() => {});
             send({
               type: "conversation.item.create",
               item: { type: "message", role: "user", content: [{ type: "input_text",
@@ -1467,6 +1470,7 @@ export function useVoiceSession({
             skippedIdsRef.current.add(currentQ.id); // keep remaining filter consistent — circles back at end
             setTermsSubStep('sustainabilityTerms');
             termsSubStepRef.current = 'sustainabilityTerms';
+            saveVoiceState(questionsRef.current.findIndex(q => q.id === currentQ?.id)).catch(() => {});
             sendResult({ success: true });
             send({
               type: "conversation.item.create",
@@ -1900,6 +1904,15 @@ export function useVoiceSession({
               // Product not loaded yet (refetch slow) — bare greeting, AI will pick up from context
               send({ type: "response.create" });
             }
+          } else if (termsSubStepRef.current === 'sustainabilityTerms') {
+            // Resume: sustainability modal was showing when session was interrupted
+            send({
+              type: "conversation.item.create",
+              item: { type: "message", role: "user", content: [{ type: "input_text",
+                text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is displayed on screen. The customer returned to the session. Greet them back warmly in 1 sentence, mention they can continue reading the sustainability document and tap confirm when ready, and that they can hold the mic button to ask questions. Do NOT ask any Phase 1 questions. Wait for them to confirm.]",
+              }]},
+            });
+            send({ type: "response.create", response: { instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde ist zurückgekehrt und sieht das Nachhaltigkeitsdokument. Begrüßen Sie ihn herzlich in 1 Satz, erinnern Sie ihn daran, dass er das Dokument in seinem eigenen Tempo lesen und auf „Ich bestätige" tippen kann, und dass er die Mikrofontaste halten kann, um Fragen zu stellen. Stellen Sie KEINE Phase-1-Fragen. Warten Sie.` } });
           } else {
             // Phase 1 (skip mode or after confirmTerms2) — normal greeting
             send({ type: "response.create" });
@@ -2344,6 +2357,7 @@ export function useVoiceSession({
       if (!sustainabilityConfirmedRef.current) {
         setTermsSubStep('sustainabilityTerms');
         termsSubStepRef.current = 'sustainabilityTerms';
+        saveVoiceState(questionsRef.current.findIndex(q => q.id === question.id)).catch(() => {});
         send({
           type: "conversation.item.create",
           item: { type: "message", role: "user", content: [{ type: "input_text",
@@ -2622,6 +2636,7 @@ export function useVoiceSession({
       skippedIdsRef.current.add(question.id); // keep remaining filter consistent — circles back at end
       setTermsSubStep('sustainabilityTerms');
       termsSubStepRef.current = 'sustainabilityTerms';
+      saveVoiceState(questionsRef.current.findIndex(q => q.id === question.id)).catch(() => {});
       send({
         type: "conversation.item.create",
         item: { type: "message", role: "user", content: [{ type: "input_text",

@@ -47,7 +47,7 @@ interface VoiceSessionShellProps {
   sessionId:            string;
   questions:            CarouselQuestion[];
   initialQuestionIndex: number;
-  initialTermsPhase?:   'terms2' | 'skip' | null;
+  initialTermsPhase?:   'terms2' | 'skip' | 'sustainabilityTerms' | null;
   termsVectorId?:       string | null;
   initialAnsweredIds?:  string[];
   initialSkippedIds?:   string[];
