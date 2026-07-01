@@ -5,7 +5,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 export interface VoiceSessionSnapshot {
   sessionId:    string | null;
-  voicePhase:   0 | 1 | 2;
+  voicePhase:   0 | 1 | 2 | 3 | 4 | 5 | 6;
   termsSubStep: "intro" | "terms1" | "terms2" | "sustainabilityTerms" | null;
   activeCardId: string | null;
   // Arrays (not Sets) — JSON-serializable for localStorage persistence.
@@ -24,7 +24,7 @@ interface VoiceSessionActions {
   markSkipped:      (id: string) => void;
   unmarkSkipped:    (id: string) => void;
   setActiveCard:    (id: string | null) => void;
-  setPhase:         (phase: 0 | 1 | 2) => void;
+  setPhase:         (phase: 0 | 1 | 2 | 3 | 4 | 5 | 6) => void;
   setTermsSubStep:  (step: VoiceSessionSnapshot["termsSubStep"]) => void;
   setIsRevisiting:  (v: boolean) => void;
   reset:            () => void;

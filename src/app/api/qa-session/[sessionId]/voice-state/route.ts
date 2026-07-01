@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/lib/prisma";
 import { AuthService } from "@/lib/auth";
 
 export async function GET(
@@ -32,7 +33,7 @@ export async function GET(
 
     const lastIndex    = typeof voice.lastQuestionIndex === "number" ? voice.lastQuestionIndex : 0;
     const skippedIds   = Array.isArray(voice.skippedIds)   ? (voice.skippedIds as string[]) : [];
-    const voicePhase   = typeof voice.voicePhase === "number" ? (voice.voicePhase as 0 | 1 | 2) : null;
+    const voicePhase   = typeof voice.voicePhase === "number" ? (voice.voicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6) : null;
     const termsSubStep = typeof voice.termsSubStep === "string" ? (voice.termsSubStep as string) : null;
     const isRevisiting = voice.isRevisiting === true;
 
@@ -68,7 +69,7 @@ export async function PATCH(
     const { lastQuestionIndex, skippedIds, voicePhase, termsSubStep, isRevisiting } = body as {
       lastQuestionIndex: number;
       skippedIds?:       string[];
-      voicePhase?:       0 | 1 | 2;
+      voicePhase?:       0 | 1 | 2 | 3 | 4 | 5 | 6;
       termsSubStep?:     string | null;
       isRevisiting?:     boolean;
     };
@@ -102,10 +103,12 @@ export async function PATCH(
     if (termsSubStep !== undefined)         updatedVoice.termsSubStep = termsSubStep;
     if (isRevisiting !== undefined)         updatedVoice.isRevisiting = isRevisiting;
 
+    const mergedStepData = { ...currentStepData, voice: updatedVoice } as Prisma.InputJsonValue;
+
     await prisma.sessionWorkflowState.upsert({
       where:  { qaSessionId: sessionId },
-      create: { qaSessionId: sessionId, stepData: { ...currentStepData, voice: updatedVoice }, lastActivity: new Date() },
-      update: { stepData: { ...currentStepData, voice: updatedVoice }, lastActivity: new Date() },
+      create: { qaSessionId: sessionId, stepData: mergedStepData, lastActivity: new Date() },
+      update: { stepData: mergedStepData, lastActivity: new Date() },
     });
 
     return NextResponse.json({ success: true });

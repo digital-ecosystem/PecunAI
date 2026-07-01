@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { ChatMessage } from "./types";
-import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS } from "./prompts";
+import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT } from "./prompts";
 import { TOOLS } from "./tools";
 import { base64ToPCM16AudioBuffer } from "./audio";
 import type { VoiceContext } from "./voiceContext";
@@ -37,6 +37,34 @@ export async function handleWsMessage(
   switch (type) {
 
     case "session.created": {
+      // Phase 3→4 reconnect — this connection exists solely to re-enter the voice flow after
+      // the silent Personal Info phase. Do NOT replay the Phase 1 question-list prompt.
+      if (voicePhaseRef.current === 4) {
+        send({
+          type: "session.update",
+          session: {
+            type:              "realtime",
+            model:             "gpt-realtime-1.5",
+            output_modalities: ["audio"],
+            instructions:      PHASE4_REENTRY_SYSTEM_PROMPT(langRef.current),
+            tools:             TOOLS,
+            tool_choice:       "auto",
+            audio: {
+              input: {
+                format: { type: "audio/pcm", rate: 24000 },
+                turn_detection: { type: "semantic_vad" },
+                transcription: { model: "gpt-4o-transcribe" },
+              },
+              output: {
+                format: { type: "audio/pcm", rate: 24000 },
+                voice:  "marin",
+              },
+            },
+          },
+        });
+        break;
+      }
+
       // Use initialIndexRef (set once at mount) — guaranteed correct even if
       // the stateRef effect hasn't fired yet when this message arrives.
       // For Phase 2 resume, pass the full question count so all Qs show as "already collected".
@@ -49,7 +77,7 @@ export async function handleWsMessage(
           type:              "realtime",
           model:             "gpt-realtime-1.5",
           output_modalities: ["audio"],
-          instructions:      buildSystemPrompt(questionsRef.current, resumeIdx, micGrantedRef.current, skippedIdsRef.current, isRevisitingRef.current),
+          instructions:      buildSystemPrompt(questionsRef.current, resumeIdx, micGrantedRef.current, skippedIdsRef.current, isRevisitingRef.current, langRef.current),
           tools:             TOOLS,
           tool_choice:       "auto",
           audio: {
@@ -112,12 +140,19 @@ export async function handleWsMessage(
         setMicAnalyserNode(micAnalyser);
       }
       // Session configured — trigger AI speech, branching on phase
-      if (voicePhaseRef.current === 0 && termsSubStepRef.current === 'terms2') {
+      if (voicePhaseRef.current === 4) {
+        // Phase 3→4 reconnect — session-level instructions (PHASE4_REENTRY_SYSTEM_PROMPT,
+        // sent in session.created above) already direct the AI to greet and transition.
+        // Bare response.create is enough; mirrors the Phase 0/2 pattern of session-level
+        // baseline + a triggering response.create. Real Phase 4 narration logic (cost
+        // breakdown, confirm_investment tool, etc.) is a separate, not-yet-built milestone.
+        send({ type: "response.create" });
+      } else if (voicePhaseRef.current === 0 && termsSubStepRef.current === 'terms2') {
         // Resume: customer already confirmed terms1 — go straight to terms2 explanation
-        send({ type: "response.create", response: { instructions: TERMS2_EXPLAIN_INSTRUCTIONS } });
+        send({ type: "response.create", response: { instructions: TERMS2_EXPLAIN_INSTRUCTIONS(langRef.current) } });
       } else if (voicePhaseRef.current === 0) {
         // Fresh start: welcome intro before terms
-        send({ type: "response.create", response: { instructions: INTRO_INSTRUCTIONS } });
+        send({ type: "response.create", response: { instructions: INTRO_INSTRUCTIONS(langRef.current) } });
       } else if (voicePhaseRef.current === 2) {
         // Phase 2 resume — re-inject product context and greet back
         const product = vc.productRef.current;

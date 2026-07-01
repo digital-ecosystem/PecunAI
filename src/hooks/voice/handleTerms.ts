@@ -3,7 +3,7 @@ import type { VoiceContext } from "./voiceContext";
 
 /** Called from VoiceSessionShell when intro speech ends (isAISpeaking goes false in Phase 0 intro) */
 export async function handleMoveToTerms1(ctx: VoiceContext): Promise<void> {
-  const { sessionId, termsSubStepRef, setTermsSubStep, saveVoiceState, send } = ctx;
+  const { sessionId, termsSubStepRef, langRef, setTermsSubStep, saveVoiceState, send } = ctx;
 
   await fetch("/api/phase", {
     method:  "POST",
@@ -13,12 +13,12 @@ export async function handleMoveToTerms1(ctx: VoiceContext): Promise<void> {
   termsSubStepRef.current = 'terms1';
   setTermsSubStep('terms1');
   saveVoiceState(0).catch(() => {});
-  send({ type: "response.create", response: { instructions: TERMS1_EXPLAIN_INSTRUCTIONS } });
+  send({ type: "response.create", response: { instructions: TERMS1_EXPLAIN_INSTRUCTIONS(langRef.current) } });
 }
 
 /** Customer tapped "Ich bestätige" on the 4money (terms1) document */
 export async function handleConfirmTerms1(ctx: VoiceContext): Promise<void> {
-  const { sessionId, termsSubStepRef, setTermsSubStep, saveVoiceState, send } = ctx;
+  const { sessionId, termsSubStepRef, langRef, setTermsSubStep, saveVoiceState, send } = ctx;
 
   await fetch("/api/phase", {
     method:  "POST",
@@ -28,7 +28,7 @@ export async function handleConfirmTerms1(ctx: VoiceContext): Promise<void> {
   termsSubStepRef.current = 'terms2';
   setTermsSubStep('terms2');
   saveVoiceState(0).catch(() => {});
-  send({ type: "response.create", response: { instructions: TERMS2_EXPLAIN_INSTRUCTIONS } });
+  send({ type: "response.create", response: { instructions: TERMS2_EXPLAIN_INSTRUCTIONS(langRef.current) } });
 }
 
 /** Customer tapped "Ich bestätige" on the froots (terms2) document — transitions to Phase 1 */

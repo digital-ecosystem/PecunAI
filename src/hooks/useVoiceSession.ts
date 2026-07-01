@@ -13,6 +13,7 @@ import { handleAnswerConfirmed as _handleAnswerConfirmed } from "./voice/handleA
 import { handlePrev, handleSkipQuestion, handleRequestExplanation, handleCloseExplainOverlay, handleScrollCarousel, handleRevisitQuestions } from "./voice/handleNavigation";
 import { handleMoveToTerms1, handleConfirmTerms1, handleConfirmTerms2, handleConfirmSustainabilityTerms } from "./voice/handleTerms";
 import { handleNotifyChatOpen } from "./voice/handleChat";
+import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS } from "./voice/prompts";
 import type { VoiceContext } from "./voice/voiceContext";
 
 // re-export types consumed by VoiceSessionShell and other components
@@ -29,7 +30,7 @@ interface UseVoiceSessionOptions {
   initialAnsweredIds?:  string[];
   initialSkippedIds?:   string[];
   initialSavedAnswers?: Record<string, string>;
-  initialVoicePhase?:   0 | 1 | 2;
+  initialVoicePhase?:   0 | 1 | 2 | 3 | 4 | 5 | 6;
   initialIsRevisiting?: boolean;
 }
 
@@ -49,6 +50,9 @@ export function useVoiceSession({
 
   const [state, dispatch] = useReducer(reducer, makeInitial(initialQuestionIndex));
   const [started, setStarted] = useState(false);
+  // Bumped to force the WS lifecycle effect to open a fresh connection — used when
+  // re-entering voice after a silent phase (3, 6). See disconnectVoice/reconnectVoice.
+  const [voiceConnectionEpoch, setVoiceConnectionEpoch] = useState(0);
 
   // Exposed to UI components for waveform / sphere visualization
   const [analyserNode,    setAnalyserNode]    = useState<AnalyserNode | null>(null);
@@ -63,10 +67,14 @@ export function useVoiceSession({
   const [voiceAnswerCount, setVoiceAnswerCount] = useState(0);
 
   // Phase 0 / 1 / 2 — 0 = terms/intro, 1 = questions, 2 = product suggestion
-  const startPhase: 0 | 1 | 2 = initialVoicePhase ?? (initialTermsPhase === 'skip' ? 1 : 0);
-  const [voicePhase,        setVoicePhase]        = useState<0 | 1 | 2>(startPhase);
-  const voicePhaseRef                             = useRef<0 | 1 | 2>(startPhase);
+  const startPhase: 0 | 1 | 2 | 3 | 4 | 5 | 6 = initialVoicePhase ?? (initialTermsPhase === 'skip' ? 1 : 0);
+  const [voicePhase,        setVoicePhase]        = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(startPhase);
+  const voicePhaseRef                             = useRef<0 | 1 | 2 | 3 | 4 | 5 | 6>(startPhase);
   const [productSuggestion, setProductSuggestion] = useState<ProductData | null>(null);
+  // True from the moment the customer confirms the product until the privacy-pause
+  // announcement finishes and voicePhase actually flips to 3 — shows the plain orb screen
+  // (same as session start) instead of leaving the Phase 2 product screen up mid-speech.
+  const [isTransitioningToPersonalInfo, setIsTransitioningToPersonalInfo] = useState(false);
 
   // Phase 0 sub-step: which screen within the intro/terms gate
   const [termsSubStep, setTermsSubStep] = useState<'intro' | 'terms1' | 'terms2' | 'sustainabilityTerms' | null>(
@@ -130,7 +138,7 @@ export function useVoiceSession({
   // showing more than once per session (e.g. if Q2 is skipped and later circles back).
   // TODO: persist in DB instead of localStorage when the session-state API supports it (Sprint 4).
   const sustainabilityConfirmedRef = useRef(false);
-  const langRef = useRef<"de" | "en">("de");
+  const langRef = useRef<"de" | "en">("en"); // TESTING — restore to "de" before production
   // Same guard for button-initiated prev — prevents AI from calling navigate("prev") a second time.
   const prevInProgressRef = useRef(false);
   // True while customer is in Phase 1 revisit mode — suppresses auto-advance on submit_answer so
@@ -167,6 +175,9 @@ export function useVoiceSession({
   const knowledgeBlockerNextQRef   = useRef<CarouselQuestion | null>(null); // next question to ask after a knowledge-blocker overlay closes
   const kbExplanationStartedRef    = useRef(false); // true once the first explanation audio delta arrives — guards against stale cancelled-response audio.done closing the overlay early
   const kbExplanationResponseIdRef = useRef<string | null>(null); // response ID of the KB explanation response — stale cancelled-response events have a different ID and are ignored
+  // Callback to run once the CURRENT AI response's audio finishes playing — checked in scheduleAIDone.
+  // Used to sequence phase transitions (e.g. privacy-pause announcements) after the line is fully spoken.
+  const pendingPhaseTransitionRef  = useRef<(() => void) | null>(null);
   const chatOpenRef            = useRef(false); // true while chat modal is open
   const chatAnsweredRef        = useRef(0);     // count of answers given while chat was open
   const voiceThreadIdRef       = useRef<string | null>(null); // threadId from chat/init, used to persist V2 chat messages
@@ -310,7 +321,7 @@ export function useVoiceSession({
 
   // Keep a stable ref so the WS closure can call the latest version
   useEffect(() => { resetExplainIdleRef.current = resetExplainIdleTimer; }, [resetExplainIdleTimer]);
-  useEffect(() => { voicePhaseRef.current = voicePhase; useVoiceSessionStore.getState().setPhase(voicePhase as 0 | 1 | 2); }, [voicePhase]);
+  useEffect(() => { voicePhaseRef.current = voicePhase; useVoiceSessionStore.getState().setPhase(voicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6); }, [voicePhase]);
   useEffect(() => { termsSubStepRef.current = termsSubStep; useVoiceSessionStore.getState().setTermsSubStep(termsSubStep); }, [termsSubStep]);
 
   // Phase 2 resume — re-fetch product data on mount so productRef and productSuggestion are
@@ -520,6 +531,11 @@ export function useVoiceSession({
         kbExplanationStartedRef.current = false;
         setExplainTriggerClose(true);
       }
+      if (pendingPhaseTransitionRef.current) {
+        const fn = pendingPhaseTransitionRef.current;
+        pendingPhaseTransitionRef.current = null;
+        fn();
+      }
       return;
     }
     const remaining = Math.max(0, (nextPlayTimeRef.current - ctx.currentTime)) * 1000;
@@ -530,6 +546,11 @@ export function useVoiceSession({
       if (knowledgeBlockerNextQRef.current && kbExplanationStartedRef.current) {
         kbExplanationStartedRef.current = false;
         setExplainTriggerClose(true);
+      }
+      if (pendingPhaseTransitionRef.current) {
+        const fn = pendingPhaseTransitionRef.current;
+        pendingPhaseTransitionRef.current = null;
+        fn();
       }
     }, remaining + 200);
   }, []);
@@ -560,6 +581,71 @@ export function useVoiceSession({
     if (!mutedRef.current) dispatch({ type: "AI_DONE" });
   }, [send]);
 
+  // ── Voice connection lifecycle (silent-phase support) ─────────
+  // Full teardown of WS + audio graph + mic — used to go silent for Phases 3 & 6.
+  // Also reused as the true-unmount cleanup (see the dedicated effect below) since
+  // it's idempotent and safe to call on an already-torn-down connection.
+  const disconnectVoice = useCallback(() => {
+    wsRef.current?.close();
+    wsRef.current = null;
+    micStreamRef.current?.getTracks().forEach(t => t.stop());
+    micStreamRef.current = null;
+    workletNodeRef.current?.disconnect();
+    workletNodeRef.current = null;
+    micAnalyserRef.current?.disconnect();
+    micAnalyserRef.current = null;
+    micSourceRef.current?.disconnect();
+    micSourceRef.current = null;
+    audioCtxRef.current?.close();
+    audioCtxRef.current = null;
+    gainRef.current     = null;
+    analyserRef.current = null;
+    sessionConfiguredRef.current = false; // session.updated guard is per-connection
+  }, []);
+
+  // Re-creates the AudioContext + mic stream, then bumps voiceConnectionEpoch to make the
+  // WS effect open a fresh connection. Must populate audio/mic BEFORE bumping the epoch —
+  // the WS effect's own cleanup only ever touches the socket, never the audio graph, so
+  // there's no race with the resources built here (see WS lifecycle effect below).
+  const reconnectVoice = useCallback(async () => {
+    await setupAudio();
+    audioCtxRef.current?.resume();
+    try {
+      if (navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStreamRef.current = stream;
+        micGrantedRef.current = true;
+      }
+    } catch {
+      micGrantedRef.current = false; // tap-only fallback, same as startSession()
+    }
+    setVoiceConnectionEpoch(e => e + 1);
+  }, [setupAudio]);
+
+  /** Announces the Phase 3 privacy pause, then disconnects voice entirely once the AI
+   *  finishes speaking (see pendingPhaseTransitionRef / scheduleAIDone). Single entry point
+   *  for BOTH the Phase 2 tap-confirm button AND the AI's own confirm_product tool call —
+   *  see handleFunctionCall.ts, which calls this via VoiceContext for the voice-triggered path. */
+  const advanceToPersonalInfo = useCallback(() => {
+    setIsTransitioningToPersonalInfo(true); // switch to the plain orb screen immediately
+    pendingPhaseTransitionRef.current = () => {
+      disconnectVoice();
+      voicePhaseRef.current = 3;
+      setVoicePhase(3);
+      setIsTransitioningToPersonalInfo(false);
+      saveVoiceState(questionsRef.current.length).catch(() => {});
+      fetch("/api/phase", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ sessionId, phase: "PERSONAL_INFO" }),
+      }).catch(() => {});
+    };
+    send({
+      type: "response.create",
+      response: { instructions: PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS(langRef.current) },
+    });
+  }, [sessionId, send, saveVoiceState, disconnectVoice]);
+
   Object.assign(ctxRef.current, {
     // config
     sessionId, termsVectorId, router,
@@ -567,6 +653,7 @@ export function useVoiceSession({
     send, dispatch, setCard, appendChatMessage,
     saveAnswer, saveVoiceState, advancePhase,
     scheduleAIDone, scheduleChunk, handleFunctionCall,
+    disconnectVoice, reconnectVoice, advanceToPersonalInfo,
     // state setters
     setIsAISpeaking, setBargeInActive, setSavedAnswers, setChatMessages,
     setIsChatAITyping, setPendingVoiceAnswer, setExplainOverlayData,
@@ -580,7 +667,8 @@ export function useVoiceSession({
     needsTranscriptBubbleRef, questionsRef, stateRef, micStreamRef, micSourceRef,
     workletNodeRef, micAnalyserRef, mutedRef, explainOpenRef, latencyStartRef,
     activeSourcesRef, serverResponseActiveRef, knowledgeBlockerNextQRef,
-    kbExplanationStartedRef, kbExplanationResponseIdRef, chatOpenRef, chatAnsweredRef,
+    kbExplanationStartedRef, kbExplanationResponseIdRef, pendingPhaseTransitionRef,
+    chatOpenRef, chatAnsweredRef,
     voiceThreadIdRef, explainIdleTimerRef, resetExplainIdleRef, productVectorIdRef,
     productRef, pttVectorStoreRef, pttActiveRef, pttContextRef, pttSearchPendingRef,
     pttDocLabelRef, pttPartialTranscriptRef, pttSpeculativeSearchRef, savedAnswersRef,
@@ -628,25 +716,27 @@ export function useVoiceSession({
 
     ws.onerror = () => dispatch({ type: "ERROR", message: "WebSocket-Fehler" });
 
+    // Per-connection cleanup — only ever closes THIS websocket + its response timers.
+    // Deliberately does NOT touch the audio graph or mic stream: this effect now re-runs
+    // on every voiceConnectionEpoch bump (reconnecting after a silent phase), and
+    // reconnectVoice() builds the new AudioContext/mic stream BEFORE bumping the epoch —
+    // tearing down audio here would race with and destroy those freshly-built resources.
+    // Full audio/mic teardown lives in disconnectVoice() (explicit) and the true-unmount
+    // effect below (automatic) instead.
     return () => {
       ws.close();
       if (audioEndTimer.current) clearTimeout(audioEndTimer.current);
       if (explainIdleTimerRef.current) { clearTimeout(explainIdleTimerRef.current); explainIdleTimerRef.current = null; }
-      micStreamRef.current?.getTracks().forEach(t => t.stop());
-      micStreamRef.current = null;
-      workletNodeRef.current?.disconnect();
-      workletNodeRef.current = null;
-      micAnalyserRef.current?.disconnect();
-      micAnalyserRef.current = null;
-      micSourceRef.current?.disconnect();
-      micSourceRef.current = null;
-      audioCtxRef.current?.close();
-      audioCtxRef.current = null;
-      gainRef.current     = null;
-      analyserRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [started]); // runs once when user taps to start
+  }, [started, voiceConnectionEpoch]); // re-runs on tap-to-start AND on reconnectVoice()
+
+  // True unmount only (navigating away) — full audio/mic/WS teardown.
+  // disconnectVoice is a stable useCallback ([] deps), so this cleanup fires exactly once,
+  // on unmount, never on a voiceConnectionEpoch bump.
+  useEffect(() => {
+    return () => { disconnectVoice(); };
+  }, [disconnectVoice]);
 
   // ── Visibility: pause / resume ─────────────────────────────────
 
@@ -724,10 +814,20 @@ export function useVoiceSession({
     []
   );
 
-  /** Tap handler — customer confirms the recommended product (Phase 2 button) */
-  const confirmProduct = useCallback(() => {
-    router.push("/customer/dashboard"); // Phase 3 placeholder
-  }, [router]);
+  /** Called by VoicePersonalInfoForm once the customer submits with no compliance stop.
+   *  PLACEHOLDER — Step 5 replaces this with the real reconnect-into-Phase-4 logic
+   *  (reconnectVoice + PHASE4_REENTRY_SYSTEM_PROMPT). For now just advances the phase
+   *  marker and saves state so Personal Info itself is fully testable in isolation. */
+  const onPersonalInfoSubmitted = useCallback(() => {
+    voicePhaseRef.current = 4;
+    setVoicePhase(4);
+    saveVoiceState(questionsRef.current.length).catch(() => {});
+    fetch("/api/phase", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, phase: "INVESTMENT_FORM" }),
+    }).catch(() => {});
+  }, [sessionId, saveVoiceState]);
 
   /** Pure carousel scroll — moves the card position with no AI message, no skip, no DB write.
    *  Used by the shell's next/prev buttons in revisit mode so browsing doesn't corrupt skippedIds. */
@@ -872,7 +972,9 @@ export function useVoiceSession({
     voicePhase,
     termsSubStep,
     productSuggestion,
-    confirmProduct,
+    advanceToPersonalInfo,
+    isTransitioningToPersonalInfo,
+    onPersonalInfoSubmitted,
     isRevisiting,
     scrollCarousel,
     revisitQuestions,

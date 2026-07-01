@@ -18,7 +18,7 @@ export async function handleFunctionCall(
     sustainabilityConfirmedRef, pendingVoiceTranscriptRef, applyPendingTranscriptRef,
     skipInProgressRef, prevInProgressRef,
     send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase,
-    setIsRevisiting_internal, router, sessionId,
+    advanceToPersonalInfo, setIsRevisiting_internal, router, sessionId,
     setPendingVoiceAnswer, setExplainOverlayData, setExplainTriggerClose, setTermsSubStep,
     setVoicePhase, setProductSuggestion, setSavedAnswers, setVoiceAnswerCount, setChatMessages,
   } = ctx;
@@ -199,7 +199,7 @@ export async function handleFunctionCall(
               text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is now displayed on screen. STOP asking Phase 1 questions. Introduce this document (1–2 sentences), tell the customer to read it and tap confirm, mention they can hold the microphone button to ask questions about it. Then STOP — do not speak further until they confirm.]",
             }]},
           });
-          send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS } });
+          send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS(langRef.current) } });
           return;
         }
         // Sustainability already confirmed this session — skip modal and fall through to normal advance.
@@ -503,7 +503,7 @@ export async function handleFunctionCall(
               text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is now displayed on screen. STOP asking Phase 1 questions. Introduce this document (1–2 sentences), tell the customer to read it and tap confirm, mention they can hold the microphone button to ask questions about it. Then STOP — do not speak further until they confirm.]",
             }]},
           });
-          send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS } });
+          send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS(langRef.current) } });
           return;
         }
 
@@ -625,7 +625,11 @@ export async function handleFunctionCall(
         // Customer is done revisiting Phase 1 and wants to see the product — go to Phase 2
         await advancePhase();
       } else {
-        router.push("/customer/dashboard"); // Phase 3 placeholder
+        // Customer verbally confirmed the product — same Phase 2→3 transition as the tap
+        // button (privacy-pause announcement, then silent Personal Info). No stopAudio()
+        // needed here: this fires from response.done, so the response that carried this
+        // function call has already finished — there is no active response to cancel.
+        advanceToPersonalInfo();
       }
       return;
     }

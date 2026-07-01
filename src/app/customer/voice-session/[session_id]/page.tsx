@@ -23,7 +23,7 @@ export default function VoiceSessionPage() {
   const [initialAnsweredIds,  setInitialAnsweredIds]  = useState<string[]>([]);
   const [initialSkippedIds,   setInitialSkippedIds]   = useState<string[]>([]);
   const [initialSavedAnswers, setInitialSavedAnswers] = useState<Record<string, string>>({});
-  const [initialVoicePhase,   setInitialVoicePhase]   = useState<0 | 1 | 2 | undefined>(undefined);
+  const [initialVoicePhase,   setInitialVoicePhase]   = useState<0 | 1 | 2 | 3 | 4 | 5 | 6 | undefined>(undefined);
   const [initialIsRevisiting, setInitialIsRevisiting] = useState(false);
 
   useEffect(() => {
@@ -43,6 +43,9 @@ export default function VoiceSessionPage() {
         } else if (cached.voicePhase === 1) {
           setInitialTermsPhase('skip');
         } else if (cached.voicePhase === 2) {
+          setInitialTermsPhase('skip');
+        } else if (cached.voicePhase === 3) {
+          // Personal Info — silent phase, no terms/voice UI to skip past either.
           setInitialTermsPhase('skip');
         } else if (cached.termsSubStep === 'terms2') {
           setInitialTermsPhase('terms2');
@@ -154,7 +157,7 @@ export default function VoiceSessionPage() {
       const currentPhase = vsData?.currentPhase as string | null | undefined;
 
       if (dbVoicePhase !== null && dbVoicePhase !== undefined) {
-        setInitialVoicePhase(dbVoicePhase as 0 | 1 | 2);
+        setInitialVoicePhase(dbVoicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6);
       }
       if (vsData?.isRevisiting === true) setInitialIsRevisiting(true);
       if (vsData?.termsSubStep === 'sustainabilityTerms') {
@@ -162,6 +165,9 @@ export default function VoiceSessionPage() {
       } else if (dbVoicePhase === 1) {
         setInitialTermsPhase('skip');
       } else if (dbVoicePhase === 2) {
+        setInitialTermsPhase('skip');
+      } else if (dbVoicePhase === 3) {
+        // Personal Info — silent phase, no terms/voice UI to skip past either.
         setInitialTermsPhase('skip');
       } else if (vsData?.termsSubStep === 'terms2') {
         setInitialTermsPhase('terms2');
@@ -172,7 +178,7 @@ export default function VoiceSessionPage() {
       // ── Hydrate Zustand for next same-browser visit ──────────────
       useVoiceSessionStore.getState().hydrate({
         sessionId,
-        voicePhase:   (dbVoicePhase as 0 | 1 | 2) ?? 0,
+        voicePhase:   (dbVoicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6) ?? 0,
         termsSubStep: (vsData?.termsSubStep as "intro" | "terms1" | "terms2" | "sustainabilityTerms" | null) ?? null,
         activeCardId: finalQuestions[safeIndex]?.id ?? null,
         answeredIds:  allAnsweredIds,

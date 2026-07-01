@@ -12,6 +12,7 @@ import VoiceChatModal from "./VoiceChatModal";
 import ControlBar from "./ControlBar";
 import VoiceProductPhase from "./VoiceProductPhase";
 import VoiceTermsPhase from "./VoiceTermsPhase";
+import VoicePersonalInfoForm from "./VoicePersonalInfoForm";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 
 // ── Phase slide variants ──────────────────────────────────────────
@@ -52,7 +53,7 @@ interface VoiceSessionShellProps {
   initialAnsweredIds?:  string[];
   initialSkippedIds?:   string[];
   initialSavedAnswers?: Record<string, string>;
-  initialVoicePhase?:   0 | 1 | 2;
+  initialVoicePhase?:   0 | 1 | 2 | 3 | 4 | 5 | 6;
   initialIsRevisiting?: boolean;
 }
 
@@ -72,7 +73,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, confirmProduct, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
     useVoiceSession({
       sessionId,
       questions,
@@ -340,8 +341,20 @@ export default function VoiceSessionShell({
     </motion.div>
   ) : null;
 
-  // ── Phase 0 — intro: orb + status, no carousel or control bar ───
-  if (voicePhase === 0 && termsSubStep === 'intro') {
+  // ── Phase 3 — Personal Info: silent, tap-only, no voice UI at all ───
+  // Checked first and unconditionally on voicePhase, independent of `started` — this phase
+  // never opens a WebSocket, so there is no tap-to-start gate to get past. Covers both the
+  // live transition (advanceToPersonalInfo already disconnected voice before flipping the
+  // phase) and a fresh page load resuming directly into Phase 3.
+  if (voicePhase === 3) {
+    return <VoicePersonalInfoForm sessionId={sessionId} onSubmitted={onPersonalInfoSubmitted} />;
+  }
+
+  // ── Phase 0 intro, and the Phase 2→3 privacy-pause transition — orb + status only ───
+  // Reused as-is for the transition: same "just the voice bubble" screen the session opens
+  // with, shown from the moment the customer confirms the product until the privacy-pause
+  // line finishes and voicePhase actually flips to 3 (Personal Info).
+  if ((voicePhase === 0 && termsSubStep === 'intro') || isTransitioningToPersonalInfo) {
     return (
       <>
         <div
@@ -510,7 +523,7 @@ export default function VoiceSessionShell({
                 onMuteToggle={toggleMute}
                 onPTTStart={startPTT}
                 onPTTRelease={() => submitPTTQuestion('phase2')}
-                onConfirm={confirmProduct}
+                onConfirm={() => { stopAudio(); return advanceToPersonalInfo(); }}
                 onRevisit={revisitQuestions}
               />
             </motion.div>

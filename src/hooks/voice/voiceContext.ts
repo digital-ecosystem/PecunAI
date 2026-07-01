@@ -22,6 +22,9 @@ export interface VoiceContext {
   scheduleAIDone:     () => void;
   scheduleChunk:      (base64: string) => void;
   handleFunctionCall: (name: string, args: string, callId: string) => Promise<void>;
+  disconnectVoice:    () => void;
+  reconnectVoice:     () => Promise<void>;
+  advanceToPersonalInfo: () => void;
 
   // State setters
   setIsAISpeaking:          (v: boolean) => void;
@@ -33,7 +36,7 @@ export interface VoiceContext {
   setExplainOverlayData:    (v: ExplainOverlayData | null) => void;
   setExplainTriggerClose:   (v: boolean) => void;
   setTermsSubStep:          (v: TermsSubStep) => void;
-  setVoicePhase:            (v: 0 | 1 | 2) => void;
+  setVoicePhase:            (v: 0 | 1 | 2 | 3 | 4 | 5 | 6) => void;
   setProductSuggestion:     (v: ProductData | null) => void;
   setVoiceAnswerCount:      Dispatch<SetStateAction<number>>;
   setIsRevisiting_internal: (v: boolean) => void;
@@ -68,6 +71,7 @@ export interface VoiceContext {
   knowledgeBlockerNextQRef:  MutableRefObject<CarouselQuestion | null>;
   kbExplanationStartedRef:   MutableRefObject<boolean>;
   kbExplanationResponseIdRef:MutableRefObject<string | null>;
+  pendingPhaseTransitionRef: MutableRefObject<(() => void) | null>;
   chatOpenRef:               MutableRefObject<boolean>;
   chatAnsweredRef:           MutableRefObject<number>;
   voiceThreadIdRef:          MutableRefObject<string | null>;
@@ -87,7 +91,7 @@ export interface VoiceContext {
   skippedIdsRef:             MutableRefObject<Set<string>>;
   explainedQuestionsRef:     MutableRefObject<Set<string>>;
   activeCardIdRef:           MutableRefObject<string | null>;
-  voicePhaseRef:             MutableRefObject<0 | 1 | 2>;
+  voicePhaseRef:             MutableRefObject<0 | 1 | 2 | 3 | 4 | 5 | 6>;
   termsSubStepRef:           MutableRefObject<TermsSubStep>;
   langRef:                   MutableRefObject<"de" | "en">;
   isRevisitingRef:           MutableRefObject<boolean>;

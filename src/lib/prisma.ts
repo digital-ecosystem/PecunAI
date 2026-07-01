@@ -1,6 +1,7 @@
 // import { PrismaClient } from '@prisma/client';
 
 import { PrismaClient, PasswordResetUserType, SessionStatus } from "../../prisma/src/generated/prisma";
+export type { Prisma } from "../../prisma/src/generated/prisma";
 
 const globalForPrisma = globalThis as typeof globalThis & { prisma?: PrismaClient };
 
