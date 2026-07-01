@@ -47,6 +47,8 @@ export default function VoiceSessionPage() {
         } else if (cached.voicePhase === 3) {
           // Personal Info — silent phase, no terms/voice UI to skip past either.
           setInitialTermsPhase('skip');
+        } else if (cached.voicePhase === 4) {
+          setInitialTermsPhase('skip');
         } else if (cached.termsSubStep === 'terms2') {
           setInitialTermsPhase('terms2');
         }
@@ -168,6 +170,8 @@ export default function VoiceSessionPage() {
         setInitialTermsPhase('skip');
       } else if (dbVoicePhase === 3) {
         // Personal Info — silent phase, no terms/voice UI to skip past either.
+        setInitialTermsPhase('skip');
+      } else if (dbVoicePhase === 4) {
         setInitialTermsPhase('skip');
       } else if (vsData?.termsSubStep === 'terms2') {
         setInitialTermsPhase('terms2');

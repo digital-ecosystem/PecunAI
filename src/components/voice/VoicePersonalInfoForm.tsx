@@ -90,11 +90,14 @@ const validationSchema = Yup.object({
 });
 
 interface VoicePersonalInfoFormProps {
-  sessionId:   string;
-  onSubmitted: () => void;
+  sessionId:    string;
+  onSubmitted:  () => void;
+  /** Must be invoked synchronously from the submit button's onClick, before any async
+   *  work — see useVoiceSession.ts's primeReconnectAudio for why. */
+  onPrimeAudio: () => void;
 }
 
-export default function VoicePersonalInfoForm({ sessionId, onSubmitted }: VoicePersonalInfoFormProps) {
+export default function VoicePersonalInfoForm({ sessionId, onSubmitted, onPrimeAudio }: VoicePersonalInfoFormProps) {
   const router = useRouter();
   const [highRiskCountries, setHighRiskCountries] = useState<string[]>([]);
   const [isPepStop, setIsPepStop] = useState(false);
@@ -324,7 +327,7 @@ export default function VoicePersonalInfoForm({ sessionId, onSubmitted }: VoiceP
       <div className="px-4 sm:px-6 md:px-8 pb-6 flex justify-end">
         <button
           type="button"
-          onClick={() => formik.handleSubmit()}
+          onClick={() => { onPrimeAudio(); formik.handleSubmit(); }}
           disabled={submitting}
           className="px-8 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >

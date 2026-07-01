@@ -622,6 +622,22 @@ export function useVoiceSession({
     setVoiceConnectionEpoch(e => e + 1);
   }, [setupAudio]);
 
+  /** Must be called SYNCHRONOUSLY from a user-gesture handler (e.g. the Personal Info
+   *  "Weiter" button's onClick) — creates the AudioContext right there, before any async
+   *  work. reconnectVoice() itself runs deep inside an async chain (PATCH request, then
+   *  the compliance-stop check) by the time it fires, too far removed from the original
+   *  click for browsers to reliably allow AudioContext creation/playback — this is the same
+   *  autoplay-gesture requirement documented for startSession(), just for a *second*
+   *  AudioContext created mid-session rather than the first one. setupAudio() is async only
+   *  because of the trailing `await audioWorklet.addModule(...)` — everything before that,
+   *  including `new AudioContext(...)`, runs synchronously, so firing it here (unawaited)
+   *  still happens inside the gesture window. reconnectVoice()'s own setupAudio() call
+   *  later is then a no-op (audioCtxRef.current already set). */
+  const primeReconnectAudio = useCallback(() => {
+    if (audioCtxRef.current) { audioCtxRef.current.resume(); return; }
+    setupAudio();
+  }, [setupAudio]);
+
   /** Announces the Phase 3 privacy pause, then disconnects voice entirely once the AI
    *  finishes speaking (see pendingPhaseTransitionRef / scheduleAIDone). Single entry point
    *  for BOTH the Phase 2 tap-confirm button AND the AI's own confirm_product tool call —
@@ -815,10 +831,12 @@ export function useVoiceSession({
   );
 
   /** Called by VoicePersonalInfoForm once the customer submits with no compliance stop.
-   *  PLACEHOLDER — Step 5 replaces this with the real reconnect-into-Phase-4 logic
-   *  (reconnectVoice + PHASE4_REENTRY_SYSTEM_PROMPT). For now just advances the phase
-   *  marker and saves state so Personal Info itself is fully testable in isolation. */
-  const onPersonalInfoSubmitted = useCallback(() => {
+   *  Advances to Phase 4 and reconnects voice — the session.created/session.updated
+   *  branches added in Step 2 (voicePhaseRef.current === 4) handle sending
+   *  PHASE4_REENTRY_SYSTEM_PROMPT and triggering the AI's re-greet once the new
+   *  connection is live. voicePhaseRef must be set BEFORE reconnectVoice() so those
+   *  branches see the correct phase when the new connection's session.created fires. */
+  const onPersonalInfoSubmitted = useCallback(async () => {
     voicePhaseRef.current = 4;
     setVoicePhase(4);
     saveVoiceState(questionsRef.current.length).catch(() => {});
@@ -827,7 +845,8 @@ export function useVoiceSession({
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ sessionId, phase: "INVESTMENT_FORM" }),
     }).catch(() => {});
-  }, [sessionId, saveVoiceState]);
+    await reconnectVoice();
+  }, [sessionId, saveVoiceState, reconnectVoice]);
 
   /** Pure carousel scroll — moves the card position with no AI message, no skip, no DB write.
    *  Used by the shell's next/prev buttons in revisit mode so browsing doesn't corrupt skippedIds. */
@@ -975,6 +994,7 @@ export function useVoiceSession({
     advanceToPersonalInfo,
     isTransitioningToPersonalInfo,
     onPersonalInfoSubmitted,
+    primeReconnectAudio,
     isRevisiting,
     scrollCarousel,
     revisitQuestions,

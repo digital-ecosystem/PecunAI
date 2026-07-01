@@ -73,7 +73,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
     useVoiceSession({
       sessionId,
       questions,
@@ -347,14 +347,15 @@ export default function VoiceSessionShell({
   // live transition (advanceToPersonalInfo already disconnected voice before flipping the
   // phase) and a fresh page load resuming directly into Phase 3.
   if (voicePhase === 3) {
-    return <VoicePersonalInfoForm sessionId={sessionId} onSubmitted={onPersonalInfoSubmitted} />;
+    return <VoicePersonalInfoForm sessionId={sessionId} onSubmitted={onPersonalInfoSubmitted} onPrimeAudio={primeReconnectAudio} />;
   }
 
-  // ── Phase 0 intro, and the Phase 2→3 privacy-pause transition — orb + status only ───
-  // Reused as-is for the transition: same "just the voice bubble" screen the session opens
-  // with, shown from the moment the customer confirms the product until the privacy-pause
-  // line finishes and voicePhase actually flips to 3 (Personal Info).
-  if ((voicePhase === 0 && termsSubStep === 'intro') || isTransitioningToPersonalInfo) {
+  // ── Phase 0 intro, the Phase 2→3 privacy-pause transition, and the Phase 4 placeholder ───
+  // Reused as-is: same "just the voice bubble" screen the session opens with. Covers the
+  // transition out of Phase 2 (until the privacy-pause line finishes and voicePhase flips
+  // to 3), and stands in for Phase 4 (Investment Form) itself, which isn't built yet — the
+  // AI reconnects and re-greets, but there's no dedicated UI for it until that milestone.
+  if ((voicePhase === 0 && termsSubStep === 'intro') || isTransitioningToPersonalInfo || voicePhase === 4) {
     return (
       <>
         <div
