@@ -114,6 +114,12 @@ export const TOOLS = [
   },
   {
     type: "function",
+    name: "confirm_investment",
+    description: "Call when the customer explicitly confirms the investment costs and terms shown in Phase 4 (Investment Form) and wants to proceed to the contract documents. Only call this after the customer has verbally agreed — do not call it just because they asked a question about the costs.",
+    parameters: { type: "object", properties: {} },
+  },
+  {
+    type: "function",
     name: "set_language",
     description: "Call this immediately when the customer explicitly asks to switch the conversation language. Supported values: 'de' (German) or 'en' (English). After calling this, continue speaking in the new language.",
     parameters: {

@@ -167,6 +167,12 @@ export function useVoiceSession({
   const micSourceRef       = useRef<MediaStreamAudioSourceNode | null>(null);
   const workletNodeRef     = useRef<AudioWorkletNode | null>(null);
   const micAnalyserRef     = useRef<AnalyserNode | null>(null);
+  // Tracks the in-flight audioWorklet.addModule() promise so a second setupAudio() call
+  // (e.g. reconnectVoice()'s, after primeReconnectAudio() already created the AudioContext)
+  // still awaits worklet readiness instead of short-circuiting on the audioCtxRef.current
+  // guard alone — session.updated's `new AudioWorkletNode(...)` throws if the module isn't
+  // registered yet, which silently aborts that handler before it ever triggers AI speech.
+  const audioWorkletReadyRef = useRef<Promise<void> | null>(null);
   const mutedRef               = useRef(false); // source of truth for mute — persists across state transitions
   const explainOpenRef         = useRef(false); // mirrors explainOverlayData !== null for stable WS closures
   const latencyStartRef        = useRef<number>(0); // VOICE-001: timestamp when user speech stopped, for latency measurement
@@ -187,7 +193,7 @@ export function useVoiceSession({
   const productRef             = useRef<ProductData | null>(null); // stable product data ref for session.updated Phase 2 branch
   const pttVectorStoreRef      = useRef<string>(termsVectorId ?? ""); // active vector store for current PTT context
   const pttActiveRef           = useRef(false); // true while PTT button is held — bypasses sustainability mic guard
-  const pttContextRef          = useRef<'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | null>(null); // set while PTT response is in flight — cleared on response.done to restore VAD
+  const pttContextRef          = useRef<'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | 'phase4' | null>(null); // set while PTT response is in flight — cleared on response.done to restore VAD
   const pttSearchPendingRef    = useRef(false);  // true after commit — waiting for transcription to run search server-side
   const pttDocLabelRef         = useRef<string>(""); // human-readable doc name for PTT response instructions
   const pttPartialTranscriptRef   = useRef<string>(""); // accumulated delta text for speculative search
@@ -235,7 +241,12 @@ export function useVoiceSession({
   // ── Audio setup ────────────────────────────────────────────────
 
   const setupAudio = useCallback(async () => {
-    if (audioCtxRef.current) return;
+    if (audioCtxRef.current) {
+      // Context already exists (e.g. primeReconnectAudio() created it synchronously at
+      // click-time) — still await worklet readiness rather than returning immediately.
+      if (audioWorkletReadyRef.current) await audioWorkletReadyRef.current;
+      return;
+    }
     const ctx      = new AudioContext({ sampleRate: SAMPLE_RATE });
     const gain     = ctx.createGain();
     const analyser = ctx.createAnalyser();
@@ -248,7 +259,8 @@ export function useVoiceSession({
     gainRef.current     = gain;
     analyserRef.current = analyser;
     setAnalyserNode(analyser);
-    await ctx.audioWorklet.addModule("/pcm-processor.js");
+    audioWorkletReadyRef.current = ctx.audioWorklet.addModule("/pcm-processor.js");
+    await audioWorkletReadyRef.current;
   }, []);
 
   const scheduleChunk = useCallback((base64: string) => {
@@ -582,9 +594,20 @@ export function useVoiceSession({
   }, [send]);
 
   // ── Voice connection lifecycle (silent-phase support) ─────────
-  // Full teardown of WS + audio graph + mic — used to go silent for Phases 3 & 6.
-  // Also reused as the true-unmount cleanup (see the dedicated effect below) since
-  // it's idempotent and safe to call on an already-torn-down connection.
+  // Tears down WS + mic — used to go silent for Phases 3 & 6. Also reused as the
+  // true-unmount cleanup (see the dedicated effect below) since it's idempotent and safe
+  // to call on an already-torn-down connection.
+  //
+  // Deliberately SUSPENDS the AudioContext rather than closing it. The actual privacy
+  // requirement is "no live mic capture, no WebSocket to OpenAI" — both handled below. A
+  // suspended AudioContext with no mic connected and no socket to send/receive through
+  // carries no privacy risk on its own. Closing and recreating a *second* AudioContext deep
+  // in an async reconnect chain (PATCH request → compliance check → reconnectVoice()) proved
+  // unreliable across three separate fix attempts, all chasing the same "browser silently
+  // won't actually start the new context" symptom — no amount of resume-timing precision
+  // reliably re-earns the autoplay/gesture credential for a context created that deep in a
+  // callback chain. Resuming the one context created back at startSession()'s direct click
+  // is far more robust: it was already granted "activated" status once, and stays granted.
   const disconnectVoice = useCallback(() => {
     wsRef.current?.close();
     wsRef.current = null;
@@ -596,20 +619,19 @@ export function useVoiceSession({
     micAnalyserRef.current = null;
     micSourceRef.current?.disconnect();
     micSourceRef.current = null;
-    audioCtxRef.current?.close();
-    audioCtxRef.current = null;
-    gainRef.current     = null;
-    analyserRef.current = null;
+    audioCtxRef.current?.suspend();
+    if (gainRef.current) gainRef.current.gain.value = 0; // belt-and-suspenders — no audible output while suspended
     sessionConfiguredRef.current = false; // session.updated guard is per-connection
   }, []);
 
-  // Re-creates the AudioContext + mic stream, then bumps voiceConnectionEpoch to make the
-  // WS effect open a fresh connection. Must populate audio/mic BEFORE bumping the epoch —
-  // the WS effect's own cleanup only ever touches the socket, never the audio graph, so
-  // there's no race with the resources built here (see WS lifecycle effect below).
+  // Resumes the long-lived AudioContext (suspended, not closed, by disconnectVoice above)
+  // and bumps voiceConnectionEpoch to make the WS effect open a fresh connection. setupAudio()
+  // is a no-op here — the context already exists from startSession() and is never destroyed.
   const reconnectVoice = useCallback(async () => {
     await setupAudio();
     audioCtxRef.current?.resume();
+    if (gainRef.current && !mutedRef.current) gainRef.current.gain.value = 1;
+    console.log("[voice] reconnectVoice — ctx.state after resume:", audioCtxRef.current?.state);
     try {
       if (navigator.mediaDevices?.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -623,20 +645,15 @@ export function useVoiceSession({
   }, [setupAudio]);
 
   /** Must be called SYNCHRONOUSLY from a user-gesture handler (e.g. the Personal Info
-   *  "Weiter" button's onClick) — creates the AudioContext right there, before any async
-   *  work. reconnectVoice() itself runs deep inside an async chain (PATCH request, then
-   *  the compliance-stop check) by the time it fires, too far removed from the original
-   *  click for browsers to reliably allow AudioContext creation/playback — this is the same
-   *  autoplay-gesture requirement documented for startSession(), just for a *second*
-   *  AudioContext created mid-session rather than the first one. setupAudio() is async only
-   *  because of the trailing `await audioWorklet.addModule(...)` — everything before that,
-   *  including `new AudioContext(...)`, runs synchronously, so firing it here (unawaited)
-   *  still happens inside the gesture window. reconnectVoice()'s own setupAudio() call
-   *  later is then a no-op (audioCtxRef.current already set). */
+   *  "Weiter" button's onClick) — resumes the long-lived AudioContext right there, before
+   *  any async work, belt-and-suspenders on top of reconnectVoice()'s own resume() call.
+   *  Simple by design now: disconnectVoice() suspends rather than closes the context, so
+   *  there is nothing to create here — just resume the one context that was already
+   *  unlocked back at startSession()'s original click. */
   const primeReconnectAudio = useCallback(() => {
-    if (audioCtxRef.current) { audioCtxRef.current.resume(); return; }
-    setupAudio();
-  }, [setupAudio]);
+    audioCtxRef.current?.resume();
+    console.log("[voice] primeReconnectAudio — ctx.state immediately after sync resume:", audioCtxRef.current?.state);
+  }, []);
 
   /** Announces the Phase 3 privacy pause, then disconnects voice entirely once the AI
    *  finishes speaking (see pendingPhaseTransitionRef / scheduleAIDone). Single entry point
@@ -656,11 +673,49 @@ export function useVoiceSession({
         body:    JSON.stringify({ sessionId, phase: "PERSONAL_INFO" }),
       }).catch(() => {});
     };
+    // Explicit system message before the override response.create — every other phase
+    // transition in this codebase does this (advancePhase, confirmInvestment, the terms
+    // confirmations). Without it, the strong conversation-history pull from the extended
+    // Phase 2 product discussion (name, price, features, PTT Q&A) can outweigh the
+    // per-response instructions override, causing the AI to keep talking about the product
+    // instead of announcing the privacy pause.
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: "[SYSTEM: Phase 2 (product discussion) is now complete. Do NOT continue discussing the product. The customer is moving to Personal Info — announce the privacy pause now.]",
+      }]},
+    });
     send({
       type: "response.create",
       response: { instructions: PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS(langRef.current) },
     });
   }, [sessionId, send, saveVoiceState, disconnectVoice]);
+
+  /** Single entry point for both the Phase 4 tap-confirm button AND the AI's own
+   *  confirm_investment tool call — see handleFunctionCall.ts. No privacy pause here:
+   *  Phase 5 (Contract Document) is AI-guided too, voice stays connected throughout. */
+  const confirmInvestment = useCallback(async () => {
+    voicePhaseRef.current = 5;
+    setVoicePhase(5);
+    saveVoiceState(questionsRef.current.length).catch(() => {});
+    await fetch("/api/phase", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, phase: "CONTRACT_DOCUMENT" }),
+    }).catch(() => {});
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: "[SYSTEM: Customer confirmed the investment costs and terms. Now entering Contract Document phase — the customer will review and sign the required documents.]",
+      }]},
+    });
+    send({
+      type: "response.create",
+      response: {
+        instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Bestätigen Sie kurz, dass die Anlageentscheidung bestätigt wurde. Erklären Sie in 1–2 Sätzen, dass als Nächstes die Vertragsdokumente zur Überprüfung angezeigt werden.`,
+      },
+    });
+  }, [sessionId, send, saveVoiceState]);
 
   Object.assign(ctxRef.current, {
     // config
@@ -669,7 +724,7 @@ export function useVoiceSession({
     send, dispatch, setCard, appendChatMessage,
     saveAnswer, saveVoiceState, advancePhase,
     scheduleAIDone, scheduleChunk, handleFunctionCall,
-    disconnectVoice, reconnectVoice, advanceToPersonalInfo,
+    disconnectVoice, reconnectVoice, advanceToPersonalInfo, confirmInvestment,
     // state setters
     setIsAISpeaking, setBargeInActive, setSavedAnswers, setChatMessages,
     setIsChatAITyping, setPendingVoiceAnswer, setExplainOverlayData,
@@ -907,7 +962,8 @@ export function useVoiceSession({
     const isDocumentScreen =
       voicePhaseRef.current === 0 ||
       termsSubStepRef.current === 'sustainabilityTerms' ||
-      voicePhaseRef.current === 2;
+      voicePhaseRef.current === 2 ||
+      voicePhaseRef.current === 4;
 
     if (isDocumentScreen) {
       send({
@@ -917,11 +973,14 @@ export function useVoiceSession({
     }
   }, [stopAudio, send]);
 
-  const submitPTTQuestion = useCallback((context: 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2') => {
+  const submitPTTQuestion = useCallback((context: 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | 'phase4') => {
     pttActiveRef.current  = false;
     pttContextRef.current = context; // response.done will clear this and restore VAD
 
-    // Set the correct vector store for this PTT context — no hardcoded fallbacks
+    // Set the correct vector store for this PTT context — no hardcoded fallbacks.
+    // 'phase4' intentionally falls into the else branch — it reuses termsVectorId (the shared
+    // global store), which already contains the Kosten/Gebühren FAQ document. No new vector
+    // store needed — see private-documents/phase-4-investment-form/PHASE_4_INVESTMENT_FORM_PLAN.md.
     pttVectorStoreRef.current = context === 'phase2'
       ? (productVectorIdRef.current ?? termsVectorId ?? "")
       : (termsVectorId ?? "");
@@ -939,6 +998,8 @@ export function useVoiceSession({
 
     pttDocLabelRef.current = context === 'phase2'
       ? "the recommended product PDF"
+      : context === 'phase4'
+      ? "the costs and fees document"
       : context === 'terms1'
       ? "the 4money company information document"
       : context === 'terms2'
@@ -994,6 +1055,7 @@ export function useVoiceSession({
     advanceToPersonalInfo,
     isTransitioningToPersonalInfo,
     onPersonalInfoSubmitted,
+    confirmInvestment,
     primeReconnectAudio,
     isRevisiting,
     scrollCarousel,

@@ -13,6 +13,7 @@ import ControlBar from "./ControlBar";
 import VoiceProductPhase from "./VoiceProductPhase";
 import VoiceTermsPhase from "./VoiceTermsPhase";
 import VoicePersonalInfoForm from "./VoicePersonalInfoForm";
+import VoiceInvestmentForm from "./VoiceInvestmentForm";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 
 // ── Phase slide variants ──────────────────────────────────────────
@@ -73,7 +74,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
     useVoiceSession({
       sessionId,
       questions,
@@ -350,11 +351,31 @@ export default function VoiceSessionShell({
     return <VoicePersonalInfoForm sessionId={sessionId} onSubmitted={onPersonalInfoSubmitted} onPrimeAudio={primeReconnectAudio} />;
   }
 
-  // ── Phase 0 intro, the Phase 2→3 privacy-pause transition, and the Phase 4 placeholder ───
+  // ── Phase 4 — Investment Form: AI-guided, mirrors Phase 2's voice-frame + PTT pattern ───
+  // Guarded on productSuggestion being loaded — during the brief reconnect window right
+  // after Phase 3→4 (WS reopening, session.created/session.updated round trip), voicePhase
+  // is already 4 but the AI hasn't re-greeted yet. Fall through to the orb screen below
+  // for that narrow window instead of rendering the real form against not-yet-ready data.
+  if (voicePhase === 4 && productSuggestion) {
+    return (
+      <VoiceInvestmentForm
+        product={productSuggestion}
+        questions={questions}
+        answers={savedAnswers}
+        isSpeaking={isSpeaking}
+        sessionState={state.session}
+        onPTTStart={startPTT}
+        onPTTRelease={() => submitPTTQuestion('phase4')}
+        onConfirm={() => { stopAudio(); return confirmInvestment(); }}
+      />
+    );
+  }
+
+  // ── Phase 0 intro, the Phase 2→3 privacy-pause transition, and the Phase 4 reconnect window ───
   // Reused as-is: same "just the voice bubble" screen the session opens with. Covers the
-  // transition out of Phase 2 (until the privacy-pause line finishes and voicePhase flips
-  // to 3), and stands in for Phase 4 (Investment Form) itself, which isn't built yet — the
-  // AI reconnects and re-greets, but there's no dedicated UI for it until that milestone.
+  // transition out of Phase 2 (until the privacy-pause line finishes and voicePhase flips to
+  // 3), and the brief moment between voicePhase flipping to 4 and productSuggestion/the AI
+  // re-greet actually being ready (see the voicePhase === 4 branch above).
   if ((voicePhase === 0 && termsSubStep === 'intro') || isTransitioningToPersonalInfo || voicePhase === 4) {
     return (
       <>
