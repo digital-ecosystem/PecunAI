@@ -3,7 +3,7 @@ import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import type { Action, VoiceSessionState, ProductData, ExplainOverlayData, ChatMessage } from "./types";
 
 export type TermsSubStep = 'intro' | 'terms1' | 'terms2' | 'sustainabilityTerms' | null;
-export type PttContext    = 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | 'phase4' | null;
+export type PttContext    = 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | 'phase4' | 'phase5' | null;
 
 export interface VoiceContext {
   // Session config
@@ -26,6 +26,7 @@ export interface VoiceContext {
   reconnectVoice:     () => Promise<void>;
   advanceToPersonalInfo: () => void;
   confirmInvestment:     () => Promise<void>;
+  confirmContracts:      () => void;
 
   // State setters
   setIsAISpeaking:          (v: boolean) => void;

@@ -120,6 +120,12 @@ export const TOOLS = [
   },
   {
     type: "function",
+    name: "confirm_contracts",
+    description: "Call when the customer explicitly confirms they've reviewed and agree to the contract documents shown in Phase 5 and wants to proceed to signing. Only call this after the customer has verbally agreed — do not call it just because they asked a question about a document.",
+    parameters: { type: "object", properties: {} },
+  },
+  {
+    type: "function",
     name: "set_language",
     description: "Call this immediately when the customer explicitly asks to switch the conversation language. Supported values: 'de' (German) or 'en' (English). After calling this, continue speaking in the new language.",
     parameters: {

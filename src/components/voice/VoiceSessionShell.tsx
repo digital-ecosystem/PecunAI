@@ -14,6 +14,7 @@ import VoiceProductPhase from "./VoiceProductPhase";
 import VoiceTermsPhase from "./VoiceTermsPhase";
 import VoicePersonalInfoForm from "./VoicePersonalInfoForm";
 import VoiceInvestmentForm from "./VoiceInvestmentForm";
+import VoiceContractDocuments from "./VoiceContractDocuments";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 
 // ── Phase slide variants ──────────────────────────────────────────
@@ -74,7 +75,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
     useVoiceSession({
       sessionId,
       questions,
@@ -371,12 +372,33 @@ export default function VoiceSessionShell({
     );
   }
 
-  // ── Phase 0 intro, the Phase 2→3 privacy-pause transition, and the Phase 4 reconnect window ───
+  // ── Phase 5 — Contract Document: AI-guided, mirrors Phase 4's voice-frame + PTT pattern ───
+  // No productSuggestion-style readiness guard needed — Phase 4→5 has no reconnect/privacy-pause
+  // gap to guard against, voice stays continuously connected the whole time.
+  if (voicePhase === 5) {
+    return (
+      <VoiceContractDocuments
+        sessionId={sessionId}
+        questions={questions}
+        answers={savedAnswers}
+        isSpeaking={isSpeaking}
+        sessionState={state.session}
+        onPTTStart={startPTT}
+        onPTTRelease={() => submitPTTQuestion('phase5')}
+        onConfirm={() => { stopAudio(); return confirmContracts(); }}
+      />
+    );
+  }
+
+  // ── Phase 0 intro, the Phase 2→3 privacy-pause transition, the Phase 4 reconnect window,
+  // and the Phase 5→6 privacy-pause transition ───
   // Reused as-is: same "just the voice bubble" screen the session opens with. Covers the
   // transition out of Phase 2 (until the privacy-pause line finishes and voicePhase flips to
-  // 3), and the brief moment between voicePhase flipping to 4 and productSuggestion/the AI
-  // re-greet actually being ready (see the voicePhase === 4 branch above).
-  if ((voicePhase === 0 && termsSubStep === 'intro') || isTransitioningToPersonalInfo || voicePhase === 4) {
+  // 3), the brief moment between voicePhase flipping to 4 and productSuggestion/the AI
+  // re-greet actually being ready (see the voicePhase === 4 branch above), and voicePhase 6
+  // (Signing not yet built — see the Phase 5 plan's "Open items for whoever builds Phase 6
+  // next": this is a placeholder, not the final silent-phase treatment Phase 6 deserves).
+  if ((voicePhase === 0 && termsSubStep === 'intro') || isTransitioningToPersonalInfo || voicePhase === 4 || voicePhase === 6) {
     return (
       <>
         <div

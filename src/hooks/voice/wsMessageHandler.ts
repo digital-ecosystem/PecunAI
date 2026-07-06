@@ -316,11 +316,11 @@ export async function handleWsMessage(
       serverResponseActiveRef.current = false;
 
       // PTT response cycle complete — restore semantic_vad so Phase 1 interview continues normally.
-      // Phase 2 and Phase 4 are PTT-only: keep VAD off between presses. Only restore for Phase 0/1.
+      // Phases 2, 4, and 5 are PTT-only: keep VAD off between presses. Only restore for Phase 0/1.
       if (vc.pttContextRef.current) {
         const finishedPttContext = vc.pttContextRef.current;
         vc.pttContextRef.current = null;
-        if (voicePhaseRef.current !== 2 && voicePhaseRef.current !== 4) {
+        if (voicePhaseRef.current !== 2 && voicePhaseRef.current !== 4 && voicePhaseRef.current !== 5) {
           send({
             type: "session.update",
             session: { type: "realtime", audio: { input: { turn_detection: { type: "semantic_vad" } } } },

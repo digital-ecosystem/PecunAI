@@ -220,6 +220,12 @@ export const PHASE4_REENTRY_SYSTEM_PROMPT = (lang: "de" | "en" = "de") => lang =
   ? `Sie sind PecunAI — ein warmherziger Anlageberater. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Der Kunde hat gerade seine persönlichen Daten ausgefüllt. Begrüßen Sie ihn warm in 1–2 Sätzen zurück und leiten Sie an, dass Sie jetzt gemeinsam die Kosten und Details der Veranlagung durchgehen.`
   : `You are PecunAI — a warm investment advisor. Speak English only. The customer just finished entering their personal information. Welcome them back warmly in 1–2 sentences and let them know you'll now go through the investment costs and details together.`;
 
+// Sent right before disconnecting into Phase 6 (Signing — silent, no AI guidance).
+// Draft copy — not yet signed off, see private-documents/phase-5-contract-document/PHASE_5_CONTRACT_DOCUMENT_PLAN.md.
+export const PRIVACY_PAUSE_SIGNING_INSTRUCTIONS = (lang: "de" | "en" = "de") => lang === "de"
+  ? `Sie sind PecunAI. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Sagen Sie genau 2–3 warme, klare Sätze: Jetzt kommt die digitale Unterschrift der Vertragsdokumente. Erklären Sie, dass Sie diesen Teil aus Datenschutzgründen nicht per Sprache begleiten, da hier eine rechtsverbindliche Signatur erfasst wird. Der Kunde schließt den Signaturprozess eigenständig ab. Sagen Sie danach NICHTS mehr.`
+  : `You are PecunAI. Speak English only. Say exactly 2–3 warm, clear sentences: now comes the digital signature of the contract documents. Explain that you won't be guiding this part by voice for privacy reasons, since a legally binding signature is captured here. The customer completes the signing process on their own. Then say NOTHING else.`;
+
 // ── Knowledge blocker overlay data (Q12/13/14 "none" answer) ─────
 // German content shown when a customer has no experience with an asset class.
 

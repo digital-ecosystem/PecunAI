@@ -18,7 +18,7 @@ export async function handleFunctionCall(
     sustainabilityConfirmedRef, pendingVoiceTranscriptRef, applyPendingTranscriptRef,
     skipInProgressRef, prevInProgressRef,
     send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase,
-    advanceToPersonalInfo, confirmInvestment, setIsRevisiting_internal, router, sessionId,
+    advanceToPersonalInfo, confirmInvestment, confirmContracts, setIsRevisiting_internal, router, sessionId,
     setPendingVoiceAnswer, setExplainOverlayData, setExplainTriggerClose, setTermsSubStep,
     setVoicePhase, setProductSuggestion, setSavedAnswers, setVoiceAnswerCount, setChatMessages,
   } = ctx;
@@ -639,6 +639,12 @@ export async function handleFunctionCall(
       // Same rationale as confirm_product above: fires from response.done, so the response
       // carrying this call has already finished — no active response to cancel.
       await confirmInvestment();
+      return;
+    }
+
+    if (name === "confirm_contracts") {
+      sendResult({ success: true });
+      confirmContracts();
       return;
     }
 
