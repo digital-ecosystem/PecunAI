@@ -3,7 +3,7 @@ import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import type { Action, VoiceSessionState, ProductData, ExplainOverlayData, ChatMessage } from "./types";
 
 export type TermsSubStep = 'intro' | 'terms1' | 'terms2' | 'sustainabilityTerms' | null;
-export type PttContext    = 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | 'phase4' | 'phase5' | null;
+export type PttContext    = 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | 'phase4' | 'phase5' | 'phase6' | null;
 
 export interface VoiceContext {
   // Session config
@@ -27,6 +27,7 @@ export interface VoiceContext {
   advanceToPersonalInfo: () => void;
   confirmInvestment:     () => Promise<void>;
   confirmContracts:      () => void;
+  confirmReadyToSign:    () => void;
 
   // State setters
   setIsAISpeaking:          (v: boolean) => void;
@@ -38,7 +39,7 @@ export interface VoiceContext {
   setExplainOverlayData:    (v: ExplainOverlayData | null) => void;
   setExplainTriggerClose:   (v: boolean) => void;
   setTermsSubStep:          (v: TermsSubStep) => void;
-  setVoicePhase:            (v: 0 | 1 | 2 | 3 | 4 | 5 | 6) => void;
+  setVoicePhase:            (v: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) => void;
   setProductSuggestion:     (v: ProductData | null) => void;
   setVoiceAnswerCount:      Dispatch<SetStateAction<number>>;
   setIsRevisiting_internal: (v: boolean) => void;
@@ -93,7 +94,7 @@ export interface VoiceContext {
   skippedIdsRef:             MutableRefObject<Set<string>>;
   explainedQuestionsRef:     MutableRefObject<Set<string>>;
   activeCardIdRef:           MutableRefObject<string | null>;
-  voicePhaseRef:             MutableRefObject<0 | 1 | 2 | 3 | 4 | 5 | 6>;
+  voicePhaseRef:             MutableRefObject<0 | 1 | 2 | 3 | 4 | 5 | 6 | 7>;
   termsSubStepRef:           MutableRefObject<TermsSubStep>;
   langRef:                   MutableRefObject<"de" | "en">;
   isRevisitingRef:           MutableRefObject<boolean>;

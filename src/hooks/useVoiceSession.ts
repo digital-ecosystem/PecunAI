@@ -13,7 +13,7 @@ import { handleAnswerConfirmed as _handleAnswerConfirmed } from "./voice/handleA
 import { handlePrev, handleSkipQuestion, handleRequestExplanation, handleCloseExplainOverlay, handleScrollCarousel, handleRevisitQuestions } from "./voice/handleNavigation";
 import { handleMoveToTerms1, handleConfirmTerms1, handleConfirmTerms2, handleConfirmSustainabilityTerms } from "./voice/handleTerms";
 import { handleNotifyChatOpen } from "./voice/handleChat";
-import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS } from "./voice/prompts";
+import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS } from "./voice/prompts";
 import type { VoiceContext } from "./voice/voiceContext";
 
 // re-export types consumed by VoiceSessionShell and other components
@@ -30,7 +30,7 @@ interface UseVoiceSessionOptions {
   initialAnsweredIds?:  string[];
   initialSkippedIds?:   string[];
   initialSavedAnswers?: Record<string, string>;
-  initialVoicePhase?:   0 | 1 | 2 | 3 | 4 | 5 | 6;
+  initialVoicePhase?:   0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
   initialIsRevisiting?: boolean;
 }
 
@@ -51,7 +51,7 @@ export function useVoiceSession({
   const [state, dispatch] = useReducer(reducer, makeInitial(initialQuestionIndex));
   const [started, setStarted] = useState(false);
   // Bumped to force the WS lifecycle effect to open a fresh connection — used when
-  // re-entering voice after a silent phase (3, 6). See disconnectVoice/reconnectVoice.
+  // re-entering voice after a silent phase (3, 7). See disconnectVoice/reconnectVoice.
   const [voiceConnectionEpoch, setVoiceConnectionEpoch] = useState(0);
 
   // Exposed to UI components for waveform / sphere visualization
@@ -67,16 +67,16 @@ export function useVoiceSession({
   const [voiceAnswerCount, setVoiceAnswerCount] = useState(0);
 
   // Phase 0 / 1 / 2 — 0 = terms/intro, 1 = questions, 2 = product suggestion
-  const startPhase: 0 | 1 | 2 | 3 | 4 | 5 | 6 = initialVoicePhase ?? (initialTermsPhase === 'skip' ? 1 : 0);
-  const [voicePhase,        setVoicePhase]        = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(startPhase);
-  const voicePhaseRef                             = useRef<0 | 1 | 2 | 3 | 4 | 5 | 6>(startPhase);
+  const startPhase: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 = initialVoicePhase ?? (initialTermsPhase === 'skip' ? 1 : 0);
+  const [voicePhase,        setVoicePhase]        = useState<0 | 1 | 2 | 3 | 4 | 5 | 6 | 7>(startPhase);
+  const voicePhaseRef                             = useRef<0 | 1 | 2 | 3 | 4 | 5 | 6 | 7>(startPhase);
   const [productSuggestion, setProductSuggestion] = useState<ProductData | null>(null);
   // True from the moment the customer confirms the product until the privacy-pause
   // announcement finishes and voicePhase actually flips to 3 — shows the plain orb screen
   // (same as session start) instead of leaving the Phase 2 product screen up mid-speech.
   const [isTransitioningToPersonalInfo, setIsTransitioningToPersonalInfo] = useState(false);
-  // Same idea, for the Phase 5→6 privacy pause (Signing) — shows the plain orb screen from
-  // the moment the customer confirms the contracts until the pause announcement finishes.
+  // Same idea, for the Phase 6→7 privacy pause (Signing) — shows the plain orb screen from
+  // the moment the customer is ready to sign until the pause announcement finishes.
   const [isTransitioningToSigning, setIsTransitioningToSigning] = useState(false);
 
   // Phase 0 sub-step: which screen within the intro/terms gate
@@ -196,7 +196,7 @@ export function useVoiceSession({
   const productRef             = useRef<ProductData | null>(null); // stable product data ref for session.updated Phase 2 branch
   const pttVectorStoreRef      = useRef<string>(termsVectorId ?? ""); // active vector store for current PTT context
   const pttActiveRef           = useRef(false); // true while PTT button is held — bypasses sustainability mic guard
-  const pttContextRef          = useRef<'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | 'phase4' | 'phase5' | null>(null); // set while PTT response is in flight — cleared on response.done to restore VAD
+  const pttContextRef          = useRef<'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | 'phase4' | 'phase5' | 'phase6' | null>(null); // set while PTT response is in flight — cleared on response.done to restore VAD
   const pttSearchPendingRef    = useRef(false);  // true after commit — waiting for transcription to run search server-side
   const pttDocLabelRef         = useRef<string>(""); // human-readable doc name for PTT response instructions
   const pttPartialTranscriptRef   = useRef<string>(""); // accumulated delta text for speculative search
@@ -336,7 +336,7 @@ export function useVoiceSession({
 
   // Keep a stable ref so the WS closure can call the latest version
   useEffect(() => { resetExplainIdleRef.current = resetExplainIdleTimer; }, [resetExplainIdleTimer]);
-  useEffect(() => { voicePhaseRef.current = voicePhase; useVoiceSessionStore.getState().setPhase(voicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6); }, [voicePhase]);
+  useEffect(() => { voicePhaseRef.current = voicePhase; useVoiceSessionStore.getState().setPhase(voicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7); }, [voicePhase]);
   useEffect(() => { termsSubStepRef.current = termsSubStep; useVoiceSessionStore.getState().setTermsSubStep(termsSubStep); }, [termsSubStep]);
 
   // Phase 2 resume — re-fetch product data on mount so productRef and productSuggestion are
@@ -721,15 +721,47 @@ export function useVoiceSession({
   }, [sessionId, send, saveVoiceState]);
 
   /** Single entry point for both the Phase 5 tap-confirm button AND the AI's own
-   *  confirm_contracts tool call — see handleFunctionCall.ts. Unlike confirmInvestment,
-   *  this DOES need a privacy pause: Phase 6 (Signing) is silent, same treatment as the
-   *  Phase 2→3 transition (see advanceToPersonalInfo above). */
+   *  confirm_contracts tool call — see handleFunctionCall.ts. No privacy pause here:
+   *  Phase 6 (Final Q&A) is AI-guided too, voice stays connected throughout — same as
+   *  confirmInvestment above. The privacy-pause-into-Signing logic that used to live here
+   *  moved to confirmReadyToSign() below when Phase 6 (Final Q&A) was inserted between
+   *  Contract Document and Signing (renumbering Signing from Phase 6 to Phase 7). */
   const confirmContracts = useCallback(() => {
+    voicePhaseRef.current = 6;
+    setVoicePhase(6);
+    saveVoiceState(questionsRef.current.length).catch(() => {});
+    fetch("/api/phase", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, phase: "CHAT" }),
+    }).catch(() => {});
+    // Explicit system message before the override response.create — required, see the
+    // Phase 3 "bug 4" postmortem (PHASE_3_PERSONAL_INFO_PLAN.md). Without it, extended
+    // Phase 5 conversation history (PTT questions about the contracts) can outweigh the
+    // per-response instructions override.
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: "[SYSTEM: Phase 5 (contract document review) is now complete. The customer is moving to a final open Q&A before signing — greet them per the final-Q&A instructions now.]",
+      }]},
+    });
+    send({
+      type: "response.create",
+      response: { instructions: FINAL_QA_INTRO_INSTRUCTIONS(langRef.current) },
+    });
+  }, [sessionId, send, saveVoiceState]);
+
+  /** Single entry point for both the Phase 6 tap-confirm button ("Weiter zur Unterschrift")
+   *  AND the AI's own confirm_ready_to_sign tool call — see handleFunctionCall.ts. DOES need
+   *  a privacy pause: Phase 7 (Signing) is silent, same treatment as the Phase 2→3 transition
+   *  (see advanceToPersonalInfo above). This is what confirmContracts() used to do directly,
+   *  before Phase 6 (Final Q&A) was inserted between Contract Document and Signing. */
+  const confirmReadyToSign = useCallback(() => {
     setIsTransitioningToSigning(true); // switch to the plain orb screen immediately
     pendingPhaseTransitionRef.current = () => {
       disconnectVoice();
-      voicePhaseRef.current = 6;
-      setVoicePhase(6);
+      voicePhaseRef.current = 7;
+      setVoicePhase(7);
       setIsTransitioningToSigning(false);
       saveVoiceState(questionsRef.current.length).catch(() => {});
       fetch("/api/phase", {
@@ -740,13 +772,13 @@ export function useVoiceSession({
     };
     // Explicit system message before the override response.create — required, see the
     // Phase 3 "bug 4" postmortem (PHASE_3_PERSONAL_INFO_PLAN.md). Without it, extended
-    // Phase 5 conversation history (PTT questions about the contracts) can outweigh the
-    // per-response instructions override, and the AI keeps talking about the documents
-    // instead of announcing the privacy pause.
+    // Phase 6 conversation history (PTT questions across the whole session) can outweigh the
+    // per-response instructions override, and the AI keeps answering questions instead of
+    // announcing the privacy pause.
     send({
       type: "conversation.item.create",
       item: { type: "message", role: "user", content: [{ type: "input_text",
-        text: "[SYSTEM: Phase 5 (contract document review) is now complete. Do NOT continue discussing the documents. The customer is moving to signing — announce the privacy pause now.]",
+        text: "[SYSTEM: The final Q&A is now complete. Do NOT continue answering questions. The customer is ready to sign — announce the privacy pause now.]",
       }]},
     });
     send({
@@ -762,7 +794,7 @@ export function useVoiceSession({
     send, dispatch, setCard, appendChatMessage,
     saveAnswer, saveVoiceState, advancePhase,
     scheduleAIDone, scheduleChunk, handleFunctionCall,
-    disconnectVoice, reconnectVoice, advanceToPersonalInfo, confirmInvestment, confirmContracts,
+    disconnectVoice, reconnectVoice, advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign,
     // state setters
     setIsAISpeaking, setBargeInActive, setSavedAnswers, setChatMessages,
     setIsChatAITyping, setPendingVoiceAnswer, setExplainOverlayData,
@@ -1002,7 +1034,8 @@ export function useVoiceSession({
       termsSubStepRef.current === 'sustainabilityTerms' ||
       voicePhaseRef.current === 2 ||
       voicePhaseRef.current === 4 ||
-      voicePhaseRef.current === 5;
+      voicePhaseRef.current === 5 ||
+      voicePhaseRef.current === 6;
 
     if (isDocumentScreen) {
       send({
@@ -1012,15 +1045,16 @@ export function useVoiceSession({
     }
   }, [stopAudio, send]);
 
-  const submitPTTQuestion = useCallback((context: 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | 'phase4' | 'phase5') => {
+  const submitPTTQuestion = useCallback((context: 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | 'phase4' | 'phase5' | 'phase6') => {
     pttActiveRef.current  = false;
     pttContextRef.current = context; // response.done will clear this and restore VAD
 
     // Set the correct vector store for this PTT context — no hardcoded fallbacks.
-    // 'phase4' and 'phase5' both intentionally fall into the else branch — they reuse
-    // termsVectorId (the shared global store). No new vector store needed for either — see
-    // private-documents/phase-4-investment-form/PHASE_4_INVESTMENT_FORM_PLAN.md and
-    // private-documents/phase-5-contract-document/PHASE_5_CONTRACT_DOCUMENT_PLAN.md.
+    // 'phase4', 'phase5', and 'phase6' all intentionally fall into the else branch — they
+    // reuse termsVectorId (the shared global store). No new vector store needed for any of
+    // them — see private-documents/phase-4-investment-form/PHASE_4_INVESTMENT_FORM_PLAN.md,
+    // private-documents/phase-5-contract-document/PHASE_5_CONTRACT_DOCUMENT_PLAN.md, and
+    // private-documents/phase-6-final-qa/PHASE_6_FINAL_QA_PLAN.md.
     pttVectorStoreRef.current = context === 'phase2'
       ? (productVectorIdRef.current ?? termsVectorId ?? "")
       : (termsVectorId ?? "");
@@ -1042,6 +1076,8 @@ export function useVoiceSession({
       ? "the costs and fees document"
       : context === 'phase5'
       ? "the contract documents"
+      : context === 'phase6'
+      ? "anything covered in the session"
       : context === 'terms1'
       ? "the 4money company information document"
       : context === 'terms2'
@@ -1099,6 +1135,7 @@ export function useVoiceSession({
     onPersonalInfoSubmitted,
     confirmInvestment,
     confirmContracts,
+    confirmReadyToSign,
     isTransitioningToSigning,
     primeReconnectAudio,
     isRevisiting,

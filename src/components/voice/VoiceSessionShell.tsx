@@ -15,6 +15,7 @@ import VoiceTermsPhase from "./VoiceTermsPhase";
 import VoicePersonalInfoForm from "./VoicePersonalInfoForm";
 import VoiceInvestmentForm from "./VoiceInvestmentForm";
 import VoiceContractDocuments from "./VoiceContractDocuments";
+import VoiceSessionReview from "./VoiceSessionReview";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 
 // ── Phase slide variants ──────────────────────────────────────────
@@ -55,7 +56,7 @@ interface VoiceSessionShellProps {
   initialAnsweredIds?:  string[];
   initialSkippedIds?:   string[];
   initialSavedAnswers?: Record<string, string>;
-  initialVoicePhase?:   0 | 1 | 2 | 3 | 4 | 5 | 6;
+  initialVoicePhase?:   0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
   initialIsRevisiting?: boolean;
 }
 
@@ -75,7 +76,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
     useVoiceSession({
       sessionId,
       questions,
@@ -390,15 +391,33 @@ export default function VoiceSessionShell({
     );
   }
 
+  // ── Phase 6 — Final Q&A: AI-guided, PTT-only open Q&A over the whole session, before
+  // the Phase 6→7 privacy pause into Signing. No reconnect-window guard needed, same as
+  // Phase 5 — Phase 5→6 keeps the connection alive throughout.
+  if (voicePhase === 6) {
+    return (
+      <VoiceSessionReview
+        isSpeaking={isSpeaking}
+        sessionState={state.session}
+        analyserNode={analyserNode}
+        micAnalyserNode={micAnalyserNode}
+        onPTTStart={startPTT}
+        onPTTRelease={() => submitPTTQuestion('phase6')}
+        onConfirm={() => { stopAudio(); return confirmReadyToSign(); }}
+      />
+    );
+  }
+
   // ── Phase 0 intro, the Phase 2→3 privacy-pause transition, the Phase 4 reconnect window,
-  // and the Phase 5→6 privacy-pause transition ───
+  // and the Phase 6→7 privacy-pause transition ───
   // Reused as-is: same "just the voice bubble" screen the session opens with. Covers the
   // transition out of Phase 2 (until the privacy-pause line finishes and voicePhase flips to
   // 3), the brief moment between voicePhase flipping to 4 and productSuggestion/the AI
-  // re-greet actually being ready (see the voicePhase === 4 branch above), and voicePhase 6
-  // (Signing not yet built — see the Phase 5 plan's "Open items for whoever builds Phase 6
-  // next": this is a placeholder, not the final silent-phase treatment Phase 6 deserves).
-  if ((voicePhase === 0 && termsSubStep === 'intro') || isTransitioningToPersonalInfo || voicePhase === 4 || voicePhase === 6) {
+  // re-greet actually being ready (see the voicePhase === 4 branch above), and voicePhase 7
+  // (Signing not yet built — see the Phase 6 (Final Q&A) plan's "Open items for later": this
+  // is a placeholder, not the final silent-phase treatment Phase 7 deserves — remove this
+  // `|| voicePhase === 7` once Phase 7's real VoiceSigningPhase.tsx exists).
+  if ((voicePhase === 0 && termsSubStep === 'intro') || isTransitioningToPersonalInfo || voicePhase === 4 || voicePhase === 7) {
     return (
       <>
         <div

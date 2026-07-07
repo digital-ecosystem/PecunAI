@@ -33,7 +33,7 @@ export async function GET(
 
     const lastIndex    = typeof voice.lastQuestionIndex === "number" ? voice.lastQuestionIndex : 0;
     const skippedIds   = Array.isArray(voice.skippedIds)   ? (voice.skippedIds as string[]) : [];
-    const voicePhase   = typeof voice.voicePhase === "number" ? (voice.voicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6) : null;
+    const voicePhase   = typeof voice.voicePhase === "number" ? (voice.voicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) : null;
     const termsSubStep = typeof voice.termsSubStep === "string" ? (voice.termsSubStep as string) : null;
     const isRevisiting = voice.isRevisiting === true;
 
@@ -69,7 +69,7 @@ export async function PATCH(
     const { lastQuestionIndex, skippedIds, voicePhase, termsSubStep, isRevisiting } = body as {
       lastQuestionIndex: number;
       skippedIds?:       string[];
-      voicePhase?:       0 | 1 | 2 | 3 | 4 | 5 | 6;
+      voicePhase?:       0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
       termsSubStep?:     string | null;
       isRevisiting?:     boolean;
     };

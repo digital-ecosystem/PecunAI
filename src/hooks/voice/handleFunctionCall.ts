@@ -18,7 +18,7 @@ export async function handleFunctionCall(
     sustainabilityConfirmedRef, pendingVoiceTranscriptRef, applyPendingTranscriptRef,
     skipInProgressRef, prevInProgressRef,
     send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase,
-    advanceToPersonalInfo, confirmInvestment, confirmContracts, setIsRevisiting_internal, router, sessionId,
+    advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign, setIsRevisiting_internal, router, sessionId,
     setPendingVoiceAnswer, setExplainOverlayData, setExplainTriggerClose, setTermsSubStep,
     setVoicePhase, setProductSuggestion, setSavedAnswers, setVoiceAnswerCount, setChatMessages,
   } = ctx;
@@ -645,6 +645,12 @@ export async function handleFunctionCall(
     if (name === "confirm_contracts") {
       sendResult({ success: true });
       confirmContracts();
+      return;
+    }
+
+    if (name === "confirm_ready_to_sign") {
+      sendResult({ success: true });
+      confirmReadyToSign();
       return;
     }
 

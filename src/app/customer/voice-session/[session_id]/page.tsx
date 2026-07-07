@@ -23,7 +23,7 @@ export default function VoiceSessionPage() {
   const [initialAnsweredIds,  setInitialAnsweredIds]  = useState<string[]>([]);
   const [initialSkippedIds,   setInitialSkippedIds]   = useState<string[]>([]);
   const [initialSavedAnswers, setInitialSavedAnswers] = useState<Record<string, string>>({});
-  const [initialVoicePhase,   setInitialVoicePhase]   = useState<0 | 1 | 2 | 3 | 4 | 5 | 6 | undefined>(undefined);
+  const [initialVoicePhase,   setInitialVoicePhase]   = useState<0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | undefined>(undefined);
   const [initialIsRevisiting, setInitialIsRevisiting] = useState(false);
 
   useEffect(() => {
@@ -159,7 +159,7 @@ export default function VoiceSessionPage() {
       const currentPhase = vsData?.currentPhase as string | null | undefined;
 
       if (dbVoicePhase !== null && dbVoicePhase !== undefined) {
-        setInitialVoicePhase(dbVoicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6);
+        setInitialVoicePhase(dbVoicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7);
       }
       if (vsData?.isRevisiting === true) setInitialIsRevisiting(true);
       if (vsData?.termsSubStep === 'sustainabilityTerms') {
@@ -182,7 +182,7 @@ export default function VoiceSessionPage() {
       // ── Hydrate Zustand for next same-browser visit ──────────────
       useVoiceSessionStore.getState().hydrate({
         sessionId,
-        voicePhase:   (dbVoicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6) ?? 0,
+        voicePhase:   (dbVoicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) ?? 0,
         termsSubStep: (vsData?.termsSubStep as "intro" | "terms1" | "terms2" | "sustainabilityTerms" | null) ?? null,
         activeCardId: finalQuestions[safeIndex]?.id ?? null,
         answeredIds:  allAnsweredIds,

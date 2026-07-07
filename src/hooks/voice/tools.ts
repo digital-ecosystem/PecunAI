@@ -121,7 +121,13 @@ export const TOOLS = [
   {
     type: "function",
     name: "confirm_contracts",
-    description: "Call when the customer explicitly confirms they've reviewed and agree to the contract documents shown in Phase 5 and wants to proceed to signing. Only call this after the customer has verbally agreed — do not call it just because they asked a question about a document.",
+    description: "Call when the customer explicitly confirms they've reviewed and agree to the contract documents shown in Phase 5 and wants to proceed. Only call this after the customer has verbally agreed — do not call it just because they asked a question about a document. This moves to a final open Q&A, not directly to signing.",
+    parameters: { type: "object", properties: {} },
+  },
+  {
+    type: "function",
+    name: "confirm_ready_to_sign",
+    description: "Call when the customer explicitly says they have no more questions and are ready to proceed to signing the documents. Only call this after the customer clearly indicates they're done — do not call it just because they asked and got an answer to one question.",
     parameters: { type: "object", properties: {} },
   },
   {
