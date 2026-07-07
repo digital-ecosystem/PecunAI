@@ -13,7 +13,7 @@ import { handleAnswerConfirmed as _handleAnswerConfirmed } from "./voice/handleA
 import { handlePrev, handleSkipQuestion, handleRequestExplanation, handleCloseExplainOverlay, handleScrollCarousel, handleRevisitQuestions } from "./voice/handleNavigation";
 import { handleMoveToTerms1, handleConfirmTerms1, handleConfirmTerms2, handleConfirmSustainabilityTerms } from "./voice/handleTerms";
 import { handleNotifyChatOpen } from "./voice/handleChat";
-import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS } from "./voice/prompts";
+import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS } from "./voice/prompts";
 import type { VoiceContext } from "./voice/voiceContext";
 
 // re-export types consumed by VoiceSessionShell and other components
@@ -714,9 +714,7 @@ export function useVoiceSession({
     });
     send({
       type: "response.create",
-      response: {
-        instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Bestätigen Sie kurz, dass die Anlageentscheidung bestätigt wurde. Erklären Sie in 1–2 Sätzen, dass als Nächstes die Vertragsdokumente zur Überprüfung angezeigt werden.`,
-      },
+      response: { instructions: CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS(langRef.current) },
     });
   }, [sessionId, send, saveVoiceState]);
 
