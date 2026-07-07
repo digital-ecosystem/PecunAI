@@ -16,6 +16,7 @@ import VoicePersonalInfoForm from "./VoicePersonalInfoForm";
 import VoiceInvestmentForm from "./VoiceInvestmentForm";
 import VoiceContractDocuments from "./VoiceContractDocuments";
 import VoiceSessionReview from "./VoiceSessionReview";
+import VoiceSigningPhase from "./VoiceSigningPhase";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 
 // ── Phase slide variants ──────────────────────────────────────────
@@ -353,6 +354,14 @@ export default function VoiceSessionShell({
     return <VoicePersonalInfoForm sessionId={sessionId} onSubmitted={onPersonalInfoSubmitted} onPrimeAudio={primeReconnectAudio} />;
   }
 
+  // ── Phase 7 — Signing: silent, tap-only, no voice UI at all — same treatment as Phase 3 ───
+  // Checked unconditionally on voicePhase, independent of `started` — this phase never opens
+  // a WebSocket either. Covers both the live transition (confirmReadyToSign already
+  // disconnected voice before flipping the phase) and a fresh page load resuming into Phase 7.
+  if (voicePhase === 7) {
+    return <VoiceSigningPhase sessionId={sessionId} />;
+  }
+
   // ── Phase 4 — Investment Form: AI-guided, mirrors Phase 2's voice-frame + PTT pattern ───
   // Guarded on productSuggestion being loaded — during the brief reconnect window right
   // after Phase 3→4 (WS reopening, session.created/session.updated round trip), voicePhase
@@ -408,16 +417,12 @@ export default function VoiceSessionShell({
     );
   }
 
-  // ── Phase 0 intro, the Phase 2→3 privacy-pause transition, the Phase 4 reconnect window,
-  // and the Phase 6→7 privacy-pause transition ───
+  // ── Phase 0 intro, the Phase 2→3 privacy-pause transition, and the Phase 4 reconnect window ───
   // Reused as-is: same "just the voice bubble" screen the session opens with. Covers the
   // transition out of Phase 2 (until the privacy-pause line finishes and voicePhase flips to
-  // 3), the brief moment between voicePhase flipping to 4 and productSuggestion/the AI
-  // re-greet actually being ready (see the voicePhase === 4 branch above), and voicePhase 7
-  // (Signing not yet built — see the Phase 6 (Final Q&A) plan's "Open items for later": this
-  // is a placeholder, not the final silent-phase treatment Phase 7 deserves — remove this
-  // `|| voicePhase === 7` once Phase 7's real VoiceSigningPhase.tsx exists).
-  if ((voicePhase === 0 && termsSubStep === 'intro') || isTransitioningToPersonalInfo || voicePhase === 4 || voicePhase === 7) {
+  // 3), and the brief moment between voicePhase flipping to 4 and productSuggestion/the AI
+  // re-greet actually being ready (see the voicePhase === 4 branch above).
+  if ((voicePhase === 0 && termsSubStep === 'intro') || isTransitioningToPersonalInfo || voicePhase === 4) {
     return (
       <>
         <div
