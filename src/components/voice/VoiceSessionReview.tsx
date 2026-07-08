@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Mic } from "lucide-react";
+import { Mic, MessageCircle } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
 import type { SessionState } from "@/hooks/useVoiceSession";
 
@@ -28,6 +28,8 @@ interface VoiceSessionReviewProps {
   onPTTStart:      () => void;
   onPTTRelease:    () => void;
   onConfirm:       () => void;
+  onChatClick:     () => void;
+  isChatOpen:      boolean;
 }
 
 // Phase 6 — Final Q&A: the last AI-guided moment before signing. Visually the same orb
@@ -42,6 +44,8 @@ export default function VoiceSessionReview({
   onPTTStart,
   onPTTRelease,
   onConfirm,
+  onChatClick,
+  isChatOpen,
 }: VoiceSessionReviewProps) {
   const [isPTTActive, setIsPTTActive] = useState(false);
 
@@ -115,34 +119,56 @@ export default function VoiceSessionReview({
         </div>
       </div>
 
-      {/* PTT button — fixed bottom-right, identical to Phases 2/4/5 */}
-      <div className="fixed bottom-8 right-6 flex flex-col items-center gap-2 z-[60]">
-        {!isPTTActive && !isSpeaking && (
-          <p className="text-xs font-medium text-center" style={{ color: "rgba(59,130,246,0.7)" }}>
-            Halten zum<br />Sprechen
-          </p>
-        )}
-        <motion.button
-          className="flex items-center justify-center rounded-full shadow-xl border-2"
-          style={{
-            width: 64, height: 64,
-            background: isPTTActive
-              ? "linear-gradient(135deg, rgba(37,99,235,1) 0%, rgba(29,78,216,1) 100%)"
-              : "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
-            borderColor: isPTTActive ? "rgba(29,78,216,0.8)" : "rgba(59,130,246,0.3)",
-          }}
-          animate={isPTTActive ? { scale: [0.93, 0.96, 0.93] } : { scale: 1 }}
-          transition={isPTTActive ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" } : {}}
-          onMouseDown={() => { setIsPTTActive(true); onPTTStart(); }}
-          onMouseUp={() => { setIsPTTActive(false); onPTTRelease(); }}
-          onMouseLeave={isPTTActive ? () => { setIsPTTActive(false); onPTTRelease(); } : undefined}
-          onTouchStart={() => { setIsPTTActive(true); onPTTStart(); }}
-          onTouchEnd={() => { setIsPTTActive(false); onPTTRelease(); }}
-          onTouchCancel={() => { setIsPTTActive(false); onPTTRelease(); }}
-        >
-          <Mic className="text-white" size={26} />
-        </motion.button>
-      </div>
+      {/* Chat button — fixed bottom-left, mirrors the PTT button on the opposite corner.
+          Hidden while chat is open, same as PTT, so neither floats on top of the modal. */}
+      {!isChatOpen && (
+        <div className="fixed bottom-8 left-6 z-[60]">
+          <motion.button
+            className="flex items-center justify-center rounded-full shadow-xl border-2"
+            style={{
+              width: 64, height: 64,
+              background: "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+              borderColor: "rgba(59,130,246,0.3)",
+            }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onChatClick}
+          >
+            <MessageCircle className="text-white" size={26} />
+          </motion.button>
+        </div>
+      )}
+
+      {/* PTT button — fixed bottom-right, identical to Phases 2/4/5. Hidden while chat is
+          open — the chat modal is a 70vh bottom sheet and would otherwise sit underneath it. */}
+      {!isChatOpen && (
+        <div className="fixed bottom-8 right-6 flex flex-col items-center gap-2 z-[60]">
+          {!isPTTActive && !isSpeaking && (
+            <p className="text-xs font-medium text-center" style={{ color: "rgba(59,130,246,0.7)" }}>
+              Halten zum<br />Sprechen
+            </p>
+          )}
+          <motion.button
+            className="flex items-center justify-center rounded-full shadow-xl border-2"
+            style={{
+              width: 64, height: 64,
+              background: isPTTActive
+                ? "linear-gradient(135deg, rgba(37,99,235,1) 0%, rgba(29,78,216,1) 100%)"
+                : "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+              borderColor: isPTTActive ? "rgba(29,78,216,0.8)" : "rgba(59,130,246,0.3)",
+            }}
+            animate={isPTTActive ? { scale: [0.93, 0.96, 0.93] } : { scale: 1 }}
+            transition={isPTTActive ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" } : {}}
+            onMouseDown={() => { setIsPTTActive(true); onPTTStart(); }}
+            onMouseUp={() => { setIsPTTActive(false); onPTTRelease(); }}
+            onMouseLeave={isPTTActive ? () => { setIsPTTActive(false); onPTTRelease(); } : undefined}
+            onTouchStart={() => { setIsPTTActive(true); onPTTStart(); }}
+            onTouchEnd={() => { setIsPTTActive(false); onPTTRelease(); }}
+            onTouchCancel={() => { setIsPTTActive(false); onPTTRelease(); }}
+          >
+            <Mic className="text-white" size={26} />
+          </motion.button>
+        </div>
+      )}
     </div>
   );
 }

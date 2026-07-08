@@ -27,7 +27,7 @@ export async function handleWsMessage(
     resetExplainIdleRef, savedAnswersRef, questionsRef,
     send, dispatch, scheduleChunk, scheduleAIDone, handleFunctionCall, setCard,
     setIsAISpeaking, setBargeInActive, setMicAnalyserNode, setIsChatAITyping, setChatMessages,
-    appendChatMessage, voiceThreadIdRef,
+    appendChatMessage, appendPhase6ChatMessage, voiceThreadIdRef,
   } = vc;
 
   const langTag = () => langRef.current === "de"
@@ -285,13 +285,19 @@ export async function handleWsMessage(
       setIsChatAITyping(false);
       if (textContent) {
         lastAITranscriptRef.current = textContent;
-        appendChatMessage(textContent, "ai");
-        if (voiceThreadIdRef.current) {
-          fetch("/api/phase/chat/message", {
-            method:  "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ threadId: voiceThreadIdRef.current, role: "assistant", content: textContent }),
-          }).catch(() => {});
+        // Phase 6's chat is isolated from Phase 1's — see
+        // private-documents/phase-6-final-qa/PHASE_6_TEXT_CHAT_ADDENDUM.md.
+        if (voicePhaseRef.current === 6) {
+          appendPhase6ChatMessage(textContent, "ai");
+        } else {
+          appendChatMessage(textContent, "ai");
+          if (voiceThreadIdRef.current) {
+            fetch("/api/phase/chat/message", {
+              method:  "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ threadId: voiceThreadIdRef.current, role: "assistant", content: textContent }),
+            }).catch(() => {});
+          }
         }
       }
       aiTextBufferRef.current = "";

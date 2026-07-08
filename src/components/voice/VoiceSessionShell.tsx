@@ -77,7 +77,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
     useVoiceSession({
       sessionId,
       questions,
@@ -473,6 +473,15 @@ export default function VoiceSessionShell({
           onPTTStart={startPTT}
           onPTTRelease={() => submitPTTQuestion('phase6')}
           onConfirm={() => { stopAudio(); return confirmReadyToSign(); }}
+          onChatClick={() => setChatOpen(true)}
+          isChatOpen={chatOpen}
+        />
+        <VoiceChatModal
+          isOpen={chatOpen}
+          onClose={() => setChatOpen(false)}
+          messages={phase6ChatMessages}
+          onSendMessage={sendPhase6ChatMessage}
+          isAITyping={isChatAITyping}
         />
         {resumeTapOverlay}
       </>

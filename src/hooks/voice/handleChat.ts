@@ -6,7 +6,7 @@ export function handleNotifyChatOpen(open: boolean, ctx: VoiceContext): void {
   const {
     chatOpenRef, chatAnsweredRef, pendingVoiceTranscriptRef, gainRef, mutedRef,
     serverResponseActiveRef, audioCtxRef, nextPlayTimeRef, questionsRef,
-    answeredIdsRef, skippedIdsRef, activeCardIdRef, langRef,
+    answeredIdsRef, skippedIdsRef, activeCardIdRef, langRef, voicePhaseRef,
     setIsChatAITyping, dispatch, send,
   } = ctx;
 
@@ -33,6 +33,14 @@ export function handleNotifyChatOpen(open: boolean, ctx: VoiceContext): void {
     if (serverResponseActiveRef.current) {
       send({ type: "response.cancel" });
       serverResponseActiveRef.current = false;
+    }
+
+    // Phase 6 (Final Q&A) has no "next question" to resume — the customer just closes the
+    // chat panel and goes back to PTT or the confirm button whenever they want. No
+    // response.create, no interview-resume bookkeeping needed. See
+    // private-documents/phase-6-final-qa/PHASE_6_TEXT_CHAT_ADDENDUM.md.
+    if (voicePhaseRef.current === 6) {
+      return;
     }
 
     // Move state to "processing" immediately so the sphere shows neutral (not green/listening)

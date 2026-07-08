@@ -36,6 +36,10 @@ export async function GET(
     const voicePhase   = typeof voice.voicePhase === "number" ? (voice.voicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) : null;
     const termsSubStep = typeof voice.termsSubStep === "string" ? (voice.termsSubStep as string) : null;
     const isRevisiting = voice.isRevisiting === true;
+    // Phase 6's own isolated chat history — deliberately separate from the Thread/Message
+    // table that backs Phase 1's chat, so Phase 1 content can never leak in. See
+    // private-documents/phase-6-final-qa/PHASE_6_TEXT_CHAT_ADDENDUM.md.
+    const phase6Chat   = Array.isArray(voice.phase6Chat) ? voice.phase6Chat : [];
 
     return NextResponse.json({
       success:           true,
@@ -45,6 +49,7 @@ export async function GET(
       termsSubStep,
       isRevisiting,
       currentPhase:      sessionRecord?.phase ?? null,
+      phase6Chat,
     });
   } catch (error) {
     console.error("voice-state GET error:", error);
@@ -66,12 +71,15 @@ export async function PATCH(
 
     const { sessionId } = await params;
     const body = await req.json();
-    const { lastQuestionIndex, skippedIds, voicePhase, termsSubStep, isRevisiting } = body as {
+    const { lastQuestionIndex, skippedIds, voicePhase, termsSubStep, isRevisiting, phase6Chat } = body as {
       lastQuestionIndex: number;
       skippedIds?:       string[];
       voicePhase?:       0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
       termsSubStep?:     string | null;
       isRevisiting?:     boolean;
+      // Phase 6's own isolated chat history — see
+      // private-documents/phase-6-final-qa/PHASE_6_TEXT_CHAT_ADDENDUM.md.
+      phase6Chat?:       { id: string; text: string; sender: "ai" | "user"; timestamp: string }[];
     };
 
     if (typeof lastQuestionIndex !== "number") {
@@ -102,6 +110,7 @@ export async function PATCH(
     if (voicePhase !== undefined)           updatedVoice.voicePhase   = voicePhase;
     if (termsSubStep !== undefined)         updatedVoice.termsSubStep = termsSubStep;
     if (isRevisiting !== undefined)         updatedVoice.isRevisiting = isRevisiting;
+    if (Array.isArray(phase6Chat))          updatedVoice.phase6Chat   = phase6Chat;
 
     const mergedStepData = { ...currentStepData, voice: updatedVoice } as Prisma.InputJsonValue;
 

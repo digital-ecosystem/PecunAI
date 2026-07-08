@@ -16,6 +16,7 @@ export interface VoiceContext {
   dispatch:           Dispatch<Action>;
   setCard:            (id: string | null) => void;
   appendChatMessage:  (text: string, sender: "ai" | "user", questionId?: string) => void;
+  appendPhase6ChatMessage: (text: string, sender: "ai" | "user") => void;
   saveAnswer:         (questionId: string, value: string) => Promise<void>;
   saveVoiceState:     (questionIndex: number) => Promise<void>;
   advancePhase:       () => Promise<void>;

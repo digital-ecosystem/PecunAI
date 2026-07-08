@@ -98,6 +98,9 @@ export function useVoiceSession({
 
   // Chat log — mirrors all questions and answers for the chat modal
   const [chatMessages,    setChatMessages]    = useState<ChatMessage[]>([]);
+  // Phase 6's own isolated chat — never shares data with chatMessages above. See
+  // private-documents/phase-6-final-qa/PHASE_6_TEXT_CHAT_ADDENDUM.md.
+  const [phase6ChatMessages, setPhase6ChatMessages] = useState<ChatMessage[]>([]);
   const [isChatAITyping, setIsChatAITyping] = useState(false);
 
   // Pending voice answer — set by highlight_answer, cleared on submit or rejection
@@ -241,6 +244,25 @@ export function useVoiceSession({
     }]);
   }, []);
 
+  // Phase 6's own isolated append — writes to phase6ChatMessages only, and persists the
+  // updated array into stepData.voice.phase6Chat (never the shared Thread/Message table that
+  // backs Phase 1's chat). See private-documents/phase-6-final-qa/PHASE_6_TEXT_CHAT_ADDENDUM.md.
+  const appendPhase6ChatMessage = useCallback((text: string, sender: "ai" | "user") => {
+    setPhase6ChatMessages(prev => {
+      const updated: ChatMessage[] = [...prev, { id: `${sender}-${Date.now()}`, text, sender, timestamp: new Date() }];
+      fetch(`/api/qa-session/${sessionId}/voice-state`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // Required field on this route; harmless resend — Phase 1 is long complete by Phase 6.
+          lastQuestionIndex: questionsRef.current.length,
+          phase6Chat: updated.map(m => ({ ...m, timestamp: m.timestamp.toISOString() })),
+        }),
+      }).catch(() => {});
+      return updated;
+    });
+  }, [sessionId]);
+
   // ── Audio setup ────────────────────────────────────────────────
 
   const setupAudio = useCallback(async () => {
@@ -367,6 +389,27 @@ export function useVoiceSession({
       }
     };
     refetch();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Phase 6 ONLY — rehydrate phase6ChatMessages from stepData.voice.phase6Chat on cold resume.
+  // Phase 6's chat is intentionally isolated from the main session's Thread/Message history
+  // (which backs Phase 1's chat, the full running transcript) — persisting through the same
+  // voice-state resume blob used by lastQuestionIndex/skippedIds/etc. means there is no
+  // shared-storage path for Phase 1 content to ever leak into Phase 6's conversation. See
+  // private-documents/phase-6-final-qa/PHASE_6_TEXT_CHAT_ADDENDUM.md.
+  useEffect(() => {
+    if (startPhase !== 6) return;
+    fetch(`/api/qa-session/${sessionId}/voice-state`)
+      .then(res => res.json())
+      .then(json => {
+        const raw = json?.phase6Chat;
+        if (Array.isArray(raw) && raw.length) {
+          setPhase6ChatMessages(raw.map((m: { id: string; text: string; sender: "ai" | "user"; timestamp: string }) => ({
+            ...m, timestamp: new Date(m.timestamp),
+          })));
+        }
+      })
+      .catch(() => console.warn("[voice] Phase 6 chat history rehydrate failed"));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Start/stop the idle timer whenever the overlay opens or closes
@@ -793,7 +836,7 @@ export function useVoiceSession({
     // config
     sessionId, termsVectorId, router,
     // callbacks
-    send, dispatch, setCard, appendChatMessage,
+    send, dispatch, setCard, appendChatMessage, appendPhase6ChatMessage,
     saveAnswer, saveVoiceState, advancePhase,
     scheduleAIDone, scheduleChunk, handleFunctionCall,
     disconnectVoice, reconnectVoice, advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign,
@@ -1115,6 +1158,53 @@ export function useVoiceSession({
     send({ type: "response.create", response: { output_modalities: ["text"] } });
   }, [send, appendChatMessage]);
 
+  // Phase 6's own isolated send — never touches chatMessages, voiceThreadIdRef, or the
+  // /api/phase/chat/message Thread persistence route. Also does the same document-grounded
+  // search PTT already does for Phase 6, so both input channels answer consistently instead
+  // of chat relying on the model's unguided knowledge — see
+  // private-documents/phase-6-final-qa/PHASE_6_TEXT_CHAT_ADDENDUM.md ("Revision 3").
+  const sendPhase6ChatMessage = useCallback(async (text: string) => {
+    appendPhase6ChatMessage(text, "user");
+    setIsChatAITyping(true);
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text", text }] },
+    });
+
+    if (!termsVectorId) {
+      send({
+        type: "response.create",
+        response: {
+          output_modalities: ["text"],
+          instructions: `You are PecunAI. The document search system is not configured for this session. Apologize briefly. ${langTag()}`,
+        },
+      });
+      return;
+    }
+
+    try {
+      const res  = await fetch("/api/documents/search", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ query: text, vectorStoreId: termsVectorId }),
+      });
+      const data    = await res.json() as { results?: string };
+      const results = data.results ?? "";
+      const instructions = (!results || results.trim() === "" || results === "No relevant content found.")
+        ? `Sie sind PecunAI. ${langTag()} Die Suche hat für diese Frage keine passende Antwort gefunden. Teilen Sie dem Kunden freundlich mit, dass diese spezifische Information nicht verfügbar ist, und laden Sie ihn ein, eine andere Frage zu stellen.`
+        : `Sie sind PecunAI. ${langTag()} Die Dokumentensuche hat folgende Informationen geliefert:\n\n${results}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.`;
+      send({ type: "response.create", response: { output_modalities: ["text"], instructions } });
+    } catch {
+      send({
+        type: "response.create",
+        response: {
+          output_modalities: ["text"],
+          instructions: `Sie sind PecunAI. ${langTag()} Bei der Dokumentensuche ist ein technischer Fehler aufgetreten. Entschuldigen Sie sich kurz und bitten Sie den Kunden, es erneut zu versuchen.`,
+        },
+      });
+    }
+  }, [send, appendPhase6ChatMessage, termsVectorId]);
+
   return {
     state,
     started,
@@ -1129,6 +1219,7 @@ export function useVoiceSession({
     explainOverlayData,
     explainTriggerClose,
     chatMessages,
+    phase6ChatMessages,
     voicePhase,
     termsSubStep,
     productSuggestion,
@@ -1159,6 +1250,7 @@ export function useVoiceSession({
     requestExplanation,
     closeExplainOverlay,
     sendChatMessage,
+    sendPhase6ChatMessage,
     startPTT,
     submitPTTQuestion,
     isChatAITyping,
