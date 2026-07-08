@@ -339,10 +339,14 @@ export function useVoiceSession({
   useEffect(() => { voicePhaseRef.current = voicePhase; useVoiceSessionStore.getState().setPhase(voicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7); }, [voicePhase]);
   useEffect(() => { termsSubStepRef.current = termsSubStep; useVoiceSessionStore.getState().setTermsSubStep(termsSubStep); }, [termsSubStep]);
 
-  // Phase 2 resume — re-fetch product data on mount so productRef and productSuggestion are
-  // populated before the user taps start. The WS isn't open yet so send() calls are no-ops.
+  // Phase 2 OR Phase 4 resume — re-fetch product data on mount so productRef and
+  // productSuggestion are populated before the user taps to continue. The WS isn't open yet
+  // so send() calls are no-ops. Phase 4 needs this too (added 2026-07-07, see
+  // private-documents/voice-resume-fix/VOICE_RESUME_FIX_PLAN.md) — VoiceSessionShell's
+  // `voicePhase === 4 && productSuggestion` guard would otherwise never pass on a cold resume,
+  // since productSuggestion is normally only populated live during Phase 2's voice-tool flow.
   useEffect(() => {
-    if (startPhase !== 2) return;
+    if (startPhase !== 2 && startPhase !== 4) return;
     const refetch = async () => {
       try {
         const durationQ      = questionsRef.current.find(q => q.questionOrder === 2);

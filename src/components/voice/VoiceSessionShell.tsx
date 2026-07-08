@@ -345,6 +345,54 @@ export default function VoiceSessionShell({
     </motion.div>
   ) : null;
 
+  // ── Tap-to-resume overlay — Phase 4/5/6 only ───────────────────────
+  // These three phases need an active WebSocket (unlike the silent Phase 3/7), but on a cold
+  // resume (browser refresh) `started` is false and nothing else in this component sets it —
+  // AudioContext/mic can't be created without a user gesture, so a tap is required here too.
+  // See private-documents/voice-resume-fix/VOICE_RESUME_FIX_PLAN.md. Reuses startSession()
+  // as-is (it's phase-agnostic) — once `started` flips true, the WS effect opens on its own.
+  const resumeTapOverlay = !started ? (
+    <motion.div
+      className="fixed inset-0 z-[70] flex flex-col items-center justify-center cursor-pointer"
+      style={{ background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      onClick={startSession}
+    >
+      <motion.div
+        className="flex flex-col items-center gap-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+      >
+        <motion.div
+          className="flex items-center justify-center rounded-full"
+          style={{ width: 88, height: 88, background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)" }}
+          animate={{ scale: [1, 1.05, 1], opacity: [0.8, 1, 0.8] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Mic size={36} style={{ color: "rgba(59,130,246,0.8)" }} strokeWidth={1.5} />
+        </motion.div>
+        <div className="flex flex-col items-center gap-1">
+          <motion.h1
+            className="text-2xl font-bold tracking-tight"
+            style={{
+              background:           "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor:  "transparent",
+              backgroundClip:       "text",
+            }}
+          >
+            Willkommen zurück
+          </motion.h1>
+          <p className="text-sm" style={{ color: "rgba(59,130,246,0.6)" }}>
+            Tippen um fortzufahren
+          </p>
+        </div>
+      </motion.div>
+    </motion.div>
+  ) : null;
+
   // ── Phase 3 — Personal Info: silent, tap-only, no voice UI at all ───
   // Checked first and unconditionally on voicePhase, independent of `started` — this phase
   // never opens a WebSocket, so there is no tap-to-start gate to get past. Covers both the
@@ -364,56 +412,70 @@ export default function VoiceSessionShell({
 
   // ── Phase 4 — Investment Form: AI-guided, mirrors Phase 2's voice-frame + PTT pattern ───
   // Guarded on productSuggestion being loaded — during the brief reconnect window right
-  // after Phase 3→4 (WS reopening, session.created/session.updated round trip), voicePhase
-  // is already 4 but the AI hasn't re-greeted yet. Fall through to the orb screen below
-  // for that narrow window instead of rendering the real form against not-yet-ready data.
+  // after a live Phase 3→4 handoff (WS reopening, session.created/session.updated round trip),
+  // voicePhase is already 4 but the AI hasn't re-greeted yet. Also covers a cold resume
+  // (browser refresh) directly into Phase 4 — productSuggestion is populated by the REST
+  // rehydrate effect in useVoiceSession.ts (mirrors Phase 2's), independent of `started`, so
+  // this renders even before the tap-to-resume overlay below is dismissed. Fall through to the
+  // orb screen for the narrow window before either path has productSuggestion ready yet.
   if (voicePhase === 4 && productSuggestion) {
     return (
-      <VoiceInvestmentForm
-        product={productSuggestion}
-        questions={questions}
-        answers={savedAnswers}
-        isSpeaking={isSpeaking}
-        sessionState={state.session}
-        onPTTStart={startPTT}
-        onPTTRelease={() => submitPTTQuestion('phase4')}
-        onConfirm={() => { stopAudio(); return confirmInvestment(); }}
-      />
+      <>
+        <VoiceInvestmentForm
+          product={productSuggestion}
+          questions={questions}
+          answers={savedAnswers}
+          isSpeaking={isSpeaking}
+          sessionState={state.session}
+          onPTTStart={startPTT}
+          onPTTRelease={() => submitPTTQuestion('phase4')}
+          onConfirm={() => { stopAudio(); return confirmInvestment(); }}
+        />
+        {resumeTapOverlay}
+      </>
     );
   }
 
   // ── Phase 5 — Contract Document: AI-guided, mirrors Phase 4's voice-frame + PTT pattern ───
   // No productSuggestion-style readiness guard needed — Phase 4→5 has no reconnect/privacy-pause
-  // gap to guard against, voice stays continuously connected the whole time.
+  // gap to guard against, voice stays continuously connected the whole time during a live
+  // handoff. `resumeTapOverlay` covers the cold-resume case (browser refresh) instead.
   if (voicePhase === 5) {
     return (
-      <VoiceContractDocuments
-        sessionId={sessionId}
-        questions={questions}
-        answers={savedAnswers}
-        isSpeaking={isSpeaking}
-        sessionState={state.session}
-        onPTTStart={startPTT}
-        onPTTRelease={() => submitPTTQuestion('phase5')}
-        onConfirm={() => { stopAudio(); return confirmContracts(); }}
-      />
+      <>
+        <VoiceContractDocuments
+          sessionId={sessionId}
+          questions={questions}
+          answers={savedAnswers}
+          isSpeaking={isSpeaking}
+          sessionState={state.session}
+          onPTTStart={startPTT}
+          onPTTRelease={() => submitPTTQuestion('phase5')}
+          onConfirm={() => { stopAudio(); return confirmContracts(); }}
+        />
+        {resumeTapOverlay}
+      </>
     );
   }
 
   // ── Phase 6 — Final Q&A: AI-guided, PTT-only open Q&A over the whole session, before
   // the Phase 6→7 privacy pause into Signing. No reconnect-window guard needed, same as
-  // Phase 5 — Phase 5→6 keeps the connection alive throughout.
+  // Phase 5 — Phase 5→6 keeps the connection alive throughout during a live handoff.
+  // `resumeTapOverlay` covers the cold-resume case (browser refresh) instead.
   if (voicePhase === 6) {
     return (
-      <VoiceSessionReview
-        isSpeaking={isSpeaking}
-        sessionState={state.session}
-        analyserNode={analyserNode}
-        micAnalyserNode={micAnalyserNode}
-        onPTTStart={startPTT}
-        onPTTRelease={() => submitPTTQuestion('phase6')}
-        onConfirm={() => { stopAudio(); return confirmReadyToSign(); }}
-      />
+      <>
+        <VoiceSessionReview
+          isSpeaking={isSpeaking}
+          sessionState={state.session}
+          analyserNode={analyserNode}
+          micAnalyserNode={micAnalyserNode}
+          onPTTStart={startPTT}
+          onPTTRelease={() => submitPTTQuestion('phase6')}
+          onConfirm={() => { stopAudio(); return confirmReadyToSign(); }}
+        />
+        {resumeTapOverlay}
+      </>
     );
   }
 

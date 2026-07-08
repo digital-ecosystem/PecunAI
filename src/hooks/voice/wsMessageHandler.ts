@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { ChatMessage } from "./types";
-import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT } from "./prompts";
+import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS } from "./prompts";
 import { TOOLS } from "./tools";
 import { base64ToPCM16AudioBuffer } from "./audio";
 import type { VoiceContext } from "./voiceContext";
@@ -37,16 +37,24 @@ export async function handleWsMessage(
   switch (type) {
 
     case "session.created": {
-      // Phase 3→4 reconnect — this connection exists solely to re-enter the voice flow after
-      // the silent Personal Info phase. Do NOT replay the Phase 1 question-list prompt.
-      if (voicePhaseRef.current === 4) {
+      // Phase 3→4 live handoff, OR a cold resume (browser refresh) directly into Phase 4/5/6 —
+      // both land here as a fresh connection into an already-past-Phase-1 phase. Do NOT replay
+      // the Phase 1 question-list prompt. See private-documents/voice-resume-fix/
+      // VOICE_RESUME_FIX_PLAN.md — before this fix, 5 and 6 fell through to the default
+      // buildSystemPrompt branch below, resuming the Phase 1 interview instead.
+      if (voicePhaseRef.current === 4 || voicePhaseRef.current === 5 || voicePhaseRef.current === 6) {
+        const reentryInstructions = voicePhaseRef.current === 4
+          ? PHASE4_REENTRY_SYSTEM_PROMPT(langRef.current)
+          : voicePhaseRef.current === 5
+          ? CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS(langRef.current)
+          : FINAL_QA_INTRO_INSTRUCTIONS(langRef.current);
         send({
           type: "session.update",
           session: {
             type:              "realtime",
             model:             "gpt-realtime-1.5",
             output_modalities: ["audio"],
-            instructions:      PHASE4_REENTRY_SYSTEM_PROMPT(langRef.current),
+            instructions:      reentryInstructions,
             tools:             TOOLS,
             tool_choice:       "auto",
             audio: {
@@ -140,12 +148,11 @@ export async function handleWsMessage(
         setMicAnalyserNode(micAnalyser);
       }
       // Session configured — trigger AI speech, branching on phase
-      if (voicePhaseRef.current === 4) {
-        // Phase 3→4 reconnect — session-level instructions (PHASE4_REENTRY_SYSTEM_PROMPT,
-        // sent in session.created above) already direct the AI to greet and transition.
-        // Bare response.create is enough; mirrors the Phase 0/2 pattern of session-level
-        // baseline + a triggering response.create. Real Phase 4 narration logic (cost
-        // breakdown, confirm_investment tool, etc.) is a separate, not-yet-built milestone.
+      if (voicePhaseRef.current === 4 || voicePhaseRef.current === 5 || voicePhaseRef.current === 6) {
+        // Phase 3→4 live handoff, or a cold resume into Phase 4/5/6 — session-level
+        // instructions (sent in session.created above) already direct the AI to greet and
+        // walk the customer through the screen. Bare response.create is enough; mirrors the
+        // Phase 0/2 pattern of session-level baseline + a triggering response.create.
         send({ type: "response.create" });
       } else if (voicePhaseRef.current === 0 && termsSubStepRef.current === 'terms2') {
         // Resume: customer already confirmed terms1 — go straight to terms2 explanation
