@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, User, Mic, VolumeX, Hand } from "lucide-react";
+import { Menu, User, Mic, VolumeX, Hand, Check } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
 import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
 import VoiceQuestionModal from "./VoiceQuestionModal";
@@ -106,7 +106,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
     useVoiceSession({
       sessionId,
       questions,
@@ -696,7 +696,7 @@ export default function VoiceSessionShell({
                 onPTTStart={startPTT}
                 onPTTRelease={() => submitPTTQuestion('phase2')}
                 onConfirm={() => { stopAudio(); return advanceToPersonalInfo(); }}
-                onRevisit={revisitQuestions}
+                onRevisit={() => { stopAudio(); revisitQuestions(); }}
               />
             </motion.div>
           ) : (
@@ -869,6 +869,29 @@ export default function VoiceSessionShell({
               onActiveCardClick={() => setModalOpen(true)}
               onInfoClick={requestExplanation}
             />
+          </motion.div>
+        )}
+
+        {/* ── Revisit: tap alternative to voice for "I'm done, back to Phase 2" ────── */}
+        {isRevisiting && (
+          <motion.div
+            className="relative z-20 mb-6 flex justify-center"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
+            <motion.button
+              className="flex items-center gap-2 rounded-full px-6 py-3"
+              style={{
+                background: "linear-gradient(135deg, rgba(59,130,246,0.9) 0%, rgba(37,99,235,0.9) 100%)",
+                boxShadow:  "0 4px 16px rgba(59,130,246,0.3)",
+              }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => { stopAudio(); suppressAutoModalRef.current = true; advancePhase(); }}
+            >
+              <Check size={18} style={{ color: "white" }} />
+              <span className="text-sm font-medium text-white">Fertig – Empfehlung ansehen</span>
+            </motion.button>
           </motion.div>
         )}
 

@@ -471,9 +471,23 @@ export function useVoiceSession({
   }, [sessionId]);
 
   const advancePhase = useCallback(async () => {
+    const wasRevisiting = isRevisitingRef.current;
     isRevisitingRef.current = false; // clear revisit mode before fetching product
     setIsRevisiting_internal(false);
     useVoiceSessionStore.getState().setIsRevisiting(false);
+
+    // Bridging message — without this, the strong conversation-history pull from the AI's own
+    // recent "want to change anything else?" turn can outweigh the response.create override
+    // below, same failure mode advanceToPersonalInfo() already guards against for its own
+    // transition. See private-documents/after-demo/PHASE_1_REVISIT_FIX_PLAN.md.
+    if (wasRevisiting) {
+      send({
+        type: "conversation.item.create",
+        item: { type: "message", role: "user", content: [{ type: "input_text",
+          text: "[SYSTEM: The revisit is now over. Do NOT continue asking about changing answers or revisiting topics — the customer is moving on to see the updated product recommendation.]",
+        }]},
+      });
+    }
     const durationQ      = questionsRef.current.find(q => q.questionOrder === 2);
     const riskQ          = questionsRef.current.find(q => q.questionOrder === 5);
     const durationAnswer = durationQ ? savedAnswersRef.current[durationQ.id] : undefined;
@@ -1261,6 +1275,7 @@ export function useVoiceSession({
     isRevisiting,
     scrollCarousel,
     revisitQuestions,
+    advancePhase,
     moveToTerms1,
     confirmTerms1,
     confirmTerms2,
