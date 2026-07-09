@@ -16,7 +16,7 @@ export async function handleFunctionCall(
     explainOpenRef, knowledgeBlockerNextQRef, kbExplanationStartedRef, audioEndTimer,
     termsSubStepRef, explainedQuestionsRef, chatOpenRef, pttVectorStoreRef,
     sustainabilityConfirmedRef, pendingVoiceTranscriptRef, applyPendingTranscriptRef,
-    skipInProgressRef, prevInProgressRef, assetKnowledgeShownRef,
+    skipInProgressRef, prevInProgressRef, assetKnowledgeShownRef, pendingPhaseTransitionRef,
     send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase,
     advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign, setIsRevisiting_internal, router, sessionId,
     setPendingVoiceAnswer, setExplainOverlayData, setExplainTriggerClose, setTermsSubStep,
@@ -165,13 +165,13 @@ export async function handleFunctionCall(
       if (validatingQ?.questionOrder === 3 && value === "no") {
         pendingVoiceTranscriptRef.current = null;
         sendResult({ success: true });
+        pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
         send({
           type: "response.create",
           response: {
             instructions: `Sie sind PecunAI. ${langTag()} Der Kunde hat angegeben, die Nachhaltigkeitsinformationen nicht erhalten zu haben. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist es erforderlich, dass Sie die Nachhaltigkeitsinformationen zur Kenntnis genommen haben, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`,
           },
         });
-        setTimeout(() => router.push("/customer/dashboard"), 7000);
         return;
       }
 
@@ -181,13 +181,13 @@ export async function handleFunctionCall(
       if (validatingQ?.questionOrder === 4 && (value === "yes" || value === "no")) {
         pendingVoiceTranscriptRef.current = null;
         sendResult({ success: true });
+        pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
         send({
           type: "response.create",
           response: {
             instructions: `Sie sind PecunAI. ${langTag()} Der Kunde hat eine Nachhaltigkeitspräferenz angegeben, die mit dem aktuellen Produktangebot nicht abgedeckt werden kann. Erklären Sie in 2–3 Sätzen freundlich aber klar: Aufgrund der angegebenen Nachhaltigkeitspräferenzen ist eine persönliche Beratung erforderlich — das aktuelle Produktangebot deckt diese Präferenz nicht vollständig ab. Ein Berater wird sich in Kürze bei Ihnen melden. Verabschieden Sie sich herzlich.`,
           },
         });
-        setTimeout(() => router.push("/customer/dashboard"), 7000);
         return;
       }
 
@@ -201,13 +201,13 @@ export async function handleFunctionCall(
         if (!isNaN(income) && !isNaN(expenses) && (income - expenses) <= 150) {
           pendingVoiceTranscriptRef.current = null;
           sendResult({ success: true });
+          pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
           send({
             type: "response.create",
             response: {
               instructions: `Sie sind PecunAI. ${langTag()} Das verfügbare monatliche Einkommen des Kunden beträgt nach Abzug der Ausgaben weniger als 150 Euro. Erklären Sie in 2–3 Sätzen verständnisvoll: Aufgrund der angegebenen finanziellen Verhältnisse ist eine Investition zum aktuellen Zeitpunkt leider nicht empfehlenswert — das verfügbare monatliche Budget reicht für eine sinnvolle Anlage nicht aus. Eine persönliche Beratung wird empfohlen. Verabschieden Sie sich herzlich.`,
             },
           });
-          setTimeout(() => router.push("/customer/dashboard"), 7000);
           return;
         }
       }
@@ -221,13 +221,13 @@ export async function handleFunctionCall(
         const overlayEntry = ASSET_CLASS_OVERLAY[validatingQ!.questionOrder!];
         pendingVoiceTranscriptRef.current = null;
         sendResult({ success: true });
+        pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
         send({
           type: "response.create",
           response: {
             instructions: `Sie sind PecunAI. ${langTag()} Der Kunde hat angegeben, "${overlayEntry.data.title}" auch nach der Erklärung nicht zu verstehen. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist ein ausreichendes Verständnis dieser Anlageklasse erforderlich, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`,
           },
         });
-        setTimeout(() => router.push("/customer/dashboard"), 7000);
         return;
       }
 
