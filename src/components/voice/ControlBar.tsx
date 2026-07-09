@@ -4,8 +4,9 @@ import { motion } from "motion/react";
 import { Mic, MicOff, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 
 interface ControlBarProps {
-  isMuted:      boolean;
-  onMuteToggle: () => void;
+  onPTTStart:   () => void;
+  onPTTRelease: () => void;
+  isPTTActive:  boolean;
   onPrevious:   () => void;
   onNext:       () => void;
   onChatClick:  () => void;
@@ -13,8 +14,9 @@ interface ControlBarProps {
 }
 
 export default function ControlBar({
-  isMuted,
-  onMuteToggle,
+  onPTTStart,
+  onPTTRelease,
+  isPTTActive,
   onPrevious,
   onNext,
   onChatClick,
@@ -33,31 +35,19 @@ export default function ControlBar({
     >
       <div className="flex items-center justify-between max-w-sm mx-auto">
 
-        {/* Mute toggle */}
+        {/* Chat — moved to the left, matching Phase 6's convention */}
         <motion.button
           className="flex items-center justify-center rounded-full"
           style={{
             width:      56,
             height:     56,
-            background: micDenied
-              ? "linear-gradient(135deg, rgba(156,163,175,0.15) 0%, rgba(107,114,128,0.1) 100%)"
-              : isMuted
-              ? "linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(220,38,38,0.1) 100%)"
-              : "linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.1) 100%)",
-            border: micDenied
-              ? "1px solid rgba(156,163,175,0.2)"
-              : isMuted
-              ? "1px solid rgba(239,68,68,0.2)"
-              : "1px solid rgba(59,130,246,0.2)",
+            background: "linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.1) 100%)",
+            border:     "1px solid rgba(59,130,246,0.2)",
           }}
-          whileTap={micDenied ? {} : { scale: 0.95 }}
-          onClick={micDenied ? undefined : onMuteToggle}
+          whileTap={{ scale: 0.95 }}
+          onClick={onChatClick}
         >
-          {micDenied
-            ? <MicOff size={24} style={{ color: "rgba(156,163,175,0.7)" }} />
-            : isMuted
-            ? <MicOff size={24} style={{ color: "rgba(239,68,68,0.8)" }} />
-            : <Mic    size={24} style={{ color: "rgba(59,130,246,0.8)" }} />}
+          <MessageCircle size={24} style={{ color: "rgba(59,130,246,0.8)" }} />
         </motion.button>
 
         {/* Prev / Next */}
@@ -87,19 +77,37 @@ export default function ControlBar({
           </motion.button>
         </div>
 
-        {/* Chat */}
+        {/* PTT hold-to-talk — moved to the right, matching every other PTT phase's convention.
+            Replaces the old mute toggle (dropped — see private-documents/after-demo/
+            PHASE_1_PTT_PLAN.md). Hold to speak, release to submit. */}
         <motion.button
           className="flex items-center justify-center rounded-full"
           style={{
             width:      56,
             height:     56,
-            background: "linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.1) 100%)",
-            border:     "1px solid rgba(59,130,246,0.2)",
+            background: micDenied
+              ? "linear-gradient(135deg, rgba(156,163,175,0.15) 0%, rgba(107,114,128,0.1) 100%)"
+              : isPTTActive
+              ? "linear-gradient(135deg, rgba(37,99,235,0.25) 0%, rgba(29,78,216,0.15) 100%)"
+              : "linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.1) 100%)",
+            border: micDenied
+              ? "1px solid rgba(156,163,175,0.2)"
+              : isPTTActive
+              ? "1px solid rgba(29,78,216,0.3)"
+              : "1px solid rgba(59,130,246,0.2)",
           }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onChatClick}
+          animate={isPTTActive ? { scale: [0.93, 0.96, 0.93] } : { scale: 1 }}
+          transition={isPTTActive ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" } : {}}
+          onMouseDown={micDenied ? undefined : onPTTStart}
+          onMouseUp={micDenied ? undefined : onPTTRelease}
+          onMouseLeave={!micDenied && isPTTActive ? onPTTRelease : undefined}
+          onTouchStart={micDenied ? undefined : onPTTStart}
+          onTouchEnd={micDenied ? undefined : onPTTRelease}
+          onTouchCancel={micDenied ? undefined : onPTTRelease}
         >
-          <MessageCircle size={24} style={{ color: "rgba(59,130,246,0.8)" }} />
+          {micDenied
+            ? <MicOff size={24} style={{ color: "rgba(156,163,175,0.7)" }} />
+            : <Mic    size={24} style={{ color: isPTTActive ? "rgba(29,78,216,0.9)" : "rgba(59,130,246,0.8)" }} />}
         </motion.button>
 
       </div>

@@ -91,7 +91,11 @@ export async function handleWsMessage(
           audio: {
             input: {
               format: { type: "audio/pcm", rate: 24000 },
-              turn_detection: { type: "semantic_vad" },
+              // A cold resume (browser refresh) directly into Phase 1 needs VAD off from the
+              // start — the live Phase 0→1 transition disables it explicitly instead (see
+              // handleTerms.ts's handleConfirmTerms2()). See
+              // private-documents/after-demo/PHASE_1_PTT_PLAN.md.
+              turn_detection: voicePhaseRef.current === 1 ? null : { type: "semantic_vad" },
               transcription: { model: "gpt-4o-transcribe" },
             },
             output: {
@@ -136,6 +140,7 @@ export async function handleWsMessage(
           if (chatOpenRef.current) return;
           if (voicePhaseRef.current === 0 && !pttActiveRef.current) return;
           if (termsSubStepRef.current === 'sustainabilityTerms' && !pttActiveRef.current) return;
+          if (voicePhaseRef.current === 1 && !pttActiveRef.current) return;
           if (voicePhaseRef.current === 2 && !pttActiveRef.current) return;
           const bytes = new Uint8Array(e.data);
           let binary = "";
@@ -328,12 +333,13 @@ export async function handleWsMessage(
     case "response.done": {
       serverResponseActiveRef.current = false;
 
-      // PTT response cycle complete — restore semantic_vad so Phase 1 interview continues normally.
-      // Phases 2, 4, 5, and 6 are PTT-only: keep VAD off between presses. Only restore for Phase 0/1.
+      // PTT response cycle complete — restore semantic_vad where it's still wanted.
+      // Phases 1, 2, 4, 5, and 6 are PTT-only: keep VAD off between presses. Only restore for
+      // Phase 0's own non-terms moments. See private-documents/after-demo/PHASE_1_PTT_PLAN.md.
       if (vc.pttContextRef.current) {
         const finishedPttContext = vc.pttContextRef.current;
         vc.pttContextRef.current = null;
-        if (voicePhaseRef.current !== 2 && voicePhaseRef.current !== 4 && voicePhaseRef.current !== 5 && voicePhaseRef.current !== 6) {
+        if (voicePhaseRef.current !== 1 && voicePhaseRef.current !== 2 && voicePhaseRef.current !== 4 && voicePhaseRef.current !== 5 && voicePhaseRef.current !== 6) {
           send({
             type: "session.update",
             session: { type: "realtime", audio: { input: { turn_detection: { type: "semantic_vad" } } } },
@@ -473,8 +479,14 @@ export async function handleWsMessage(
         break;
       }
 
+      // Phase 1 PTT: VAD is off, so speech_started never fires and currentSpeechItemIdRef stays
+      // stale — the guard below would otherwise silently drop every Phase 1 PTT transcript
+      // before it reaches the bubble-insertion logic. Bypass explicitly instead. See
+      // private-documents/after-demo/PHASE_1_PTT_PLAN.md.
+      const isPhase1PTT = vc.pttContextRef.current === 'phase1';
+
       // Guard against stale transcripts from previous speech turns (VAD-mode only — PTT is handled above)
-      if (transcriptItemId && transcriptItemId !== currentSpeechItemIdRef.current) break;
+      if (!isPhase1PTT && transcriptItemId && transcriptItemId !== currentSpeechItemIdRef.current) break;
 
       if (applyPendingTranscriptRef.current) {
         // submit_answer already ran with a fallback label — retroactively fix the bubble

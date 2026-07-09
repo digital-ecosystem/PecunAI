@@ -199,7 +199,7 @@ export function useVoiceSession({
   const productRef             = useRef<ProductData | null>(null); // stable product data ref for session.updated Phase 2 branch
   const pttVectorStoreRef      = useRef<string>(termsVectorId ?? ""); // active vector store for current PTT context
   const pttActiveRef           = useRef(false); // true while PTT button is held — bypasses sustainability mic guard
-  const pttContextRef          = useRef<'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | 'phase4' | 'phase5' | 'phase6' | null>(null); // set while PTT response is in flight — cleared on response.done to restore VAD
+  const pttContextRef          = useRef<'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase1' | 'phase2' | 'phase4' | 'phase5' | 'phase6' | null>(null); // set while PTT response is in flight — cleared on response.done to restore VAD
   const pttSearchPendingRef    = useRef(false);  // true after commit — waiting for transcription to run search server-side
   const pttDocLabelRef         = useRef<string>(""); // human-readable doc name for PTT response instructions
   const pttPartialTranscriptRef   = useRef<string>(""); // accumulated delta text for speculative search
@@ -1072,11 +1072,18 @@ export function useVoiceSession({
     pttActiveRef.current = true;
     stopAudio();
 
-    // Disable VAD on document screens so the customer's speech doesn't trigger an
+    // Defensive — clears any residual buffered audio before this press starts. With the
+    // mic-streaming worklet gate correctly blocking audio outside an active PTT hold (see
+    // private-documents/after-demo/PHASE_1_PTT_PLAN.md), there shouldn't be anything to clear,
+    // but this is cheap insurance against any edge-case timing gap. Applies to every PTT phase.
+    send({ type: "input_audio_buffer.clear" });
+
+    // Disable VAD on PTT-only screens so the customer's speech doesn't trigger an
     // auto-response — we fire response.create manually on PTT release instead.
     const isDocumentScreen =
       voicePhaseRef.current === 0 ||
       termsSubStepRef.current === 'sustainabilityTerms' ||
+      voicePhaseRef.current === 1 ||
       voicePhaseRef.current === 2 ||
       voicePhaseRef.current === 4 ||
       voicePhaseRef.current === 5 ||
@@ -1139,6 +1146,22 @@ export function useVoiceSession({
     pttSearchPendingRef.current      = true;
     send({ type: "input_audio_buffer.commit" });
   }, [send, termsVectorId]);
+
+  // Phase 1's PTT release handler — deliberately much simpler than submitPTTQuestion above.
+  // This isn't document Q&A, it's the customer's actual answer to the current interview
+  // question — the model needs to reason about it via the full Phase 1 system prompt and
+  // tools (submit_answer/navigate/highlight_answer/explain_topic), exactly as it already does
+  // for VAD-triggered turns. No vector search, no instructions override. Fired immediately
+  // after commit rather than waiting for transcription.completed — mirrors how VAD-mode
+  // already auto-responds without a separate transcription round-trip gating it. See
+  // private-documents/after-demo/PHASE_1_PTT_PLAN.md.
+  const submitPhase1Answer = useCallback(() => {
+    pttActiveRef.current        = false;
+    pttSearchPendingRef.current = false; // defensive — ensure no stray search branch fires
+    pttContextRef.current       = 'phase1'; // response.done will see this and skip the VAD restore
+    send({ type: "input_audio_buffer.commit" });
+    send({ type: "response.create" });
+  }, [send]);
 
   const sendChatMessage = useCallback((text: string) => {
     appendChatMessage(text, "user");
@@ -1253,6 +1276,7 @@ export function useVoiceSession({
     sendPhase6ChatMessage,
     startPTT,
     submitPTTQuestion,
+    submitPhase1Answer,
     isChatAITyping,
   };
 }

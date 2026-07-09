@@ -44,6 +44,10 @@ export async function handleConfirmTerms2(ctx: VoiceContext): Promise<void> {
   termsSubStepRef.current = null;
   setTermsSubStep(null);
   setVoicePhase(1);
+  // Phase 1 is push-to-talk only — disable VAD explicitly rather than inheriting whatever state
+  // Phase 0's terms screens happened to leave it in. See
+  // private-documents/after-demo/PHASE_1_PTT_PLAN.md.
+  send({ type: "session.update", session: { type: "realtime", audio: { input: { turn_detection: null } } } });
   saveVoiceState(0).catch(() => {});
   send({
     type: "conversation.item.create",

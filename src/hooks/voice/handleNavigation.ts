@@ -266,10 +266,11 @@ export function handleRevisitQuestions(ctx: VoiceContext): void {
   if (firstMainQ) setCard(firstMainQ.id);
   setVoicePhase(1);
   setProductSuggestion(null);
-  send({
-    type: "session.update",
-    session: { type: "realtime", audio: { input: { turn_detection: { type: "semantic_vad" } } } },
-  });
+  // Phase 1 is push-to-talk only now — Phase 2 already has VAD off, so no session.update is
+  // needed here at all (previously this explicitly re-enabled semantic_vad, which is now wrong
+  // and was also inconsistent with the voice-triggered revisit_questions path in
+  // handleFunctionCall.ts, which never touched VAD in the first place). See
+  // private-documents/after-demo/PHASE_1_PTT_PLAN.md.
   send({
     type: "conversation.item.create",
     item: { type: "message", role: "user", content: [{ type: "input_text",

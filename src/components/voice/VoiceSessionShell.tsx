@@ -77,7 +77,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
     useVoiceSession({
       sessionId,
       questions,
@@ -102,6 +102,10 @@ export default function VoiceSessionShell({
 
   const [modalOpen, setModalOpen] = useState(false);
   const [chatOpen,  setChatOpen]  = useState(false);
+  // Drives the Phase 1 sphere's listening visualization — see the sphere wiring below for why
+  // this can't just reuse the generic `isListening` (state.session === "listening") once Phase
+  // 1 is PTT-only. See private-documents/after-demo/PHASE_1_PTT_PLAN.md.
+  const [isPhase1PTTActive, setIsPhase1PTTActive] = useState(false);
 
   // Derived from hook state — overlay is open whenever the AI has set explain data
   const explainOpen = explainOverlayData !== null;
@@ -758,10 +762,16 @@ export default function VoiceSessionShell({
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6 }}
           >
+            {/* Phase 1 is PTT-only — state.session flips to "listening" as soon as the AI
+                finishes speaking and stays there regardless of whether the customer is
+                actually holding the button. isListening below uses isPhase1PTTActive instead
+                so the sphere accurately shows green only while the customer is actively
+                speaking, matching every other PTT phase. See
+                private-documents/after-demo/PHASE_1_PTT_PLAN.md. */}
             <VoiceSphere
               isActive={(explainOpen || chatOpen) ? false : started}
               isSpeaking={(explainOpen || chatOpen) ? false : isSpeaking}
-              isListening={(explainOpen || chatOpen) ? false : (isListening && !isMuted)}
+              isListening={(explainOpen || chatOpen) ? false : isPhase1PTTActive}
               size={380}
               analyserNode={(explainOpen || chatOpen) ? null : (isMuted ? null : analyserNode)}
               micAnalyserNode={(explainOpen || chatOpen) ? null : micAnalyserNode}
@@ -823,8 +833,9 @@ export default function VoiceSessionShell({
 
         {/* ── Control Bar ──────────────────────────────────────────── */}
         <ControlBar
-          isMuted={isMuted}
-          onMuteToggle={toggleMute}
+          onPTTStart={() => { startPTT(); setIsPhase1PTTActive(true); }}
+          onPTTRelease={() => { submitPhase1Answer(); setIsPhase1PTTActive(false); }}
+          isPTTActive={isPhase1PTTActive}
           onPrevious={() => {
             if (viewIndex === 0) return;
             stopAudio();

@@ -3,7 +3,7 @@ import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import type { Action, VoiceSessionState, ProductData, ExplainOverlayData, ChatMessage } from "./types";
 
 export type TermsSubStep = 'intro' | 'terms1' | 'terms2' | 'sustainabilityTerms' | null;
-export type PttContext    = 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase2' | 'phase4' | 'phase5' | 'phase6' | null;
+export type PttContext    = 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase1' | 'phase2' | 'phase4' | 'phase5' | 'phase6' | null;
 
 export interface VoiceContext {
   // Session config
