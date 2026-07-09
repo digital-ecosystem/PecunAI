@@ -147,6 +147,10 @@ export function useVoiceSession({
   const langRef = useRef<"de" | "en">("en"); // TESTING — restore to "de" before production
   // Same guard for button-initiated prev — prevents AI from calling navigate("prev") a second time.
   const prevInProgressRef = useRef(false);
+  // Debounces revisit chevron browsing — only the question the customer settles on triggers
+  // an AI prompt, not every intermediate card passed through. See
+  // private-documents/after-demo/PHASE_1_REVISIT_FIX_PLAN.md.
+  const scrollDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // True while customer is in Phase 1 revisit mode — suppresses auto-advance on submit_answer so
   // the user can change multiple answers freely before confirm_product() triggers advancePhase().
   const isRevisitingRef                            = useRef(initialIsRevisiting);
@@ -861,7 +865,7 @@ export function useVoiceSession({
     answeredIdsRef, skippedIdsRef, explainedQuestionsRef, activeCardIdRef, voicePhaseRef,
     termsSubStepRef, langRef, isRevisitingRef, sustainabilityConfirmedRef, micGrantedRef,
     isAISpeakingRef, bargeInActiveRef, sessionConfiguredRef, initialIndexRef,
-    circleBackActiveRef, skipInProgressRef, prevInProgressRef,
+    circleBackActiveRef, skipInProgressRef, prevInProgressRef, scrollDebounceTimerRef,
   } satisfies VoiceContext);
 
   // ── WebSocket lifecycle ────────────────────────────────────────

@@ -205,7 +205,7 @@ export function handleCloseExplainOverlay(ctx: VoiceContext): void {
 
 export function handleScrollCarousel(id: string, ctx: VoiceContext): void {
   const {
-    questionsRef, savedAnswersRef, isRevisitingRef, langRef,
+    questionsRef, savedAnswersRef, isRevisitingRef, langRef, scrollDebounceTimerRef,
     setCard, dispatch, send,
   } = ctx;
 
@@ -218,30 +218,47 @@ export function handleScrollCarousel(id: string, ctx: VoiceContext): void {
   setCard(id);
   dispatch({ type: "SET_INDEX", index: idx });
   const q = questionsRef.current[idx];
-  if (q) {
-    const savedAnswer = savedAnswersRef.current[q.id];
-    if (isRevisitingRef.current) {
-      send({
-        type: "conversation.item.create",
-        item: { type: "message", role: "user", content: [{ type: "input_text",
-          text: `[SYSTEM: Customer navigated to topic "${q.category}" (ID: ${q.id}) using the carousel button.${savedAnswer ? ` Their saved answer was "${savedAnswer}".` : ""} Ask warmly in 1 sentence whether they want to change this answer. Wait for their response.]`,
-        }]},
-      });
-      send({
-        type: "response.create",
-        response: {
-          instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat auf die Navigationspfeile geklickt und ist zu "${q.category}" navigiert.${savedAnswer ? ` Ihre bisherige Antwort war "${savedAnswer}".` : ""} Fragen Sie warmherzig in 1 Satz, ob sie diese Antwort ändern möchten. Warten Sie auf ihre Antwort.`,
-        },
-      });
-    } else {
-      send({
-        type: "conversation.item.create",
-        item: { type: "message", role: "user", content: [{ type: "input_text",
-          text: `[SYSTEM: Customer browsed to topic "${q.category}" (ID: ${q.id}).${savedAnswer ? ` Their saved answer was "${savedAnswer}".` : ""} Do NOT ask about this topic yet — wait for the customer to confirm they want to change it. Stay available.]`,
-        }]},
-      });
-    }
+  if (!q) return;
+
+  if (scrollDebounceTimerRef.current) {
+    clearTimeout(scrollDebounceTimerRef.current);
+    scrollDebounceTimerRef.current = null;
   }
+
+  if (!isRevisitingRef.current) {
+    const savedAnswer = savedAnswersRef.current[q.id];
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: `[SYSTEM: Customer browsed to topic "${q.category}" (ID: ${q.id}).${savedAnswer ? ` Their saved answer was "${savedAnswer}".` : ""} Do NOT ask about this topic yet — wait for the customer to confirm they want to change it. Stay available.]`,
+      }]},
+    });
+    return;
+  }
+
+  // Revisit mode: browsing itself stays silent — clicking through cards to find the one you
+  // want does not speak. Only once the customer settles on a card for a moment does the AI
+  // ask about it. Without this debounce every single click fired a spoken prompt, so rapid
+  // browsing produced overlapping "you said X, want to change?" audio and piled up conflicting
+  // context that could confuse the model into misfiring highlight_answer. See
+  // private-documents/after-demo/PHASE_1_REVISIT_FIX_PLAN.md.
+  scrollDebounceTimerRef.current = setTimeout(() => {
+    scrollDebounceTimerRef.current = null;
+    if (!isRevisitingRef.current) return; // left revisit mode while the timer was pending
+    const savedAnswer = savedAnswersRef.current[q.id];
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: `[SYSTEM: Customer navigated to topic "${q.category}" (ID: ${q.id}) using the carousel button.${savedAnswer ? ` Their saved answer was "${savedAnswer}".` : ""} Ask warmly in 1 sentence whether they want to change this answer. Wait for their response.]`,
+      }]},
+    });
+    send({
+      type: "response.create",
+      response: {
+        instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat auf die Navigationspfeile geklickt und ist zu "${q.category}" navigiert.${savedAnswer ? ` Ihre bisherige Antwort war "${savedAnswer}".` : ""} Fragen Sie warmherzig in 1 Satz, ob sie diese Antwort ändern möchten. Warten Sie auf ihre Antwort.`,
+      },
+    });
+  }, 700);
 }
 
 export function handleRevisitQuestions(ctx: VoiceContext): void {

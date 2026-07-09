@@ -186,10 +186,12 @@ export async function handleFunctionCall(
       }
 
       // ── SUSTAINABILITY TERMS: show disclosure modal after Q2 is answered ──
+      // Never re-shown during revisit — reaching revisit means Phase 1 (and this disclosure)
+      // already completed once, regardless of the confirmed-flag's state.
       if (validatingQ?.questionOrder === 2) {
         pendingVoiceTranscriptRef.current = null;
         sendResult({ success: true });
-        if (!sustainabilityConfirmedRef.current) {
+        if (!isRevisitingRef.current && !sustainabilityConfirmedRef.current) {
           setTermsSubStep('sustainabilityTerms');
           termsSubStepRef.current = 'sustainabilityTerms';
           saveVoiceState(questionsRef.current.findIndex(q => q.id === questionId)).catch(() => {});
@@ -202,12 +204,13 @@ export async function handleFunctionCall(
           send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS(langRef.current) } });
           return;
         }
-        // Sustainability already confirmed this session — skip modal and fall through to normal advance.
+        // Sustainability already confirmed this session, or we're in revisit — skip modal and fall through.
       }
 
       // Handle sub-questions (12.1, 13.1, 14.1) based on parent answer.
       // Sub-questions are NOT in the system prompt — they are injected via SYSTEM message only when needed.
       const parentQ = questionsRef.current.find(q => q.id === questionId);
+      let revisitSubQ: CarouselQuestion | null = null;
       if (parentQ?.questionOrder !== undefined && parentQ.questionOrder % 1 === 0) {
         const subQs = questionsRef.current.filter(q =>
           q.questionOrder !== undefined &&
@@ -224,6 +227,13 @@ export async function handleFunctionCall(
               text: `[SYSTEM: Customer confirmed they have used ${parentQ.category}. Now ask the follow-up: "${sq.text}" (ID: ${sq.id}). Valid values: ${sqOptions}. Ask it naturally, then wait for the answer before moving on.]`,
             }]},
           });
+          // Revisit-only: if this sub-question was only ever silently hidden (parent's old
+          // answer wasn't "good") and never given a real answer, un-hide it so it's reachable
+          // again. See private-documents/after-demo/PHASE_1_REVISIT_FIX_PLAN.md.
+          if (isRevisitingRef.current && answeredIdsRef.current.has(sq.id) && !savedAnswersRef.current[sq.id]) {
+            answeredIdsRef.current.delete(sq.id);
+            revisitSubQ = sq;
+          }
         } else {
           // Parent ≠ "good" → mark sub-questions as answered so they never appear in remaining or circle-back
           subQs.forEach(sq => answeredIdsRef.current.add(sq.id));
@@ -337,6 +347,18 @@ export async function handleFunctionCall(
 
       if (isRevisitingRef.current) {
         dispatch({ type: "ANSWER_SAVED" });
+        if (revisitSubQ) {
+          const subIdx = questionsRef.current.findIndex(q => q.id === revisitSubQ!.id);
+          if (subIdx >= 0) dispatch({ type: "SET_INDEX", index: subIdx });
+          setCard(revisitSubQ.id);
+          send({
+            type: "response.create",
+            response: {
+              instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat bei "${validatingQ?.category}" bestätigt, dass er/sie dies bereits genutzt hat. Reagieren Sie kurz, dann stellen Sie die Folgefrage: ${qText(revisitSubQ.text)} (ID: ${revisitSubQ.id}). Maximal 2 Sätze. Warten Sie auf die Antwort.`,
+            },
+          });
+          return;
+        }
         send({
           type: "conversation.item.create",
           item: { type: "message", role: "user", content: [{ type: "input_text",
@@ -490,8 +512,9 @@ export async function handleFunctionCall(
           ?? questionsRef.current[stateRef.current.currentQuestionIndex];
 
         // Q2 is a legal requirement — customer must see sustainability info before Q3,
-        // even if they try to skip. Mirror the same guard in skipQuestion().
-        if (currentQ?.questionOrder === 2 && !sustainabilityConfirmedRef.current) {
+        // even if they try to skip. Mirror the same guard in skipQuestion(). Never re-shown
+        // during revisit — reaching revisit means Phase 1 already completed once.
+        if (currentQ?.questionOrder === 2 && !isRevisitingRef.current && !sustainabilityConfirmedRef.current) {
           skippedIdsRef.current.add(currentQ.id); // keep remaining filter consistent — circles back at end
           setTermsSubStep('sustainabilityTerms');
           termsSubStepRef.current = 'sustainabilityTerms';

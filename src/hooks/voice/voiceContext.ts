@@ -108,4 +108,5 @@ export interface VoiceContext {
   circleBackActiveRef:       MutableRefObject<boolean>;
   skipInProgressRef:         MutableRefObject<boolean>;
   prevInProgressRef:         MutableRefObject<boolean>;
+  scrollDebounceTimerRef:    MutableRefObject<ReturnType<typeof setTimeout> | null>;
 }

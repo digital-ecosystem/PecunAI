@@ -42,21 +42,20 @@ export async function handleAnswerConfirmed(
   appendChatMessage(tapLabel, "user", question.id);
 
   // ── SUSTAINABILITY TERMS: show disclosure modal after Q2 is answered ──
-  if (question.questionOrder === 2) {
-    if (!sustainabilityConfirmedRef.current) {
-      setTermsSubStep('sustainabilityTerms');
-      termsSubStepRef.current = 'sustainabilityTerms';
-      saveVoiceState(questionsRef.current.findIndex(q => q.id === question.id)).catch(() => {});
-      send({
-        type: "conversation.item.create",
-        item: { type: "message", role: "user", content: [{ type: "input_text",
-          text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is now displayed on screen. STOP asking Phase 1 questions. Introduce this document (1–2 sentences), tell the customer to read it and tap confirm, mention they can hold the microphone button to ask questions about it. Then STOP — do not speak further until they confirm.]",
-        }]},
-      });
-      send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS(langRef.current) } });
-      return;
-    }
-    // Sustainability already confirmed — skip modal and fall through to normal advance.
+  // Never re-shown during revisit — reaching revisit means Phase 1 (and this disclosure)
+  // already completed once, regardless of the confirmed-flag's state.
+  if (question.questionOrder === 2 && !isRevisitingRef.current && !sustainabilityConfirmedRef.current) {
+    setTermsSubStep('sustainabilityTerms');
+    termsSubStepRef.current = 'sustainabilityTerms';
+    saveVoiceState(questionsRef.current.findIndex(q => q.id === question.id)).catch(() => {});
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is now displayed on screen. STOP asking Phase 1 questions. Introduce this document (1–2 sentences), tell the customer to read it and tap confirm, mention they can hold the microphone button to ask questions about it. Then STOP — do not speak further until they confirm.]",
+      }]},
+    });
+    send({ type: "response.create", response: { instructions: SUSTAINABILITY_EXPLAIN_INSTRUCTIONS(langRef.current) } });
+    return;
   }
 
   // ── BLOCKER: Q3 sustainability info not received → session ends ──
@@ -109,6 +108,18 @@ export async function handleAnswerConfirmed(
   );
   if (subQsTap.length > 0 && value !== "good") {
     subQsTap.forEach(sq => answeredIdsRef.current.add(sq.id));
+  }
+
+  // Revisit-only: if the parent answer just changed TO "good" and its sub-question was only
+  // ever silently hidden (never given a real answer), un-hide it and ask it directly instead of
+  // leaving it hidden forever. See private-documents/after-demo/PHASE_1_REVISIT_FIX_PLAN.md.
+  let revisitSubQ: CarouselQuestion | null = null;
+  if (isRevisitingRef.current && subQsTap.length > 0 && value === "good") {
+    const sq = subQsTap[0];
+    if (answeredIdsRef.current.has(sq.id) && !savedAnswersRef.current[sq.id]) {
+      answeredIdsRef.current.delete(sq.id);
+      revisitSubQ = sq;
+    }
   }
 
   if (chatOpenRef.current) {
@@ -236,6 +247,25 @@ export async function handleAnswerConfirmed(
   dispatch({ type: "ANSWER_SAVED" });
 
   if (isRevisitingRef.current) {
+    if (revisitSubQ) {
+      const subIdx = questionsRef.current.findIndex(q => q.id === revisitSubQ!.id);
+      if (subIdx >= 0) dispatch({ type: "SET_INDEX", index: subIdx });
+      setCard(revisitSubQ.id);
+      const subOptions = revisitSubQ.options?.map(o => `"${o.value ?? o.label}"`).join(", ") ?? "";
+      send({
+        type: "conversation.item.create",
+        item: { type: "message", role: "user", content: [{ type: "input_text",
+          text: `[SYSTEM: Customer changed "${question.category}" to confirm they have used it. Now ask the follow-up: "${revisitSubQ.text}" (ID: ${revisitSubQ.id}). Valid values: ${subOptions}. Revisit mode is still active — after they answer, ask if they want to change anything else or are ready to see the updated recommendation.]`,
+        }]},
+      });
+      send({
+        type: "response.create",
+        response: {
+          instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat bei "${question.category}" bestätigt, dass er/sie dies bereits genutzt hat. Reagieren Sie kurz, dann stellen Sie die Folgefrage: ${qText(revisitSubQ.text)} (ID: ${revisitSubQ.id}). Maximal 2 Sätze. Warten Sie auf die Antwort.`,
+        },
+      });
+      return;
+    }
     send({
       type: "conversation.item.create",
       item: { type: "message", role: "user", content: [{ type: "input_text",

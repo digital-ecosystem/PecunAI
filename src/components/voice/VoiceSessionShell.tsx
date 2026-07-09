@@ -61,6 +61,35 @@ interface VoiceSessionShellProps {
   initialIsRevisiting?: boolean;
 }
 
+// ── Revisit chevron navigation ──────────────────────────────────────
+// Sub-questions (12.1/13.1/14.1 — "how many transactions") only ever apply if the parent
+// question's answer was "good" ("Habe ich genutzt"). Revisit browsing walks the flat question
+// list positionally, so without this it shows those cards even when the parent's answer makes
+// them irrelevant. See private-documents/after-demo/PHASE_1_REVISIT_FIX_PLAN.md.
+function isSubQuestionRelevant(
+  q:            CarouselQuestion,
+  questions:    CarouselQuestion[],
+  savedAnswers: Record<string, string>,
+): boolean {
+  if (q.questionOrder === undefined || q.questionOrder % 1 === 0) return true; // not a sub-question
+  const parent = questions.find(p => p.questionOrder === Math.floor(q.questionOrder!));
+  return !parent || savedAnswers[parent.id] === "good";
+}
+
+function findRevisitStep(
+  questions:    CarouselQuestion[],
+  savedAnswers: Record<string, string>,
+  fromIndex:    number,
+  step:         1 | -1,
+): number {
+  let idx = fromIndex + step;
+  while (idx >= 0 && idx < questions.length) {
+    if (isSubQuestionRelevant(questions[idx], questions, savedAnswers)) return idx;
+    idx += step;
+  }
+  return -1;
+}
+
 // ── Component ─────────────────────────────────────────────────────
 
 export default function VoiceSessionShell({
@@ -814,15 +843,27 @@ export default function VoiceSessionShell({
               questions={questions}
               currentIndex={viewIndex}
               onNext={() => {
+                if (isRevisiting) {
+                  const nextIdx = findRevisitStep(questions, savedAnswers, viewIndex, 1);
+                  if (nextIdx === -1) return;
+                  stopAudio();
+                  scrollCarousel(questions[nextIdx].id);
+                  return;
+                }
                 if (viewIndex >= n - 1) return;
                 stopAudio();
-                if (isRevisiting) { scrollCarousel(questions[viewIndex + 1].id); return; }
                 skipQuestion(questions[viewIndex]);
               }}
               onPrev={() => {
+                if (isRevisiting) {
+                  const prevIdx = findRevisitStep(questions, savedAnswers, viewIndex, -1);
+                  if (prevIdx === -1) return;
+                  stopAudio();
+                  scrollCarousel(questions[prevIdx].id);
+                  return;
+                }
                 if (viewIndex === 0) return;
                 stopAudio();
-                if (isRevisiting) { scrollCarousel(questions[viewIndex - 1].id); return; }
                 onPrev();
               }}
               onActiveCardClick={() => setModalOpen(true)}
@@ -837,15 +878,27 @@ export default function VoiceSessionShell({
           onPTTRelease={() => { submitPhase1Answer(); setIsPhase1PTTActive(false); }}
           isPTTActive={isPhase1PTTActive}
           onPrevious={() => {
+            if (isRevisiting) {
+              const prevIdx = findRevisitStep(questions, savedAnswers, viewIndex, -1);
+              if (prevIdx === -1) return;
+              stopAudio();
+              scrollCarousel(questions[prevIdx].id);
+              return;
+            }
             if (viewIndex === 0) return;
             stopAudio();
-            if (isRevisiting) { scrollCarousel(questions[viewIndex - 1].id); return; }
             onPrev();
           }}
           onNext={() => {
+            if (isRevisiting) {
+              const nextIdx = findRevisitStep(questions, savedAnswers, viewIndex, 1);
+              if (nextIdx === -1) return;
+              stopAudio();
+              scrollCarousel(questions[nextIdx].id);
+              return;
+            }
             if (viewIndex >= n - 1) return;
             stopAudio();
-            if (isRevisiting) { scrollCarousel(questions[viewIndex + 1].id); return; }
             skipQuestion(questions[viewIndex]);
           }}
           onChatClick={() => setChatOpen(true)}
