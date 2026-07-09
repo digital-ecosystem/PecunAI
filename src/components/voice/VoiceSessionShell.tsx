@@ -966,8 +966,8 @@ export default function VoiceSessionShell({
           micAnalyserNode={micAnalyserNode}
           isAISpeaking={isAISpeaking}
           triggerClose={explainTriggerClose}
-          onClose={closeExplainOverlay}
-          onFollowUp={closeExplainOverlay}
+          onClose={() => { suppressAutoModalRef.current = false; closeExplainOverlay(); }}
+          onFollowUp={() => { suppressAutoModalRef.current = false; closeExplainOverlay(); }}
         />
       )}
 

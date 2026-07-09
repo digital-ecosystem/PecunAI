@@ -151,6 +151,10 @@ export function useVoiceSession({
   // an AI prompt, not every intermediate card passed through. See
   // private-documents/after-demo/PHASE_1_REVISIT_FIX_PLAN.md.
   const scrollDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks which Q12/13/14 IDs have already been given the one-time detailed explanation for a
+  // "Kenne ich nicht" answer — lets the two-strike algorithm tell a first "none" apart from a
+  // second one. See private-documents/after-demo/ASSET_KNOWLEDGE_EXPLAIN_PLAN.md.
+  const assetKnowledgeShownRef = useRef<Set<string>>(new Set());
   // True while customer is in Phase 1 revisit mode — suppresses auto-advance on submit_answer so
   // the user can change multiple answers freely before confirm_product() triggers advancePhase().
   const isRevisitingRef                            = useRef(initialIsRevisiting);
@@ -880,6 +884,7 @@ export function useVoiceSession({
     termsSubStepRef, langRef, isRevisitingRef, sustainabilityConfirmedRef, micGrantedRef,
     isAISpeakingRef, bargeInActiveRef, sessionConfiguredRef, initialIndexRef,
     circleBackActiveRef, skipInProgressRef, prevInProgressRef, scrollDebounceTimerRef,
+    assetKnowledgeShownRef,
   } satisfies VoiceContext);
 
   // ── WebSocket lifecycle ────────────────────────────────────────

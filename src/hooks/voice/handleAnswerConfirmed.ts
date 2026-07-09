@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
-import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, makeNextTopicMsg } from "./prompts";
+import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
 export async function handleAnswerConfirmed(
@@ -12,6 +12,7 @@ export async function handleAnswerConfirmed(
     questionsRef, answeredIdsRef, skippedIdsRef, savedAnswersRef, activeCardIdRef,
     isRevisitingRef, circleBackActiveRef, sustainabilityConfirmedRef, termsSubStepRef,
     chatOpenRef, chatAnsweredRef, knowledgeBlockerNextQRef, kbExplanationStartedRef,
+    assetKnowledgeShownRef,
     audioEndTimer, stateRef, langRef,
     dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase, send, router,
     setSavedAnswers, setTermsSubStep, setExplainOverlayData,
@@ -25,6 +26,31 @@ export async function handleAnswerConfirmed(
     : `Translate this German question to English — conversational phrasing, not like a questionnaire: "${text}".`;
 
   dispatch({ type: "ANSWER_RECEIVED" });
+
+  // ── ASSET KNOWLEDGE TWO-STRIKE: Q12/13/14 "none" — 1st attempt ──────────
+  // Don't save yet — show the detailed explanation, then re-ask the SAME question once it
+  // closes. See private-documents/after-demo/ASSET_KNOWLEDGE_EXPLAIN_PLAN.md.
+  const isAssetKnowledgeQ = question.questionOrder !== undefined && [12, 13, 14].includes(question.questionOrder);
+  if (isAssetKnowledgeQ && value === "none" && !assetKnowledgeShownRef.current.has(question.id)) {
+    const overlayEntry = ASSET_CLASS_OVERLAY[question.questionOrder!];
+    assetKnowledgeShownRef.current.add(question.id);
+    knowledgeBlockerNextQRef.current = question; // re-ask the SAME question once the overlay closes
+    kbExplanationStartedRef.current  = false;
+    if (audioEndTimer.current) { clearTimeout(audioEndTimer.current); audioEndTimer.current = null; }
+    dispatch({ type: "ANSWER_SAVED" });
+    setExplainOverlayData(overlayEntry.data);
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: `[SYSTEM: Explanation overlay for "${overlayEntry.data.title}" is open. The customer said they don't know this topic. Give a thorough spoken explanation grounded in the source material in your instructions — cover the definition, the yield/return, and every risk mentioned. Do NOT say "take a look" or reference the screen — explain verbally. The overlay closes automatically when you finish speaking, and the customer will then be asked this question again.]`,
+      }]},
+    });
+    send({
+      type: "response.create",
+      response: { instructions: ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS(langRef.current, question.questionOrder!) },
+    });
+    return;
+  }
 
   await saveAnswer(question.id, value);
   // Derive nextIndex from question position — more reliable than stateRef.
@@ -98,6 +124,23 @@ export async function handleAnswerConfirmed(
       setTimeout(() => router.push("/customer/dashboard"), 7000);
       return;
     }
+  }
+
+  // ── ASSET KNOWLEDGE TWO-STRIKE: Q12/13/14 "none" — 2nd (final) attempt ──
+  // Reaching here means assetKnowledgeShownRef already had this question — the customer still
+  // doesn't understand it after seeing the explanation. Hard-block, same pattern as the Q3
+  // sustainability blocker above. Placed before allAnswered is computed so this can't be
+  // bypassed by advancePhase() if it happens to be the last remaining question.
+  if (isAssetKnowledgeQ && value === "none") {
+    const overlayEntry = ASSET_CLASS_OVERLAY[question.questionOrder!];
+    send({
+      type: "response.create",
+      response: {
+        instructions: `Sie sind PecunAI. ${langTag()} Der Kunde hat angegeben, "${overlayEntry.data.title}" auch nach der Erklärung nicht zu verstehen. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist ein ausreichendes Verständnis dieser Anlageklasse erforderlich, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`,
+      },
+    });
+    setTimeout(() => router.push("/customer/dashboard"), 7000);
+    return;
   }
 
   // Sub-question auto-skip: if value != "good", skip decimal-order sub-questions (mirrors voice path).
@@ -186,34 +229,6 @@ export async function handleAnswerConfirmed(
   const remaining = questionsRef.current
     .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
     .map(q => q.id);
-
-  // ── KNOWLEDGE BLOCKER: Q12/13/14 "none" → open explain overlay for this asset class ──
-  if (question.questionOrder !== undefined && [12, 13, 14].includes(question.questionOrder) && value === "none") {
-    const overlayEntry = ASSET_CLASS_OVERLAY[question.questionOrder];
-    if (overlayEntry) {
-      const nextQObj = remaining
-        .map(id => questionsRef.current.find(q => q.id === id))
-        .filter(Boolean)[0] as CarouselQuestion | undefined;
-      knowledgeBlockerNextQRef.current = nextQObj ?? null;
-      kbExplanationStartedRef.current  = false;
-      if (audioEndTimer.current) { clearTimeout(audioEndTimer.current); audioEndTimer.current = null; }
-      dispatch({ type: "ANSWER_SAVED" });
-      setExplainOverlayData(overlayEntry.data);
-      send({
-        type: "conversation.item.create",
-        item: { type: "message", role: "user", content: [{ type: "input_text",
-          text: `[SYSTEM: Explanation overlay for "${overlayEntry.data.title}" is open. Speak a 2–3 sentence verbal explanation of what ${overlayEntry.nameEn} are and why they matter for investing. Do NOT say "take a look" or reference the screen — explain verbally. The overlay closes automatically when you finish speaking.]`,
-        }]},
-      });
-      send({
-        type: "response.create",
-        response: {
-          instructions: `Sie sind PecunAI. ${langTag()} Das Erläuterungsfenster ist geöffnet. Erklären Sie mündlich in 2–3 einfachen, freundlichen Sätzen, was ${overlayEntry.data.title} sind und warum sie für Anleger relevant sind. Sagen Sie NICHT „schauen Sie auf den Bildschirm" und beziehen Sie sich nicht auf das Overlay. Sprechen Sie natürlich. Warten Sie danach — die Sitzung wird automatisch fortgesetzt.`,
-        },
-      });
-      return;
-    }
-  }
 
   if (allCoveredExceptSkipped && skippedIdsRef.current.size > 0 && !isRevisitingRef.current) {
     const firstSkippedTap = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));

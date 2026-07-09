@@ -258,16 +258,23 @@ export const PRIVACY_PAUSE_SIGNING_INSTRUCTIONS = (lang: "de" | "en" = "de") => 
   : `You are PecunAI. Speak English only. Say exactly 2–3 warm, clear sentences: now comes the digital signature of the contract documents. Explain that you won't be guiding this part by voice for privacy reasons, since a legally binding signature is captured here. The customer completes the signing process on their own. Then say NOTHING else.`;
 
 // ── Knowledge blocker overlay data (Q12/13/14 "none" answer) ─────
-// German content shown when a customer has no experience with an asset class.
+// German content shown when a customer has no experience with an asset class. `keyPoints` are
+// condensed bullets for the on-screen overlay; `explainText` is the fuller client-provided
+// source material fed to the AI so its spoken explanation is grounded in the actual regulatory
+// content rather than a generic paraphrase. See
+// private-documents/after-demo/ASSET_KNOWLEDGE_EXPLAIN_PLAN.md and the client's original text at
+// private-documents/after-demo/from-client/12.1-13.1-14.1-explain-overlay-data-from-client.txt.
 
-export const ASSET_CLASS_OVERLAY: Record<number, { data: ExplainOverlayData; nameEn: string }> = {
+export const ASSET_CLASS_OVERLAY: Record<number, { data: ExplainOverlayData; nameEn: string; explainText: string }> = {
   12: {
     data: {
       title:     "Aktien & Aktienfonds",
       keyPoints: [
-        "Unternehmensanteile an börsennotierten Gesellschaften",
-        "Langfristig höheres Wachstumspotenzial als das Sparbuch",
-        "Kursschwankungen möglich — Geduld wird langfristig belohnt",
+        "Aktien sind Wertpapiere, die eine Beteiligung an einem Unternehmen mit allen Chancen und Risiken darstellen.",
+        "Der Ertrag setzt sich aus Dividenden und Kursgewinnen bzw. Kursverlusten zusammen.",
+        "Kursrisiko: Der Kurs richtet sich nach Angebot und Nachfrage und kann auch durch irrationale Faktoren oder Krisen stark schwanken.",
+        "Bonitätsrisiko: Bei Insolvenz des Unternehmens kann die Beteiligung wertlos werden.",
+        "Liquiditätsrisiko: Bei geringer Handelbarkeit lässt sich eine Aktie u. U. nicht verkaufen.",
       ],
       stats: [
         { label: "Wachstumspotenzial", value: 78, color: "#6366f1" },
@@ -275,14 +282,28 @@ export const ASSET_CLASS_OVERLAY: Record<number, { data: ExplainOverlayData; nam
       ],
     },
     nameEn: "stocks, stock funds, and equity ETFs",
+    // Verbatim from the client's file (only an obvious OCR-style typo fixed) — do not condense,
+    // the AI is instructed to explain this full content, not a summary of it.
+    explainText: `Definition: Aktien sind Wertpapiere, welche eine Beteiligung an einem Unternehmen (Aktiengesellschaft) mit allen Chancen und Risiken verbriefen. Aktien werden über eine Börse, fallweise auch außerbörslich gehandelt, wobei die jeweiligen Börsenusancen (Schlusseinheiten, Orderarten, Valutaregelungen etc.) beachtet werden müssen.
+
+Ertrag: Der Ertrag einer Aktienveranlagung, der selbstverständlich auch negativ sein kann, setzt sich aus Dividendenzahlungen und Kursgewinnen/Kursverlusten zusammen. Als Dividende bezeichnet man den ausgeschütteten Gewinn des Unternehmens. Die wesentlichere Komponente des Ertrages ist hingegen der Verlauf der Kursentwicklung.
+
+Kursrisiko: Aktien werden zumeist an einer Börse gehandelt. Der Kurs orientiert sich dabei nach Angebot und Nachfrage. Wenn mehr Verkäufer als Käufer auftreten, kommt es zu fallenden Kursen. Normalerweise orientiert sich der Kurs einer Aktie an der wirtschaftlichen Entwicklung des Unternehmens sowie an den allgemeinen wirtschaftlichen und politischen Rahmenbedingungen. In bestimmten Fällen können auch irrationale Faktoren (z. B. Meinungen, Stimmungen) oder externe Krisenszenarien (z. B. Terrorangriffe) zu weit überzogenen Kursverlusten führen.
+
+Bonitätsrisiko: Die Beteiligung an einem Unternehmen kann durch dessen Insolvenz wertlos werden.
+
+Liquiditätsrisiko: Die Handelbarkeit von bestimmten Aktien kann durch fehlende Liquidität u. U. nicht durchgeführt werden.`,
   },
   13: {
     data: {
       title:     "Anleihen & Anleihenfonds",
       keyPoints: [
-        "Darlehen an Staaten oder Unternehmen gegen Zinszahlung",
-        "Stabiler als Aktien — geringeres Risiko, geringere Rendite",
-        "Dienen zur Portfolio-Balance und als Einkommensquelle",
+        "Anleihen sind Wertpapiere, bei denen der Schuldner dem Anleger eine Verzinsung und Rückzahlung des Kapitals zusagt.",
+        "Der Ertrag ergibt sich aus der Verzinsung und einer möglichen Differenz zwischen Kauf- und Verkaufspreis.",
+        "Bonitätsrisiko: Kommt der Schuldner seinen Zahlungsverpflichtungen nicht nach, drohen Verluste — ein schlechteres Rating bedeutet höheres Risiko.",
+        "Kursrisiko: Steigende Marktzinsen lassen den Kurs bestehender Anleihen fallen, sinkende Zinsen lassen ihn steigen.",
+        "Liquiditätsrisiko: Ein Verkauf vor Laufzeitende ist nicht immer oder nur erschwert möglich.",
+        "Nachrangkapitalanleihen werden im Insolvenzfall erst nach allen anderen Gläubigern bedient.",
       ],
       stats: [
         { label: "Wachstumspotenzial", value: 42, color: "#6366f1" },
@@ -290,14 +311,31 @@ export const ASSET_CLASS_OVERLAY: Record<number, { data: ExplainOverlayData; nam
       ],
     },
     nameEn: "bonds and bond funds",
+    // Verbatim from the client's file (only an obvious OCR-style typo fixed) — do not condense,
+    // the AI is instructed to explain this full content, not a summary of it.
+    explainText: `Definition: Anleihen sind Wertpapiere, bei denen der Emittent (Aussteller, Schuldner) dem Inhaber (Käufer, Investor, Gläubiger) für das zur Verfügung gestellte Kapital eine Verzinsung gewährt und eine Rückzahlung gemäß Anleihebedingungen vornimmt.
+
+Ertrag: Der Ertrag einer Anleihe setzt sich aus der Verzinsung des Kapitals und einer allfälligen Differenz zwischen Kauf- und Verkaufspreis zusammen. Nur bei einer fixverzinsten Anleihe, die bis zur Tilgung gehalten wird, kann der Ertrag angegeben werden. Als Vergleichs-/Maßzahl für den Ertrag wird die Rendite (auf Endfälligkeit) verwendet, die nach international üblichen Maßstäben berechnet wird. Bei einem Verkauf vor Tilgung ist der erzielbare Ertrag ungewiss, da der entsprechende Kurs über oder unter dem Kaufkurs liegen kann. Bei der Berechnung des Ertrages ist auch die Spesenbelastung relevant.
+
+Bonitätsrisiko: Dieses Risiko besteht dahingehend, dass der Schuldner seinen Verpflichtungen zu Zinszahlungen und Tilgung nicht oder nur teilweise nachkommt. Bei der Beurteilung der Anlage ist daher die Bonität des Schuldners zu berücksichtigen. Hinweise zur Beurteilung der Bonität von Schuldnern (z. B. Staaten, Unternehmen, supranationale Organisationen) liefern beispielsweise unabhängige Rating-Agenturen. Je schlechter das Rating, umso schlechter ist die Bonität des Emittenten und umso höher ist das Risiko eines Zahlungsausfalls. Anleihen mit geringerer Bonität weisen daher im Regelfall auch eine höhere Verzinsung auf. Daher wird geraten, bei höher verzinsten Anleihen, deren Verzinsung über dem Durchschnitt von Anleihen erstklassiger Emittenten liegt, immer eine ausreichende Streuung (z. B. über Anleihenfonds) vorzunehmen.
+
+Kursrisiko: Wird eine Anleihe bis zum Laufzeitende gehalten, erhalten Investoren bei der Tilgung den in den Anleihebedingungen versprochenen Tilgungserlös. Bei Verkauf vor Ende der Laufzeit erhalten Anleger:innen den Marktpreis (Kurs). Dieser richtet sich nach Angebot und Nachfrage. Beispielsweise wird bei festverzinslichen Anleihen der Kurs fallen, wenn die Marktzinsen steigen und damit auch die Zinsen für Anleihen vergleichbarer Laufzeit und Bonität. Umgekehrt wird eine Anleihe mehr wert, wenn die Zinsen für vergleichbare Laufzeiten und Bonitäten sinken. Je länger die Restlaufzeiten bis zur Tilgung, umso stärker sind die Kursschwankungen der Anleihe. Auch eine Veränderung in der Schuldnerbonität kann Auswirkungen auf den Kurs der Anleihe haben.
+
+Liquiditätsrisiko: Die Handelbarkeit von Anleihen kann von verschiedenen Faktoren abhängen und in bestimmten Marktsituationen nicht oder nur erschwert erfolgen, was ein Halten bis zur Tilgung erforderlich macht.
+
+Spezialfälle von Anleihen: Nachrangkapitalanleihen sind Anleihen, bei denen an den/die Anleger:in im Falle der Liquidation des Schuldners erst dann Zahlungen geleistet werden, nachdem alle anderen Verbindlichkeiten des Anleiheschuldners bezahlt werden.`,
   },
   14: {
     data: {
       title:     "Edelmetalle (z. B. Gold)",
       keyPoints: [
-        "Physische Vermögenswerte wie Gold und Silber",
-        "Klassischer Wertspeicher in unsicheren Marktphasen",
-        "Kein laufender Ertrag — Gewinn durch Preissteigerung",
+        "Edelmetalle wie Gold, Silber, Platin und Palladium können physisch oder über Finanzinstrumente (ETCs, Zertifikate, Fonds) gehalten werden.",
+        "Der Ertrag ergibt sich ausschließlich aus der Kursdifferenz — es gibt keine laufenden Zinsen oder Dividenden.",
+        "Kursrisiko: Der Preis wird von Angebot, Nachfrage und teils irrationalen Faktoren bestimmt und kann stark schwanken.",
+        "Währungsrisiko: Der Handel erfolgt meist in US-Dollar, Wechselkursschwankungen wirken sich zusätzlich auf den Ertrag aus.",
+        "Bonitäts-/Emittentenrisiko: Bei ETCs oder Zertifikaten besteht ein Ausfallrisiko des Emittenten ohne ausreichende Besicherung.",
+        "Liquiditätsrisiko: Der Handel kann in bestimmten Marktphasen erschwert oder nur mit Preisabschlägen möglich sein.",
+        "Bei physischer Verwahrung bestehen zusätzliche Risiken (Verlust, Diebstahl, Beschädigung) sowie laufende Lager-/Versicherungskosten.",
       ],
       stats: [
         { label: "Wachstumspotenzial", value: 50, color: "#6366f1" },
@@ -305,7 +343,34 @@ export const ASSET_CLASS_OVERLAY: Record<number, { data: ExplainOverlayData; nam
       ],
     },
     nameEn: "precious metals (e.g. gold)",
+    // Verbatim from the client's file (only an obvious OCR-style typo fixed, and the final
+    // sentence completed — it was cut off mid-word in the source file) — do not condense, the
+    // AI is instructed to explain this full content, not a summary of it.
+    explainText: `Definition: Unter Edelmetallen versteht man insbesondere Gold, Silber, Platin und Palladium. Eine Veranlagung kann in physischer Form (Barren, Münzen) oder in verbriefter bzw. derivativer Form über Finanzinstrumente erfolgen, etwa über Exchange Traded Commodities (ETCs), Zertifikate, Edelmetall- bzw. Rohstofffonds oder Derivate. Edelmetalle werden über internationale Märkte gehandelt; die Preisbildung erfolgt zumeist in einer Fremdwährung (in der Regel US-Dollar). Physische Edelmetalle sind selbst keine Finanzinstrumente im Sinne der WAG 2018 / MiFID II; eine verbriefte oder derivative Veranlagung in Edelmetalle erfolgt hingegen über Finanzinstrumente, für die die einschlägigen aufsichtsrechtlichen Wohlverhaltens-, Informations- und Geeignetheits-/Angemessenheitspflichten gelten.
+
+Ertrag: Der Ertrag einer Edelmetallveranlagung, der selbstverständlich auch negativ sein kann, ergibt sich – anders als bei Aktien (Dividenden) oder Anleihen (Zinsen) – ausschließlich aus der Differenz zwischen Kauf- und Verkaufspreis. Edelmetalle werfen keine laufenden Erträge (weder Zinsen noch Dividenden) ab. Ein verlässlicher Ertrag kann daher im Vorhinein nicht angegeben werden; die Wertentwicklung ist allein von der Preisentwicklung des jeweiligen Edelmetalls abhängig. Bei der Ertragsbetrachtung sind zudem Spesen sowie – insbesondere bei physischen Edelmetallen – die teils erheblichen Geld-/Brief-Spannen (Spreads) zwischen An- und Verkaufspreis zu berücksichtigen.
+
+Kursrisiko (Preisrisiko): Der Preis von Edelmetallen orientiert sich an Angebot und Nachfrage auf den internationalen Märkten. Er wird wesentlich von gesamtwirtschaftlichen Rahmenbedingungen (z. B. Realzinsniveau, Inflationserwartungen), von der Industrie- und Schmucknachfrage sowie von politischen und geopolitischen Entwicklungen beeinflusst. Da Edelmetalle keine laufenden Erträge erwirtschaften, kann die Preisbildung in besonderem Maße von Markterwartungen, Stimmungen und irrationalen Faktoren bestimmt werden, was zu erheblichen und kurzfristig auch ausgeprägten Kursschwankungen (hohe Volatilität) führen kann.
+
+Währungsrisiko: Edelmetalle werden überwiegend in US-Dollar gehandelt. Für Anleger:innen mit Euro als Heimatwährung besteht daher ein Währungsrisiko: Wechselkursänderungen zwischen Euro und der jeweiligen Handelswährung können den Ertrag erhöhen oder vermindern – auch dann, wenn der Preis des Edelmetalls in der Handelswährung unverändert bleibt.
+
+Bonitäts-/Emittentenrisiko: Bei einer Veranlagung über Finanzinstrumente (insbesondere ETCs und Zertifikate) besteht ein Emittenten- bzw. Kontrahentenrisiko: Im Falle der Insolvenz des Emittenten kann es zu einem teilweisen oder vollständigen Verlust des eingesetzten Kapitals kommen, sofern keine ausreichende Besicherung (z. B. physische Hinterlegung) besteht. Auch eine vorhandene Besicherung schließt Verluste nicht aus. Bei physischen Edelmetallen besteht demgegenüber kein klassisches Bonitätsrisiko eines Schuldners.
+
+Liquiditätsrisiko: Die Handelbarkeit von Edelmetallen bzw. der darauf bezogenen Finanzinstrumente kann von verschiedenen Faktoren abhängen und in bestimmten Marktsituationen nicht oder nur erschwert bzw. nur mit Preisabschlägen erfolgen.
+
+Verwahrungs- und Lagerrisiko (bei physischen Edelmetallen): Bei physischer Verwahrung bestehen zusätzliche Risiken wie Verlust, Diebstahl oder Beschädigung sowie laufende Kosten für Lagerung und Versicherung. Diese Kosten mindern den Ertrag.`,
   },
+};
+
+// AI instructions for the (new, detailed) knowledge-blocker explanation — grounded in
+// ASSET_CLASS_OVERLAY's full, verbatim explainText (every section: Definition, Ertrag, and each
+// named risk), not a summary of it. Deliberately not capped at a short sentence count like the
+// old flow — the customer needs the complete regulatory content, every section below, covered.
+export const ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS = (lang: "de" | "en" = "de", questionOrder: number) => {
+  const entry = ASSET_CLASS_OVERLAY[questionOrder];
+  return lang === "de"
+    ? `Sie sind PecunAI — ein warmherziger Anlageberater. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Der Kunde hat angegeben, "${entry.data.title}" nicht zu kennen. Erklären Sie ihm jetzt den VOLLSTÄNDIGEN folgenden Inhalt — jeden einzelnen Abschnitt (Definition, Ertrag, und JEDES genannte Risiko), ohne einen davon auszulassen oder zusammenzufassen. Formulieren Sie es in Ihren eigenen, natürlichen Worten wie in einem Beratungsgespräch, nicht wie ein vorgelesenes Dokument — aber lassen Sie inhaltlich nichts weg und erfinden Sie nichts hinzu. Das wird länger als eine normale Antwort sein, das ist hier ausdrücklich erwünscht. Vollständiger Inhalt, den Sie erklären müssen: ${entry.explainText}`
+    : `You are PecunAI — a warm investment advisor. Speak English only. The customer said they don't know "${entry.data.title}". Explain the FULL content below to them now — every single section (definition, yield/return, and EVERY risk mentioned), without skipping or summarizing any of it. Phrase it in your own natural words like an advisory conversation, not like reading a document aloud — but don't omit any content and don't invent anything new. This will be longer than a typical answer, and that's expected here. Full content you must explain: ${entry.explainText}`;
 };
 
 // ── Helpers ───────────────────────────────────────────────────────
