@@ -438,6 +438,10 @@ export async function handleWsMessage(
         const vectorStoreId  = pttVectorStoreRef.current;
         const docLabel       = pttDocLabelRef.current;
         const speculativeHit = pttSpeculativeSearchRef.current;
+        // Snapshot of the partial transcript the speculative search actually ran against — frozen
+        // at whatever it was when the search fired, since later deltas early-return once
+        // pttSpeculativeSearchRef.current is set (see the delta handler above).
+        const speculativeQuerySnapshot = pttPartialTranscriptRef.current;
         // Reset speculative state for next PTT press
         pttSpeculativeSearchRef.current  = null;
         pttPartialTranscriptRef.current  = "";
@@ -455,12 +459,16 @@ export async function handleWsMessage(
           .then(r => r.json() as Promise<{ results?: string }>)
           .then(d => d.results ?? "")
           .catch(() => "");
-        // speculativeHit is a Promise (never null once partial transcript hit 15 chars) —
-        // ?? only catches null/undefined, NOT an empty resolved value. For short German
-        // compound words like "Vermögensverwalter" the partial query ("Was ist ein Ver")
-        // often returns nothing. We must retry with the full exact transcript in that case.
-        const searchPromise = speculativeHit
-          ? speculativeHit.then(specResult =>
+        // Only trust the speculative hit when the snapshot it searched IS the complete utterance
+        // (common for short questions that finish within the 15-char trigger). If more speech
+        // came in after that snapshot was taken, the partial can land mid-word — e.g. German
+        // compound nouns like "Vermögensverwalter" truncated to "Was ist ein Ver" — and return a
+        // non-empty but WRONG/irrelevant result that an empty-check alone would never catch.
+        // Always re-run with the full transcript in that case, regardless of what the
+        // speculative search returned.
+        const speculativeIsComplete = speculativeHit && speculativeQuerySnapshot.trim() === transcript;
+        const searchPromise = speculativeIsComplete
+          ? speculativeHit!.then(specResult =>
               (!specResult || specResult.trim() === "" || specResult === "No relevant content found.")
                 ? fullTranscriptSearch()
                 : specResult
