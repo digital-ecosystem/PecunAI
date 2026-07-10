@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { searchPhase5Local } from "@/lib/phase5LocalSearch";
+
+// Sentinel vectorStoreId used only for Phase 5 until its contract-document knowledge base can
+// be uploaded to a real OpenAI vector store — see
+// private-documents/phase-5-contract-document/PHASE_5_LOCAL_KNOWLEDGE_PLAN.md.
+const PHASE5_LOCAL_SENTINEL = "local:phase5-contracts";
 
 export async function POST(req: NextRequest) {
   try {
@@ -6,6 +12,11 @@ export async function POST(req: NextRequest) {
 
     if (!query || !vectorStoreId) {
       return NextResponse.json({ error: "query and vectorStoreId required" }, { status: 400 });
+    }
+
+    if (vectorStoreId === PHASE5_LOCAL_SENTINEL) {
+      const results = await searchPhase5Local(query);
+      return NextResponse.json({ results });
     }
 
     const res = await fetch(`https://api.openai.com/v1/vector_stores/${vectorStoreId}/search`, {

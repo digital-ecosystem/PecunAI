@@ -1125,13 +1125,19 @@ export function useVoiceSession({
     pttContextRef.current = context; // response.done will clear this and restore VAD
 
     // Set the correct vector store for this PTT context — no hardcoded fallbacks.
-    // 'phase4', 'phase5', and 'phase6' all intentionally fall into the else branch — they
-    // reuse termsVectorId (the shared global store). No new vector store needed for any of
-    // them — see private-documents/phase-4-investment-form/PHASE_4_INVESTMENT_FORM_PLAN.md,
-    // private-documents/phase-5-contract-document/PHASE_5_CONTRACT_DOCUMENT_PLAN.md, and
+    // 'phase4' and 'phase6' intentionally fall into the else branch — they reuse termsVectorId
+    // (the shared global store). No new vector store needed for either — see
+    // private-documents/phase-4-investment-form/PHASE_4_INVESTMENT_FORM_PLAN.md and
     // private-documents/phase-6-final-qa/PHASE_6_FINAL_QA_PLAN.md.
+    // 'phase5' uses a temporary local stand-in (see PHASE_5_LOCAL_KNOWLEDGE_PLAN.md) — none of
+    // the shared store's documents cover the actual contract PDFs, so this sentinel routes
+    // /api/documents/search to a local embeddings-based search over the 8 contract knowledge
+    // docs in /pecunai/Vektordatenbank/ instead. Swap this back to a real vector store ID once
+    // those docs are uploaded to one.
     pttVectorStoreRef.current = context === 'phase2'
       ? (productVectorIdRef.current ?? termsVectorId ?? "")
+      : context === 'phase5'
+      ? "local:phase5-contracts"
       : (termsVectorId ?? "");
 
     if (!pttVectorStoreRef.current) {
