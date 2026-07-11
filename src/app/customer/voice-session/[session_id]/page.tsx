@@ -25,6 +25,7 @@ export default function VoiceSessionPage() {
   const [initialSavedAnswers, setInitialSavedAnswers] = useState<Record<string, string>>({});
   const [initialVoicePhase,   setInitialVoicePhase]   = useState<0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | undefined>(undefined);
   const [initialIsRevisiting, setInitialIsRevisiting] = useState(false);
+  const [initialPhase1WalkthroughSeen, setInitialPhase1WalkthroughSeen] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -162,6 +163,7 @@ export default function VoiceSessionPage() {
         setInitialVoicePhase(dbVoicePhase as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7);
       }
       if (vsData?.isRevisiting === true) setInitialIsRevisiting(true);
+      if (vsData?.phase1WalkthroughSeen === true) setInitialPhase1WalkthroughSeen(true);
       if (vsData?.termsSubStep === 'sustainabilityTerms') {
         setInitialTermsPhase('sustainabilityTerms');
       } else if (dbVoicePhase === 1) {
@@ -218,6 +220,7 @@ export default function VoiceSessionPage() {
       initialSavedAnswers={initialSavedAnswers}
       initialVoicePhase={initialVoicePhase}
       initialIsRevisiting={initialIsRevisiting}
+      initialPhase1WalkthroughSeen={initialPhase1WalkthroughSeen}
     />
   );
 }

@@ -373,6 +373,43 @@ export const ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS = (lang: "de" | "en" = "de", q
     : `You are PecunAI — a warm investment advisor. Speak English only. The customer said they don't know "${entry.data.title}". Explain the FULL content below to them now — every single section (definition, yield/return, and EVERY risk mentioned), without skipping or summarizing any of it. Phrase it in your own natural words like an advisory conversation, not like reading a document aloud — but don't omit any content and don't invent anything new. This will be longer than a typical answer, and that's expected here. Full content you must explain: ${entry.explainText}`;
 };
 
+// ── Phase 1 spotlight walkthrough (first-time-only UI tour) ────────
+// Plays once per session, right after Terms2 confirmation, before Question 1. See
+// private-documents/after-demo/PHASE_1_SPOTLIGHT_WALKTHROUGH_PLAN.md. `PHASE1_WALKTHROUGH_STEPS`
+// gives each step's spotlight target element id; `PHASE1_WALKTHROUGH_CAPTIONS` is the always-German
+// on-screen caption (UI text, not AI speech — stays German regardless of the AI's current test
+// language); `PHASE1_WALKTHROUGH_INSTRUCTIONS` is the bilingual spoken narration for that step.
+
+export const PHASE1_WALKTHROUGH_STEPS: { target: string }[] = [
+  { target: "phase1-question-card" },
+  { target: "phase1-info-icon" },
+  { target: "phase1-mic-button" },
+  { target: "phase1-chat-button" },
+];
+
+export const PHASE1_WALKTHROUGH_CAPTIONS: string[] = [
+  "Das ist Ihre Fragekarte. Tippen Sie darauf, um Ihre Antwort auszuwählen.",
+  "Nicht sicher, was gemeint ist? Tippen Sie auf das „i\"-Symbol.",
+  "Gedrückt halten, sprechen, loslassen.",
+  "Lieber tippen? Hier öffnen Sie den Chat.",
+];
+
+export function PHASE1_WALKTHROUGH_INSTRUCTIONS(lang: "de" | "en", step: 0 | 1 | 2 | 3): string {
+  const de = [
+    `Sie sind PecunAI — ein warmherziger Anlageberater. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Sagen Sie genau 2 warme, klare Sätze: Bevor es losgeht, zeigen Sie kurz, wie das funktioniert. Das ist die Fragekarte — wenn es Antwortoptionen gibt, tippt man einfach darauf, um sie zu öffnen und die Antwort auszuwählen.`,
+    `Sie sind PecunAI. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Sagen Sie genau 1–2 Sätze: Sehen Sie dieses kleine „i"-Symbol auf der Karte? Man kann jederzeit darauf tippen, wenn eine Frage unklar ist, und Sie erklären sie dann verständlich.`,
+    `Sie sind PecunAI. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Sagen Sie genau 2 Sätze: Rechts unten ist die Mikrofontaste — gedrückt halten, die Antwort sprechen, und wieder loslassen.`,
+    `Sie sind PecunAI. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Sagen Sie genau 2–3 Sätze: Links unten öffnet dieser Button einen Textchat, falls man lieber tippen als sprechen möchte. Leiten Sie dann herzlich über, dass es jetzt mit der ersten Frage losgeht.`,
+  ];
+  const en = [
+    `You are PecunAI — a warm investment advisor. Speak English only. Say exactly 2 warm, clear sentences: before starting, quickly show how this works. This is the question card — if it has answer options, just tap it to open them and pick an answer.`,
+    `You are PecunAI. Speak English only. Say exactly 1-2 sentences: see this small "i" icon on the card? Tap it anytime a question is unclear, and you'll explain it clearly.`,
+    `You are PecunAI. Speak English only. Say exactly 2 sentences: at the bottom right is the microphone button — hold it down, speak the answer, then let go.`,
+    `You are PecunAI. Speak English only. Say exactly 2-3 sentences: at the bottom left, this button opens a text chat, in case someone prefers typing over talking. Then warmly transition into starting with the first question.`,
+  ];
+  return (lang === "de" ? de : en)[step];
+}
+
 // ── Helpers ───────────────────────────────────────────────────────
 
 export function makeNextTopicMsg(

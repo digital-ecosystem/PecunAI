@@ -33,7 +33,10 @@ export async function handleConfirmTerms1(ctx: VoiceContext): Promise<void> {
 
 /** Customer tapped "Ich bestätige" on the froots (terms2) document — transitions to Phase 1 */
 export async function handleConfirmTerms2(ctx: VoiceContext): Promise<void> {
-  const { sessionId, voicePhaseRef, termsSubStepRef, setTermsSubStep, setVoicePhase, saveVoiceState, send } = ctx;
+  const {
+    sessionId, voicePhaseRef, termsSubStepRef, setTermsSubStep, setVoicePhase, saveVoiceState, send,
+    phase1WalkthroughSeenRef, startPhase1Walkthrough,
+  } = ctx;
 
   await fetch("/api/phase", {
     method:  "POST",
@@ -49,6 +52,16 @@ export async function handleConfirmTerms2(ctx: VoiceContext): Promise<void> {
   // private-documents/after-demo/PHASE_1_PTT_PLAN.md.
   send({ type: "session.update", session: { type: "realtime", audio: { input: { turn_detection: null } } } });
   saveVoiceState(0).catch(() => {});
+
+  // First-time-only spotlight walkthrough — see
+  // private-documents/after-demo/PHASE_1_SPOTLIGHT_WALKTHROUGH_PLAN.md. It sends its own
+  // "Terms confirmed... begin with the first topic" message once the sequence (or a skip)
+  // finishes, so this normal path is skipped entirely when the walkthrough runs.
+  if (!phase1WalkthroughSeenRef.current) {
+    startPhase1Walkthrough();
+    return;
+  }
+
   send({
     type: "conversation.item.create",
     item: {

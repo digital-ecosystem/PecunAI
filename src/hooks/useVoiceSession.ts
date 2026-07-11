@@ -13,7 +13,7 @@ import { handleAnswerConfirmed as _handleAnswerConfirmed } from "./voice/handleA
 import { handlePrev, handleSkipQuestion, handleRequestExplanation, handleCloseExplainOverlay, handleScrollCarousel, handleRevisitQuestions } from "./voice/handleNavigation";
 import { handleMoveToTerms1, handleConfirmTerms1, handleConfirmTerms2, handleConfirmSustainabilityTerms } from "./voice/handleTerms";
 import { handleNotifyChatOpen } from "./voice/handleChat";
-import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS } from "./voice/prompts";
+import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, PHASE1_WALKTHROUGH_STEPS, PHASE1_WALKTHROUGH_INSTRUCTIONS } from "./voice/prompts";
 import type { VoiceContext } from "./voice/voiceContext";
 
 // re-export types consumed by VoiceSessionShell and other components
@@ -32,6 +32,7 @@ interface UseVoiceSessionOptions {
   initialSavedAnswers?: Record<string, string>;
   initialVoicePhase?:   0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
   initialIsRevisiting?: boolean;
+  initialPhase1WalkthroughSeen?: boolean;
 }
 
 export function useVoiceSession({
@@ -45,6 +46,7 @@ export function useVoiceSession({
   initialSavedAnswers = {},
   initialVoicePhase,
   initialIsRevisiting = false,
+  initialPhase1WalkthroughSeen = false,
 }: UseVoiceSessionOptions) {
   const router = useRouter();
 
@@ -155,6 +157,13 @@ export function useVoiceSession({
   // "Kenne ich nicht" answer — lets the two-strike algorithm tell a first "none" apart from a
   // second one. See private-documents/after-demo/ASSET_KNOWLEDGE_EXPLAIN_PLAN.md.
   const assetKnowledgeShownRef = useRef<Set<string>>(new Set());
+  // True once the customer has seen the Phase 1 spotlight walkthrough — set the instant it
+  // starts (not just on completion/skip), so it never replays even if interrupted. Persisted to
+  // both localStorage and stepData.voice (unlike sustainabilityConfirmedRef, which is
+  // localStorage-only). See private-documents/after-demo/PHASE_1_SPOTLIGHT_WALKTHROUGH_PLAN.md.
+  const phase1WalkthroughSeenRef = useRef(initialPhase1WalkthroughSeen);
+  // Current step index (0-3) while the walkthrough is playing, or null when inactive.
+  const [walkthroughStep, setWalkthroughStep] = useState<number | null>(null);
   // True while customer is in Phase 1 revisit mode — suppresses auto-advance on submit_answer so
   // the user can change multiple answers freely before confirm_product() triggers advancePhase().
   const isRevisitingRef                            = useRef(initialIsRevisiting);
@@ -238,6 +247,17 @@ export function useVoiceSession({
     try {
       const key = `pecunai_sus_${sessionId}`;
       if (localStorage.getItem(key)) sustainabilityConfirmedRef.current = true;
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
+
+  // Same-browser fast path for the Phase 1 walkthrough flag — the DB-backed
+  // initialPhase1WalkthroughSeen prop is the source of truth, this just covers the gap before
+  // that fetch resolves on a fresh mount.
+  useEffect(() => {
+    try {
+      const key = `pecunai_walkthrough_${sessionId}`;
+      if (localStorage.getItem(key)) phase1WalkthroughSeenRef.current = true;
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
@@ -462,6 +482,7 @@ export function useVoiceSession({
           voicePhase:        voicePhaseRef.current,
           termsSubStep:      termsSubStepRef.current,
           isRevisiting:      isRevisitingRef.current,
+          phase1WalkthroughSeen: phase1WalkthroughSeenRef.current,
         }),
       });
       if (!res.ok) {
@@ -854,6 +875,48 @@ export function useVoiceSession({
     });
   }, [sessionId, send, saveVoiceState, disconnectVoice]);
 
+  /** Runs the Phase 1 first-time UI walkthrough — 4 scripted steps, each spotlighting one
+   *  element while the AI narrates it, chained via pendingPhaseTransitionRef the same way
+   *  phase-transition announcements wait for their own speech to finish. See
+   *  private-documents/after-demo/PHASE_1_SPOTLIGHT_WALKTHROUGH_PLAN.md. */
+  const finishPhase1Walkthrough = useCallback(() => {
+    setWalkthroughStep(null);
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: "[SYSTEM: Terms confirmed. Starting Phase 1 — risk profile questions. Begin with the first topic.]",
+      }]},
+    });
+    send({ type: "response.create" });
+  }, [send]);
+
+  const runPhase1WalkthroughStep = useCallback((step: number) => {
+    if (step >= PHASE1_WALKTHROUGH_STEPS.length) {
+      finishPhase1Walkthrough();
+      return;
+    }
+    setWalkthroughStep(step);
+    pendingPhaseTransitionRef.current = () => runPhase1WalkthroughStep(step + 1);
+    send({
+      type: "response.create",
+      response: { instructions: PHASE1_WALKTHROUGH_INSTRUCTIONS(langRef.current, step as 0 | 1 | 2 | 3) },
+    });
+  }, [send, finishPhase1Walkthrough]);
+
+  const startPhase1Walkthrough = useCallback(() => {
+    phase1WalkthroughSeenRef.current = true;
+    try { localStorage.setItem(`pecunai_walkthrough_${sessionId}`, "1"); } catch {}
+    saveVoiceState(0).catch(() => {});
+    runPhase1WalkthroughStep(0);
+  }, [sessionId, saveVoiceState, runPhase1WalkthroughStep]);
+
+  const skipPhase1Walkthrough = useCallback(() => {
+    stopAudio();
+    pendingPhaseTransitionRef.current = null;
+    setWalkthroughStep(null);
+    finishPhase1Walkthrough();
+  }, [stopAudio, finishPhase1Walkthrough]);
+
   Object.assign(ctxRef.current, {
     // config
     sessionId, termsVectorId, router,
@@ -862,6 +925,7 @@ export function useVoiceSession({
     saveAnswer, saveVoiceState, advancePhase,
     scheduleAIDone, scheduleChunk, handleFunctionCall,
     disconnectVoice, reconnectVoice, advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign,
+    startPhase1Walkthrough,
     // state setters
     setIsAISpeaking, setBargeInActive, setSavedAnswers, setChatMessages,
     setIsChatAITyping, setPendingVoiceAnswer, setExplainOverlayData,
@@ -884,7 +948,7 @@ export function useVoiceSession({
     termsSubStepRef, langRef, isRevisitingRef, sustainabilityConfirmedRef, micGrantedRef,
     isAISpeakingRef, bargeInActiveRef, sessionConfiguredRef, initialIndexRef,
     circleBackActiveRef, skipInProgressRef, prevInProgressRef, scrollDebounceTimerRef,
-    assetKnowledgeShownRef,
+    assetKnowledgeShownRef, phase1WalkthroughSeenRef,
   } satisfies VoiceContext);
 
   // ── WebSocket lifecycle ────────────────────────────────────────
@@ -1308,5 +1372,7 @@ export function useVoiceSession({
     submitPTTQuestion,
     submitPhase1Answer,
     isChatAITyping,
+    walkthroughStep,
+    skipPhase1Walkthrough,
   };
 }

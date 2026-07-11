@@ -37,6 +37,7 @@ export default function ControlBar({
 
         {/* Chat — moved to the left, matching Phase 6's convention */}
         <motion.button
+          id="phase1-chat-button"
           className="flex items-center justify-center rounded-full"
           style={{
             width:      56,
@@ -81,6 +82,7 @@ export default function ControlBar({
             Replaces the old mute toggle (dropped — see private-documents/after-demo/
             PHASE_1_PTT_PLAN.md). Hold to speak, release to submit. */}
         <motion.button
+          id="phase1-mic-button"
           className="flex items-center justify-center rounded-full"
           style={{
             width:      56,

@@ -29,6 +29,7 @@ export interface VoiceContext {
   confirmInvestment:     () => Promise<void>;
   confirmContracts:      () => void;
   confirmReadyToSign:    () => void;
+  startPhase1Walkthrough: () => void;
 
   // State setters
   setIsAISpeaking:          (v: boolean) => void;
@@ -110,4 +111,5 @@ export interface VoiceContext {
   prevInProgressRef:         MutableRefObject<boolean>;
   scrollDebounceTimerRef:    MutableRefObject<ReturnType<typeof setTimeout> | null>;
   assetKnowledgeShownRef:    MutableRefObject<Set<string>>;
+  phase1WalkthroughSeenRef:  MutableRefObject<boolean>;
 }

@@ -17,7 +17,9 @@ import VoiceInvestmentForm from "./VoiceInvestmentForm";
 import VoiceContractDocuments from "./VoiceContractDocuments";
 import VoiceSessionReview from "./VoiceSessionReview";
 import VoiceSigningPhase from "./VoiceSigningPhase";
+import VoiceSpotlightOverlay from "./VoiceSpotlightOverlay";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
+import { PHASE1_WALKTHROUGH_STEPS, PHASE1_WALKTHROUGH_CAPTIONS } from "@/hooks/voice/prompts";
 
 // ── Phase slide variants ──────────────────────────────────────────
 
@@ -59,6 +61,7 @@ interface VoiceSessionShellProps {
   initialSavedAnswers?: Record<string, string>;
   initialVoicePhase?:   0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
   initialIsRevisiting?: boolean;
+  initialPhase1WalkthroughSeen?: boolean;
 }
 
 // ── Revisit chevron navigation ──────────────────────────────────────
@@ -103,10 +106,11 @@ export default function VoiceSessionShell({
   initialSavedAnswers,
   initialVoicePhase,
   initialIsRevisiting,
+  initialPhase1WalkthroughSeen,
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, walkthroughStep, skipPhase1Walkthrough } =
     useVoiceSession({
       sessionId,
       questions,
@@ -118,6 +122,7 @@ export default function VoiceSessionShell({
       initialSavedAnswers: initialSavedAnswers ?? {},
       initialVoicePhase,
       initialIsRevisiting,
+      initialPhase1WalkthroughSeen,
     });
 
   // Track phase transition direction for the slide animation.
@@ -145,6 +150,9 @@ export default function VoiceSessionShell({
   // hasSpokenForCardRef: true once the AI has started speaking since the active card changed.
   // Prevents the modal from opening immediately on skip/prev/phase-start before the AI speaks.
   const hasSpokenForCardRef = useRef(false);
+  // Tracks the previous walkthroughStep value so the effect below can detect the walkthrough
+  // ending (non-null → null), not just any change.
+  const prevWalkthroughStepRef = useRef<number | null>(null);
 
   // Close the modal whenever the voice path saves an answer successfully.
   // The voice path normally closes the modal by calling setCard() (which changes activeCardId
@@ -200,6 +208,7 @@ export default function VoiceSessionShell({
   // so without this guard the effect fires during terms and leaves modalOpen=true as hidden state.
   useEffect(() => {
     if (voicePhase !== 1) return;                              // only auto-open during questions phase
+    if (walkthroughStep !== null) return;                       // spotlight walkthrough is narrating — not the actual question yet
     if (isRevisiting) return;                                  // browsing to pick a question — modal opens only after AI navigates to one
     if (termsSubStep === 'sustainabilityTerms') return;        // sustainability overlay is showing
     if (bargeInActive) return;                                 // barge-in in flight — wrong card's modal would open
@@ -214,7 +223,20 @@ export default function VoiceSessionShell({
     if (!started) return;
     setModalOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCardId, isAISpeaking, state.session, voicePhase, termsSubStep, bargeInActive, isRevisiting]);
+  }, [activeCardId, isAISpeaking, state.session, voicePhase, termsSubStep, bargeInActive, isRevisiting, walkthroughStep]);
+
+  // The walkthrough's own narration sets hasSpokenForCardRef true (via the isAISpeaking effect
+  // below) without ever actually asking the real first question — activeCardId never changes
+  // during the walkthrough, so that effect never gets a chance to reset it either. Without this,
+  // the auto-modal-open effect above would treat the walkthrough's speech as "AI already asked
+  // about this card" and pop the modal open before the AI has said a word about the real
+  // question. Reset right when the walkthrough ends so it waits for genuine new speech.
+  useEffect(() => {
+    if (prevWalkthroughStepRef.current !== null && walkthroughStep === null) {
+      hasSpokenForCardRef.current = false;
+    }
+    prevWalkthroughStepRef.current = walkthroughStep;
+  }, [walkthroughStep]);
 
   useEffect(() => {
     notifyChatOpen(chatOpen);
@@ -240,10 +262,11 @@ export default function VoiceSessionShell({
   // doesn't have to manually find and tap the carousel card.
   // suppressAutoModalRef prevents re-opening after a manual close until the question changes.
   useEffect(() => {
+    if (walkthroughStep !== null) return;                      // spotlight walkthrough is narrating — not the actual question yet
     if (micGranted === false && state.session === "listening" && !modalOpen && !suppressAutoModalRef.current && !chatOpen && !explainOpen) {
       setModalOpen(true);
     }
-  }, [micGranted, state.session, modalOpen, explainOpen]);
+  }, [micGranted, state.session, modalOpen, explainOpen, walkthroughStep]);
 
   // viewIndex is derived directly from activeCardId — the hook's explicit source of truth
   // for which question the AI is currently on. No state machine sync needed.
@@ -934,6 +957,14 @@ export default function VoiceSessionShell({
       </div>
 
       {/* ── Overlays (fixed-position, outside the slide container) ── */}
+
+      {voicePhase === 1 && walkthroughStep !== null && (
+        <VoiceSpotlightOverlay
+          targetId={PHASE1_WALKTHROUGH_STEPS[walkthroughStep].target}
+          caption={PHASE1_WALKTHROUGH_CAPTIONS[walkthroughStep]}
+          onSkip={skipPhase1Walkthrough}
+        />
+      )}
 
       {termsSubStep === 'sustainabilityTerms' && (
         <VoiceTermsPhase

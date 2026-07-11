@@ -131,6 +131,7 @@ export default function VoiceCarousel({
                 onClick={handleClick}
               >
                 <motion.div
+                  id={isActive ? "phase1-question-card" : undefined}
                   className="relative overflow-hidden rounded-3xl"
                   whileTap={{ scale: 0.98 }}
                   style={{
@@ -163,6 +164,7 @@ export default function VoiceCarousel({
                       {isActive && (
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <motion.button
+                            id="phase1-info-icon"
                             className="rounded-full p-2"
                             style={{ background: "rgba(59,130,246,0.1)" }}
                             whileTap={{ scale: 0.9 }}

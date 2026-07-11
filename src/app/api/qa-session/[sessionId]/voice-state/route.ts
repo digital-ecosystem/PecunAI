@@ -40,6 +40,8 @@ export async function GET(
     // table that backs Phase 1's chat, so Phase 1 content can never leak in. See
     // private-documents/phase-6-final-qa/PHASE_6_TEXT_CHAT_ADDENDUM.md.
     const phase6Chat   = Array.isArray(voice.phase6Chat) ? voice.phase6Chat : [];
+    // See private-documents/after-demo/PHASE_1_SPOTLIGHT_WALKTHROUGH_PLAN.md.
+    const phase1WalkthroughSeen = voice.phase1WalkthroughSeen === true;
 
     return NextResponse.json({
       success:           true,
@@ -50,6 +52,7 @@ export async function GET(
       isRevisiting,
       currentPhase:      sessionRecord?.phase ?? null,
       phase6Chat,
+      phase1WalkthroughSeen,
     });
   } catch (error) {
     console.error("voice-state GET error:", error);
@@ -71,7 +74,7 @@ export async function PATCH(
 
     const { sessionId } = await params;
     const body = await req.json();
-    const { lastQuestionIndex, skippedIds, voicePhase, termsSubStep, isRevisiting, phase6Chat } = body as {
+    const { lastQuestionIndex, skippedIds, voicePhase, termsSubStep, isRevisiting, phase6Chat, phase1WalkthroughSeen } = body as {
       lastQuestionIndex: number;
       skippedIds?:       string[];
       voicePhase?:       0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -80,6 +83,8 @@ export async function PATCH(
       // Phase 6's own isolated chat history — see
       // private-documents/phase-6-final-qa/PHASE_6_TEXT_CHAT_ADDENDUM.md.
       phase6Chat?:       { id: string; text: string; sender: "ai" | "user"; timestamp: string }[];
+      // See private-documents/after-demo/PHASE_1_SPOTLIGHT_WALKTHROUGH_PLAN.md.
+      phase1WalkthroughSeen?: boolean;
     };
 
     if (typeof lastQuestionIndex !== "number") {
@@ -111,6 +116,7 @@ export async function PATCH(
     if (termsSubStep !== undefined)         updatedVoice.termsSubStep = termsSubStep;
     if (isRevisiting !== undefined)         updatedVoice.isRevisiting = isRevisiting;
     if (Array.isArray(phase6Chat))          updatedVoice.phase6Chat   = phase6Chat;
+    if (phase1WalkthroughSeen !== undefined) updatedVoice.phase1WalkthroughSeen = phase1WalkthroughSeen;
 
     const mergedStepData = { ...currentStepData, voice: updatedVoice } as Prisma.InputJsonValue;
 
