@@ -375,39 +375,56 @@ export const ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS = (lang: "de" | "en" = "de", q
 
 // ── Phase 1 spotlight walkthrough (first-time-only UI tour) ────────
 // Plays once per session, right after Terms2 confirmation, before Question 1. See
-// private-documents/after-demo/PHASE_1_SPOTLIGHT_WALKTHROUGH_PLAN.md. `PHASE1_WALKTHROUGH_STEPS`
-// gives each step's spotlight target element id; `PHASE1_WALKTHROUGH_CAPTIONS` is the always-German
-// on-screen caption (UI text, not AI speech — stays German regardless of the AI's current test
-// language); `PHASE1_WALKTHROUGH_INSTRUCTIONS` is the bilingual spoken narration for that step.
+// private-documents/after-demo/PHASE_1_SPOTLIGHT_WALKTHROUGH_PLAN.md.
+//
+// Deliberately NOT split into separate per-step AI responses chained via audio-completion
+// timing — that approach caused the spoken narration and the visual spotlight to drift out of
+// sync with each other. Instead this is ONE continuous AI response reading the 3 segments
+// close to verbatim (in order), while the spotlight advances client-side on a timer started the
+// moment the audio actually begins playing, using each segment's own word count to estimate how
+// long it takes to say. Not frame-perfect, but far simpler and avoids the multi-response race
+// entirely. The question-card/tap-to-answer step was dropped per explicit request — spotlighting
+// it while the tap-answer modal could also be opening was adding complexity for little value.
 
 export const PHASE1_WALKTHROUGH_STEPS: { target: string }[] = [
-  { target: "phase1-question-card" },
   { target: "phase1-info-icon" },
   { target: "phase1-mic-button" },
   { target: "phase1-chat-button" },
 ];
 
-export const PHASE1_WALKTHROUGH_CAPTIONS: string[] = [
-  "Das ist Ihre Fragekarte. Tippen Sie darauf, um Ihre Antwort auszuwählen.",
-  "Nicht sicher, was gemeint ist? Tippen Sie auf das „i\"-Symbol.",
-  "Gedrückt halten, sprechen, loslassen.",
-  "Lieber tippen? Hier öffnen Sie den Chat.",
+const PHASE1_WALKTHROUGH_SEGMENTS_DE: string[] = [
+  `Sehen Sie dieses kleine „i"-Symbol auf der Fragekarte? Tippen Sie jederzeit darauf, wenn eine Frage unklar ist, und ich erkläre sie Ihnen.`,
+  `Rechts unten ist die Mikrofontaste. Halten Sie sie gedrückt, sprechen Sie Ihre Antwort, und lassen Sie los.`,
+  `Links unten öffnet dieser Button einen Textchat, falls Sie lieber tippen als sprechen möchten. Und jetzt legen wir los mit der ersten Frage!`,
 ];
 
-export function PHASE1_WALKTHROUGH_INSTRUCTIONS(lang: "de" | "en", step: 0 | 1 | 2 | 3): string {
-  const de = [
-    `Sie sind PecunAI — ein warmherziger Anlageberater. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Sagen Sie genau 2 warme, klare Sätze: Bevor es losgeht, zeigen Sie kurz, wie das funktioniert. Das ist die Fragekarte — wenn es Antwortoptionen gibt, tippt man einfach darauf, um sie zu öffnen und die Antwort auszuwählen.`,
-    `Sie sind PecunAI. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Sagen Sie genau 1–2 Sätze: Sehen Sie dieses kleine „i"-Symbol auf der Karte? Man kann jederzeit darauf tippen, wenn eine Frage unklar ist, und Sie erklären sie dann verständlich.`,
-    `Sie sind PecunAI. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Sagen Sie genau 2 Sätze: Rechts unten ist die Mikrofontaste — gedrückt halten, die Antwort sprechen, und wieder loslassen.`,
-    `Sie sind PecunAI. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Sagen Sie genau 2–3 Sätze: Links unten öffnet dieser Button einen Textchat, falls man lieber tippen als sprechen möchte. Leiten Sie dann herzlich über, dass es jetzt mit der ersten Frage losgeht.`,
-  ];
-  const en = [
-    `You are PecunAI — a warm investment advisor. Speak English only. Say exactly 2 warm, clear sentences: before starting, quickly show how this works. This is the question card — if it has answer options, just tap it to open them and pick an answer.`,
-    `You are PecunAI. Speak English only. Say exactly 1-2 sentences: see this small "i" icon on the card? Tap it anytime a question is unclear, and you'll explain it clearly.`,
-    `You are PecunAI. Speak English only. Say exactly 2 sentences: at the bottom right is the microphone button — hold it down, speak the answer, then let go.`,
-    `You are PecunAI. Speak English only. Say exactly 2-3 sentences: at the bottom left, this button opens a text chat, in case someone prefers typing over talking. Then warmly transition into starting with the first question.`,
-  ];
-  return (lang === "de" ? de : en)[step];
+const PHASE1_WALKTHROUGH_SEGMENTS_EN: string[] = [
+  `See this small "i" icon on the question card? Tap it anytime a question is unclear, and I'll explain it.`,
+  `At the bottom right is the microphone button. Hold it down, speak your answer, then let go.`,
+  `At the bottom left, this button opens a text chat, in case you'd rather type than talk. And now, let's get started with the first question!`,
+];
+
+// Always-German on-screen captions (UI text, not AI speech — stays German regardless of the
+// AI's current test language) — just the German segments themselves, no separate copy needed.
+export const PHASE1_WALKTHROUGH_CAPTIONS: string[] = PHASE1_WALKTHROUGH_SEGMENTS_DE;
+
+export function PHASE1_WALKTHROUGH_INSTRUCTIONS(lang: "de" | "en"): string {
+  const segments = (lang === "de" ? PHASE1_WALKTHROUGH_SEGMENTS_DE : PHASE1_WALKTHROUGH_SEGMENTS_EN).join(" ");
+  return lang === "de"
+    ? `Sie sind PecunAI — ein warmherziger Anlageberater. Sprechen Sie ausschließlich Deutsch mit formeller Anrede „Sie". Sagen Sie GENAU den folgenden Text, Wort für Wort, in natürlichem, ruhigem Tempo — nichts hinzufügen, nichts weglassen: "${segments}"`
+    : `You are PecunAI — a warm investment advisor. Speak English only. Say EXACTLY the following text, word for word, at a natural, unhurried pace — don't add or omit anything: "${segments}"`;
+}
+
+// Rough per-segment spoken-duration estimate (ms), used to advance the spotlight while the
+// single combined response above is playing. ~2.6 words/sec matches natural conversational
+// pace reasonably well — useVoiceSession.ts's walkthrough timer separately guarantees the final
+// "walkthrough done" transition never fires before the AI's audio has genuinely finished
+// (regardless of how accurate this estimate turns out to be), so there's no downside to using a
+// realistic pace here rather than a deliberately conservative one.
+const WALKTHROUGH_WORDS_PER_SECOND = 2.6;
+export function phase1WalkthroughSegmentDurationsMs(lang: "de" | "en"): number[] {
+  const segments = lang === "de" ? PHASE1_WALKTHROUGH_SEGMENTS_DE : PHASE1_WALKTHROUGH_SEGMENTS_EN;
+  return segments.map(s => Math.round((s.trim().split(/\s+/).length / WALKTHROUGH_WORDS_PER_SECOND) * 1000));
 }
 
 // ── Helpers ───────────────────────────────────────────────────────

@@ -131,7 +131,6 @@ export default function VoiceCarousel({
                 onClick={handleClick}
               >
                 <motion.div
-                  id={isActive ? "phase1-question-card" : undefined}
                   className="relative overflow-hidden rounded-3xl"
                   whileTap={{ scale: 0.98 }}
                   style={{

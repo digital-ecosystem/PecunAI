@@ -13,7 +13,7 @@ import { handleAnswerConfirmed as _handleAnswerConfirmed } from "./voice/handleA
 import { handlePrev, handleSkipQuestion, handleRequestExplanation, handleCloseExplainOverlay, handleScrollCarousel, handleRevisitQuestions } from "./voice/handleNavigation";
 import { handleMoveToTerms1, handleConfirmTerms1, handleConfirmTerms2, handleConfirmSustainabilityTerms } from "./voice/handleTerms";
 import { handleNotifyChatOpen } from "./voice/handleChat";
-import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, PHASE1_WALKTHROUGH_STEPS, PHASE1_WALKTHROUGH_INSTRUCTIONS } from "./voice/prompts";
+import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, PHASE1_WALKTHROUGH_INSTRUCTIONS, phase1WalkthroughSegmentDurationsMs } from "./voice/prompts";
 import type { VoiceContext } from "./voice/voiceContext";
 
 // re-export types consumed by VoiceSessionShell and other components
@@ -162,8 +162,13 @@ export function useVoiceSession({
   // both localStorage and stepData.voice (unlike sustainabilityConfirmedRef, which is
   // localStorage-only). See private-documents/after-demo/PHASE_1_SPOTLIGHT_WALKTHROUGH_PLAN.md.
   const phase1WalkthroughSeenRef = useRef(initialPhase1WalkthroughSeen);
-  // Current step index (0-3) while the walkthrough is playing, or null when inactive.
+  // Current step index (0-2) while the walkthrough is playing, or null when inactive.
   const [walkthroughStep, setWalkthroughStep] = useState<number | null>(null);
+  // True from the moment the walkthrough's single combined response.create is sent until its
+  // audio actually starts playing — the effect below watches for that transition to start the
+  // spotlight's timer cascade in sync with real speech rather than the moment the request was sent.
+  const walkthroughPendingStartRef = useRef(false);
+  const walkthroughTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // True while customer is in Phase 1 revisit mode — suppresses auto-advance on submit_answer so
   // the user can change multiple answers freely before confirm_product() triggers advancePhase().
   const isRevisitingRef                            = useRef(initialIsRevisiting);
@@ -875,9 +880,11 @@ export function useVoiceSession({
     });
   }, [sessionId, send, saveVoiceState, disconnectVoice]);
 
-  /** Runs the Phase 1 first-time UI walkthrough — 4 scripted steps, each spotlighting one
-   *  element while the AI narrates it, chained via pendingPhaseTransitionRef the same way
-   *  phase-transition announcements wait for their own speech to finish. See
+  /** Runs the Phase 1 first-time UI walkthrough. ONE combined AI response reads all 3 segments
+   *  close to verbatim; the spotlight advances client-side on a timer started the moment that
+   *  audio actually begins (isAISpeaking), using estimated per-segment durations — not chained
+   *  across multiple AI responses, which previously let the narration and the spotlight drift
+   *  out of sync with each other. See
    *  private-documents/after-demo/PHASE_1_SPOTLIGHT_WALKTHROUGH_PLAN.md. */
   const finishPhase1Walkthrough = useCallback(() => {
     setWalkthroughStep(null);
@@ -890,32 +897,60 @@ export function useVoiceSession({
     send({ type: "response.create" });
   }, [send]);
 
-  const runPhase1WalkthroughStep = useCallback((step: number) => {
-    if (step >= PHASE1_WALKTHROUGH_STEPS.length) {
-      finishPhase1Walkthrough();
-      return;
-    }
-    setWalkthroughStep(step);
-    pendingPhaseTransitionRef.current = () => runPhase1WalkthroughStep(step + 1);
-    send({
-      type: "response.create",
-      response: { instructions: PHASE1_WALKTHROUGH_INSTRUCTIONS(langRef.current, step as 0 | 1 | 2 | 3) },
-    });
-  }, [send, finishPhase1Walkthrough]);
+  const runPhase1WalkthroughTimers = useCallback(() => {
+    const durations = phase1WalkthroughSegmentDurationsMs(langRef.current);
+    const scheduleStep = (i: number, delay: number) => {
+      walkthroughTimerRef.current = setTimeout(() => {
+        if (i >= durations.length) {
+          // Estimated total narration time has elapsed. The model doesn't read the script
+          // strictly verbatim, so this estimate can land before the real audio actually
+          // finishes — sending finishPhase1Walkthrough()'s response.create while the
+          // walkthrough's own response is still active gets rejected by the API ("conversation
+          // already has an active response"), which is exactly what silently broke Phase 1
+          // starting. Only finish immediately if the AI has genuinely stopped speaking already;
+          // otherwise arm pendingPhaseTransitionRef so scheduleAIDone() finishes it for real,
+          // whenever that actually happens.
+          if (!isAISpeakingRef.current) {
+            finishPhase1Walkthrough();
+          } else {
+            pendingPhaseTransitionRef.current = finishPhase1Walkthrough;
+          }
+          return;
+        }
+        setWalkthroughStep(i);
+        scheduleStep(i + 1, durations[i]);
+      }, delay);
+    };
+    scheduleStep(0, 0);
+  }, [finishPhase1Walkthrough]);
 
   const startPhase1Walkthrough = useCallback(() => {
     phase1WalkthroughSeenRef.current = true;
     try { localStorage.setItem(`pecunai_walkthrough_${sessionId}`, "1"); } catch {}
     saveVoiceState(0).catch(() => {});
-    runPhase1WalkthroughStep(0);
-  }, [sessionId, saveVoiceState, runPhase1WalkthroughStep]);
+    walkthroughPendingStartRef.current = true; // timers start once audio actually begins — see effect below
+    send({
+      type: "response.create",
+      response: { instructions: PHASE1_WALKTHROUGH_INSTRUCTIONS(langRef.current) },
+    });
+  }, [sessionId, saveVoiceState, send]);
 
   const skipPhase1Walkthrough = useCallback(() => {
     stopAudio();
-    pendingPhaseTransitionRef.current = null;
-    setWalkthroughStep(null);
+    walkthroughPendingStartRef.current = false;
+    if (walkthroughTimerRef.current) { clearTimeout(walkthroughTimerRef.current); walkthroughTimerRef.current = null; }
     finishPhase1Walkthrough();
   }, [stopAudio, finishPhase1Walkthrough]);
+
+  // Starts the spotlight's timer cascade the moment the walkthrough's audio actually begins
+  // playing, rather than when the request was merely sent — keeps the visual roughly in step
+  // with real speech instead of jumping ahead of it.
+  useEffect(() => {
+    if (isAISpeaking && walkthroughPendingStartRef.current) {
+      walkthroughPendingStartRef.current = false;
+      runPhase1WalkthroughTimers();
+    }
+  }, [isAISpeaking, runPhase1WalkthroughTimers]);
 
   Object.assign(ctxRef.current, {
     // config
