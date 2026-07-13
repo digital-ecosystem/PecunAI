@@ -50,6 +50,12 @@ export function useVoiceSession({
 
   const [state, dispatch] = useReducer(reducer, makeInitial(initialQuestionIndex));
   const [started, setStarted] = useState(false);
+  // True once the customer has acknowledged the recording/transcript disclaimer this session —
+  // persisted to localStorage (mirrors sustainabilityConfirmedRef below) so it never shows twice
+  // for the same session, even across a refresh. Gates every phase via VoiceSessionShell's
+  // top-level check, before the tap-to-start screen. See
+  // private-documents/after-demo/RECORDING_DISCLAIMER_PLAN.md.
+  const [recordingDisclaimerConfirmed, setRecordingDisclaimerConfirmed] = useState(false);
   // Bumped to force the WS lifecycle effect to open a fresh connection — used when
   // re-entering voice after a silent phase (3, 7). See disconnectVoice/reconnectVoice.
   const [voiceConnectionEpoch, setVoiceConnectionEpoch] = useState(0);
@@ -251,6 +257,21 @@ export function useVoiceSession({
       if (localStorage.getItem(key)) sustainabilityConfirmedRef.current = true;
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
+
+  // Same pattern as sustainabilityConfirmedRef above, for the recording/transcript disclaimer —
+  // see private-documents/after-demo/RECORDING_DISCLAIMER_PLAN.md.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(`pecunai_recording_disclaimer_${sessionId}`)) {
+        setRecordingDisclaimerConfirmed(true);
+      }
+    } catch {}
+  }, [sessionId]);
+
+  const confirmRecordingDisclaimer = useCallback(() => {
+    setRecordingDisclaimerConfirmed(true);
+    try { localStorage.setItem(`pecunai_recording_disclaimer_${sessionId}`, "1"); } catch {}
   }, [sessionId]);
 
   const appendChatMessage = useCallback((text: string, sender: "ai" | "user", questionId?: string) => {
@@ -1316,6 +1337,8 @@ export function useVoiceSession({
     micAnalyserNode,
     micDenied,
     retryMicAccess,
+    recordingDisclaimerConfirmed,
+    confirmRecordingDisclaimer,
     isAISpeaking,
     bargeInActive,
     voiceAnswerCount,

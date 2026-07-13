@@ -18,6 +18,7 @@ import VoiceContractDocuments from "./VoiceContractDocuments";
 import VoiceSessionReview from "./VoiceSessionReview";
 import VoiceSigningPhase from "./VoiceSigningPhase";
 import VoiceMicAccessModal from "./VoiceMicAccessModal";
+import VoiceRecordingDisclaimerModal from "./VoiceRecordingDisclaimerModal";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 
 // ── Phase slide variants ──────────────────────────────────────────
@@ -107,7 +108,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
+  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
     useVoiceSession({
       sessionId,
       questions,
@@ -427,6 +428,15 @@ export default function VoiceSessionShell({
       </motion.div>
     </motion.div>
   ) : null;
+
+  // ── Recording disclaimer: blocks every phase, checked before mic access ──────────────
+  // Shown once per session (persisted, same localStorage pattern as the sustainability
+  // disclosure) before the customer can even reach the tap-to-start screen — must come before
+  // the mic-access check below, since nothing about starting the session has happened yet at
+  // this point. See private-documents/after-demo/RECORDING_DISCLAIMER_PLAN.md.
+  if (!recordingDisclaimerConfirmed) {
+    return <VoiceRecordingDisclaimerModal onConfirm={confirmRecordingDisclaimer} />;
+  }
 
   // ── Mic access required: blocks every phase ─────────────────────────
   // Mic access is mandatory — every phase uses push-to-talk. Checked before any phase branch
