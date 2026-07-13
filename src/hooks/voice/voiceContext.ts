@@ -73,6 +73,7 @@ export interface VoiceContext {
   latencyStartRef:           MutableRefObject<number>;
   activeSourcesRef:          MutableRefObject<AudioBufferSourceNode[]>;
   serverResponseActiveRef:   MutableRefObject<boolean>;
+  activeResponseIdRef:       MutableRefObject<string | null>;
   knowledgeBlockerNextQRef:  MutableRefObject<CarouselQuestion | null>;
   kbExplanationStartedRef:   MutableRefObject<boolean>;
   kbExplanationResponseIdRef:MutableRefObject<string | null>;

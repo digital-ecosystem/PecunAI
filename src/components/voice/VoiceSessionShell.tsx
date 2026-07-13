@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, User, Mic, VolumeX, Hand, Check } from "lucide-react";
+import { Menu, User, Mic, VolumeX, Hand, Check, ChevronRight } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
 import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
 import VoiceQuestionModal from "./VoiceQuestionModal";
@@ -577,6 +577,31 @@ export default function VoiceSessionShell({
               </motion.h1>
             </div>
           </div>
+
+          {/* Skip intro — Phase 0 intro only, not the Phase 2→3 / Phase 4 reuses of this screen.
+              Jumps straight to the Terms1 (4money) document instead of waiting for the AI to
+              finish introducing PecunAI. See
+              private-documents/after-demo/PHASE_0_INTRO_SKIP_PLAN.md. */}
+          {voicePhase === 0 && termsSubStep === 'intro' && (
+            <motion.button
+              className="fixed top-5 right-5 z-20 flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium"
+              style={{
+                background:     "rgba(255,255,255,0.85)",
+                backdropFilter: "blur(10px)",
+                border:         "1.5px solid rgba(59,130,246,0.5)",
+                color:          "rgba(37,99,235,0.9)",
+                boxShadow:      "0 2px 8px rgba(59,130,246,0.06)",
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => { stopAudio(); moveToTerms1(); }}
+            >
+              Überspringen
+              <ChevronRight size={16} />
+            </motion.button>
+          )}
 
           {/* Orb */}
           <div className="flex-1 flex flex-col items-center justify-center relative">

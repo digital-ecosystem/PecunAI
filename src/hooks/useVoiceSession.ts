@@ -209,6 +209,12 @@ export function useVoiceSession({
   const latencyStartRef        = useRef<number>(0); // VOICE-001: timestamp when user speech stopped, for latency measurement
   const activeSourcesRef        = useRef<AudioBufferSourceNode[]>([]); // all currently scheduled/playing audio sources — cleared on stopAudio
   const serverResponseActiveRef    = useRef(false); // true between response.created and response.done — prevents spurious cancel when no active response
+  // Response ID we're currently willing to accept audio for — set on every response.created,
+  // invalidated (null) by stopAudio()/barge-in. response.cancel stops future generation but
+  // doesn't retroactively discard audio already generated and in flight; without this, stale
+  // deltas for a response we've already moved past keep getting scheduled and played. See
+  // private-documents/after-demo/PHASE_0_INTRO_SKIP_PLAN.md.
+  const activeResponseIdRef       = useRef<string | null>(null);
   const knowledgeBlockerNextQRef   = useRef<CarouselQuestion | null>(null); // next question to ask after a knowledge-blocker overlay closes
   const kbExplanationStartedRef    = useRef(false); // true once the first explanation audio delta arrives — guards against stale cancelled-response audio.done closing the overlay early
   const kbExplanationResponseIdRef = useRef<string | null>(null); // response ID of the KB explanation response — stale cancelled-response events have a different ID and are ignored
@@ -683,6 +689,9 @@ export function useVoiceSession({
     activeSourcesRef.current.forEach(s => { try { s.stop(0); } catch {} });
     activeSourcesRef.current = [];
     nextPlayTimeRef.current = 0;
+    // Reject any further audio.delta/done events for the response we just stopped caring about —
+    // see activeResponseIdRef's declaration above.
+    activeResponseIdRef.current = null;
     if (audioEndTimer.current) {
       clearTimeout(audioEndTimer.current);
       audioEndTimer.current = null;
@@ -915,7 +924,7 @@ export function useVoiceSession({
     pendingVoiceTranscriptRef, currentSpeechItemIdRef, applyPendingTranscriptRef,
     needsTranscriptBubbleRef, questionsRef, stateRef, micStreamRef, micSourceRef,
     workletNodeRef, micAnalyserRef, mutedRef, explainOpenRef, latencyStartRef,
-    activeSourcesRef, serverResponseActiveRef, knowledgeBlockerNextQRef,
+    activeSourcesRef, serverResponseActiveRef, activeResponseIdRef, knowledgeBlockerNextQRef,
     kbExplanationStartedRef, kbExplanationResponseIdRef, pendingPhaseTransitionRef,
     chatOpenRef, chatAnsweredRef,
     voiceThreadIdRef, explainIdleTimerRef, resetExplainIdleRef, productVectorIdRef,

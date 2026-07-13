@@ -17,7 +17,7 @@ export async function handleWsMessage(
   const {
     sessionConfiguredRef, initialIndexRef, micStreamRef, audioCtxRef,
     voicePhaseRef, termsSubStepRef, stateRef, chatOpenRef, pttActiveRef, mutedRef,
-    explainOpenRef, serverResponseActiveRef, pendingCall, aiTextBufferRef, aiAudioTranscriptRef,
+    explainOpenRef, serverResponseActiveRef, activeResponseIdRef, pendingCall, aiTextBufferRef, aiAudioTranscriptRef,
     lastAITranscriptRef, pendingVoiceTranscriptRef, currentSpeechItemIdRef,
     applyPendingTranscriptRef, needsTranscriptBubbleRef,
     kbExplanationStartedRef, kbExplanationResponseIdRef, isAISpeakingRef, bargeInActiveRef,
@@ -220,6 +220,13 @@ export async function handleWsMessage(
     }
 
     case "response.output_audio.delta": {
+      // Reject stale audio for a response we've already stopAudio()'d/barged past — cancel
+      // doesn't retroactively discard audio the server already generated and is still
+      // streaming. See private-documents/after-demo/PHASE_0_INTRO_SKIP_PLAN.md.
+      {
+        const responseId = (msg as { response_id?: string }).response_id;
+        if (responseId && responseId !== activeResponseIdRef.current) break;
+      }
       // Tracks any open explanation (general explain_topic flow or the KB two-strike flow) —
       // see private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
       if (explainOpenRef.current) {
@@ -247,6 +254,12 @@ export async function handleWsMessage(
     }
 
     case "response.output_audio.done": {
+      // Reject stale audio.done for a response we've already stopAudio()'d/barged past. See
+      // private-documents/after-demo/PHASE_0_INTRO_SKIP_PLAN.md.
+      {
+        const responseId = (msg as { response_id?: string }).response_id;
+        if (responseId && responseId !== activeResponseIdRef.current) break;
+      }
       // If an explanation overlay is open and this done event belongs to a cancelled/stale
       // response (not the current explanation's own response), ignore it — stopAudio already
       // cleaned up. See private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
@@ -539,6 +552,7 @@ export async function handleWsMessage(
       activeSourcesRef.current.forEach(s => { try { s.stop(0); } catch {} });
       activeSourcesRef.current = [];
       nextPlayTimeRef.current = 0;
+      activeResponseIdRef.current = null; // reject any further stale audio for the barged-past response
       if (vc.audioEndTimer.current) {
         clearTimeout(vc.audioEndTimer.current);
         vc.audioEndTimer.current = null;
@@ -559,6 +573,9 @@ export async function handleWsMessage(
 
     case "response.created": {
       serverResponseActiveRef.current = true;
+      // See activeResponseIdRef's declaration in useVoiceSession.ts — rejects stale audio from
+      // a response we've since stopped/cancelled/barged past.
+      activeResponseIdRef.current = (msg.response as { id: string }).id;
       if (explainOpenRef.current) {
         // Track which response is the current explanation (general or KB) so stale
         // cancelled-response events are filtered out. See

@@ -1,17 +1,24 @@
 import { TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
-/** Called from VoiceSessionShell when intro speech ends (isAISpeaking goes false in Phase 0 intro) */
+/** Called both from VoiceSessionShell's auto-advance effect (isAISpeaking goes false in Phase 0
+ *  intro) AND from the intro screen's skip button — see
+ *  private-documents/after-demo/PHASE_0_INTRO_SKIP_PLAN.md. The guard + ref/state flip happen
+ *  synchronously, before the fetch, so whichever caller runs first wins and the other bails —
+ *  otherwise tapping skip while the AI is mid-intro would race the auto-advance effect (skip's
+ *  stopAudio() flips isAISpeaking false, which is exactly what that effect watches for) into
+ *  double-sending response.create. */
 export async function handleMoveToTerms1(ctx: VoiceContext): Promise<void> {
   const { sessionId, termsSubStepRef, langRef, setTermsSubStep, saveVoiceState, send } = ctx;
+  if (termsSubStepRef.current !== 'intro') return;
+  termsSubStepRef.current = 'terms1';
+  setTermsSubStep('terms1');
 
-  await fetch("/api/phase", {
+  fetch("/api/phase", {
     method:  "POST",
     headers: { "Content-Type": "application/json" },
     body:    JSON.stringify({ sessionId, phase: "TERMS1" }),
-  });
-  termsSubStepRef.current = 'terms1';
-  setTermsSubStep('terms1');
+  }).catch(() => {});
   saveVoiceState(0).catch(() => {});
   send({ type: "response.create", response: { instructions: TERMS1_EXPLAIN_INSTRUCTIONS(langRef.current) } });
 }
