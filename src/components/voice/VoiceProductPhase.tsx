@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, User, Mic, MicOff, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Menu, User, Mic, X, ChevronLeft, ChevronRight } from "lucide-react";
 import dynamic from "next/dynamic";
 import { AnimatedFrame } from "./AnimatedFrame";
 import { ProductData, SessionState } from "@/hooks/useVoiceSession";

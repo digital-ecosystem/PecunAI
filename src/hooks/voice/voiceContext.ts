@@ -101,7 +101,6 @@ export interface VoiceContext {
   langRef:                   MutableRefObject<"de" | "en">;
   isRevisitingRef:           MutableRefObject<boolean>;
   sustainabilityConfirmedRef:MutableRefObject<boolean>;
-  micGrantedRef:             MutableRefObject<boolean | null>;
   isAISpeakingRef:           MutableRefObject<boolean>;
   bargeInActiveRef:          MutableRefObject<boolean>;
   sessionConfiguredRef:      MutableRefObject<boolean>;

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Mic, MicOff, ChevronLeft, ChevronRight, MessageCircle, Zap } from "lucide-react";
+import { Mic, ChevronLeft, ChevronRight, MessageCircle, Zap } from "lucide-react";
 
 interface ControlBarProps {
   onPTTStart:   () => void;
@@ -10,7 +10,6 @@ interface ControlBarProps {
   onPrevious:   () => void;
   onNext:       () => void;
   onChatClick:  () => void;
-  micGranted?:  boolean | null;
   isFastMode:      boolean;
   onFastModeToggle: () => void;
 }
@@ -22,11 +21,9 @@ export default function ControlBar({
   onPrevious,
   onNext,
   onChatClick,
-  micGranted,
   isFastMode,
   onFastModeToggle,
 }: ControlBarProps) {
-  const micDenied = micGranted === false;
   return (
     <div
       className="w-full px-6 py-4 rounded-t-3xl"
@@ -114,29 +111,23 @@ export default function ControlBar({
           style={{
             width:      56,
             height:     56,
-            background: micDenied
-              ? "linear-gradient(135deg, rgba(156,163,175,0.15) 0%, rgba(107,114,128,0.1) 100%)"
-              : isPTTActive
+            background: isPTTActive
               ? "linear-gradient(135deg, rgba(37,99,235,0.25) 0%, rgba(29,78,216,0.15) 100%)"
               : "linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.1) 100%)",
-            border: micDenied
-              ? "1px solid rgba(156,163,175,0.2)"
-              : isPTTActive
+            border: isPTTActive
               ? "1px solid rgba(29,78,216,0.3)"
               : "1px solid rgba(59,130,246,0.2)",
           }}
           animate={isPTTActive ? { scale: [0.93, 0.96, 0.93] } : { scale: 1 }}
           transition={isPTTActive ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" } : {}}
-          onMouseDown={micDenied ? undefined : onPTTStart}
-          onMouseUp={micDenied ? undefined : onPTTRelease}
-          onMouseLeave={!micDenied && isPTTActive ? onPTTRelease : undefined}
-          onTouchStart={micDenied ? undefined : onPTTStart}
-          onTouchEnd={micDenied ? undefined : onPTTRelease}
-          onTouchCancel={micDenied ? undefined : onPTTRelease}
+          onMouseDown={onPTTStart}
+          onMouseUp={onPTTRelease}
+          onMouseLeave={isPTTActive ? onPTTRelease : undefined}
+          onTouchStart={onPTTStart}
+          onTouchEnd={onPTTRelease}
+          onTouchCancel={onPTTRelease}
         >
-          {micDenied
-            ? <MicOff size={24} style={{ color: "rgba(156,163,175,0.7)" }} />
-            : <Mic    size={24} style={{ color: isPTTActive ? "rgba(29,78,216,0.9)" : "rgba(59,130,246,0.8)" }} />}
+          <Mic size={24} style={{ color: isPTTActive ? "rgba(29,78,216,0.9)" : "rgba(59,130,246,0.8)" }} />
         </motion.button>
 
       </div>

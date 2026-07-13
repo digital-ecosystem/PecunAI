@@ -17,6 +17,7 @@ import VoiceInvestmentForm from "./VoiceInvestmentForm";
 import VoiceContractDocuments from "./VoiceContractDocuments";
 import VoiceSessionReview from "./VoiceSessionReview";
 import VoiceSigningPhase from "./VoiceSigningPhase";
+import VoiceMicAccessModal from "./VoiceMicAccessModal";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 
 // ── Phase slide variants ──────────────────────────────────────────
@@ -106,7 +107,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
+  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
     useVoiceSession({
       sessionId,
       questions,
@@ -245,15 +246,6 @@ export default function VoiceSessionShell({
     prevSpeakingRef.current = isAISpeaking;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAISpeaking]);
-
-  // Mic-denied: auto-open the modal when the AI finishes speaking so the customer
-  // doesn't have to manually find and tap the carousel card.
-  // suppressAutoModalRef prevents re-opening after a manual close until the question changes.
-  useEffect(() => {
-    if (micGranted === false && state.session === "listening" && !modalOpen && !suppressAutoModalRef.current && !chatOpen && !explainOpen) {
-      setModalOpen(true);
-    }
-  }, [micGranted, state.session, modalOpen, explainOpen]);
 
   // viewIndex is derived directly from activeCardId — the hook's explicit source of truth
   // for which question the AI is currently on. No state machine sync needed.
@@ -435,6 +427,17 @@ export default function VoiceSessionShell({
       </motion.div>
     </motion.div>
   ) : null;
+
+  // ── Mic access required: blocks every phase ─────────────────────────
+  // Mic access is mandatory — every phase uses push-to-talk. Checked before any phase branch
+  // below (including the Phase 3/7 silent screens) so a denial always takes over, whether it
+  // came from a fresh tap-to-start, a cold-resume tap, or the live Phase 3→4 handoff's
+  // reconnectVoice() (voicePhase already flips to 4 synchronously before that runs, so this
+  // check must come first to intercept it). See
+  // private-documents/after-demo/MIC_ACCESS_REQUIRED_PLAN.md.
+  if (micDenied) {
+    return <VoiceMicAccessModal onRetry={retryMicAccess} />;
+  }
 
   // ── Phase 3 — Personal Info: silent, tap-only, no voice UI at all ───
   // Checked first and unconditionally on voicePhase, independent of `started` — this phase
@@ -829,12 +832,6 @@ export default function VoiceSessionShell({
               {STATUS_LABEL[state.session]}
             </motion.p>
 
-            {micGranted === false && (
-              <p className="text-xs" style={{ color: "rgba(107,114,128,0.7)" }}>
-                Kein Mikrofon – Tippen Sie Ihre Antworten
-              </p>
-            )}
-
             {state.session === "error" && state.errorMessage && (
               <p className="text-xs text-red-400">{state.errorMessage}</p>
             )}
@@ -935,7 +932,6 @@ export default function VoiceSessionShell({
             skipQuestion(questions[viewIndex]);
           }}
           onChatClick={() => setChatOpen(true)}
-          micGranted={micGranted}
           isFastMode={fastMode}
           onFastModeToggle={toggleFastMode}
         />

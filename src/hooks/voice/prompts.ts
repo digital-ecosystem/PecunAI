@@ -9,7 +9,6 @@ import { ExplainOverlayData } from "./types";
 export function buildSystemPrompt(
   questions:    CarouselQuestion[],
   resumeIndex:  number,
-  micGranted:   boolean | null,
   skippedIds?:  ReadonlySet<string>,
   isRevisiting?: boolean,
   lang:         "de" | "en" = "de",
@@ -54,10 +53,6 @@ export function buildSystemPrompt(
       ? `\n\nYou resumed a previous session (topics marked above). Open with a warm one-sentence welcome-back and pick up naturally from topic ${resumeIndex + 1}.${skippedCount > 0 ? ` Note: ${skippedCount} topic(s) earlier were skipped (marked SKIPPED above) — do NOT ask them now, they will circle back automatically at the end.` : ""}`
       : "");
 
-  const micBlock = micGranted === false
-    ? `\n\n## Mic Access\n\nThe customer has not granted microphone access — they are in tap-only mode. Answer cards appear on screen automatically after you finish speaking each topic. In your opening greeting, mention this naturally — e.g. "I noticed you haven't given microphone access, no worries at all — answer cards will appear on screen for you to tap. You can always enable your mic in browser settings if you change your mind." Do not repeat this reminder after the greeting.`
-    : "";
-
   return `# Role and Objective
 
 You are PecunAI, a warm digital investment advisor having a one-on-one consultation with a new customer. Your goal is to understand their financial situation well enough to recommend the right investment product — through genuine conversation, not a form.
@@ -86,7 +81,7 @@ Short, warm, each response reacts to the previous answer and flows naturally int
 - Never say "Question", "Next topic", "Moving on", or reveal any structure.
 - Never read a list of options aloud — weave them in naturally: "Are you thinking more X or Y?"
 - Follow the topic order given by [SYSTEM] messages exactly. Never reorder, cluster, or jump to a different topic than instructed.
-- Match the customer's energy: if they're brief, be brief. If they open up, show genuine interest.${resumeBlock}${micBlock}
+- Match the customer's energy: if they're brief, be brief. If they open up, show genuine interest.${resumeBlock}
 
 # Reasoning
 

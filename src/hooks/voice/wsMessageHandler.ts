@@ -15,7 +15,7 @@ export async function handleWsMessage(
   }
 
   const {
-    sessionConfiguredRef, initialIndexRef, micStreamRef, micGrantedRef, audioCtxRef,
+    sessionConfiguredRef, initialIndexRef, micStreamRef, audioCtxRef,
     voicePhaseRef, termsSubStepRef, stateRef, chatOpenRef, pttActiveRef, mutedRef,
     explainOpenRef, serverResponseActiveRef, pendingCall, aiTextBufferRef, aiAudioTranscriptRef,
     lastAITranscriptRef, pendingVoiceTranscriptRef, currentSpeechItemIdRef,
@@ -85,7 +85,7 @@ export async function handleWsMessage(
           type:              "realtime",
           model:             "gpt-realtime-1.5",
           output_modalities: ["audio"],
-          instructions:      buildSystemPrompt(questionsRef.current, resumeIdx, micGrantedRef.current, skippedIdsRef.current, isRevisitingRef.current, langRef.current),
+          instructions:      buildSystemPrompt(questionsRef.current, resumeIdx, skippedIdsRef.current, isRevisitingRef.current, langRef.current),
           tools:             TOOLS,
           tool_choice:       "auto",
           audio: {

@@ -57,7 +57,10 @@ export function useVoiceSession({
   // Exposed to UI components for waveform / sphere visualization
   const [analyserNode,    setAnalyserNode]    = useState<AnalyserNode | null>(null);
   const [micAnalyserNode, setMicAnalyserNode] = useState<AnalyserNode | null>(null);
-  const [micGranted,      setMicGranted]      = useState<boolean | null>(null);
+  // True whenever a mic request (startSession/reconnectVoice) just failed — mic access is
+  // mandatory, so this blocks the session via VoiceMicAccessModal until it succeeds. See
+  // private-documents/after-demo/MIC_ACCESS_REQUIRED_PLAN.md.
+  const [micDenied,       setMicDenied]        = useState(false);
   const [isAISpeaking,    setIsAISpeaking]    = useState(false);
   const isAISpeakingRef = useRef(false);
   const [bargeInActive,   setBargeInActive]   = useState(false);
@@ -128,8 +131,6 @@ export function useVoiceSession({
   const initialIndexRef  = useRef(initialQuestionIndex);
   // Guards against duplicate mic setup / response.create when session.update is re-sent mid-session (e.g. on skip).
   const sessionConfiguredRef = useRef(false);
-  // Stable ref for mic permission — set in startSession() before WS opens so it's ready at session.created time.
-  const micGrantedRef    = useRef<boolean | null>(null);
   // Tracks answered question IDs in the current session — injected into each AI response so it never loses track.
   const answeredIdsRef   = useRef<Set<string>>(new Set(initialAnsweredIds));
   // Tracks explicitly skipped question IDs — cleared when the question is later answered.
@@ -718,14 +719,19 @@ export function useVoiceSession({
     audioCtxRef.current?.resume();
     if (gainRef.current && !mutedRef.current) gainRef.current.gain.value = 1;
     console.log("[voice] reconnectVoice — ctx.state after resume:", audioCtxRef.current?.state);
+    // Mic access is mandatory — block the session (via VoiceMicAccessModal) rather than
+    // silently proceeding without one. See private-documents/after-demo/MIC_ACCESS_REQUIRED_PLAN.md.
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicDenied(true);
+      return;
+    }
     try {
-      if (navigator.mediaDevices?.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        micStreamRef.current = stream;
-        micGrantedRef.current = true;
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = stream;
+      setMicDenied(false);
     } catch {
-      micGrantedRef.current = false; // tap-only fallback, same as startSession()
+      setMicDenied(true);
+      return;
     }
     setVoiceConnectionEpoch(e => e + 1);
   }, [setupAudio]);
@@ -895,7 +901,7 @@ export function useVoiceSession({
     productRef, pttVectorStoreRef, pttActiveRef, pttContextRef, pttSearchPendingRef,
     pttDocLabelRef, pttPartialTranscriptRef, pttSpeculativeSearchRef, savedAnswersRef,
     answeredIdsRef, skippedIdsRef, explainedQuestionsRef, activeCardIdRef, voicePhaseRef,
-    termsSubStepRef, langRef, isRevisitingRef, sustainabilityConfirmedRef, micGrantedRef,
+    termsSubStepRef, langRef, isRevisitingRef, sustainabilityConfirmedRef,
     isAISpeakingRef, bargeInActiveRef, sessionConfiguredRef, initialIndexRef,
     circleBackActiveRef, skipInProgressRef, prevInProgressRef, scrollDebounceTimerRef,
     assetKnowledgeShownRef, fastModeRef,
@@ -1103,28 +1109,39 @@ export function useVoiceSession({
     []
   );
 
-  /** Must be called from a user-gesture handler (tap/click) to unlock AudioContext */
+  /** Must be called from a user-gesture handler (tap/click) to unlock AudioContext.
+   *  Mic access is mandatory — on denial, blocks the session via VoiceMicAccessModal instead of
+   *  silently falling back to tap-only. See private-documents/after-demo/MIC_ACCESS_REQUIRED_PLAN.md. */
   const startSession = useCallback(async () => {
     await setupAudio();
     audioCtxRef.current?.resume();
 
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicDenied(true);
+      return;
+    }
     try {
-      if (navigator.mediaDevices?.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        micStreamRef.current = stream;
-        micGrantedRef.current = true;
-        setMicGranted(true);
-      } else {
-        micGrantedRef.current = false;
-        setMicGranted(false);
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = stream;
+      setMicDenied(false);
     } catch {
-      micGrantedRef.current = false;
-      setMicGranted(false); // silent tap-only fallback — no error shown
+      setMicDenied(true);
+      return;
     }
 
     setStarted(true);
   }, [setupAudio]);
+
+  /** Retries whichever mic-acquiring step last failed — startSession() before the session has
+   *  opened, reconnectVoice() for the Phase 3→4 handoff. Single entry point for
+   *  VoiceMicAccessModal's retry button. */
+  const retryMicAccess = useCallback(() => {
+    if (started) {
+      reconnectVoice();
+    } else {
+      startSession();
+    }
+  }, [started, startSession, reconnectVoice]);
 
   const startPTT = useCallback(() => {
     pttActiveRef.current = true;
@@ -1297,7 +1314,8 @@ export function useVoiceSession({
     started,
     analyserNode,
     micAnalyserNode,
-    micGranted,
+    micDenied,
+    retryMicAccess,
     isAISpeaking,
     bargeInActive,
     voiceAnswerCount,
