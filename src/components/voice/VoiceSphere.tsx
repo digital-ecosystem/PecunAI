@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
+import { SPHERE_NODE_COUNT, SPHERE_COLORS, generateSphereNodes, buildSphereConnections, projectSpherePoint } from "./sphereMath";
 
 interface VoiceSphereProps {
   isActive?: boolean;
@@ -12,12 +13,7 @@ interface VoiceSphereProps {
   micAnalyserNode?: AnalyserNode | null;
 }
 
-// RGB colour sets: [primary, secondary]
-const COLORS = {
-  speaking:  { r: 59,  g: 130, b: 246, r2: 147, g2: 197, b2: 253 }, // blue
-  listening: { r: 22,  g: 163, b: 74,  r2: 134, g2: 239, b2: 172 }, // green
-  idle:      { r: 59,  g: 130, b: 246, r2: 147, g2: 197, b2: 253 }, // blue (default)
-};
+const COLORS = SPHERE_COLORS;
 
 export default function VoiceSphere({
   isActive = false,
@@ -62,44 +58,23 @@ export default function VoiceSphere({
     const cx = size / 2;
     const cy = size / 2;
     const baseRadius = size * 0.3;
-    const nodeCount  = 80;
+    const nodeCount  = SPHERE_NODE_COUNT;
+
+    const basePositions = generateSphereNodes(nodeCount, baseRadius);
 
     const nodes: Array<{
       x: number; y: number; z: number;
       baseX: number; baseY: number; baseZ: number;
       energy: number;
-    }> = [];
+    }> = basePositions.map(({ x, y, z }) => ({ x, y, z, baseX: x, baseY: y, baseZ: z, energy: 0 }));
 
-    for (let i = 0; i < nodeCount; i++) {
-      const phi   = Math.acos(-1 + (2 * i) / nodeCount);
-      const theta = Math.sqrt(nodeCount * Math.PI) * phi;
-      const x     = Math.cos(theta) * Math.sin(phi) * baseRadius;
-      const y     = Math.sin(theta) * Math.sin(phi) * baseRadius;
-      const z     = Math.cos(phi) * baseRadius;
-      nodes.push({ x, y, z, baseX: x, baseY: y, baseZ: z, energy: 0 });
-    }
-
-    const connections: Array<[number, number]> = [];
     const maxDist = baseRadius * 0.8;
-    for (let i = 0; i < nodeCount; i++) {
-      for (let j = i + 1; j < nodeCount; j++) {
-        const dx = nodes[i].baseX - nodes[j].baseX;
-        const dy = nodes[i].baseY - nodes[j].baseY;
-        const dz = nodes[i].baseZ - nodes[j].baseZ;
-        if (Math.sqrt(dx * dx + dy * dy + dz * dz) < maxDist) connections.push([i, j]);
-      }
-    }
+    const connections = buildSphereConnections(basePositions, maxDist);
 
     let time     = 0;
     let rotY     = 0;
 
-    const project = (x: number, y: number, z: number) => {
-      const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
-      const x1   = x * cosY - z * sinY;
-      const z1   = x * sinY + z * cosY;
-      const s    = 300 / (300 + z1);
-      return { x: cx + x1 * s, y: cy + y * s, z: z1, scale: s };
-    };
+    const project = (x: number, y: number, z: number) => projectSpherePoint(x, y, z, cx, cy, rotY);
 
     const animate = () => {
       ctx.clearRect(0, 0, size, size);

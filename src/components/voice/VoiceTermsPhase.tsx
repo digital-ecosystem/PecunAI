@@ -1,13 +1,25 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Mic } from "lucide-react";
-import VoiceSphere from "./VoiceSphere";
 import { AnimatedFrame } from "./AnimatedFrame";
+import { SphereToFrameTransition } from "./SphereToFrameTransition";
+import type { FrameRect } from "./frameMath";
 import { FourMoneyInfo } from "@/components/terms/FourMoneyInfo";
 import { FrootsCustomerInfo } from "@/components/terms/FrootsCustomerInfo";
 import { SustainabilityRisksInfo } from "@/components/terms/SustainabilityRisksInfo";
+
+// Matches VoiceSessionShell's intro-screen orb (size={380}) and its header
+// height, so the morph starts from exactly where the live sphere was — no pop.
+const INTRO_SPHERE_SIZE = 380;
+const INTRO_HEADER_HEIGHT = 84;
+
+function getSphereOrigin() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  return { x: vw / 2, y: INTRO_HEADER_HEIGHT + (vh - INTRO_HEADER_HEIGHT) / 2 };
+}
 
 interface VoiceTermsPhaseProps {
   which:          'terms1' | 'terms2' | 'sustainabilityTerms';
@@ -36,28 +48,68 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTSta
   const isTerms2 = which !== 'terms1';
 
   const [showTransition, setShowTransition] = useState(!isTerms2);
+  const [revealContent,  setRevealContent]  = useState(isTerms2);
   const [confirmed,      setConfirmed]      = useState(false);
   const [confirming,     setConfirming]     = useState(false);
   const [isPTTActive,    setIsPTTActive]    = useState(false);
   // Start with null — set properly on first client render to avoid SSR mismatch
   const [contentSize,    setContentSize]    = useState<{ width: number; height: number } | null>(null);
+  const [sphereOrigin,   setSphereOrigin]   = useState<{ x: number; y: number } | null>(null);
+  const [contentRect,    setContentRect]    = useState<FrameRect | null>(null);
+
+  const contentBoxRef = useRef<HTMLDivElement>(null);
 
   // Set real size on mount (runs only on client)
   useEffect(() => {
     setContentSize(getContentSize());
+    setSphereOrigin(getSphereOrigin());
   }, []);
 
   useEffect(() => {
-    const onResize = () => setContentSize(getContentSize());
+    const onResize = () => {
+      setContentSize(getContentSize());
+      setSphereOrigin(getSphereOrigin());
+    };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // Measure the real AnimatedFrame content box so the morph's frame target
+  // wraps exactly where the document will actually appear.
   useEffect(() => {
-    if (isTerms2) return;
-    const t = setTimeout(() => setShowTransition(false), 1500);
+    if (isTerms2 || !showTransition || !contentSize) return;
+
+    let raf = 0;
+    let attempts = 0;
+
+    const measure = () => {
+      const el = contentBoxRef.current;
+      if (el) {
+        const b = el.getBoundingClientRect();
+        if (b.width > 0 && b.height > 0) {
+          setContentRect({ x: b.left, y: b.top, w: b.width, h: b.height });
+          return;
+        }
+      }
+      attempts += 1;
+      if (attempts < 30) raf = requestAnimationFrame(measure);
+    };
+
+    raf = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(raf);
+  }, [isTerms2, showTransition, contentSize]);
+
+  // Safety net: if the morph never reports back (e.g. the content rect never
+  // resolves), reveal the real content and drop the transition canvas anyway
+  // instead of leaving the screen stuck.
+  useEffect(() => {
+    if (isTerms2 || !showTransition) return;
+    const t = setTimeout(() => {
+      setRevealContent(true);
+      setShowTransition(false);
+    }, 1800);
     return () => clearTimeout(t);
-  }, [isTerms2]);
+  }, [isTerms2, showTransition]);
 
   const handleConfirm = () => {
     if (confirming || confirmed) return;
@@ -93,51 +145,15 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTSta
       animate={isTerms2 ? { x: 0 }      : {}}
       transition={{ duration: 0.42, ease: [0.4, 0, 0.2, 1] }}
     >
-      {/* ── Entry transition (terms1 only) — phantom orb + card ───── */}
-      {!isTerms2 && (
-        <AnimatePresence>
-          {showTransition && (
-            <>
-              <motion.div
-                key="transition-orb"
-                className="fixed z-[60] flex items-center justify-center pointer-events-none"
-                initial={{ top: "50%", left: "50%", x: "-50%", y: "-50%" }}
-                animate={{ top: "80px", scale: [1, 0.4], opacity: [1, 0.8, 0] }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1.3, ease: [0.4, 0, 0.2, 1] }}
-              >
-                <VoiceSphere isActive isSpeaking size={280} analyserNode={null} />
-              </motion.div>
-
-              <motion.div
-                key="transition-card"
-                className="fixed z-[60] px-6 pointer-events-none"
-                style={{ width: "100%", maxWidth: "400px", left: "50%", x: "-50%" }}
-                initial={{ bottom: "120px" }}
-                animate={{ bottom: "-100px", opacity: [1, 0.5, 0] }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1.1, ease: [0.4, 0, 0.2, 1] }}
-              >
-                <div
-                  className="relative overflow-hidden rounded-3xl px-6 py-5"
-                  style={{
-                    background:     "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)",
-                    backdropFilter: "blur(20px)",
-                    border:         "1px solid rgba(255,255,255,0.5)",
-                    boxShadow:      "0 0 40px rgba(59,130,246,0.6), 0 8px 32px rgba(59,130,246,0.15)",
-                  }}
-                >
-                  <div className="text-xs font-medium mb-2" style={{ color: "rgba(59,130,246,0.8)" }}>
-                    Dokumente
-                  </div>
-                  <p className="text-base font-medium" style={{ color: "rgba(15,23,42,0.9)" }}>
-                    {title}
-                  </p>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+      {/* ── Entry transition (terms1 only) — sphere morphs into the document frame ── */}
+      {!isTerms2 && showTransition && sphereOrigin && contentRect && (
+        <SphereToFrameTransition
+          sphereCenter={sphereOrigin}
+          sphereRadius={INTRO_SPHERE_SIZE * 0.3}
+          contentRect={contentRect}
+          onMostlyDone={() => setRevealContent(true)}
+          onComplete={() => setShowTransition(false)}
+        />
       )}
 
       {/* ── Main content — matches reference App.tsx layout exactly ── */}
@@ -151,36 +167,40 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTSta
           <motion.div
             className="flex flex-col items-center gap-5"
             initial={{ opacity: 0 }}
-            animate={{ opacity: showTransition ? 0 : 1 }}
-            transition={{ delay: showTransition ? 0 : 0.25, duration: 0.45 }}
+            animate={{ opacity: revealContent ? 1 : 0 }}
+            transition={{ duration: 0.4 }}
           >
-            {/* AnimatedFrame wrapping scrollable terms content */}
-            <AnimatedFrame
-              contentWidth={cw}
-              contentHeight={ch}
-              isSpeaking={isSpeaking}
-              isListening={isPTTActive}
-            >
-              <div
-                className="w-full h-full overflow-y-auto"
-                style={{
-                  background:   "rgba(255,255,255,0.97)",
-                  borderRadius: Math.round(cw * 0.04),
-                }}
+            {/* AnimatedFrame wrapping scrollable terms content. contentBoxRef
+                measures this exact box (even while invisible) so the sphere
+                morph's frame target lines up with where it will really sit. */}
+            <div ref={contentBoxRef}>
+              <AnimatedFrame
+                contentWidth={cw}
+                contentHeight={ch}
+                isSpeaking={isSpeaking}
+                isListening={isPTTActive}
               >
-                <div className="px-5 py-4">
-                  <h2 className="text-base font-bold mb-1" style={{ color: "rgba(15,23,42,0.9)" }}>{title}</h2>
-                  <p className="text-xs mb-3" style={{ color: "rgba(59,130,246,0.7)" }}>{subtitle}</p>
-                  <div className="text-sm" style={{ color: "rgba(15,23,42,0.75)", lineHeight: 1.7 }}>
-                    {which === 'terms2'
-                      ? <FrootsCustomerInfo />
-                      : which === 'sustainabilityTerms'
-                      ? <SustainabilityRisksInfo />
-                      : <FourMoneyInfo />}
+                <div
+                  className="w-full h-full overflow-y-auto"
+                  style={{
+                    background:   "rgba(255,255,255,0.97)",
+                    borderRadius: Math.round(cw * 0.04),
+                  }}
+                >
+                  <div className="px-5 py-4">
+                    <h2 className="text-base font-bold mb-1" style={{ color: "rgba(15,23,42,0.9)" }}>{title}</h2>
+                    <p className="text-xs mb-3" style={{ color: "rgba(59,130,246,0.7)" }}>{subtitle}</p>
+                    <div className="text-sm" style={{ color: "rgba(15,23,42,0.75)", lineHeight: 1.7 }}>
+                      {which === 'terms2'
+                        ? <FrootsCustomerInfo />
+                        : which === 'sustainabilityTerms'
+                        ? <SustainabilityRisksInfo />
+                        : <FourMoneyInfo />}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </AnimatedFrame>
+              </AnimatedFrame>
+            </div>
 
             {/* Confirm button — same width as frame, below it */}
             <motion.button
