@@ -621,7 +621,9 @@ export function useVoiceSession({
       isAISpeakingRef.current = false;
       setIsAISpeaking(false);
       if (!mutedRef.current) dispatch({ type: "AI_DONE" });
-      if (knowledgeBlockerNextQRef.current && kbExplanationStartedRef.current) {
+      // Auto-close any open explanation (general or KB) once its audio finishes — see
+      // private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
+      if (explainOpenRef.current && kbExplanationStartedRef.current) {
         kbExplanationStartedRef.current = false;
         setExplainTriggerClose(true);
       }
@@ -637,7 +639,9 @@ export function useVoiceSession({
       isAISpeakingRef.current = false;
       setIsAISpeaking(false);
       if (!pendingCall.current && !mutedRef.current) dispatch({ type: "AI_DONE" });
-      if (knowledgeBlockerNextQRef.current && kbExplanationStartedRef.current) {
+      // Auto-close any open explanation (general or KB) once its audio finishes — see
+      // private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
+      if (explainOpenRef.current && kbExplanationStartedRef.current) {
         kbExplanationStartedRef.current = false;
         setExplainTriggerClose(true);
       }

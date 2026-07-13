@@ -19,7 +19,7 @@ export async function handleFunctionCall(
     skipInProgressRef, prevInProgressRef, assetKnowledgeShownRef, pendingPhaseTransitionRef, fastModeRef, mutedRef,
     send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase,
     advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign, setIsRevisiting_internal, router, sessionId,
-    setPendingVoiceAnswer, setExplainOverlayData, setExplainTriggerClose, setTermsSubStep,
+    setPendingVoiceAnswer, setExplainOverlayData, setTermsSubStep,
     setVoicePhase, setProductSuggestion, setSavedAnswers, setVoiceAnswerCount, setChatMessages,
   } = ctx;
 
@@ -480,13 +480,9 @@ export async function handleFunctionCall(
     }
 
     if (name === "close_explanation") {
-      if (knowledgeBlockerNextQRef.current) {
-        // KB overlay closes automatically when audio finishes — block AI from calling this early.
-        sendResult({ success: false, reason: "Do not call close_explanation during a knowledge explanation — the overlay closes automatically when you finish speaking." });
-        return;
-      }
-      sendResult({ success: true });
-      setExplainTriggerClose(true);
+      // Every explanation overlay (general or KB) now closes automatically once its audio
+      // finishes — see private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
+      sendResult({ success: false, reason: "Do not call close_explanation — the overlay closes automatically when you finish speaking." });
       return;
     }
 

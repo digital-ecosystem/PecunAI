@@ -20,7 +20,6 @@ interface VoiceExplainOverlayProps {
   questionCategory: string;
   questionText:     string;
   analyserNode:     AnalyserNode | null;
-  micAnalyserNode:  AnalyserNode | null;
   isAISpeaking:     boolean;
   triggerClose?:    boolean;
   onClose:          () => void;
@@ -33,8 +32,6 @@ const MAX_H     = 80;
 
 const AI_BAR_BG     = "linear-gradient(180deg, rgba(59,130,246,0.8) 0%, rgba(147,197,253,0.6) 100%)";
 const AI_BAR_SHADOW = "0 0 8px rgba(59,130,246,0.4)";
-const MIC_BAR_BG    = "linear-gradient(180deg, rgba(34,197,94,0.9) 0%, rgba(134,239,172,0.6) 100%)";
-const MIC_BAR_SHADOW = "0 0 8px rgba(34,197,94,0.5)";
 
 const IDLE_BAR_STYLE = {
   width:      2.5,
@@ -42,59 +39,43 @@ const IDLE_BAR_STYLE = {
   boxShadow:  AI_BAR_SHADOW,
 } as const;
 
-function WaveformBars({ analyserNode, micAnalyserNode }: {
-  analyserNode:    AnalyserNode | null;
-  micAnalyserNode: AnalyserNode | null;
-}) {
+function WaveformBars({ analyserNode }: { analyserNode: AnalyserNode | null }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rafRef       = useRef<number | null>(null);
+  // Kept within [20, MAX_H] — the same range real audio data produces — so no bar ever exceeds
+  // the container's fixed height (avoids a mobile-Safari layout shift, see
+  // private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md).
   const idleBars = useMemo(
     () => Array.from({ length: BAR_COUNT }, () => [
-      Math.random() * MAX_H + 20,
-      Math.random() * MAX_H + 20,
+      Math.random() * (MAX_H - 20) + 20,
+      Math.random() * (MAX_H - 20) + 20,
     ]),
     [],
   );
 
   useEffect(() => {
     if (!analyserNode || !containerRef.current) return;
-    const aiData  = new Uint8Array(analyserNode.frequencyBinCount);
-    const micData = micAnalyserNode ? new Uint8Array(micAnalyserNode.frequencyBinCount) : null;
-    const barEls  = Array.from(containerRef.current.children) as HTMLElement[];
-    const step    = analyserNode.frequencyBinCount / BAR_COUNT;
-    let prevMicActive = false;
+    const aiData = new Uint8Array(analyserNode.frequencyBinCount);
+    const barEls = Array.from(containerRef.current.children) as HTMLElement[];
+    const step   = analyserNode.frequencyBinCount / BAR_COUNT;
 
     const tick = () => {
       analyserNode.getByteFrequencyData(aiData);
-      let isMicActive = false;
-      if (micAnalyserNode && micData) {
-        micAnalyserNode.getByteFrequencyData(micData);
-        let sum = 0;
-        for (let i = 0; i < micData.length; i++) sum += micData[i];
-        isMicActive = (sum / micData.length) > 18;
-      }
-
-      const activeData = isMicActive && micData ? micData : aiData;
-      const colorChanged = isMicActive !== prevMicActive;
-      prevMicActive = isMicActive;
-
       barEls.forEach((el, i) => {
-        const bin = activeData[Math.floor(i * step)] ?? 0;
+        const bin = aiData[Math.floor(i * step)] ?? 0;
         el.style.height = `${BASE_H + (bin / 255) * (MAX_H - BASE_H)}px`;
-        if (colorChanged) {
-          el.style.background = isMicActive ? MIC_BAR_BG    : AI_BAR_BG;
-          el.style.boxShadow  = isMicActive ? MIC_BAR_SHADOW : AI_BAR_SHADOW;
-        }
       });
-
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [analyserNode, micAnalyserNode]);
+  }, [analyserNode]);
 
   return (
-    <div ref={containerRef} className="flex items-center justify-center gap-1 h-24 px-8">
+    <div
+      ref={containerRef}
+      className="flex items-center justify-center gap-1 h-24 px-8 flex-shrink-0 overflow-hidden"
+    >
       {analyserNode
         ? idleBars.map((_, i) => (
             <div key={i} className="rounded-full" style={{ ...IDLE_BAR_STYLE, height: BASE_H }} />
@@ -118,7 +99,6 @@ export default function VoiceExplainOverlay({
   questionCategory,
   questionText,
   analyserNode,
-  micAnalyserNode,
   isAISpeaking,
   triggerClose,
   onClose,
@@ -290,7 +270,7 @@ export default function VoiceExplainOverlay({
 
       {/* ── Main content ──────────────────────────────────────────── */}
       <motion.div
-        className="relative z-10 flex-1 flex flex-col px-6 pb-8 overflow-y-auto"
+        className="relative z-10 flex-1 flex flex-col px-6 pb-8 overflow-y-auto min-h-0"
         initial={{ opacity: 0, y: 20 }}
         animate={{
           opacity: showTransition ? 0 : 1,
@@ -298,8 +278,8 @@ export default function VoiceExplainOverlay({
         }}
         transition={{ duration: 0.6, delay: showTransition ? 0 : 0.5 }}
       >
-        {/* Waveform — blue for AI speech, green for customer speech */}
-        <WaveformBars analyserNode={analyserNode} micAnalyserNode={micAnalyserNode} />
+        {/* Waveform — visualizes the AI's spoken explanation */}
+        <WaveformBars analyserNode={analyserNode} />
         <p
           className="text-center text-sm font-medium pt-3 mb-8"
           style={{ color: "rgba(59,130,246,0.7)" }}

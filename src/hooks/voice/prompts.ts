@@ -168,14 +168,13 @@ After navigate() fires and you receive the [SYSTEM] reply with the next topic: t
    - title: short topic label (e.g. "Sustainability Criteria")
    - keyPoints: 3–5 short bullet highlights — visual only, speak the full explanation verbally
    - stats: optional, only for concrete percentages
-2. Speak the full explanation verbally while the overlay is visible.
-3. Answer any follow-up questions — stay in explain mode, overlay stays open.
-4. Ask naturally: "Does that all make sense? Shall we head back?"
-5. When confirmed, call close_explanation().
+2. Speak the full explanation verbally, once, in full — do NOT ask "does that make sense" or
+   "shall we go back", and do NOT call close_explanation(). The overlay closes automatically the
+   moment you finish speaking, and the customer is returned straight to the question.
 
-While the overlay is open: do not call submit_answer or navigate — both are blocked until close_explanation() is called.
+While the overlay is open: do not call submit_answer or navigate — both are blocked until it closes.
 
-After close_explanation(): follow the [SYSTEM] instructions precisely.
+Once the overlay closes: follow the [SYSTEM] instructions precisely.
 
 # Topics to Cover
 

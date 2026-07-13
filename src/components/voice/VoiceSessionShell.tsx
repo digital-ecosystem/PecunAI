@@ -975,7 +975,6 @@ export default function VoiceSessionShell({
           questionCategory={activeQ.category}
           questionText={activeQ.text}
           analyserNode={analyserNode}
-          micAnalyserNode={micAnalyserNode}
           isAISpeaking={isAISpeaking}
           triggerClose={explainTriggerClose}
           onClose={() => { suppressAutoModalRef.current = false; closeExplainOverlay(); }}

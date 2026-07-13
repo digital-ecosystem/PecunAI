@@ -218,7 +218,7 @@ export function handleCloseExplainOverlay(ctx: VoiceContext): void {
     item: {
       type: "message",
       role: "user",
-      content: [{ type: "input_text", text: `[SYSTEM: Customer manually closed the explanation overlay.${navInstruction}${nextInstruction}]` }],
+      content: [{ type: "input_text", text: `[SYSTEM: The explanation overlay has closed.${navInstruction}${nextInstruction}]` }],
     },
   });
   // Fast Mode: same rationale as the knowledge-blocker branch above — skip the spoken follow-up.

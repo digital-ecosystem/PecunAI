@@ -19,7 +19,7 @@ export async function handleWsMessage(
     voicePhaseRef, termsSubStepRef, stateRef, chatOpenRef, pttActiveRef, mutedRef,
     explainOpenRef, serverResponseActiveRef, pendingCall, aiTextBufferRef, aiAudioTranscriptRef,
     lastAITranscriptRef, pendingVoiceTranscriptRef, currentSpeechItemIdRef,
-    applyPendingTranscriptRef, needsTranscriptBubbleRef, knowledgeBlockerNextQRef,
+    applyPendingTranscriptRef, needsTranscriptBubbleRef,
     kbExplanationStartedRef, kbExplanationResponseIdRef, isAISpeakingRef, bargeInActiveRef,
     latencyStartRef, pttSearchPendingRef, pttSpeculativeSearchRef, pttPartialTranscriptRef,
     pttVectorStoreRef, pttDocLabelRef, activeSourcesRef, nextPlayTimeRef, wsRef,
@@ -220,7 +220,9 @@ export async function handleWsMessage(
     }
 
     case "response.output_audio.delta": {
-      if (knowledgeBlockerNextQRef.current) {
+      // Tracks any open explanation (general explain_topic flow or the KB two-strike flow) —
+      // see private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
+      if (explainOpenRef.current) {
         const responseId = (msg as { response_id?: string }).response_id;
         if (responseId === kbExplanationResponseIdRef.current) {
           kbExplanationStartedRef.current = true;
@@ -245,9 +247,10 @@ export async function handleWsMessage(
     }
 
     case "response.output_audio.done": {
-      // If KB overlay is active and this done event belongs to the cancelled response
-      // (not the KB explanation response), ignore it — stopAudio already cleaned up.
-      if (knowledgeBlockerNextQRef.current) {
+      // If an explanation overlay is open and this done event belongs to a cancelled/stale
+      // response (not the current explanation's own response), ignore it — stopAudio already
+      // cleaned up. See private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
+      if (explainOpenRef.current) {
         const responseId = (msg as { response_id?: string }).response_id;
         if (responseId !== kbExplanationResponseIdRef.current) break;
       }
@@ -556,9 +559,10 @@ export async function handleWsMessage(
 
     case "response.created": {
       serverResponseActiveRef.current = true;
-      if (knowledgeBlockerNextQRef.current) {
-        // Track which response is the KB explanation so stale cancelled-response events
-        // (which share the same knowledgeBlockerNextQRef window) are filtered out.
+      if (explainOpenRef.current) {
+        // Track which response is the current explanation (general or KB) so stale
+        // cancelled-response events are filtered out. See
+        // private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
         kbExplanationResponseIdRef.current = (msg.response as { id: string }).id;
         kbExplanationStartedRef.current    = false; // reset so only THIS response's deltas count
       }
