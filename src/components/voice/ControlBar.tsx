@@ -107,7 +107,7 @@ export default function ControlBar({
             Replaces the old mute toggle (dropped — see private-documents/after-demo/
             PHASE_1_PTT_PLAN.md). Hold to speak, release to submit. */}
         <motion.button
-          className="flex items-center justify-center rounded-full"
+          className="flex items-center justify-center rounded-full ptt-button"
           style={{
             width:      56,
             height:     56,

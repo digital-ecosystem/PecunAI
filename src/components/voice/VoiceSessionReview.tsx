@@ -148,7 +148,7 @@ export default function VoiceSessionReview({
             </p>
           )}
           <motion.button
-            className="flex items-center justify-center rounded-full shadow-xl border-2"
+            className="flex items-center justify-center rounded-full shadow-xl border-2 ptt-button"
             style={{
               width: 64, height: 64,
               background: isPTTActive
