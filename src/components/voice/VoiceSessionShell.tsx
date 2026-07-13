@@ -106,7 +106,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms } =
+  const { state, started, analyserNode, micAnalyserNode, micGranted, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
     useVoiceSession({
       sessionId,
       questions,
@@ -203,10 +203,20 @@ export default function VoiceSessionShell({
     if (isRevisiting) return;                                  // browsing to pick a question — modal opens only after AI navigates to one
     if (termsSubStep === 'sustainabilityTerms') return;        // sustainability overlay is showing
     if (bargeInActive) return;                                 // barge-in in flight — wrong card's modal would open
-    if (!hasSpokenForCardRef.current) return;                  // AI hasn't spoken for this card yet
-    if (isAISpeaking) return;                                  // AI still playing audio
+    // Fast Mode: the AI never speaks the question, so hasSpokenForCardRef/isAISpeaking would
+    // never satisfy the normal gates below — bypass them and open as soon as the card is active.
+    // See private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+    if (!fastMode) {
+      if (!hasSpokenForCardRef.current) return;                // AI hasn't spoken for this card yet
+      if (isAISpeaking) return;                                // AI still playing audio
+    }
     if (state.session !== "listening") return;
-    if (!activeQ?.options?.length) return;
+    // Outside Fast Mode, only choice questions auto-open (number/text questions rely on the AI's
+    // spoken cue to prompt the customer to tap or hold the mic). Fast Mode has no spoken cue at
+    // all for any question type, so every type needs to auto-open there. See
+    // private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+    if (!activeQ) return;
+    if (!fastMode && !activeQ.options?.length) return;
     if (modalOpen) return;
     if (suppressAutoModalRef.current) return;
     if (chatOpen) return;
@@ -214,7 +224,7 @@ export default function VoiceSessionShell({
     if (!started) return;
     setModalOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCardId, isAISpeaking, state.session, voicePhase, termsSubStep, bargeInActive, isRevisiting]);
+  }, [activeCardId, isAISpeaking, state.session, voicePhase, termsSubStep, bargeInActive, isRevisiting, fastMode]);
 
   useEffect(() => {
     notifyChatOpen(chatOpen);
@@ -926,6 +936,8 @@ export default function VoiceSessionShell({
           }}
           onChatClick={() => setChatOpen(true)}
           micGranted={micGranted}
+          isFastMode={fastMode}
+          onFastModeToggle={toggleFastMode}
         />
       </div>
             </motion.div>
@@ -990,16 +1002,23 @@ export default function VoiceSessionShell({
               ? pendingVoiceAnswer.value
               : savedAnswers[modalQ.id] ?? undefined
           }
+          contextMessage={
+            postExplainReaskId === modalQ.id
+              ? "Sie haben die Erklärung gesehen — beantworten Sie nun bitte die Frage."
+              : undefined
+          }
           onClose={() => {
             suppressAutoModalRef.current = true;
             setModalOpen(false);
             clearPendingVoiceAnswer();
+            clearPostExplainReask();
           }}
           onNext={async value => {
             suppressAutoModalRef.current = true;
             stopAudio();
             setModalOpen(false);
             clearPendingVoiceAnswer();
+            clearPostExplainReask();
             if (modalQ) await onAnswerConfirmed(modalQ, value);
           }}
         />

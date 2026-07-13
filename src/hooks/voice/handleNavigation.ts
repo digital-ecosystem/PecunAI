@@ -6,7 +6,7 @@ import type { VoiceContext } from "./voiceContext";
 export function handlePrev(ctx: VoiceContext): void {
   const {
     activeCardIdRef, questionsRef, stateRef, savedAnswersRef, prevInProgressRef,
-    chatOpenRef, langRef,
+    chatOpenRef, langRef, fastModeRef,
     dispatch, setCard, send,
   } = ctx;
 
@@ -39,6 +39,12 @@ export function handlePrev(ctx: VoiceContext): void {
     type: "conversation.item.create",
     item: { type: "message", role: "user", content: [{ type: "input_text", text: msg }] },
   });
+  // Fast Mode: context above stays updated so an on-demand PTT question still has it, but skip
+  // the auto-narration itself. No AI_DONE correction needed here — this only ever runs right
+  // after stopAudio() (called by VoiceSessionShell's onPrevious before onPrev()), which already
+  // put session back to "listening", and this function never dispatches ANSWER_SAVED itself.
+  // See private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+  if (fastModeRef.current) return;
   send({
     type: "response.create",
     response: prevQuestion ? {
@@ -52,7 +58,7 @@ export function handlePrev(ctx: VoiceContext): void {
 export function handleSkipQuestion(question: CarouselQuestion, ctx: VoiceContext): void {
   const {
     skipInProgressRef, questionsRef, answeredIdsRef, skippedIdsRef, activeCardIdRef,
-    sustainabilityConfirmedRef, termsSubStepRef, chatOpenRef, langRef,
+    sustainabilityConfirmedRef, termsSubStepRef, chatOpenRef, langRef, fastModeRef,
     dispatch, setCard, saveVoiceState, send, setTermsSubStep,
   } = ctx;
 
@@ -110,6 +116,12 @@ export function handleSkipQuestion(question: CarouselQuestion, ctx: VoiceContext
       }],
     },
   });
+  // Fast Mode: context above stays updated so an on-demand PTT question still has it, but skip
+  // the auto-narration itself. No AI_DONE correction needed here — this only ever runs right
+  // after stopAudio() (called by VoiceSessionShell's onNext before skipQuestion()), which already
+  // put session back to "listening", and this function never dispatches ANSWER_SAVED itself.
+  // See private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+  if (fastModeRef.current) return;
   send({
     type: "response.create",
     response: nextQ ? {
@@ -138,8 +150,8 @@ export function handleRequestExplanation(ctx: VoiceContext): void {
 export function handleCloseExplainOverlay(ctx: VoiceContext): void {
   const {
     mutedRef, knowledgeBlockerNextQRef, kbExplanationResponseIdRef, questionsRef,
-    activeCardIdRef, explainedQuestionsRef, answeredIdsRef, langRef,
-    dispatch, send, setCard, setExplainTriggerClose, setExplainOverlayData,
+    activeCardIdRef, explainedQuestionsRef, answeredIdsRef, langRef, fastModeRef,
+    dispatch, send, setCard, setExplainTriggerClose, setExplainOverlayData, setPostExplainReaskId,
   } = ctx;
 
   const langTag = () => langRef.current === "de"
@@ -167,6 +179,15 @@ export function handleCloseExplainOverlay(ctx: VoiceContext): void {
         text: `[SYSTEM: Explanation overlay closed. Now ask the next question naturally: "${kbNextQ.text}" (ID: ${kbNextQ.id}). Wait for the customer's answer.]`,
       }]},
     });
+    // Fast Mode: context above stays updated, but skip the spoken re-ask — the customer just saw
+    // the explanation, so show an in-modal hint instead of the AI talking. AI_DONE corrects the
+    // AI_SPEAKING dispatch above (no response.create is coming to do it via scheduleAIDone). See
+    // private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+    if (fastModeRef.current) {
+      if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+      setPostExplainReaskId(kbNextQ.id);
+      return;
+    }
     send({
       type: "response.create",
       response: {
@@ -200,12 +221,20 @@ export function handleCloseExplainOverlay(ctx: VoiceContext): void {
       content: [{ type: "input_text", text: `[SYSTEM: Customer manually closed the explanation overlay.${navInstruction}${nextInstruction}]` }],
     },
   });
+  // Fast Mode: same rationale as the knowledge-blocker branch above — skip the spoken follow-up.
+  // Only the actual re-ask case (customer just saw an explanation, hasn't answered yet) gets the
+  // in-modal hint; the "continue"/"resume" cases have nothing worth flagging in the modal.
+  if (fastModeRef.current) {
+    if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+    if (wasExplained && currentQ && !alreadyAnswered) setPostExplainReaskId(currentQ.id);
+    return;
+  }
   send({ type: "response.create" });
 }
 
 export function handleScrollCarousel(id: string, ctx: VoiceContext): void {
   const {
-    questionsRef, savedAnswersRef, isRevisitingRef, langRef, scrollDebounceTimerRef,
+    questionsRef, savedAnswersRef, isRevisitingRef, langRef, scrollDebounceTimerRef, fastModeRef,
     setCard, dispatch, send,
   } = ctx;
 
@@ -252,6 +281,11 @@ export function handleScrollCarousel(id: string, ctx: VoiceContext): void {
         text: `[SYSTEM: Customer navigated to topic "${q.category}" (ID: ${q.id}) using the carousel button.${savedAnswer ? ` Their saved answer was "${savedAnswer}".` : ""} Ask warmly in 1 sentence whether they want to change this answer. Wait for their response.]`,
       }]},
     });
+    // Fast Mode: context above stays updated so an on-demand PTT question still has it, but skip
+    // the auto-narration itself — the customer can always manually tap the active card to open
+    // its answer modal regardless (VoiceSessionShell's onActiveCardClick), so nothing is blocked
+    // by staying quiet here. See private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+    if (fastModeRef.current) return;
     send({
       type: "response.create",
       response: {
@@ -263,7 +297,7 @@ export function handleScrollCarousel(id: string, ctx: VoiceContext): void {
 
 export function handleRevisitQuestions(ctx: VoiceContext): void {
   const {
-    questionsRef, isRevisitingRef, voicePhaseRef, langRef,
+    questionsRef, isRevisitingRef, voicePhaseRef, langRef, fastModeRef,
     setCard, setIsRevisiting_internal, saveVoiceState, send, setVoicePhase, setProductSuggestion,
   } = ctx;
 
@@ -294,6 +328,12 @@ export function handleRevisitQuestions(ctx: VoiceContext): void {
       text: "[SYSTEM: Customer tapped Revisit. Ask which topic they want to change. IMPORTANT — when the customer names a topic: (1) call navigate({ questionId: '<exact ID from the question list>' }) FIRST to move the on-screen card, THEN ask the question verbally. When they re-answer, call submit_answer as normal. The customer may change multiple answers. Once they say they are done or want to see the updated product recommendation, call confirm_product().]",
     }]},
   });
+  // Fast Mode: context above stays updated so an on-demand PTT question still has it, but skip
+  // the auto-narration itself. No AI_DONE correction needed — this only ever runs right after
+  // stopAudio() (called by VoiceSessionShell's onRevisit before revisitQuestions()), which already
+  // put session back to "listening", and this function never dispatches ANSWER_SAVED/AI_SPEAKING
+  // itself. See private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+  if (fastModeRef.current) return;
   send({
     type: "response.create",
     response: {

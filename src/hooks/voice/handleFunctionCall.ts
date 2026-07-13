@@ -16,7 +16,7 @@ export async function handleFunctionCall(
     explainOpenRef, knowledgeBlockerNextQRef, kbExplanationStartedRef, audioEndTimer,
     termsSubStepRef, explainedQuestionsRef, chatOpenRef, pttVectorStoreRef,
     sustainabilityConfirmedRef, pendingVoiceTranscriptRef, applyPendingTranscriptRef,
-    skipInProgressRef, prevInProgressRef, assetKnowledgeShownRef, pendingPhaseTransitionRef,
+    skipInProgressRef, prevInProgressRef, assetKnowledgeShownRef, pendingPhaseTransitionRef, fastModeRef, mutedRef,
     send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase,
     advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign, setIsRevisiting_internal, router, sessionId,
     setPendingVoiceAnswer, setExplainOverlayData, setExplainTriggerClose, setTermsSubStep,
@@ -347,6 +347,17 @@ export async function handleFunctionCall(
         });
         const isFirstCircleBack = !circleBackActiveRef.current;
         if (isFirstCircleBack) circleBackActiveRef.current = true;
+        // Fast Mode: context above stays updated so an on-demand PTT question still has it, but
+        // skip the auto-narration itself — except in chat mode, which always replies in text
+        // regardless (cheap, and the customer is actively waiting on a reply there). No
+        // response.create means no audio is coming, so the ANSWER_SAVED dispatch above (which
+        // optimistically flips session to "speaking") must be corrected back to "listening" here
+        // — otherwise the state gets stuck and the next question's modal never auto-opens. See
+        // private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+        if (fastModeRef.current && !chatOpenRef.current) {
+          if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+          return;
+        }
         send({
           type: "response.create",
           response: {
@@ -367,6 +378,11 @@ export async function handleFunctionCall(
           const subIdx = questionsRef.current.findIndex(q => q.id === revisitSubQ!.id);
           if (subIdx >= 0) dispatch({ type: "SET_INDEX", index: subIdx });
           setCard(revisitSubQ.id);
+          // Fast Mode: see the fuller note on the circle-back block above — same fix applies.
+          if (fastModeRef.current && !chatOpenRef.current) {
+            if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+            return;
+          }
           send({
             type: "response.create",
             response: {
@@ -381,6 +397,11 @@ export async function handleFunctionCall(
             text: `[SYSTEM: Answer saved for topic "${validatingQ?.category}" (ID: ${validatingQ?.id}) — new value: "${value}". Revisit mode active. Ask warmly if the customer wants to change anything else, or is ready to see the updated product recommendation.]`,
           }]},
         });
+        // Fast Mode: see the fuller note on the circle-back block above — same fix applies.
+        if (fastModeRef.current && !chatOpenRef.current) {
+          if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+          return;
+        }
         send({
           type: "response.create",
           response: {
@@ -407,6 +428,11 @@ export async function handleFunctionCall(
       const nextQIdx = remaining.length > 0 ? questionsRef.current.findIndex(q => q.id === remaining[0]) : -1;
       if (nextQIdx >= 0) dispatch({ type: "SET_INDEX", index: nextQIdx });
       setCard(remaining[0] ?? null);
+      // Fast Mode: see the fuller note on the circle-back block above — same fix applies.
+      if (fastModeRef.current && !chatOpenRef.current) {
+        if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+        return;
+      }
       send({
         type: "response.create",
         response: {
@@ -772,6 +798,11 @@ export async function handleFunctionCall(
           text: "[SYSTEM: Customer wants to revisit Phase 1. Ask which topic they want to change. IMPORTANT — when the customer names a topic: (1) call navigate({ questionId: '<exact ID from the question list>' }) FIRST to move the on-screen card, THEN ask the question verbally. When they re-answer, call submit_answer as normal. The customer may change multiple answers. Once they say they are done or want to see the updated product recommendation, call confirm_product().]",
         }]},
       });
+      // Fast Mode: context above stays updated so an on-demand PTT question still has it, but
+      // skip the auto-narration itself. fastModeRef isn't reset on phase transitions, so a
+      // customer who enabled it in Phase 1 and asked by voice to revisit from Phase 2 still has
+      // it on here. See private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+      if (fastModeRef.current) return;
       send({
         type: "response.create",
         response: {

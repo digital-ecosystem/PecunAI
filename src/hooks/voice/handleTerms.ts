@@ -64,7 +64,7 @@ export async function handleConfirmTerms2(ctx: VoiceContext): Promise<void> {
 export async function handleConfirmSustainabilityTerms(ctx: VoiceContext): Promise<void> {
   const {
     termsSubStepRef, sustainabilityConfirmedRef, sessionId, questionsRef,
-    skippedIdsRef, answeredIdsRef, langRef,
+    skippedIdsRef, answeredIdsRef, langRef, fastModeRef,
     setTermsSubStep, setCard, dispatch, send,
   } = ctx;
 
@@ -118,6 +118,9 @@ export async function handleConfirmSustainabilityTerms(ctx: VoiceContext): Promi
     const q3Options = q3.options?.length
       ? ` Valid values the customer must choose from: ${q3.options.map(o => `"${o.value ?? o.label}"`).join(", ")}.`
       : "";
+    // Fast Mode: context above stays updated so an on-demand PTT question still has it, but
+    // skip the auto-narration itself. See private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+    if (fastModeRef.current) return;
     send({
       type: "response.create",
       response: {
@@ -139,6 +142,9 @@ export async function handleConfirmSustainabilityTerms(ctx: VoiceContext): Promi
           text: makeNextTopicMsg(nextQ, remaining.slice(1), false),
         }]},
       });
+      // Fast Mode: context above stays updated so an on-demand PTT question still has it, but
+      // skip the auto-narration itself. See private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+      if (fastModeRef.current) return;
       send({
         type: "response.create",
         response: {

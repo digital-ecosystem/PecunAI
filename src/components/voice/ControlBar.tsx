@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Mic, MicOff, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
+import { Mic, MicOff, ChevronLeft, ChevronRight, MessageCircle, Zap } from "lucide-react";
 
 interface ControlBarProps {
   onPTTStart:   () => void;
@@ -11,6 +11,8 @@ interface ControlBarProps {
   onNext:       () => void;
   onChatClick:  () => void;
   micGranted?:  boolean | null;
+  isFastMode:      boolean;
+  onFastModeToggle: () => void;
 }
 
 export default function ControlBar({
@@ -21,6 +23,8 @@ export default function ControlBar({
   onNext,
   onChatClick,
   micGranted,
+  isFastMode,
+  onFastModeToggle,
 }: ControlBarProps) {
   const micDenied = micGranted === false;
   return (
@@ -76,6 +80,31 @@ export default function ControlBar({
             <ChevronRight size={20} style={{ color: "rgba(59,130,246,0.7)" }} />
           </motion.button>
         </div>
+
+        {/* Fast Mode toggle — before the PTT button. When on, the AI stops auto-narrating
+            questions (still available on demand via PTT/info icon). See
+            private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md. */}
+        <motion.button
+          className="flex items-center justify-center rounded-full"
+          style={{
+            width:      56,
+            height:     56,
+            background: isFastMode
+              ? "linear-gradient(135deg, rgba(245,158,11,0.25) 0%, rgba(217,119,6,0.15) 100%)"
+              : "linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.1) 100%)",
+            border: isFastMode
+              ? "1px solid rgba(217,119,6,0.3)"
+              : "1px solid rgba(59,130,246,0.2)",
+          }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onFastModeToggle}
+        >
+          <Zap
+            size={24}
+            style={{ color: isFastMode ? "rgba(217,119,6,0.9)" : "rgba(59,130,246,0.8)" }}
+            fill={isFastMode ? "rgba(217,119,6,0.9)" : "none"}
+          />
+        </motion.button>
 
         {/* PTT hold-to-talk — moved to the right, matching every other PTT phase's convention.
             Replaces the old mute toggle (dropped — see private-documents/after-demo/

@@ -28,6 +28,10 @@ interface VoiceQuestionModalProps {
   onNext:            (value: string) => void;
   /** Value proposed by the AI via highlight_answer — shown in amber until customer confirms */
   preSelectedValue?: string;
+  /** Fast Mode only — shown as a banner above the question when the AI stayed silent on purpose
+   *  (e.g. re-asking after an explanation closed). See
+   *  private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md. */
+  contextMessage?: string;
 }
 
 function formatValue(value: number, placeholder?: string): string {
@@ -35,7 +39,7 @@ function formatValue(value: number, placeholder?: string): string {
   return value.toLocaleString("de-AT");
 }
 
-export default function VoiceQuestionModal({ question, onClose, onNext, preSelectedValue }: VoiceQuestionModalProps) {
+export default function VoiceQuestionModal({ question, onClose, onNext, preSelectedValue, contextMessage }: VoiceQuestionModalProps) {
   const isChoice = !question.questionType || question.questionType === "choice";
   const isNumber = question.questionType === "number";
   const isText   = question.questionType === "text";
@@ -149,6 +153,19 @@ export default function VoiceQuestionModal({ question, onClose, onNext, preSelec
 
         {/* Question + answers */}
         <div className="relative z-10 flex-1 flex flex-col px-6 pb-4 overflow-y-auto">
+          {contextMessage && (
+            <motion.div
+              className="mb-4 rounded-xl px-4 py-3 text-sm"
+              style={{
+                background: "rgba(59,130,246,0.08)",
+                border:     "1px solid rgba(59,130,246,0.2)",
+                color:      "rgba(30,64,175,0.9)",
+              }}
+              initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+            >
+              {contextMessage}
+            </motion.div>
+          )}
           <h1 className="text-xl font-semibold mb-6" style={{ color: "rgba(15,23,42,0.9)" }}>
             {question.number}. {question.text}
           </h1>

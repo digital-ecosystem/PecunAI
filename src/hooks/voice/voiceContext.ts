@@ -45,6 +45,7 @@ export interface VoiceContext {
   setVoiceAnswerCount:      Dispatch<SetStateAction<number>>;
   setIsRevisiting_internal: (v: boolean) => void;
   setMicAnalyserNode:       (v: AnalyserNode | null) => void;
+  setPostExplainReaskId:    (id: string | null) => void;
 
   // Refs
   wsRef:                     MutableRefObject<WebSocket | null>;
@@ -110,4 +111,5 @@ export interface VoiceContext {
   prevInProgressRef:         MutableRefObject<boolean>;
   scrollDebounceTimerRef:    MutableRefObject<ReturnType<typeof setTimeout> | null>;
   assetKnowledgeShownRef:    MutableRefObject<Set<string>>;
+  fastModeRef:               MutableRefObject<boolean>;
 }

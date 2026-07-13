@@ -155,6 +155,16 @@ export function useVoiceSession({
   // "Kenne ich nicht" answer — lets the two-strike algorithm tell a first "none" apart from a
   // second one. See private-documents/after-demo/ASSET_KNOWLEDGE_EXPLAIN_PLAN.md.
   const assetKnowledgeShownRef = useRef<Set<string>>(new Set());
+  // True when the customer has toggled Fast Mode on for Phase 1 — the AI stops auto-narrating
+  // questions (still available on demand via PTT/info icon). Not persisted — always resets to
+  // off, matching the default. See private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+  const fastModeRef = useRef(false);
+  const [fastMode, setFastMode] = useState(false);
+  // Set when an explain overlay closes in Fast Mode and the same question needs a silent re-ask
+  // — holds that question's id so VoiceSessionShell can show an in-modal hint instead of the AI
+  // speaking. Cleared once the customer leaves that modal (answers or closes it). See
+  // private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+  const [postExplainReaskId, setPostExplainReaskId] = useState<string | null>(null);
   // True while customer is in Phase 1 revisit mode — suppresses auto-advance on submit_answer so
   // the user can change multiple answers freely before confirm_product() triggers advancePhase().
   const isRevisitingRef                            = useRef(initialIsRevisiting);
@@ -867,7 +877,7 @@ export function useVoiceSession({
     setIsChatAITyping, setPendingVoiceAnswer, setExplainOverlayData,
     setExplainTriggerClose, setTermsSubStep, setVoicePhase,
     setProductSuggestion, setVoiceAnswerCount, setIsRevisiting_internal,
-    setMicAnalyserNode,
+    setMicAnalyserNode, setPostExplainReaskId,
     // refs (all stable — same object reference every render)
     wsRef, audioCtxRef, gainRef, analyserRef, nextPlayTimeRef, audioEndTimer,
     pendingCall, aiTextBufferRef, aiAudioTranscriptRef, lastAITranscriptRef,
@@ -884,7 +894,7 @@ export function useVoiceSession({
     termsSubStepRef, langRef, isRevisitingRef, sustainabilityConfirmedRef, micGrantedRef,
     isAISpeakingRef, bargeInActiveRef, sessionConfiguredRef, initialIndexRef,
     circleBackActiveRef, skipInProgressRef, prevInProgressRef, scrollDebounceTimerRef,
-    assetKnowledgeShownRef,
+    assetKnowledgeShownRef, fastModeRef,
   } satisfies VoiceContext);
 
   // ── WebSocket lifecycle ────────────────────────────────────────
@@ -979,6 +989,20 @@ export function useVoiceSession({
 
   // ── Public API ─────────────────────────────────────────────────
 
+  /** Toggles Phase 1 Fast Mode — see private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+   *  Ref updated synchronously (so the very next answer-submission call sees the new value even
+   *  within the same tick) alongside the state (for the ControlBar button's own re-render).
+   *  Turning it ON cuts off any narration already in flight via stopAudio() (the same
+   *  barge-in mechanism the Prev/Next buttons use) — otherwise the customer would have to
+   *  wait for the AI to finish the sentence it was already mid-way through before the
+   *  silence actually takes effect. */
+  const toggleFastMode = useCallback(() => {
+    const next = !fastModeRef.current;
+    fastModeRef.current = next;
+    setFastMode(next);
+    if (next) stopAudio();
+  }, [stopAudio]);
+
   const toggleMute = useCallback(() => {
     const isMuted = mutedRef.current;
     if (isMuted) {
@@ -1001,6 +1025,13 @@ export function useVoiceSession({
   /** Clears the AI-proposed highlight — called when customer rejects or modal closes without submitting */
   const clearPendingVoiceAnswer = useCallback(() => {
     setPendingVoiceAnswer(null);
+  }, []);
+
+  /** Clears the Fast Mode post-explanation re-ask hint — called when the customer leaves that
+   *  modal, whether by answering or by closing it. See
+   *  private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md. */
+  const clearPostExplainReask = useCallback(() => {
+    setPostExplainReaskId(null);
   }, []);
 
   const onPrev = useCallback(() => handlePrev(ctxRef.current), []);
@@ -1308,5 +1339,9 @@ export function useVoiceSession({
     submitPTTQuestion,
     submitPhase1Answer,
     isChatAITyping,
+    fastMode,
+    toggleFastMode,
+    postExplainReaskId,
+    clearPostExplainReask,
   };
 }

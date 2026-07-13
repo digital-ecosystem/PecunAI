@@ -12,7 +12,7 @@ export async function handleAnswerConfirmed(
     questionsRef, answeredIdsRef, skippedIdsRef, savedAnswersRef, activeCardIdRef,
     isRevisitingRef, circleBackActiveRef, sustainabilityConfirmedRef, termsSubStepRef,
     chatOpenRef, chatAnsweredRef, knowledgeBlockerNextQRef, kbExplanationStartedRef,
-    assetKnowledgeShownRef, pendingPhaseTransitionRef,
+    assetKnowledgeShownRef, pendingPhaseTransitionRef, fastModeRef, mutedRef,
     audioEndTimer, stateRef, langRef,
     dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase, send, router,
     setSavedAnswers, setTermsSubStep, setExplainOverlayData,
@@ -248,6 +248,15 @@ export async function handleAnswerConfirmed(
     });
     const isFirstCircleBackTap = !circleBackActiveRef.current;
     if (isFirstCircleBackTap) circleBackActiveRef.current = true;
+    // Fast Mode: context above stays updated so an on-demand PTT question still has it, but skip
+    // the auto-narration itself. No response.create means no audio is coming, so the
+    // ANSWER_SAVED dispatch above (which optimistically flips session to "speaking") must be
+    // corrected back to "listening" here — otherwise the state gets stuck and the next
+    // question's modal never auto-opens. See private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+    if (fastModeRef.current) {
+      if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+      return;
+    }
     send({
       type: "response.create",
       response: firstSkippedTap ? {
@@ -273,6 +282,11 @@ export async function handleAnswerConfirmed(
           text: `[SYSTEM: Customer changed "${question.category}" to confirm they have used it. Now ask the follow-up: "${revisitSubQ.text}" (ID: ${revisitSubQ.id}). Valid values: ${subOptions}. Revisit mode is still active — after they answer, ask if they want to change anything else or are ready to see the updated recommendation.]`,
         }]},
       });
+      // Fast Mode: see the fuller note on the circle-back block above — same fix applies.
+      if (fastModeRef.current) {
+        if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+        return;
+      }
       send({
         type: "response.create",
         response: {
@@ -287,6 +301,11 @@ export async function handleAnswerConfirmed(
         text: `[SYSTEM: Answer saved for topic "${question.category}" (ID: ${question.id}) — new value: "${value}". Revisit mode is still active. Ask warmly in 1 sentence if the customer wants to change anything else, or if they are ready to see the updated product recommendation. Do NOT call submit_answer or navigate. Wait for their response.]`,
       }]},
     });
+    // Fast Mode: see the fuller note on the circle-back block above — same fix applies.
+    if (fastModeRef.current) {
+      if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+      return;
+    }
     send({
       type: "response.create",
       response: {
@@ -313,6 +332,11 @@ export async function handleAnswerConfirmed(
       }],
     },
   });
+  // Fast Mode: see the fuller note on the circle-back block above — same fix applies.
+  if (fastModeRef.current) {
+    if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+    return;
+  }
   send({
     type: "response.create",
     response: remainingQsTap[0] ? {
