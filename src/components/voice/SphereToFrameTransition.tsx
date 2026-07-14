@@ -5,27 +5,42 @@ import { SPHERE_NODE_COUNT, generateSphereNodes, projectSpherePoint } from "./sp
 import { frameOutlineTargets, getFrameColors, type FrameRect } from "./frameMath";
 
 /**
- * One-shot canvas transition: morphs a shared set of nodes from a live,
+ * One-shot canvas transition: morphs a shared set of nodes between a live,
  * rotating sphere formation (matching VoiceSphere's own node layout and
- * projection) into a frame-perimeter formation wrapped around a document
- * rect (matching AnimatedFrame's colour palette and organic spike style).
+ * projection) and a frame-perimeter formation (matching AnimatedFrame's
+ * colour palette and organic spike style) wrapped around a document or
+ * card rect.
  *
  * This does NOT replace VoiceSphere or AnimatedFrame — it is mounted only
  * for the handoff window between them, then unmounts. Steady-state
  * rendering of both components is untouched.
+ *
+ * Originally built for Phase 0's one-way, static-target entry transition
+ * (orb → a document rect that never moves). Generalized for Phase 1's
+ * question-card expand/collapse, which needs both directions (`direction`)
+ * and a frame rect that itself slides/grows or shrinks during the morph
+ * (`contentRectStart`) — Phase 0's call site is unaffected by either addition.
  */
 
 interface SphereToFrameTransitionProps {
-  /** Viewport-space centre the sphere is transitioning from. */
+  /** "toFrame" (default): orb becomes the frame — Phase 0 entry, Phase 1 expand.
+   *  "toOrb": frame becomes the orb again — Phase 1 collapse. */
+  direction?: "toFrame" | "toOrb";
+  /** Viewport-space centre of the sphere endpoint. */
   sphereCenter: { x: number; y: number };
-  /** Matches VoiceSphere's baseRadius (size * 0.3) for the sphere it's replacing. */
+  /** Matches VoiceSphere's baseRadius (size * 0.3) for the sphere it's replacing/becoming. */
   sphereRadius: number;
-  /** Viewport-space rect of the real AnimatedFrame content the sphere is morphing into. */
+  /** The frame-side rect at the END of this transition's real time (t=1). */
   contentRect: FrameRect;
+  /** The frame-side rect at the START of this transition's real time (t=0). Omit to keep the
+   *  frame rect static at `contentRect` throughout — Phase 0's original one-shot behavior, where
+   *  the target document never moves. Phase 1 passes both ends so the frame can grow/slide (expand)
+   *  or shrink (collapse) in lockstep with the node morph itself. */
+  contentRectStart?: FrameRect;
   /** Matches AnimatedFrame's WAVE_PAD, so spike reach lines up visually. */
   wavePad?: number;
   durationMs?: number;
-  /** Fired once at ~80% progress — parent should start revealing the real content. */
+  /** Fired once at ~80% progress — parent should start revealing the real target component. */
   onMostlyDone?: () => void;
   /** Fired once the morph fully completes — parent should unmount this component. */
   onComplete?: () => void;
@@ -42,6 +57,10 @@ function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
 
+function lerpRect(a: FrameRect, b: FrameRect, t: number): FrameRect {
+  return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), w: lerp(a.w, b.w, t), h: lerp(a.h, b.h, t) };
+}
+
 // Same cubic ease-out used by the Pecunai 2.0 AISpeechModel reference — this
 // is the specific curve that reads as "smooth" for this kind of shape morph.
 function easeMorph(t: number) {
@@ -49,9 +68,11 @@ function easeMorph(t: number) {
 }
 
 export function SphereToFrameTransition({
+  direction = "toFrame",
   sphereCenter,
   sphereRadius,
   contentRect,
+  contentRectStart,
   wavePad = 82,
   durationMs = 1200,
   onMostlyDone,
@@ -86,15 +107,18 @@ export function SphereToFrameTransition({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.lineCap = "round";
 
-    // Fixed base geometry for both endpoints — generated once. The morph
-    // interpolates between these, exactly like AISpeechModel's from/to
-    // targets, rather than regenerating a new random layout every frame.
+    // Sphere geometry is fixed base positions, generated once — only their
+    // projection (rotation) changes per frame. Frame geometry is recomputed
+    // every frame from the current interpolated rect, since (unlike Phase 0)
+    // that rect can itself be sliding/growing/shrinking during the morph.
     const basePositions = generateSphereNodes(N, sphereRadius);
-    const frameTargets = frameOutlineTargets(N, contentRect, wavePad);
     const colors = getFrameColors(false);
 
+    const rectFrom = contentRectStart ?? contentRect;
+    const rectTo = contentRect;
+
     const sphereConnDist = sphereRadius * 0.8; // matches VoiceSphere's own maxDist
-    const frameConnDist = contentRect.w < 400 ? 70 : 80; // matches AnimatedFrame's own maxConnectionDist
+    const frameConnDistAt = (rect: FrameRect) => (rect.w < 400 ? 70 : 80); // matches AnimatedFrame's own maxConnectionDist
 
     let rotY = 0.4; // arbitrary pleasant starting tilt
     let lastTs = 0;
@@ -106,17 +130,25 @@ export function SphereToFrameTransition({
 
       const elapsed = ts - start;
       const t = clamp(elapsed / durationMs, 0, 1);
-      const eased = easeMorph(t);
+      const rectT = easeMorph(t); // always chronological: rectFrom → rectTo over real time
 
-      // Rotation slows as the shape commits to the frame — never fully stops
-      // until the morph is done, so the sphere half never looks frozen.
-      rotY += dt * (0.9 - eased * 0.6);
+      // shapeT: 0 = fully sphere, 1 = fully frame — regardless of direction, everything
+      // downstream is written purely in terms of "how frame-like is the shape right now."
+      const shapeT = direction === "toOrb" ? 1 - easeMorph(t) : easeMorph(t);
 
-      // The transition dissolves during its final stretch, overlapping with
-      // the real AnimatedFrame fading in underneath (driven by onMostlyDone).
+      // Rotation slows as the shape commits to the sphere-or-frame endpoint it's
+      // heading toward — never fully stops until the morph is done, so neither
+      // half ever looks frozen.
+      rotY += dt * (0.9 - shapeT * 0.6);
+
+      // The transition dissolves during its final stretch, overlapping with the
+      // real target component fading in underneath (driven by onMostlyDone).
       const fadeOut = t > MOSTLY_DONE_AT ? 1 - (t - MOSTLY_DONE_AT) / (1 - MOSTLY_DONE_AT) : 1;
 
-      const connectionDist = lerp(sphereConnDist, frameConnDist, eased);
+      const frameRectNow = lerpRect(rectFrom, rectTo, rectT);
+      const frameTargetsNow = frameOutlineTargets(N, frameRectNow, wavePad);
+
+      const connectionDist = lerp(sphereConnDist, frameConnDistAt(frameRectNow), shapeT);
 
       ctx.clearRect(0, 0, vw, vh);
 
@@ -126,13 +158,13 @@ export function SphereToFrameTransition({
         const base = basePositions[i];
         const sp = projectSpherePoint(base.x, base.y, base.z, sphereCenter.x, sphereCenter.y, rotY);
 
-        const target = frameTargets[i];
-        const wiggle = eased * 3;
+        const target = frameTargetsNow[i];
+        const wiggle = shapeT * 3;
         const tx = target.x + Math.sin(elapsed * 0.002 + i * 0.6) * wiggle;
         const ty = target.y + Math.cos(elapsed * 0.0023 + i * 0.5) * wiggle;
 
-        const x = lerp(sp.x, tx, eased);
-        const y = lerp(sp.y, ty, eased);
+        const x = lerp(sp.x, tx, shapeT);
+        const y = lerp(sp.y, ty, shapeT);
 
         const energy = 0.35 + 0.25 * Math.sin(elapsed * 0.003 + i * 0.4);
 
@@ -199,10 +231,11 @@ export function SphereToFrameTransition({
     rafRef.current = requestAnimationFrame(loop);
 
     return () => cancelAnimationFrame(rafRef.current);
-    // sphereCenter/contentRect are captured once at mount — this is a one-shot
-    // transition driven by its own internal clock, not a live-tracking visual.
+    // sphereCenter/contentRect/contentRectStart are captured once at mount —
+    // this is a one-shot transition driven by its own internal clock, not a
+    // live-tracking visual. Each expand/collapse cycle mounts a fresh instance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sphereRadius, wavePad, durationMs]);
+  }, [direction, sphereRadius, wavePad, durationMs]);
 
   return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[60]" aria-hidden="true" />;
 }

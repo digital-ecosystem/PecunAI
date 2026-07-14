@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * @deprecated No longer mounted by the active Phase 1 flow. Replaced by
+ * ExpandedQuestionCard.tsx, which renders the same answer UI in place inside
+ * VoiceCarousel (centered, bigger, wrapped in the AnimatedFrame neural
+ * border) instead of this full-screen takeover. Kept only for reference —
+ * see private-documents/after-demo/PHASE_1_QUESTION_CARD_MORPH_PLAN.md.
+ */
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, ArrowRight } from "lucide-react";

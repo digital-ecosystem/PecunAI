@@ -22,8 +22,13 @@ interface VoiceCarouselProps {
   currentIndex:       number;
   onNext:             () => void;
   onPrev:             () => void;
-  onActiveCardClick:  () => void;
+  /** Tap on the active (center) card — request that it expand. */
+  onActiveCardExpand: () => void;
   onInfoClick:        () => void;
+  /** The question currently expanded elsewhere (centered on screen). Its
+   *  compact rendering here goes invisible but stays mounted — nothing else
+   *  in the carousel moves while a card is expanded. */
+  expandedQuestionId: string | null;
 }
 
 export default function VoiceCarousel({
@@ -31,8 +36,9 @@ export default function VoiceCarousel({
   currentIndex,
   onNext,
   onPrev,
-  onActiveCardClick,
+  onActiveCardExpand,
   onInfoClick,
+  expandedQuestionId,
 }: VoiceCarouselProps) {
   const n             = questions.length;
   const pointerStartX = useRef<number | null>(null);
@@ -111,12 +117,16 @@ export default function VoiceCarousel({
         <div className="relative w-full h-full max-w-4xl mx-auto">
           {questions.map((q, index) => {
             const rel      = getRelativePos(index);
-            const style    = getCardStyle(rel);
+            const baseStyle = getCardStyle(rel);
             const isActive = rel === 0;
+            const isExpandedElsewhere = expandedQuestionId !== null && q.id === expandedQuestionId;
+            const style = isExpandedElsewhere
+              ? { ...baseStyle, opacity: 0, pointerEvents: "none" as const }
+              : baseStyle;
 
             const handleClick = () => {
               if (didSwipe.current) return;
-              if      (isActive)    onActiveCardClick();
+              if      (isActive)    onActiveCardExpand();
               else if (rel ===  1)  onNext();
               else if (rel === -1)  onPrev();
             };

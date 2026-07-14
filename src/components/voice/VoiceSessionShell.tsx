@@ -6,7 +6,9 @@ import { motion, AnimatePresence } from "motion/react";
 import { Menu, User, Mic, VolumeX, Hand, Check, ChevronRight } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
 import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
-import VoiceQuestionModal from "./VoiceQuestionModal";
+import { ExpandedQuestionCard, computeExpandedRect } from "./ExpandedQuestionCard";
+import { PhaseOneNeuralModel } from "./PhaseOneNeuralModel";
+import type { FrameRect } from "./frameMath";
 import VoiceExplainOverlay from "./VoiceExplainOverlay";
 import VoiceChatModal from "./VoiceChatModal";
 import ControlBar from "./ControlBar";
@@ -133,6 +135,35 @@ export default function VoiceSessionShell({
 
   const [modalOpen, setModalOpen] = useState(false);
   const [chatOpen,  setChatOpen]  = useState(false);
+
+  // ── Phase 1 question-card morph (orb ⇄ neural cardFrame) ──────────────
+  // modalOpen (above) still owns "should the answer UI be showing" — untouched,
+  // still flipped by the exact same onClose/onNext handlers as before.
+  //
+  // Round 3 (see PHASE_1_QUESTION_CARD_MORPH_PLAN.md): a single persistent
+  // PhaseOneNeuralModel canvas stays mounted for the whole of Phase 1, and its
+  // shape/frameRect are derived directly from modalOpen every render — no
+  // separate transition-direction state machine, no reveal timers, nothing
+  // that can get stuck. orbOrigin/expandedRect only depend on viewport size,
+  // not on when a card opens, so they're measured once (mount + resize), not
+  // re-measured per expand/collapse.
+  const [orbOrigin, setOrbOrigin] = useState<{ x: number; y: number } | null>(null);
+  const [expandedRect, setExpandedRect] = useState<FrameRect | null>(null);
+  const orbWrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const measure = () => {
+      const rect = orbWrapperRef.current?.getBoundingClientRect();
+      if (rect && rect.width > 0) {
+        setOrbOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+      }
+      setExpandedRect(computeExpandedRect(window.innerWidth, window.innerHeight));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
   // Drives the Phase 1 sphere's listening visualization — see the sphere wiring below for why
   // this can't just reuse the generic `isListening` (state.session === "listening") once Phase
   // 1 is PTT-only. See private-documents/after-demo/PHASE_1_PTT_PLAN.md.
@@ -265,6 +296,7 @@ export default function VoiceSessionShell({
   const modalQIndex = pendingVoiceAnswer
     ? questions.findIndex(q => q.id === pendingVoiceAnswer.questionId)
     : viewIndex;
+
   const isMuted           = state.session === "muted";
   const sessionIsSpeaking = ["speaking", "greeting", "resuming"].includes(state.session);
   const isSpeaking        = !isMuted && (sessionIsSpeaking || isAISpeaking);
@@ -832,28 +864,13 @@ export default function VoiceSessionShell({
             />
           </div>
 
-          {/* Orb */}
-          <motion.div
-            className="relative z-10"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6 }}
-          >
-            {/* Phase 1 is PTT-only — state.session flips to "listening" as soon as the AI
-                finishes speaking and stays there regardless of whether the customer is
-                actually holding the button. isListening below uses isPhase1PTTActive instead
-                so the sphere accurately shows green only while the customer is actively
-                speaking, matching every other PTT phase. See
-                private-documents/after-demo/PHASE_1_PTT_PLAN.md. */}
-            <VoiceSphere
-              isActive={(explainOpen || chatOpen) ? false : started}
-              isSpeaking={(explainOpen || chatOpen) ? false : isSpeaking}
-              isListening={(explainOpen || chatOpen) ? false : isPhase1PTTActive}
-              size={380}
-              analyserNode={(explainOpen || chatOpen) ? null : (isMuted ? null : analyserNode)}
-              micAnalyserNode={(explainOpen || chatOpen) ? null : micAnalyserNode}
-            />
-          </motion.div>
+          {/* Orb placeholder — reserves the same layout space the orb always
+              occupied and anchors sphereCenter for PhaseOneNeuralModel (rendered
+              once, fixed-position, elsewhere below). The actual orb/cardFrame
+              visual is drawn by that persistent canvas, not here — see Round 3
+              in PHASE_1_QUESTION_CARD_MORPH_PLAN.md for why this no longer
+              renders VoiceSphere directly for Phase 1. */}
+          <div ref={orbWrapperRef} className="relative z-10" style={{ width: 380, height: 380 }} />
 
           {/* Status text + mic hint */}
           <div className="relative z-30 mt-4 pb-[75px] flex flex-col items-center gap-1">
@@ -885,6 +902,10 @@ export default function VoiceSessionShell({
               questions={questions}
               currentIndex={viewIndex}
               onNext={() => {
+                // Carousel position stays put while a card is expanded — nothing
+                // relies on the compact rect anymore, but rotating the carousel
+                // underneath an open card would still look wrong.
+                if (modalOpen) return;
                 if (isRevisiting) {
                   const nextIdx = findRevisitStep(questions, savedAnswers, viewIndex, 1);
                   if (nextIdx === -1) return;
@@ -897,6 +918,7 @@ export default function VoiceSessionShell({
                 skipQuestion(questions[viewIndex]);
               }}
               onPrev={() => {
+                if (modalOpen) return;
                 if (isRevisiting) {
                   const prevIdx = findRevisitStep(questions, savedAnswers, viewIndex, -1);
                   if (prevIdx === -1) return;
@@ -908,8 +930,9 @@ export default function VoiceSessionShell({
                 stopAudio();
                 onPrev();
               }}
-              onActiveCardClick={() => setModalOpen(true)}
+              onActiveCardExpand={() => setModalOpen(true)}
               onInfoClick={requestExplanation}
+              expandedQuestionId={modalOpen ? modalQ?.id ?? null : null}
             />
           </motion.div>
         )}
@@ -929,7 +952,7 @@ export default function VoiceSessionShell({
                 boxShadow:  "0 4px 16px rgba(59,130,246,0.3)",
               }}
               whileTap={{ scale: 0.96 }}
-              onClick={() => { stopAudio(); suppressAutoModalRef.current = true; advancePhase(); }}
+              onClick={() => { if (modalOpen) return; stopAudio(); suppressAutoModalRef.current = true; advancePhase(); }}
             >
               <Check size={18} style={{ color: "white" }} />
               <span className="text-sm font-medium text-white">Fertig – Empfehlung ansehen</span>
@@ -943,6 +966,7 @@ export default function VoiceSessionShell({
           onPTTRelease={() => { submitPhase1Answer(); setIsPhase1PTTActive(false); }}
           isPTTActive={isPhase1PTTActive}
           onPrevious={() => {
+            if (modalOpen) return;
             if (isRevisiting) {
               const prevIdx = findRevisitStep(questions, savedAnswers, viewIndex, -1);
               if (prevIdx === -1) return;
@@ -955,6 +979,7 @@ export default function VoiceSessionShell({
             onPrev();
           }}
           onNext={() => {
+            if (modalOpen) return;
             if (isRevisiting) {
               const nextIdx = findRevisitStep(questions, savedAnswers, viewIndex, 1);
               if (nextIdx === -1) return;
@@ -1013,46 +1038,67 @@ export default function VoiceSessionShell({
         />
       )}
 
-      {modalOpen && modalQ && (
-        <VoiceQuestionModal
-          key={modalQ.id}
-          question={{
-            number:           modalQIndex + 1,
-            total:            n,
-            text:             modalQ.text,
-            options:          modalQ.options ?? [],
-            questionType:     modalQ.questionType,
-            questionOrder:    modalQ.questionOrder,
-            minValue:         modalQ.minValue,
-            maxValue:         modalQ.maxValue,
-            inputPlaceholder: modalQ.inputPlaceholder,
-          }}
-          preSelectedValue={
-            pendingVoiceAnswer?.questionId === modalQ.id
-              ? pendingVoiceAnswer.value
-              : savedAnswers[modalQ.id] ?? undefined
-          }
-          contextMessage={
-            postExplainReaskId === modalQ.id
-              ? "Sie haben die Erklärung gesehen — beantworten Sie nun bitte die Frage."
-              : undefined
-          }
-          onClose={() => {
-            suppressAutoModalRef.current = true;
-            setModalOpen(false);
-            clearPendingVoiceAnswer();
-            clearPostExplainReask();
-          }}
-          onNext={async value => {
-            suppressAutoModalRef.current = true;
-            stopAudio();
-            setModalOpen(false);
-            clearPendingVoiceAnswer();
-            clearPostExplainReask();
-            if (modalQ) await onAnswerConfirmed(modalQ, value);
-          }}
+      {/* Persistent Phase 1 orb ⇄ cardFrame canvas — mounted once, never
+          unmounted; shape/frameRect are derived straight from modalOpen every
+          render. See PhaseOneNeuralModel.tsx and Round 3 in
+          PHASE_1_QUESTION_CARD_MORPH_PLAN.md for why this replaced the earlier
+          one-shot mount/unmount transition component. */}
+      {voicePhase === 1 && orbOrigin && (
+        <PhaseOneNeuralModel
+          shape={modalOpen ? "cardFrame" : "orb"}
+          frameRect={modalOpen ? expandedRect : null}
+          sphereCenter={orbOrigin}
+          sphereRadius={380 * 0.3}
+          isSpeaking={isSpeaking}
+          isListening={isPhase1PTTActive}
+          containerWidth={typeof window !== "undefined" ? window.innerWidth : 0}
+          containerHeight={typeof window !== "undefined" ? window.innerHeight : 0}
         />
       )}
+
+      <AnimatePresence>
+        {modalOpen && expandedRect && modalQ && (
+          <ExpandedQuestionCard
+            key={modalQ.id}
+            rect={expandedRect}
+            question={{
+              number:           modalQIndex + 1,
+              total:            n,
+              text:             modalQ.text,
+              options:          modalQ.options ?? [],
+              questionType:     modalQ.questionType,
+              questionOrder:    modalQ.questionOrder,
+              minValue:         modalQ.minValue,
+              maxValue:         modalQ.maxValue,
+              inputPlaceholder: modalQ.inputPlaceholder,
+            }}
+            preSelectedValue={
+              pendingVoiceAnswer?.questionId === modalQ.id
+                ? pendingVoiceAnswer.value
+                : savedAnswers[modalQ.id] ?? undefined
+            }
+            contextMessage={
+              postExplainReaskId === modalQ.id
+                ? "Sie haben die Erklärung gesehen — beantworten Sie nun bitte die Frage."
+                : undefined
+            }
+            onClose={() => {
+              suppressAutoModalRef.current = true;
+              setModalOpen(false);
+              clearPendingVoiceAnswer();
+              clearPostExplainReask();
+            }}
+            onNext={async (value: string) => {
+              suppressAutoModalRef.current = true;
+              stopAudio();
+              setModalOpen(false);
+              clearPendingVoiceAnswer();
+              clearPostExplainReask();
+              if (modalQ) await onAnswerConfirmed(modalQ, value);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── Tap-to-start overlay ─────────────────────────────────── */}
       {!started && (
