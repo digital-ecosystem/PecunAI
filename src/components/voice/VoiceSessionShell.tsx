@@ -151,18 +151,45 @@ export default function VoiceSessionShell({
   const [expandedRect, setExpandedRect] = useState<FrameRect | null>(null);
   const orbWrapperRef = useRef<HTMLDivElement>(null);
 
+  // expandedRect only depends on viewport size — mount + resize is enough.
   useEffect(() => {
-    const measure = () => {
-      const rect = orbWrapperRef.current?.getBoundingClientRect();
-      if (rect && rect.width > 0) {
-        setOrbOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-      }
-      setExpandedRect(computeExpandedRect(window.innerWidth, window.innerHeight));
-    };
+    const measure = () => setExpandedRect(computeExpandedRect(window.innerWidth, window.innerHeight));
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, []);
+
+  // orbOrigin CANNOT be measured once at mount: the wrapper div only exists
+  // while the phase-1 layout is rendered, and at shell-mount time one of the
+  // earlier gates (recording disclaimer, mic access, tap-to-start, phase 0
+  // terms) is showing instead — so a mount-time measurement finds nothing,
+  // and on desktop no natural resize event ever re-triggers it (mobile gets
+  // "rescued" by URL-bar resize events, which is why the blank sphere only
+  // reproduced on PC). The wrapper's position also shifts during the phase
+  // 1 ⇄ 2 slide transition. So: poll per frame while phase 1 is active,
+  // committing state only when the centre actually moves — the same live-rect
+  // pattern the Pecunai 2.0 reference uses.
+  useEffect(() => {
+    if (voicePhase !== 1) return;
+    let raf = 0;
+    let alive = true;
+    const tick = () => {
+      const rect = orbWrapperRef.current?.getBoundingClientRect();
+      if (rect && rect.width > 0) {
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        setOrbOrigin(prev =>
+          prev && Math.abs(prev.x - x) < 0.75 && Math.abs(prev.y - y) < 0.75 ? prev : { x, y }
+        );
+      }
+      if (alive) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      alive = false;
+      cancelAnimationFrame(raf);
+    };
+  }, [voicePhase]);
 
   // Drives the Phase 1 sphere's listening visualization — see the sphere wiring below for why
   // this can't just reuse the generic `isListening` (state.session === "listening") once Phase
@@ -1043,7 +1070,7 @@ export default function VoiceSessionShell({
           render. See PhaseOneNeuralModel.tsx and Round 3 in
           PHASE_1_QUESTION_CARD_MORPH_PLAN.md for why this replaced the earlier
           one-shot mount/unmount transition component. */}
-      {voicePhase === 1 && orbOrigin && (
+      {voicePhase === 1 && started && orbOrigin && (
         <PhaseOneNeuralModel
           shape={modalOpen ? "cardFrame" : "orb"}
           frameRect={modalOpen ? expandedRect : null}
@@ -1051,6 +1078,8 @@ export default function VoiceSessionShell({
           sphereRadius={380 * 0.3}
           isSpeaking={isSpeaking}
           isListening={isPhase1PTTActive}
+          analyserNode={isMuted ? null : analyserNode}
+          micAnalyserNode={micAnalyserNode}
           containerWidth={typeof window !== "undefined" ? window.innerWidth : 0}
           containerHeight={typeof window !== "undefined" ? window.innerHeight : 0}
         />

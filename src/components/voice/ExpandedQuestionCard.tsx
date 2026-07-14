@@ -112,9 +112,13 @@ export function ExpandedQuestionCard({
       className="fixed z-[56]"
       style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
       initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: 0.3, delay: 0.15 }}
+      // Enter waits for the neural frame to mostly arrive; exit is fast and
+      // immediate so the collapse morph plays out visibly BEHIND the card
+      // rather than underneath a lingering white sheet (mirrors the Pecunai
+      // 2.0 reference, where expanded content vanishes first and only then
+      // the frame contracts back into the orb).
+      animate={{ opacity: 1, scale: 1, transition: { duration: 0.3, delay: 0.15 } }}
+      exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.18 } }}
     >
       <div
         className="w-full h-full flex flex-col overflow-hidden"
@@ -175,13 +179,15 @@ export function ExpandedQuestionCard({
                     Ich habe diese Antwort gehört – ist das korrekt?
                   </p>
                 )}
-                {question.options.map(opt => {
+                {question.options.map((opt, optIdx) => {
                   const isSelected = selected === opt.id;
                   const isAmber = isSelected && aiProposed;
                   const isBlue  = isSelected && !aiProposed;
                   return (
                     <motion.button
                       key={opt.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0, transition: { delay: 0.2 + optIdx * 0.05, duration: 0.25 } }}
                       className="w-full text-left rounded-2xl transition-all"
                       style={{
                         background: isAmber ? "rgba(254,243,199,0.8)" : isBlue ? "rgba(219,234,254,0.7)" : "rgba(255,255,255,0.7)",

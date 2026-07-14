@@ -119,10 +119,17 @@ export default function VoiceCarousel({
             const rel      = getRelativePos(index);
             const baseStyle = getCardStyle(rel);
             const isActive = rel === 0;
-            const isExpandedElsewhere = expandedQuestionId !== null && q.id === expandedQuestionId;
-            const style = isExpandedElsewhere
+            const anyExpanded    = expandedQuestionId !== null;
+            const isExpandedCard = anyExpanded && q.id === expandedQuestionId;
+            // pointerEvents/opacity must be present in EVERY branch: a value
+            // introduced through `animate` is never restored by Framer Motion
+            // once it's simply omitted again, so the card would stay stuck
+            // invisible/unclickable after its first expand/collapse cycle.
+            const style = isExpandedCard
               ? { ...baseStyle, opacity: 0, pointerEvents: "none" as const }
-              : baseStyle;
+              : anyExpanded
+              ? { ...baseStyle, opacity: Math.min(baseStyle.opacity, 0.12), pointerEvents: "none" as const }
+              : { ...baseStyle, pointerEvents: "auto" as const };
 
             const handleClick = () => {
               if (didSwipe.current) return;
