@@ -11,7 +11,7 @@ import { useState, useEffect, useRef } from "react";
 import { AnimatePresence } from "motion/react";
 import VoiceCarousel, { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import { ExpandedQuestionCard, computeExpandedRect } from "@/components/voice/ExpandedQuestionCard";
-import { SustainabilityTermsCard } from "@/components/voice/SustainabilityTermsCard";
+import { SustainabilityTermsCard, SustainabilityPTTButton } from "@/components/voice/SustainabilityTermsCard";
 import { PhaseOneNeuralModel } from "@/components/voice/PhaseOneNeuralModel";
 import type { FrameRect } from "@/components/voice/frameMath";
 
@@ -56,6 +56,7 @@ const QUESTIONS: CarouselQuestion[] = [
 export default function MorphTestPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [sustOpen, setSustOpen] = useState(false);
+  const [sustPTT, setSustPTT] = useState(false);
   const [viewIndex, setViewIndex] = useState(0);
 
   // Fake "AI voice": amplitude-modulated noise through a muted analyser graph,
@@ -170,6 +171,18 @@ export default function MorphTestPage() {
         >
           Sustainability
         </button>
+        <button
+          id="simulate-q2-terms"
+          className="ml-2 px-2 py-0.5 rounded border border-blue-300 text-blue-600"
+          onClick={() => {
+            // Mirrors the real Q2 → disclosure sequence with the shell's gap:
+            // card closes, frame collapses to orb, beat, disclosure morphs out.
+            setModalOpen(false);
+            window.setTimeout(() => setSustOpen(true), 2200);
+          }}
+        >
+          Q2→Terms
+        </button>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center relative">
@@ -201,7 +214,7 @@ export default function MorphTestPage() {
           sphereCenter={orbOrigin}
           sphereRadius={380 * 0.3}
           isSpeaking={speaking}
-          isListening={false}
+          isListening={sustPTT}
           analyserNode={analyser}
           containerWidth={typeof window !== "undefined" ? window.innerWidth : 0}
           containerHeight={typeof window !== "undefined" ? window.innerHeight : 0}
@@ -210,7 +223,16 @@ export default function MorphTestPage() {
 
       <AnimatePresence>
         {sustOpen && expandedRect && (
-          <SustainabilityTermsCard rect={expandedRect} onConfirm={() => setSustOpen(false)} />
+          <SustainabilityTermsCard key="sust-card" rect={expandedRect} onConfirm={() => setSustOpen(false)} />
+        )}
+        {sustOpen && (
+          <SustainabilityPTTButton
+            key="sust-ptt"
+            isActive={sustPTT}
+            isSpeaking={speaking}
+            onStart={() => setSustPTT(true)}
+            onRelease={() => setSustPTT(false)}
+          />
         )}
       </AnimatePresence>
 

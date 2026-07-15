@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
+import { Mic } from "lucide-react";
 import type { FrameRect } from "./frameMath";
 import { SustainabilityRisksInfo } from "@/components/terms/SustainabilityRisksInfo";
 
@@ -92,6 +93,70 @@ export function SustainabilityTermsCard({ rect, onConfirm }: SustainabilityTerms
           </motion.button>
         </div>
       </div>
+    </motion.div>
+  );
+}
+
+/**
+ * Floating push-to-talk button shown alongside the disclosure card — ported
+ * from VoiceTermsPhase's own PTT (same placement, styling, and hold
+ * semantics). Needed because the card is ~88vh tall and covers the ControlBar,
+ * making its PTT unreachable while the disclosure is open. Rendered by the
+ * shell as a sibling of the card (NOT inside it — the card root animates
+ * `scale`, and position:fixed inside a transformed ancestor anchors to the
+ * ancestor instead of the viewport).
+ */
+export function SustainabilityPTTButton({
+  isActive,
+  isSpeaking,
+  onStart,
+  onRelease,
+}: {
+  isActive: boolean;
+  isSpeaking: boolean;
+  onStart: () => void;
+  onRelease: () => void;
+}) {
+  return (
+    <motion.div
+      className="fixed bottom-8 right-6 flex flex-col items-center gap-2 z-[60]"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0, transition: { delay: 0.3, duration: 0.3 } }}
+      exit={{ opacity: 0, y: 8, transition: { duration: 0.15 } }}
+    >
+      <AnimatePresence>
+        {!isActive && !isSpeaking && (
+          <motion.p
+            className="text-xs font-medium text-center"
+            style={{ color: "rgba(59,130,246,0.7)" }}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+          >
+            Halten zum<br />Sprechen
+          </motion.p>
+        )}
+      </AnimatePresence>
+      <motion.button
+        className="flex items-center justify-center rounded-full shadow-xl border-2 ptt-button"
+        style={{
+          width: 64, height: 64,
+          background: isActive
+            ? "linear-gradient(135deg, rgba(37,99,235,1) 0%, rgba(29,78,216,1) 100%)"
+            : "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+          borderColor: isActive ? "rgba(29,78,216,0.8)" : "rgba(59,130,246,0.3)",
+        }}
+        animate={isActive ? { scale: [0.93, 0.96, 0.93] } : { scale: 1 }}
+        transition={isActive ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" } : {}}
+        onMouseDown={onStart}
+        onMouseUp={onRelease}
+        onMouseLeave={isActive ? onRelease : undefined}
+        onTouchStart={onStart}
+        onTouchEnd={onRelease}
+        onTouchCancel={onRelease}
+      >
+        <Mic className="text-white" size={26} />
+      </motion.button>
     </motion.div>
   );
 }

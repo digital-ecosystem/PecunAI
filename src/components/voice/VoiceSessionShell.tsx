@@ -7,7 +7,7 @@ import { Menu, User, Mic, VolumeX, Hand, Check, ChevronRight } from "lucide-reac
 import VoiceSphere from "./VoiceSphere";
 import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
 import { ExpandedQuestionCard, computeExpandedRect } from "./ExpandedQuestionCard";
-import { SustainabilityTermsCard } from "./SustainabilityTermsCard";
+import { SustainabilityTermsCard, SustainabilityPTTButton } from "./SustainabilityTermsCard";
 import { PhaseOneNeuralModel } from "./PhaseOneNeuralModel";
 import type { FrameRect } from "./frameMath";
 import VoiceExplainOverlay from "./VoiceExplainOverlay";
@@ -23,6 +23,11 @@ import VoiceSigningPhase from "./VoiceSigningPhase";
 import VoiceMicAccessModal from "./VoiceMicAccessModal";
 import VoiceRecordingDisclaimerModal from "./VoiceRecordingDisclaimerModal";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
+
+// Gap between the disclosure step activating (right as Q2's answer saves) and
+// its card/frame appearing — long enough for the Q2 card's collapse-into-orb
+// morph (~1.2s) to fully play plus a beat of resting orb.
+const SUSTAINABILITY_MORPH_GAP_MS = 2200;
 
 // ── Phase slide variants ──────────────────────────────────────────
 
@@ -206,6 +211,24 @@ export default function VoiceSessionShell({
   // are gated — parity with the old full-screen VoiceTermsPhase cover it
   // replaces, but with the orb ⇄ frame transition instead of a slide-in.
   const sustainabilityOpen = termsSubStep === 'sustainabilityTerms';
+
+  // The disclosure step activates in the same breath as Q2's answer save, so
+  // without a gap the canvas never leaves "cardFrame" — the Q2 card's content
+  // just swaps to the disclosure with no visible transition. Split the step
+  // into two signals: sustainabilityOpen (immediate — locks navigation, routes
+  // PTT, guards the auto-modal) and sustainabilityVisible (delayed — drives
+  // the canvas shape, the card mount, and the carousel dim), so the sequence
+  // reads: Q2 card exits → frame collapses into the orb (~1.2s) → orb breathes
+  // a beat → orb morphs out into the disclosure. Falling edge is immediate.
+  const [sustainabilityVisible, setSustainabilityVisible] = useState(false);
+  useEffect(() => {
+    if (!sustainabilityOpen) {
+      setSustainabilityVisible(false);
+      return;
+    }
+    const t = window.setTimeout(() => setSustainabilityVisible(true), SUSTAINABILITY_MORPH_GAP_MS);
+    return () => window.clearTimeout(t);
+  }, [sustainabilityOpen]);
 
   // Set when the customer manually closes the modal — prevents it from immediately re-opening.
   // suppressAutoModalRef: set when user manually closes the modal; cleared on next card change.
@@ -968,7 +991,7 @@ export default function VoiceSessionShell({
               onActiveCardExpand={() => setModalOpen(true)}
               onInfoClick={requestExplanation}
               expandedQuestionId={
-                modalOpen ? modalQ?.id ?? null : sustainabilityOpen ? activeQ?.id ?? null : null
+                modalOpen ? modalQ?.id ?? null : sustainabilityVisible ? activeQ?.id ?? null : null
               }
             />
           </motion.div>
@@ -1055,10 +1078,24 @@ export default function VoiceSessionShell({
           PTT for ask-about-terms lives in the ControlBar (routed to
           submitPTTQuestion while this is open). */}
       <AnimatePresence>
-        {sustainabilityOpen && started && expandedRect && (
+        {sustainabilityVisible && started && expandedRect && (
           <SustainabilityTermsCard
+            key="sustainability-card"
             rect={expandedRect}
             onConfirm={() => { stopAudio(); return confirmSustainabilityTerms(); }}
+          />
+        )}
+        {/* The ~88vh card covers the ControlBar, so the disclosure gets its own
+            floating PTT (ported from the old VoiceTermsPhase overlay) wired to
+            the same ask-about-terms path. Driving isPhase1PTTActive also turns
+            the neural frame green while held. */}
+        {sustainabilityVisible && started && (
+          <SustainabilityPTTButton
+            key="sustainability-ptt"
+            isActive={isPhase1PTTActive}
+            isSpeaking={isSpeaking}
+            onStart={() => { startPTT(); setIsPhase1PTTActive(true); }}
+            onRelease={() => { submitPTTQuestion('sustainabilityTerms'); setIsPhase1PTTActive(false); }}
           />
         )}
       </AnimatePresence>
@@ -1095,8 +1132,8 @@ export default function VoiceSessionShell({
           one-shot mount/unmount transition component. */}
       {voicePhase === 1 && started && orbOrigin && (
         <PhaseOneNeuralModel
-          shape={modalOpen || sustainabilityOpen ? "cardFrame" : "orb"}
-          frameRect={modalOpen || sustainabilityOpen ? expandedRect : null}
+          shape={modalOpen || sustainabilityVisible ? "cardFrame" : "orb"}
+          frameRect={modalOpen || sustainabilityVisible ? expandedRect : null}
           sphereCenter={orbOrigin}
           sphereRadius={380 * 0.3}
           isSpeaking={isSpeaking}
