@@ -7,6 +7,7 @@ import { Menu, User, Mic, VolumeX, Hand, Check, ChevronRight } from "lucide-reac
 import VoiceSphere from "./VoiceSphere";
 import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
 import { ExpandedQuestionCard, computeExpandedRect } from "./ExpandedQuestionCard";
+import { SustainabilityTermsCard } from "./SustainabilityTermsCard";
 import { PhaseOneNeuralModel } from "./PhaseOneNeuralModel";
 import type { FrameRect } from "./frameMath";
 import VoiceExplainOverlay from "./VoiceExplainOverlay";
@@ -198,6 +199,13 @@ export default function VoiceSessionShell({
 
   // Derived from hook state — overlay is open whenever the AI has set explain data
   const explainOpen = explainOverlayData !== null;
+
+  // The sustainability disclosure (between Q2 and Q3) is a Phase 1 morph
+  // target now, exactly like an expanded question card: the persistent canvas
+  // wraps the same centered rect, the carousel dims/locks, and prev/next/chat
+  // are gated — parity with the old full-screen VoiceTermsPhase cover it
+  // replaces, but with the orb ⇄ frame transition instead of a slide-in.
+  const sustainabilityOpen = termsSubStep === 'sustainabilityTerms';
 
   // Set when the customer manually closes the modal — prevents it from immediately re-opening.
   // suppressAutoModalRef: set when user manually closes the modal; cleared on next card change.
@@ -932,7 +940,7 @@ export default function VoiceSessionShell({
                 // Carousel position stays put while a card is expanded — nothing
                 // relies on the compact rect anymore, but rotating the carousel
                 // underneath an open card would still look wrong.
-                if (modalOpen) return;
+                if (modalOpen || sustainabilityOpen) return;
                 if (isRevisiting) {
                   const nextIdx = findRevisitStep(questions, savedAnswers, viewIndex, 1);
                   if (nextIdx === -1) return;
@@ -945,7 +953,7 @@ export default function VoiceSessionShell({
                 skipQuestion(questions[viewIndex]);
               }}
               onPrev={() => {
-                if (modalOpen) return;
+                if (modalOpen || sustainabilityOpen) return;
                 if (isRevisiting) {
                   const prevIdx = findRevisitStep(questions, savedAnswers, viewIndex, -1);
                   if (prevIdx === -1) return;
@@ -959,7 +967,9 @@ export default function VoiceSessionShell({
               }}
               onActiveCardExpand={() => setModalOpen(true)}
               onInfoClick={requestExplanation}
-              expandedQuestionId={modalOpen ? modalQ?.id ?? null : null}
+              expandedQuestionId={
+                modalOpen ? modalQ?.id ?? null : sustainabilityOpen ? activeQ?.id ?? null : null
+              }
             />
           </motion.div>
         )}
@@ -979,7 +989,7 @@ export default function VoiceSessionShell({
                 boxShadow:  "0 4px 16px rgba(59,130,246,0.3)",
               }}
               whileTap={{ scale: 0.96 }}
-              onClick={() => { if (modalOpen) return; stopAudio(); suppressAutoModalRef.current = true; advancePhase(); }}
+              onClick={() => { if (modalOpen || sustainabilityOpen) return; stopAudio(); suppressAutoModalRef.current = true; advancePhase(); }}
             >
               <Check size={18} style={{ color: "white" }} />
               <span className="text-sm font-medium text-white">Fertig – Empfehlung ansehen</span>
@@ -990,10 +1000,17 @@ export default function VoiceSessionShell({
         {/* ── Control Bar ──────────────────────────────────────────── */}
         <ControlBar
           onPTTStart={() => { startPTT(); setIsPhase1PTTActive(true); }}
-          onPTTRelease={() => { submitPhase1Answer(); setIsPhase1PTTActive(false); }}
+          onPTTRelease={() => {
+            // While the sustainability card is open, PTT asks about the
+            // disclosure (same path the old full-screen overlay's own PTT
+            // button used) instead of submitting a question answer.
+            if (sustainabilityOpen) submitPTTQuestion('sustainabilityTerms');
+            else submitPhase1Answer();
+            setIsPhase1PTTActive(false);
+          }}
           isPTTActive={isPhase1PTTActive}
           onPrevious={() => {
-            if (modalOpen) return;
+            if (modalOpen || sustainabilityOpen) return;
             if (isRevisiting) {
               const prevIdx = findRevisitStep(questions, savedAnswers, viewIndex, -1);
               if (prevIdx === -1) return;
@@ -1006,7 +1023,7 @@ export default function VoiceSessionShell({
             onPrev();
           }}
           onNext={() => {
-            if (modalOpen) return;
+            if (modalOpen || sustainabilityOpen) return;
             if (isRevisiting) {
               const nextIdx = findRevisitStep(questions, savedAnswers, viewIndex, 1);
               if (nextIdx === -1) return;
@@ -1018,9 +1035,9 @@ export default function VoiceSessionShell({
             stopAudio();
             skipQuestion(questions[viewIndex]);
           }}
-          onChatClick={() => setChatOpen(true)}
+          onChatClick={() => { if (sustainabilityOpen) return; setChatOpen(true); }}
           isFastMode={fastMode}
-          onFastModeToggle={toggleFastMode}
+          onFastModeToggle={() => { if (sustainabilityOpen) return; toggleFastMode(); }}
         />
       </div>
             </motion.div>
@@ -1030,15 +1047,21 @@ export default function VoiceSessionShell({
 
       {/* ── Overlays (fixed-position, outside the slide container) ── */}
 
-      {termsSubStep === 'sustainabilityTerms' && (
-        <VoiceTermsPhase
-          which="sustainabilityTerms"
-          isSpeaking={isSpeaking}
-          onConfirm={() => { stopAudio(); return confirmSustainabilityTerms(); }}
-          onPTTStart={startPTT}
-          onPTTRelease={submitPTTQuestion}
-        />
-      )}
+      {/* Sustainability disclosure (between Q2 and Q3) — rendered as a Phase 1
+          morph-target card: the persistent canvas above flips to "cardFrame"
+          while this is open, so the orb flows out and wraps it exactly like an
+          expanded question card. Replaces the old full-screen VoiceTermsPhase
+          slide-in for this step (VoiceTermsPhase still owns Phase 0 unchanged).
+          PTT for ask-about-terms lives in the ControlBar (routed to
+          submitPTTQuestion while this is open). */}
+      <AnimatePresence>
+        {sustainabilityOpen && started && expandedRect && (
+          <SustainabilityTermsCard
+            rect={expandedRect}
+            onConfirm={() => { stopAudio(); return confirmSustainabilityTerms(); }}
+          />
+        )}
+      </AnimatePresence>
 
       <VoiceChatModal
         isOpen={chatOpen}
@@ -1072,8 +1095,8 @@ export default function VoiceSessionShell({
           one-shot mount/unmount transition component. */}
       {voicePhase === 1 && started && orbOrigin && (
         <PhaseOneNeuralModel
-          shape={modalOpen ? "cardFrame" : "orb"}
-          frameRect={modalOpen ? expandedRect : null}
+          shape={modalOpen || sustainabilityOpen ? "cardFrame" : "orb"}
+          frameRect={modalOpen || sustainabilityOpen ? expandedRect : null}
           sphereCenter={orbOrigin}
           sphereRadius={380 * 0.3}
           isSpeaking={isSpeaking}

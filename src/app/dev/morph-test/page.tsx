@@ -11,6 +11,7 @@ import { useState, useEffect, useRef } from "react";
 import { AnimatePresence } from "motion/react";
 import VoiceCarousel, { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import { ExpandedQuestionCard, computeExpandedRect } from "@/components/voice/ExpandedQuestionCard";
+import { SustainabilityTermsCard } from "@/components/voice/SustainabilityTermsCard";
 import { PhaseOneNeuralModel } from "@/components/voice/PhaseOneNeuralModel";
 import type { FrameRect } from "@/components/voice/frameMath";
 
@@ -54,6 +55,7 @@ const QUESTIONS: CarouselQuestion[] = [
 
 export default function MorphTestPage() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [sustOpen, setSustOpen] = useState(false);
   const [viewIndex, setViewIndex] = useState(0);
 
   // Fake "AI voice": amplitude-modulated noise through a muted analyser graph,
@@ -161,6 +163,13 @@ export default function MorphTestPage() {
         >
           {speaking ? "AI speaking: ON" : "AI speaking: OFF"}
         </button>
+        <button
+          id="toggle-sustainability"
+          className="ml-2 px-2 py-0.5 rounded border border-blue-300 text-blue-600"
+          onClick={() => setSustOpen(o => !o)}
+        >
+          Sustainability
+        </button>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center relative">
@@ -187,8 +196,8 @@ export default function MorphTestPage() {
 
       {orbOrigin && (
         <PhaseOneNeuralModel
-          shape={modalOpen ? "cardFrame" : "orb"}
-          frameRect={modalOpen ? expandedRect : null}
+          shape={modalOpen || sustOpen ? "cardFrame" : "orb"}
+          frameRect={modalOpen || sustOpen ? expandedRect : null}
           sphereCenter={orbOrigin}
           sphereRadius={380 * 0.3}
           isSpeaking={speaking}
@@ -198,6 +207,12 @@ export default function MorphTestPage() {
           containerHeight={typeof window !== "undefined" ? window.innerHeight : 0}
         />
       )}
+
+      <AnimatePresence>
+        {sustOpen && expandedRect && (
+          <SustainabilityTermsCard rect={expandedRect} onConfirm={() => setSustOpen(false)} />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {modalOpen && expandedRect && modalQ && (
