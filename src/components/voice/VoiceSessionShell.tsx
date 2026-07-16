@@ -30,6 +30,10 @@ import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 // morph (~1.2s) to fully play plus a beat of resting orb.
 const SUSTAINABILITY_MORPH_GAP_MS = 2200;
 
+// Phase 3 → 4 handoff: how long the "AI returns" grow-in sphere phantom plays
+// before VoiceInvestmentForm's entry morph consumes it into the form's frame.
+const PHASE4_GROW_MS = 780;
+
 // ── Status labels ─────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<SessionState, string> = {
@@ -200,6 +204,26 @@ export default function VoiceSessionShell({
       return () => window.clearTimeout(t);
     }
   }, [isTransitioningToPersonalInfo, voicePhase]);
+
+  // ── Phase 3 → 4 handoff choreography ──────────────────────────────────
+  // The mirror of Seam B above: after the silent form is submitted and voice
+  // reconnects, a phantom sphere GROWS back in (the AI returning from the
+  // privacy pause), then VoiceInvestmentForm's delayed entry morph consumes
+  // it into the form's frame. phase4FromFormRef is set by the submit handler
+  // (readable during the flip render), so the phantom and the form's
+  // entryOrbOrigin both apply on the very first Phase 4 frame; cold resume
+  // into Phase 4 leaves both off.
+  const [phase4GrowOrb, setPhase4GrowOrb] = useState(false);
+  const phase4FromFormRef = useRef(false);
+  useEffect(() => {
+    if (voicePhase !== 4 || !phase4FromFormRef.current) return;
+    setPhase4GrowOrb(true);
+    const t = window.setTimeout(() => {
+      setPhase4GrowOrb(false);
+      phase4FromFormRef.current = false;
+    }, PHASE4_GROW_MS);
+    return () => window.clearTimeout(t);
+  }, [voicePhase]);
 
   // expandedRect only depends on viewport size — mount + resize is enough.
   useEffect(() => {
@@ -597,7 +621,14 @@ export default function VoiceSessionShell({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.3 }}
         >
-          <VoicePersonalInfoForm sessionId={sessionId} onSubmitted={onPersonalInfoSubmitted} onPrimeAudio={primeReconnectAudio} />
+          <VoicePersonalInfoForm
+            sessionId={sessionId}
+            onSubmitted={() => {
+              phase4FromFormRef.current = true; // live handoff — Phase 4 plays its entry choreography
+              return onPersonalInfoSubmitted();
+            }}
+            onPrimeAudio={primeReconnectAudio}
+          />
         </motion.div>
         {/* The pause screen's sphere shrinks away over the mounting form —
             the AI stepping out for the silent, voice-disconnected phase. Same
@@ -641,6 +672,9 @@ export default function VoiceSessionShell({
   // this renders even before the tap-to-resume overlay below is dismissed. Fall through to the
   // orb screen for the narrow window before either path has productSuggestion ready yet.
   if (voicePhase === 4 && productSuggestion) {
+    // Live handoff from Phase 3 (ref readable during the flip render): sphere
+    // grows back in, then the form's delayed entry morph consumes it.
+    const phase4Entry = phase4FromFormRef.current || phase4GrowOrb;
     return (
       <>
         <VoiceInvestmentForm
@@ -652,7 +686,33 @@ export default function VoiceSessionShell({
           onPTTStart={startPTT}
           onPTTRelease={() => submitPTTQuestion('phase4')}
           onConfirm={() => { stopAudio(); return confirmInvestment(); }}
+          entryOrbOrigin={
+            phase4Entry && typeof window !== "undefined"
+              ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 }
+              : null
+          }
+          entryDelayMs={PHASE4_GROW_MS}
         />
+        {/* The AI "steps back in": sphere grows at the same centre the Phase 3
+            exit shrank from, then the form's morph takes over at full size. */}
+        {phase4Entry && (
+          <motion.div
+            className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center"
+            style={{ paddingTop: 84 }}
+            initial={{ opacity: 0, scale: 0.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <VoiceSphere
+              isActive
+              isSpeaking={false}
+              isListening={false}
+              size={380}
+              analyserNode={null}
+              micAnalyserNode={null}
+            />
+          </motion.div>
+        )}
         {resumeTapOverlay}
       </>
     );

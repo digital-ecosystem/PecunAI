@@ -12,6 +12,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import VoiceTermsPhase from "@/components/voice/VoiceTermsPhase";
 import VoiceProductPhase from "@/components/voice/VoiceProductPhase";
+import VoiceInvestmentForm from "@/components/voice/VoiceInvestmentForm";
 import VoiceSphere from "@/components/voice/VoiceSphere";
 import { PhaseOneNeuralModel } from "@/components/voice/PhaseOneNeuralModel";
 import { SphereToFrameTransition } from "@/components/voice/SphereToFrameTransition";
@@ -36,12 +37,21 @@ const FAKE_PRODUCT: ProductData = {
 };
 
 export default function TermsTestPage() {
-  const [step, setStep] = useState<"terms1" | "terms2" | "phase1" | "phase2" | "pause" | "form">("terms1");
+  const [step, setStep] = useState<"terms1" | "terms2" | "phase1" | "phase2" | "pause" | "form" | "phase4">("terms1");
   const entryRectRef = useRef<FrameRect | null>(null);
 
   // Phase 2 → 3 privacy-pause seams (mirrors the shell).
   const [pauseRect, setPauseRect] = useState<FrameRect | null>(null);
   const [pauseRevealed, setPauseRevealed] = useState(false);
+
+  // Phase 3 → 4 grow-in phantom (mirrors the shell's PHASE4_GROW_MS choreography).
+  const [p4Grow, setP4Grow] = useState(false);
+  useEffect(() => {
+    if (step !== "phase4") return;
+    setP4Grow(true);
+    const t = window.setTimeout(() => setP4Grow(false), 780);
+    return () => window.clearTimeout(t);
+  }, [step]);
 
   // Mirrors the shell's Phase 1 orb wrapper + per-frame rect poll.
   const [orbOrigin, setOrbOrigin] = useState<{ x: number; y: number } | null>(null);
@@ -200,6 +210,13 @@ export default function TermsTestPage() {
           >
             <h2 className="text-lg font-semibold mb-2" style={{ color: "rgba(15,23,42,0.9)" }}>[ Personal Info form ]</h2>
             <p className="text-sm" style={{ color: "rgba(100,116,139,0.8)" }}>Silent phase — voice disconnected.</p>
+            <button
+              id="to-phase4-btn"
+              className="mt-4 px-4 py-2 rounded border border-blue-300 text-blue-600 text-sm"
+              onClick={() => setStep("phase4")}
+            >
+              → Phase 4
+            </button>
           </motion.div>
           <motion.div
             className="fixed inset-0 pointer-events-none flex flex-col items-center justify-center"
@@ -211,6 +228,34 @@ export default function TermsTestPage() {
             <VoiceSphere isActive isSpeaking={false} isListening={false} size={380} analyserNode={null} micAnalyserNode={null} />
           </motion.div>
         </div>
+      )}
+
+      {step === "phase4" && (
+        <>
+          <VoiceInvestmentForm
+            product={FAKE_PRODUCT}
+            questions={[]}
+            answers={{}}
+            isSpeaking={false}
+            sessionState="listening"
+            onPTTStart={() => {}}
+            onPTTRelease={() => {}}
+            onConfirm={() => {}}
+            entryOrbOrigin={{ x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 }}
+            entryDelayMs={780}
+          />
+          {p4Grow && (
+            <motion.div
+              className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center"
+              style={{ paddingTop: 84 }}
+              initial={{ opacity: 0, scale: 0.1 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <VoiceSphere isActive isSpeaking={false} isListening={false} size={380} analyserNode={null} micAnalyserNode={null} />
+            </motion.div>
+          )}
+        </>
       )}
     </>
   );

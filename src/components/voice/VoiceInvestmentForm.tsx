@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "motion/react";
 import { Menu, User, Mic } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import { HelpCircle } from "lucide-react";
 import { AnimatedFrame } from "./AnimatedFrame";
+import { SphereToFrameTransition } from "./SphereToFrameTransition";
+import type { FrameRect } from "./frameMath";
 import { formatEuro } from "@/utils/helper";
 import type { CarouselQuestion } from "./VoiceCarousel";
 import type { ProductData, SessionState } from "@/hooks/useVoiceSession";
@@ -251,6 +253,14 @@ interface VoiceInvestmentFormProps {
   onPTTStart:   () => void;
   onPTTRelease: () => void;
   onConfirm:    () => void;
+  /** The reconnect sphere's centre after the live Phase 3 → 4 handoff. When
+   *  set at mount, the entry plays the orb → frame consume morph (same as
+   *  Phase 2's product entry). Null on cold resume — content fades in as
+   *  before. */
+  entryOrbOrigin?: { x: number; y: number } | null;
+  /** Delays the morph start (ms) so the shell's grow-in sphere phantom (the
+   *  AI "stepping back in" after the privacy pause) finishes first. */
+  entryDelayMs?:   number;
 }
 
 export default function VoiceInvestmentForm({
@@ -262,6 +272,8 @@ export default function VoiceInvestmentForm({
   onPTTStart,
   onPTTRelease,
   onConfirm,
+  entryOrbOrigin,
+  entryDelayMs,
 }: VoiceInvestmentFormProps) {
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
   const [isPTTActive, setIsPTTActive] = useState(false);
@@ -273,6 +285,54 @@ export default function VoiceInvestmentForm({
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  // ── Entry morph (orb → form frame) — the VoiceProductPhase pattern, plus
+  // an optional start delay so the shell's grow-in sphere phantom completes
+  // first. Content stays hidden until the morph mostly lands.
+  const [entryOrigin]   = useState(entryOrbOrigin ?? null); // snapshot at mount
+  const [showTransition, setShowTransition] = useState(!!entryOrbOrigin);
+  const [revealContent,  setRevealContent]  = useState(!entryOrbOrigin);
+  const [entryStarted,   setEntryStarted]   = useState(false);
+  const [entryRect,      setEntryRect]      = useState<FrameRect | null>(null);
+  const contentBoxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!entryOrigin) return;
+    const t = setTimeout(() => setEntryStarted(true), entryDelayMs ?? 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!showTransition || !frameSize) return;
+    let raf = 0;
+    let attempts = 0;
+    const measure = () => {
+      const el = contentBoxRef.current;
+      if (el) {
+        const b = el.getBoundingClientRect();
+        if (b.width > 0 && b.height > 0) {
+          setEntryRect({ x: b.left, y: b.top, w: b.width, h: b.height });
+          return;
+        }
+      }
+      attempts += 1;
+      if (attempts < 30) raf = requestAnimationFrame(measure);
+    };
+    raf = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(raf);
+  }, [showTransition, frameSize]);
+
+  // Safety net: never leave the screen stuck if the morph can't run.
+  useEffect(() => {
+    if (!showTransition) return;
+    const t = setTimeout(() => {
+      setRevealContent(true);
+      setShowTransition(false);
+    }, 1800 + (entryDelayMs ?? 0));
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTransition]);
 
   // Cascade logic copied verbatim from V1's handleCheckboxChange.
   const handleCheckboxChange = useCallback((field: keyof InvestmentFormData) => {
@@ -366,15 +426,31 @@ export default function VoiceInvestmentForm({
         </div>
       </div>
 
+      {/* Entry morph — the returning sphere's nodes fly onto the form's frame
+          and the dense web materializes around it, while the real frame below
+          stays hidden until onMostlyDone. */}
+      {showTransition && entryOrigin && entryRect && entryStarted && (
+        <SphereToFrameTransition
+          sphereCenter={entryOrigin}
+          sphereRadius={380 * 0.3}
+          contentRect={entryRect}
+          onMostlyDone={() => setRevealContent(true)}
+          onComplete={() => setShowTransition(false)}
+        />
+      )}
+
       {/* ── Scrollable center ───────────────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto pb-24 pt-4 md:pt-10 gap-4">
         {frameSize && (
           <div className="w-full flex justify-center">
             <motion.div
+              ref={contentBoxRef}
               className="relative"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.15 }}
+              // Morph path stays at scale 1 while hidden — the measured rect is
+              // the morph's landing target and transforms would shrink it.
+              initial={{ opacity: 0, scale: entryOrigin ? 1 : 0.96 }}
+              animate={{ opacity: revealContent ? 1 : 0, scale: revealContent || entryOrigin ? 1 : 0.96 }}
+              transition={{ duration: 0.5, delay: revealContent && !entryOrigin ? 0.15 : 0 }}
             >
               <AnimatedFrame
                 isSpeaking={isSpeaking}
@@ -581,7 +657,10 @@ export default function VoiceInvestmentForm({
 
         {/* ── Bestätigen — same styling as VoiceProductPhase's confirm button ── */}
         {frameSize && (
-          <div style={{ width: frameSize.width, marginTop: 10, marginBottom: 32, paddingLeft: 16, paddingRight: 16, boxSizing: "border-box" }}>
+          <motion.div
+            animate={{ opacity: revealContent ? 1 : 0 }}
+            transition={{ duration: 0.4 }}
+            style={{ width: frameSize.width, marginTop: 10, marginBottom: 32, paddingLeft: 16, paddingRight: 16, boxSizing: "border-box", pointerEvents: revealContent ? "auto" : "none" }}>
             <motion.button
               className="w-full text-sm font-semibold rounded-2xl text-white py-3"
               style={{
@@ -597,7 +676,7 @@ export default function VoiceInvestmentForm({
             >
               Bestätigen
             </motion.button>
-          </div>
+          </motion.div>
         )}
 
         {/* Status label, matching Phase 0 intro's placement/style */}
