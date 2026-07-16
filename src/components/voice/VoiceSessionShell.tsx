@@ -150,11 +150,13 @@ export default function VoiceSessionShell({
   // canvas re-mounts (resume, card cycles) start settled.
   const phaseEntryFrameRectRef = useRef<FrameRect | null>(null);
   useEffect(() => {
-    if (voicePhase !== 1) return;
+    // Clear shortly after any consumer phase mounts (Phase 1's collapse,
+    // Phase 5's frame glide) so later re-entries start clean.
+    if (voicePhase !== 1 && voicePhase !== 5) return;
     const t = window.setTimeout(() => { phaseEntryFrameRectRef.current = null; }, 1500);
     return () => window.clearTimeout(t);
   }, [voicePhase]);
-  const reportPhase2FrameRect = useCallback((rect: FrameRect) => {
+  const reportFrameRect = useCallback((rect: FrameRect) => {
     phaseEntryFrameRectRef.current = rect;
   }, []);
 
@@ -692,6 +694,7 @@ export default function VoiceSessionShell({
               : null
           }
           entryDelayMs={PHASE4_GROW_MS}
+          onFrameRect={reportFrameRect}
         />
         {/* The AI "steps back in": sphere grows at the same centre the Phase 3
             exit shrank from, then the form's morph takes over at full size. */}
@@ -734,6 +737,9 @@ export default function VoiceSessionShell({
           onPTTStart={startPTT}
           onPTTRelease={() => submitPTTQuestion('phase5')}
           onConfirm={() => { stopAudio(); return confirmContracts(); }}
+          // Live 4 → 5 handoff: Phase 4's poll left its frame rect here, so the
+          // frame glides onto this screen. Cold resume: null (no poll ran).
+          entryFrameRect={phaseEntryFrameRectRef.current}
         />
         {resumeTapOverlay}
       </>
@@ -997,7 +1003,7 @@ export default function VoiceSessionShell({
                 onConfirm={() => { stopAudio(); return advanceToPersonalInfo(); }}
                 onRevisit={() => { stopAudio(); revisitQuestions(); }}
                 entryOrbOrigin={orbOrigin}
-                onFrameRect={reportPhase2FrameRect}
+                onFrameRect={reportFrameRect}
               />
             </motion.div>
           ) : (

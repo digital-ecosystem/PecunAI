@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "motion/react";
 import { Menu, User, Mic, ChevronRight } from "lucide-react";
 import { AnimatedFrame } from "./AnimatedFrame";
+import { SphereToFrameTransition } from "./SphereToFrameTransition";
+import VoiceSphere from "./VoiceSphere";
+import type { FrameRect } from "./frameMath";
 import PDFModal from "@/components/PDFModal";
 import type { CarouselQuestion } from "./VoiceCarousel";
 import type { SessionState } from "@/hooks/useVoiceSession";
@@ -94,6 +97,11 @@ interface VoiceContractDocumentsProps {
   onPTTStart:   () => void;
   onPTTRelease: () => void;
   onConfirm:    () => void;
+  /** Phase 4's frame rect at handoff time. When set at mount, the entry plays
+   *  the three-beat handoff: the investment frame collapses into the sphere,
+   *  the sphere holds a beat (pulsing while the AI talks), then consumes into
+   *  this screen's frame. Null on cold resume — content fades in as before. */
+  entryFrameRect?: FrameRect | null;
 }
 
 export default function VoiceContractDocuments({
@@ -105,6 +113,7 @@ export default function VoiceContractDocuments({
   onPTTStart,
   onPTTRelease,
   onConfirm,
+  entryFrameRect,
 }: VoiceContractDocumentsProps) {
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
   const [isPTTActive, setIsPTTActive] = useState(false);
@@ -119,6 +128,69 @@ export default function VoiceContractDocuments({
     const onResize = () => setFrameSize(getContractFrameSize());
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // ── Entry handoff (Phase 4's frame → sphere → this frame) — three beats:
+  // "collapse" flies the investment frame's nodes into the sphere at the
+  // standard centre position; "sphere" holds a real pulsing VoiceSphere for a
+  // beat (the AI keeps talking through it — voice never disconnects between
+  // 4 and 5); "consume" flies the sphere onto this screen's frame, revealing
+  // the content as it lands. Cold resume (no entryFrameRect): skip straight
+  // to "done", content fades in as before.
+  type EntryStage = "collapse" | "sphere" | "consume" | "done";
+  const [entryStart]    = useState(entryFrameRect ?? null); // snapshot at mount
+  const [entryCenter]   = useState(() =>
+    entryFrameRect && typeof window !== "undefined"
+      ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 }
+      : null
+  );
+  const [entryStage,    setEntryStage]    = useState<EntryStage>(entryStart ? "collapse" : "done");
+  const [sphereVisible, setSphereVisible] = useState(false);
+  const [revealContent, setRevealContent] = useState(!entryStart);
+  const [entryRect,     setEntryRect]     = useState<FrameRect | null>(null);
+  const contentBoxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!entryStart || !frameSize) return;
+    let raf = 0;
+    let attempts = 0;
+    const measure = () => {
+      const el = contentBoxRef.current;
+      if (el) {
+        const b = el.getBoundingClientRect();
+        if (b.width > 0 && b.height > 0) {
+          setEntryRect({ x: b.left, y: b.top, w: b.width, h: b.height });
+          return;
+        }
+      }
+      attempts += 1;
+      if (attempts < 30) raf = requestAnimationFrame(measure);
+    };
+    raf = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frameSize]);
+
+  // Sphere beat between the collapse and the consume.
+  useEffect(() => {
+    if (entryStage !== "sphere") return;
+    const t = setTimeout(() => {
+      setSphereVisible(false);
+      setEntryStage("consume");
+    }, 600);
+    return () => clearTimeout(t);
+  }, [entryStage]);
+
+  // Safety net: never leave the screen stuck mid-sequence.
+  useEffect(() => {
+    if (entryStage === "done") return;
+    const t = setTimeout(() => {
+      setSphereVisible(false);
+      setRevealContent(true);
+      setEntryStage("done");
+    }, 4500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Generate the 8 contract PDFs on phase entry — same trigger as V1's `useEffect` on
@@ -311,15 +383,63 @@ export default function VoiceContractDocuments({
         </div>
       </div>
 
+      {/* Entry beat 1 — the investment form's frame collapses into the sphere. */}
+      {entryStage === "collapse" && entryStart && entryCenter && (
+        <SphereToFrameTransition
+          direction="toOrb"
+          sphereCenter={entryCenter}
+          sphereRadius={380 * 0.3}
+          contentRect={entryStart}
+          onMostlyDone={() => setSphereVisible(true)}
+          onComplete={() => setEntryStage("sphere")}
+        />
+      )}
+
+      {/* Entry beat 3 — the sphere consumes into this screen's frame. */}
+      {entryStage === "consume" && entryRect && entryCenter && (
+        <SphereToFrameTransition
+          sphereCenter={entryCenter}
+          sphereRadius={380 * 0.3}
+          contentRect={entryRect}
+          onMostlyDone={() => setRevealContent(true)}
+          onComplete={() => setEntryStage("done")}
+        />
+      )}
+
+      {/* Entry beat 2 — the real sphere holds centre stage, pulsing while the
+          AI keeps talking. Fades in under the dissolving collapse canvas; swaps
+          for the consume canvas's synthetic sphere when beat 3 starts. */}
+      {sphereVisible && (
+        <motion.div
+          className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center"
+          style={{ paddingTop: 84 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.35 }}
+        >
+          <VoiceSphere
+            isActive
+            isSpeaking={isSpeaking}
+            isListening={false}
+            size={380}
+            analyserNode={null}
+            micAnalyserNode={null}
+          />
+        </motion.div>
+      )}
+
       {/* ── Scrollable center ───────────────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto pb-24 pt-4 md:pt-10 gap-4">
         {frameSize && (
           <div className="w-full flex justify-center">
             <motion.div
+              ref={contentBoxRef}
               className="relative"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.15 }}
+              // Morph path stays at scale 1 while hidden — the measured rect is
+              // the glide's landing target and transforms would shrink it.
+              initial={{ opacity: 0, scale: entryStart ? 1 : 0.96 }}
+              animate={{ opacity: revealContent ? 1 : 0, scale: revealContent || entryStart ? 1 : 0.96 }}
+              transition={{ duration: 0.5, delay: revealContent && !entryStart ? 0.15 : 0 }}
             >
               <AnimatedFrame
                 isSpeaking={isSpeaking}
@@ -565,7 +685,10 @@ export default function VoiceContractDocuments({
 
         {/* ── Bestätigen — same styling as VoiceInvestmentForm's confirm button ── */}
         {frameSize && (
-          <div style={{ width: frameSize.width, marginTop: 10, marginBottom: 32, paddingLeft: 16, paddingRight: 16, boxSizing: "border-box" }}>
+          <motion.div
+            animate={{ opacity: revealContent ? 1 : 0 }}
+            transition={{ duration: 0.4 }}
+            style={{ width: frameSize.width, marginTop: 10, marginBottom: 32, paddingLeft: 16, paddingRight: 16, boxSizing: "border-box", pointerEvents: revealContent ? "auto" : "none" }}>
             <motion.button
               className="w-full text-sm font-semibold rounded-2xl text-white py-3"
               style={{
@@ -581,7 +704,7 @@ export default function VoiceContractDocuments({
             >
               Bestätigen
             </motion.button>
-          </div>
+          </motion.div>
         )}
 
         <p className="text-sm font-medium" style={{ color: "rgba(59,130,246,0.7)" }}>

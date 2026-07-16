@@ -261,6 +261,10 @@ interface VoiceInvestmentFormProps {
   /** Delays the morph start (ms) so the shell's grow-in sphere phantom (the
    *  AI "stepping back in" after the privacy pause) finishes first. */
   entryDelayMs?:   number;
+  /** Continuously reports the frame's viewport rect — the shell keeps the
+   *  latest value so the Phase 4 → 5 handoff can glide this frame onto the
+   *  contract documents screen. */
+  onFrameRect?:    (rect: FrameRect) => void;
 }
 
 export default function VoiceInvestmentForm({
@@ -274,6 +278,7 @@ export default function VoiceInvestmentForm({
   onConfirm,
   entryOrbOrigin,
   entryDelayMs,
+  onFrameRect,
 }: VoiceInvestmentFormProps) {
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
   const [isPTTActive, setIsPTTActive] = useState(false);
@@ -333,6 +338,28 @@ export default function VoiceInvestmentForm({
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTransition]);
+
+  // Report the frame's live rect up for the Phase 4 → 5 frame glide — same
+  // per-frame poll pattern as VoiceProductPhase (writes a shell ref, no
+  // re-renders, tracks scrolling).
+  useEffect(() => {
+    if (!onFrameRect) return;
+    let raf = 0;
+    let alive = true;
+    const tick = () => {
+      const el = contentBoxRef.current;
+      if (el) {
+        const b = el.getBoundingClientRect();
+        if (b.width > 0) onFrameRect({ x: b.left, y: b.top, w: b.width, h: b.height });
+      }
+      if (alive) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      alive = false;
+      cancelAnimationFrame(raf);
+    };
+  }, [onFrameRect]);
 
   // Cascade logic copied verbatim from V1's handleCheckboxChange.
   const handleCheckboxChange = useCallback((field: keyof InvestmentFormData) => {

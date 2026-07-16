@@ -24,8 +24,13 @@ import { frameOutlineTargets, generateFrameSpikeNodes, getFrameColors, type Fram
 
 interface SphereToFrameTransitionProps {
   /** "toFrame" (default): orb becomes the frame — Phase 0 entry, Phase 1 expand.
-   *  "toOrb": frame becomes the orb again — Phase 1 collapse. */
-  direction?: "toFrame" | "toOrb";
+   *  "toOrb": frame becomes the orb again — Phase 1 collapse.
+   *  "frameToFrame": the dense frame stays at full strength and glides/resizes
+   *  from `contentRectStart` to `contentRect` — for handoffs between two
+   *  framed screens where voice never disconnects (Phase 4 → 5), so there's
+   *  no narrative reason for an orb round-trip. sphereCenter/sphereRadius are
+   *  unused in this mode. */
+  direction?: "toFrame" | "toOrb" | "frameToFrame";
   /** Viewport-space centre of the sphere endpoint. */
   sphereCenter: { x: number; y: number };
   /** Matches VoiceSphere's baseRadius (size * 0.3) for the sphere it's replacing/becoming. */
@@ -139,7 +144,8 @@ export function SphereToFrameTransition({
 
       // shapeT: 0 = fully sphere, 1 = fully frame — regardless of direction, everything
       // downstream is written purely in terms of "how frame-like is the shape right now."
-      const shapeT = direction === "toOrb" ? 1 - easeMorph(t) : easeMorph(t);
+      // frameToFrame pins it at 1: only the rect moves (via rectT), never the shape.
+      const shapeT = direction === "toOrb" ? 1 - easeMorph(t) : direction === "frameToFrame" ? 1 : easeMorph(t);
 
       // Rotation slows as the shape commits to the sphere-or-frame endpoint it's
       // heading toward — never fully stops until the morph is done, so neither
