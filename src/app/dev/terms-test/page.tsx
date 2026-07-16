@@ -9,11 +9,16 @@
  */
 
 import { useState, useEffect, useRef } from "react";
+import { motion } from "motion/react";
 import VoiceTermsPhase from "@/components/voice/VoiceTermsPhase";
 import VoiceProductPhase from "@/components/voice/VoiceProductPhase";
+import VoiceSphere from "@/components/voice/VoiceSphere";
 import { PhaseOneNeuralModel } from "@/components/voice/PhaseOneNeuralModel";
+import { SphereToFrameTransition } from "@/components/voice/SphereToFrameTransition";
 import type { FrameRect } from "@/components/voice/frameMath";
 import type { ProductData } from "@/hooks/useVoiceSession";
+
+const BG = "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)";
 
 const FAKE_PRODUCT: ProductData = {
   id: "dev",
@@ -31,8 +36,12 @@ const FAKE_PRODUCT: ProductData = {
 };
 
 export default function TermsTestPage() {
-  const [step, setStep] = useState<"terms1" | "terms2" | "phase1" | "phase2">("terms1");
+  const [step, setStep] = useState<"terms1" | "terms2" | "phase1" | "phase2" | "pause" | "form">("terms1");
   const entryRectRef = useRef<FrameRect | null>(null);
+
+  // Phase 2 → 3 privacy-pause seams (mirrors the shell).
+  const [pauseRect, setPauseRect] = useState<FrameRect | null>(null);
+  const [pauseRevealed, setPauseRevealed] = useState(false);
 
   // Mirrors the shell's Phase 1 orb wrapper + per-frame rect poll.
   const [orbOrigin, setOrbOrigin] = useState<{ x: number; y: number } | null>(null);
@@ -136,11 +145,72 @@ export default function TermsTestPage() {
           onMuteToggle={() => {}}
           onPTTStart={() => {}}
           onPTTRelease={() => {}}
-          onConfirm={() => {}}
+          onConfirm={() => {
+            // Mirrors advanceToPersonalInfo: product frame collapses into the
+            // pause screen's sphere.
+            setPauseRect(entryRectRef.current);
+            entryRectRef.current = null;
+            setPauseRevealed(false);
+            setStep("pause");
+          }}
           onRevisit={() => setStep("phase1")}
           entryOrbOrigin={orbOrigin}
           onFrameRect={(rect) => { entryRectRef.current = rect; }}
         />
+      )}
+
+      {step === "pause" && (
+        <div className="fixed inset-0 flex flex-col overflow-hidden" style={{ background: BG }}>
+          <div className="w-full px-6 py-5">
+            <h1 className="text-2xl font-bold text-center" style={{ color: "#2563eb" }}>Vox.2</h1>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <motion.div animate={{ opacity: pauseRevealed ? 1 : 0 }} transition={{ duration: 0.35 }}>
+              <VoiceSphere isActive isSpeaking={false} isListening={false} size={380} analyserNode={null} micAnalyserNode={null} />
+            </motion.div>
+          </div>
+          {pauseRect && (
+            <SphereToFrameTransition
+              direction="toOrb"
+              sphereCenter={{ x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 }}
+              sphereRadius={380 * 0.3}
+              contentRect={pauseRect}
+              onMostlyDone={() => setPauseRevealed(true)}
+              onComplete={() => setPauseRect(null)}
+            />
+          )}
+          <button
+            id="to-form-btn"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded border border-blue-300 text-blue-600 text-sm bg-white"
+            onClick={() => setStep("form")}
+          >
+            → Phase 3
+          </button>
+        </div>
+      )}
+
+      {step === "form" && (
+        <div className="fixed inset-0 overflow-hidden" style={{ background: BG }}>
+          <motion.div
+            className="max-w-md mx-auto mt-24 rounded-3xl bg-white p-8"
+            style={{ boxShadow: "0 20px 60px rgba(59,130,246,0.15)" }}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.3 }}
+          >
+            <h2 className="text-lg font-semibold mb-2" style={{ color: "rgba(15,23,42,0.9)" }}>[ Personal Info form ]</h2>
+            <p className="text-sm" style={{ color: "rgba(100,116,139,0.8)" }}>Silent phase — voice disconnected.</p>
+          </motion.div>
+          <motion.div
+            className="fixed inset-0 pointer-events-none flex flex-col items-center justify-center"
+            style={{ paddingTop: 84 }}
+            initial={{ opacity: 1, scale: 1 }}
+            animate={{ opacity: 0, scale: 0.1 }}
+            transition={{ duration: 0.75, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <VoiceSphere isActive isSpeaking={false} isListening={false} size={380} analyserNode={null} micAnalyserNode={null} />
+          </motion.div>
+        </div>
       )}
     </>
   );

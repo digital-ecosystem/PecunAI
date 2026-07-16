@@ -9,6 +9,7 @@ import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
 import { ExpandedQuestionCard, computeExpandedRect } from "./ExpandedQuestionCard";
 import { SustainabilityTermsCard, SustainabilityPTTButton } from "./SustainabilityTermsCard";
 import { PhaseOneNeuralModel } from "./PhaseOneNeuralModel";
+import { SphereToFrameTransition } from "./SphereToFrameTransition";
 import type { FrameRect } from "./frameMath";
 import VoiceExplainOverlay from "./VoiceExplainOverlay";
 import VoiceChatModal from "./VoiceChatModal";
@@ -152,6 +153,53 @@ export default function VoiceSessionShell({
   const reportPhase2FrameRect = useCallback((rect: FrameRect) => {
     phaseEntryFrameRectRef.current = rect;
   }, []);
+
+  // ── Phase 2 → 3 privacy-pause choreography ────────────────────────────
+  // Seam A: entering the pause screen, the product frame collapses into the
+  // sphere (SphereToFrameTransition direction="toOrb", fed by the rect Phase
+  // 2's poll left in phaseEntryFrameRectRef). The real VoiceSphere stays
+  // hidden until the collapse mostly lands, then fades in underneath.
+  const [pauseCollapse, setPauseCollapse] = useState<{ rect: FrameRect; sphereCenter: { x: number; y: number } } | null>(null);
+  const [pauseOrbRevealed, setPauseOrbRevealed] = useState(true);
+  useEffect(() => {
+    if (!isTransitioningToPersonalInfo) {
+      setPauseCollapse(null);
+      setPauseOrbRevealed(true);
+      return;
+    }
+    const rect = phaseEntryFrameRectRef.current;
+    phaseEntryFrameRectRef.current = null;
+    if (!rect) return; // no known frame (e.g. resume) — orb fades in as before
+    setPauseOrbRevealed(false);
+    // The pause screen's orb: centred in the flex-1 area under the ~84px header
+    // (same approximation VoiceTermsPhase uses for the intro orb).
+    setPauseCollapse({
+      rect,
+      sphereCenter: { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 },
+    });
+    const t = window.setTimeout(() => setPauseOrbRevealed(true), 1500); // safety net
+    return () => window.clearTimeout(t);
+  }, [isTransitioningToPersonalInfo]);
+
+  // Seam B: when the pause ends (voicePhase flips to 3), a phantom sphere
+  // shrinks away over the mounting form — the AI visibly "steps out" for the
+  // silent, disconnected Personal Info phase. wasPrivacyPauseRef is readable
+  // during the flip render, so the form's entrance and the phantom appear on
+  // the very first Phase 3 frame.
+  const [privacyExitOrb, setPrivacyExitOrb] = useState(false);
+  const wasPrivacyPauseRef = useRef(false);
+  useEffect(() => {
+    if (isTransitioningToPersonalInfo) {
+      wasPrivacyPauseRef.current = true;
+      return;
+    }
+    if (voicePhase === 3 && wasPrivacyPauseRef.current) {
+      wasPrivacyPauseRef.current = false;
+      setPrivacyExitOrb(true);
+      const t = window.setTimeout(() => setPrivacyExitOrb(false), 1000);
+      return () => window.clearTimeout(t);
+    }
+  }, [isTransitioningToPersonalInfo, voicePhase]);
 
   // expandedRect only depends on viewport size — mount + resize is enough.
   useEffect(() => {
@@ -541,7 +589,39 @@ export default function VoiceSessionShell({
   // live transition (advanceToPersonalInfo already disconnected voice before flipping the
   // phase) and a fresh page load resuming directly into Phase 3.
   if (voicePhase === 3) {
-    return <VoicePersonalInfoForm sessionId={sessionId} onSubmitted={onPersonalInfoSubmitted} onPrimeAudio={primeReconnectAudio} />;
+    const enteredFromPause = privacyExitOrb || wasPrivacyPauseRef.current;
+    return (
+      <>
+        <motion.div
+          initial={enteredFromPause ? { opacity: 0, y: 14 } : false}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.3 }}
+        >
+          <VoicePersonalInfoForm sessionId={sessionId} onSubmitted={onPersonalInfoSubmitted} onPrimeAudio={primeReconnectAudio} />
+        </motion.div>
+        {/* The pause screen's sphere shrinks away over the mounting form —
+            the AI stepping out for the silent, voice-disconnected phase. Same
+            position formula as the pause screen (centred under ~84px header). */}
+        {enteredFromPause && (
+          <motion.div
+            className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center"
+            style={{ paddingTop: 84 }}
+            initial={{ opacity: 1, scale: 1 }}
+            animate={{ opacity: 0, scale: 0.1 }}
+            transition={{ duration: 0.75, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <VoiceSphere
+              isActive
+              isSpeaking={false}
+              isListening={false}
+              size={380}
+              analyserNode={null}
+              micAnalyserNode={null}
+            />
+          </motion.div>
+        )}
+      </>
+    );
   }
 
   // ── Phase 7 — Signing: silent, tap-only, no voice UI at all — same treatment as Phase 3 ───
@@ -707,8 +787,14 @@ export default function VoiceSessionShell({
             <motion.div
               className="relative z-10"
               initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6 }}
+              // While the Phase 2 → 3 collapse canvas is flying the product
+              // frame into this spot, the real sphere stays hidden — it fades
+              // in as the collapse mostly lands (pauseOrbRevealed).
+              animate={{
+                opacity: isTransitioningToPersonalInfo && pauseCollapse && !pauseOrbRevealed ? 0 : 1,
+                scale: 1,
+              }}
+              transition={{ duration: pauseCollapse ? 0.35 : 0.6 }}
             >
               <VoiceSphere
                 isActive={started}
@@ -719,6 +805,21 @@ export default function VoiceSessionShell({
                 micAnalyserNode={null}
               />
             </motion.div>
+
+            {/* Phase 2 → 3: the product frame's nodes fly from the document
+                outline into the sphere position (dense web dissolving en
+                route) — the same collapse language as every other frame → orb
+                handoff in the app. */}
+            {isTransitioningToPersonalInfo && pauseCollapse && (
+              <SphereToFrameTransition
+                direction="toOrb"
+                sphereCenter={pauseCollapse.sphereCenter}
+                sphereRadius={380 * 0.3}
+                contentRect={pauseCollapse.rect}
+                onMostlyDone={() => setPauseOrbRevealed(true)}
+                onComplete={() => setPauseCollapse(null)}
+              />
+            )}
             <div className="relative z-30 mt-4 flex flex-col items-center gap-1">
               <motion.p
                 className="text-sm font-medium"
