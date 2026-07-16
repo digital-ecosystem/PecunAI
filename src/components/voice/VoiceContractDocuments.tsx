@@ -102,6 +102,10 @@ interface VoiceContractDocumentsProps {
    *  the sphere holds a beat (pulsing while the AI talks), then consumes into
    *  this screen's frame. Null on cold resume — content fades in as before. */
   entryFrameRect?: FrameRect | null;
+  /** Continuously reports this frame's viewport rect — the shell keeps the
+   *  latest value so the Phase 5 → 6 handoff can collapse this frame into
+   *  Phase 6's sphere. */
+  onFrameRect?:    (rect: FrameRect) => void;
 }
 
 export default function VoiceContractDocuments({
@@ -114,6 +118,7 @@ export default function VoiceContractDocuments({
   onPTTRelease,
   onConfirm,
   entryFrameRect,
+  onFrameRect,
 }: VoiceContractDocumentsProps) {
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
   const [isPTTActive, setIsPTTActive] = useState(false);
@@ -192,6 +197,28 @@ export default function VoiceContractDocuments({
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Report the frame's live rect up for the Phase 5 → 6 collapse — same
+  // per-frame poll pattern as the earlier framed phases (writes a shell ref,
+  // no re-renders, tracks scrolling).
+  useEffect(() => {
+    if (!onFrameRect) return;
+    let raf = 0;
+    let alive = true;
+    const tick = () => {
+      const el = contentBoxRef.current;
+      if (el) {
+        const b = el.getBoundingClientRect();
+        if (b.width > 0) onFrameRect({ x: b.left, y: b.top, w: b.width, h: b.height });
+      }
+      if (alive) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      alive = false;
+      cancelAnimationFrame(raf);
+    };
+  }, [onFrameRect]);
 
   // Generate the 8 contract PDFs on phase entry — same trigger as V1's `useEffect` on
   // `step === PHASES.CONTRACT_DOCUMENT`. userInfo is fetched fresh from the DB (same

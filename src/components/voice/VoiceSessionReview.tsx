@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Mic, MessageCircle } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
+import { SphereToFrameTransition } from "./SphereToFrameTransition";
+import type { FrameRect } from "./frameMath";
 import type { SessionState } from "@/hooks/useVoiceSession";
 
 // ── Status labels — same map as VoiceSessionShell / VoiceInvestmentForm / VoiceContractDocuments ──
@@ -30,6 +32,10 @@ interface VoiceSessionReviewProps {
   onConfirm:       () => void;
   onChatClick:     () => void;
   isChatOpen:      boolean;
+  /** Phase 5's frame rect at handoff time. When set at mount, the contracts
+   *  frame visibly collapses into this screen's sphere (which IS the
+   *  destination — Phase 6 is a sphere screen). Null on cold resume. */
+  entryFrameRect?: FrameRect | null;
 }
 
 // Phase 6 — Final Q&A: the last AI-guided moment before signing. Visually the same orb
@@ -46,8 +52,32 @@ export default function VoiceSessionReview({
   onConfirm,
   onChatClick,
   isChatOpen,
+  entryFrameRect,
 }: VoiceSessionReviewProps) {
   const [isPTTActive, setIsPTTActive] = useState(false);
+
+  // ── Entry collapse (Phase 5's frame → this screen's sphere) — the pause-
+  // screen pattern: the one-shot canvas flies the contracts frame's nodes
+  // into the sphere position while the real sphere/buttons stay hidden, then
+  // everything fades in as the collapse mostly lands.
+  const [entryStart]  = useState(entryFrameRect ?? null); // snapshot at mount
+  const [entryCenter] = useState(() =>
+    entryFrameRect && typeof window !== "undefined"
+      ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 }
+      : null
+  );
+  const [collapsing, setCollapsing] = useState(!!entryFrameRect);
+  const [revealed,   setRevealed]   = useState(!entryFrameRect);
+
+  // Safety net: never leave the screen stuck mid-collapse.
+  useEffect(() => {
+    if (!collapsing) return;
+    const t = setTimeout(() => {
+      setRevealed(true);
+      setCollapsing(false);
+    }, 1800);
+    return () => clearTimeout(t);
+  }, [collapsing]);
 
   const statusLabel = STATUS_LABEL[sessionState] ?? "";
 
@@ -71,6 +101,18 @@ export default function VoiceSessionReview({
         </div>
       </div>
 
+      {/* Entry collapse — Phase 5's contracts frame flies into the sphere position. */}
+      {collapsing && entryStart && entryCenter && (
+        <SphereToFrameTransition
+          direction="toOrb"
+          sphereCenter={entryCenter}
+          sphereRadius={380 * 0.3}
+          contentRect={entryStart}
+          onMostlyDone={() => setRevealed(true)}
+          onComplete={() => setCollapsing(false)}
+        />
+      )}
+
       {/* Orb — same background pulse + VoiceSphere as the shared orb screen */}
       <div className="flex-1 flex flex-col items-center justify-center relative">
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
@@ -84,8 +126,11 @@ export default function VoiceSessionReview({
         <motion.div
           className="relative z-10"
           initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6 }}
+          // Hidden while the collapse canvas flies the frame in; fades in as
+          // it mostly lands (scale pinned at 1 on that path so the real
+          // sphere appears exactly where the nodes converge).
+          animate={{ opacity: revealed ? 1 : 0, scale: revealed ? 1 : entryStart ? 1 : 0.9 }}
+          transition={{ duration: entryStart ? 0.35 : 0.6 }}
         >
           <VoiceSphere
             isActive={true}
@@ -97,7 +142,12 @@ export default function VoiceSessionReview({
           />
         </motion.div>
 
-        <div className="relative z-30 mt-4 flex flex-col items-center gap-4">
+        <motion.div
+          className="relative z-30 mt-4 flex flex-col items-center gap-4"
+          animate={{ opacity: revealed ? 1 : 0 }}
+          transition={{ duration: 0.4 }}
+          style={{ pointerEvents: revealed ? "auto" : "none" }}
+        >
           <motion.p
             className="text-sm font-medium"
             style={{ color: "rgba(59,130,246,0.7)" }}
@@ -116,12 +166,13 @@ export default function VoiceSessionReview({
           >
             Weiter zur Unterschrift
           </motion.button>
-        </div>
+        </motion.div>
       </div>
 
       {/* Chat button — fixed bottom-left, mirrors the PTT button on the opposite corner.
-          Hidden while chat is open, same as PTT, so neither floats on top of the modal. */}
-      {!isChatOpen && (
+          Hidden while chat is open, same as PTT, so neither floats on top of the modal.
+          Both also wait for the entry collapse to land (revealed). */}
+      {!isChatOpen && revealed && (
         <div className="fixed bottom-8 left-6 z-[60]">
           <motion.button
             className="flex items-center justify-center rounded-full shadow-xl border-2"
@@ -140,7 +191,7 @@ export default function VoiceSessionReview({
 
       {/* PTT button — fixed bottom-right, identical to Phases 2/4/5. Hidden while chat is
           open — the chat modal is a 70vh bottom sheet and would otherwise sit underneath it. */}
-      {!isChatOpen && (
+      {!isChatOpen && revealed && (
         <div className="fixed bottom-8 right-6 flex flex-col items-center gap-2 z-[60]">
           {!isPTTActive && !isSpeaking && (
             <p className="text-xs font-medium text-center" style={{ color: "rgba(59,130,246,0.7)" }}>

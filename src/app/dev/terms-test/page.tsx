@@ -14,6 +14,7 @@ import VoiceTermsPhase from "@/components/voice/VoiceTermsPhase";
 import VoiceProductPhase from "@/components/voice/VoiceProductPhase";
 import VoiceInvestmentForm from "@/components/voice/VoiceInvestmentForm";
 import VoiceContractDocuments from "@/components/voice/VoiceContractDocuments";
+import VoiceSessionReview from "@/components/voice/VoiceSessionReview";
 import VoiceSphere from "@/components/voice/VoiceSphere";
 import { PhaseOneNeuralModel } from "@/components/voice/PhaseOneNeuralModel";
 import { SphereToFrameTransition } from "@/components/voice/SphereToFrameTransition";
@@ -38,7 +39,7 @@ const FAKE_PRODUCT: ProductData = {
 };
 
 export default function TermsTestPage() {
-  const [step, setStep] = useState<"terms1" | "terms2" | "phase1" | "phase2" | "pause" | "form" | "phase4" | "phase5">("terms1");
+  const [step, setStep] = useState<"terms1" | "terms2" | "phase1" | "phase2" | "pause" | "form" | "phase4" | "phase5" | "phase6">("terms1");
   const entryRectRef = useRef<FrameRect | null>(null);
 
   // Phase 2 → 3 privacy-pause seams (mirrors the shell).
@@ -110,6 +111,15 @@ export default function TermsTestPage() {
             onClick={() => setStep("phase5")}
           >
             → Phase 5
+          </button>
+        )}
+        {step === "phase5" && (
+          <button
+            id="to-phase6-btn"
+            className="ml-2 px-2 py-0.5 rounded border border-blue-300 text-blue-600"
+            onClick={() => setStep("phase6")}
+          >
+            → Phase 6
           </button>
         )}
       </div>
@@ -279,6 +289,22 @@ export default function TermsTestPage() {
           onPTTStart={() => {}}
           onPTTRelease={() => {}}
           onConfirm={() => {}}
+          entryFrameRect={entryRectRef.current}
+          onFrameRect={(rect) => { entryRectRef.current = rect; }}
+        />
+      )}
+
+      {step === "phase6" && (
+        <VoiceSessionReview
+          isSpeaking={false}
+          sessionState="listening"
+          analyserNode={null}
+          micAnalyserNode={null}
+          onPTTStart={() => {}}
+          onPTTRelease={() => {}}
+          onConfirm={() => {}}
+          onChatClick={() => {}}
+          isChatOpen={false}
           entryFrameRect={entryRectRef.current}
         />
       )}

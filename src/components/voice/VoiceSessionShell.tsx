@@ -151,8 +151,8 @@ export default function VoiceSessionShell({
   const phaseEntryFrameRectRef = useRef<FrameRect | null>(null);
   useEffect(() => {
     // Clear shortly after any consumer phase mounts (Phase 1's collapse,
-    // Phase 5's frame glide) so later re-entries start clean.
-    if (voicePhase !== 1 && voicePhase !== 5) return;
+    // Phase 5's entry handoff, Phase 6's collapse) so later re-entries start clean.
+    if (voicePhase !== 1 && voicePhase !== 5 && voicePhase !== 6) return;
     const t = window.setTimeout(() => { phaseEntryFrameRectRef.current = null; }, 1500);
     return () => window.clearTimeout(t);
   }, [voicePhase]);
@@ -740,6 +740,7 @@ export default function VoiceSessionShell({
           // Live 4 → 5 handoff: Phase 4's poll left its frame rect here, so the
           // frame glides onto this screen. Cold resume: null (no poll ran).
           entryFrameRect={phaseEntryFrameRectRef.current}
+          onFrameRect={reportFrameRect}
         />
         {resumeTapOverlay}
       </>
@@ -763,6 +764,9 @@ export default function VoiceSessionShell({
           onConfirm={() => { stopAudio(); return confirmReadyToSign(); }}
           onChatClick={() => setChatOpen(true)}
           isChatOpen={chatOpen}
+          // Live 5 → 6 handoff: Phase 5's poll left its frame rect here, so
+          // the contracts frame collapses into this screen's sphere.
+          entryFrameRect={phaseEntryFrameRectRef.current}
         />
         <VoiceChatModal
           isOpen={chatOpen}
