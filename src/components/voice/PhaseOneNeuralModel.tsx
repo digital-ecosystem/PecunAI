@@ -33,6 +33,11 @@ interface PhaseOneNeuralModelProps {
   analyserNode?: AnalyserNode | null;
   /** Mic audio — used instead of analyserNode while listening (PTT). */
   micAnalyserNode?: AnalyserNode | null;
+  /** Phase 0 → 1 handoff: when set at mount, the nodes start on this rect's
+   *  frame outline (dense web at full strength) and collapse into the orb —
+   *  the reverse of the intro's orb → document morph — instead of starting
+   *  already settled. Read once at mount. */
+  initialFrameRect?: FrameRect | null;
   containerWidth: number;
   containerHeight: number;
 }
@@ -75,6 +80,7 @@ export function PhaseOneNeuralModel({
   isListening,
   analyserNode,
   micAnalyserNode,
+  initialFrameRect,
   containerWidth: cw,
   containerHeight: ch,
 }: PhaseOneNeuralModelProps) {
@@ -143,9 +149,24 @@ export function PhaseOneNeuralModel({
   const targetsFor = (s: PhaseOneShape, rect: FrameRect | null): Point[] =>
     s === "cardFrame" ? frameOutlineTargets(N, rect ?? defaultFrameRect(cw, ch), WAVE_PAD) : orbTargetsNow();
 
-  // Initialize on mount — start already "settled" at the initial shape, no
-  // morph plays on first paint.
+  // Initialize on mount — normally start already "settled" at the initial
+  // shape (no morph on first paint). With initialFrameRect (Phase 0 → 1
+  // handoff), start instead on that document's frame outline with the dense
+  // web at full strength and play a collapse into the current shape — the
+  // terms frame visibly becomes the Phase 1 orb.
   useEffect(() => {
+    if (initialFrameRect) {
+      const from = frameOutlineTargets(N, initialFrameRect, WAVE_PAD);
+      posRef.current = from.map(p => ({ ...p }));
+      fromRef.current = from.map(p => ({ ...p }));
+      toRef.current = targetsFor(shape, frameRect);
+      morphStartRef.current = performance.now();
+      mixRef.current = 1;
+      mixFromRef.current = 1;
+      mixToRef.current = shape === "cardFrame" ? 1 : 0;
+      lastFrameRectRef.current = initialFrameRect;
+      return;
+    }
     const initial = targetsFor(shape, frameRect);
     posRef.current = initial.map(p => ({ ...p }));
     fromRef.current = initial.map(p => ({ ...p }));

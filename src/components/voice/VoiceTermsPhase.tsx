@@ -27,6 +27,10 @@ interface VoiceTermsPhaseProps {
   onConfirm:      () => Promise<void>;
   onPTTStart?:   () => void;
   onPTTRelease?: (which: 'terms1' | 'terms2' | 'sustainabilityTerms') => void;
+  /** Called when the LAST document (terms2) is confirmed, with the document
+   *  box's viewport rect — the shell hands it to Phase 1's persistent canvas
+   *  so the frame visibly collapses into the orb across the phase boundary. */
+  onExitRect?:   (rect: FrameRect) => void;
 }
 
 function getContentSize() {
@@ -44,13 +48,18 @@ function getContentSize() {
   }
 }
 
-export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTStart, onPTTRelease }: VoiceTermsPhaseProps) {
+export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTStart, onPTTRelease, onExitRect }: VoiceTermsPhaseProps) {
   const isTerms2 = which !== 'terms1';
 
   const [showTransition, setShowTransition] = useState(!isTerms2);
   const [revealContent,  setRevealContent]  = useState(isTerms2);
   const [confirmed,      setConfirmed]      = useState(false);
   const [confirming,     setConfirming]     = useState(false);
+  // Set when the final document is confirmed: the white card and buttons fade
+  // out during the green-button pause so only the neural frame remains on
+  // screen when the phase flips — Phase 1's canvas then picks the frame up at
+  // this exact rect and collapses it into the orb.
+  const [exiting,        setExiting]        = useState(false);
   const [isPTTActive,    setIsPTTActive]    = useState(false);
   // Start with null — set properly on first client render to avoid SSR mismatch
   const [contentSize,    setContentSize]    = useState<{ width: number; height: number } | null>(null);
@@ -64,6 +73,19 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTSta
     setContentSize(getContentSize());
     setSphereOrigin(getSphereOrigin());
   }, []);
+
+  // The shell keeps this instance mounted across terms1 → terms2 (no key), so
+  // the AnimatedFrame stays wrapped and only the document content crossfades —
+  // the Pecunai 2.0 reference's legal page flip, replacing the old full-screen
+  // slide-in remount. On a document change, reset the confirm state the
+  // previous document left behind.
+  const prevWhichRef = useRef(which);
+  useEffect(() => {
+    if (prevWhichRef.current === which) return;
+    prevWhichRef.current = which;
+    setConfirmed(false);
+    setConfirming(false);
+  }, [which]);
 
   useEffect(() => {
     const onResize = () => {
@@ -115,6 +137,17 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTSta
     if (confirming || confirmed) return;
     setConfirming(true);
     setConfirmed(true);
+    if (which === 'terms2') {
+      const b = contentBoxRef.current?.getBoundingClientRect();
+      if (b && b.width > 0) onExitRect?.({ x: b.left, y: b.top, w: b.width, h: b.height });
+      setExiting(true);
+      // Tighter than terms1's 1.5s: the exit fade completes at ~0.75s and the
+      // phase flip (and with it the frame → orb collapse) should follow
+      // immediately — any longer and the empty frame idles around a blank
+      // page. The remaining gap is just confirmTerms2's API roundtrip.
+      setTimeout(() => { onConfirm(); }, 750);
+      return;
+    }
     setTimeout(() => { onConfirm(); }, 1500);
   };
 
@@ -180,25 +213,45 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTSta
                 isSpeaking={isSpeaking}
                 isListening={isPTTActive}
               >
-                <div
-                  className="w-full h-full overflow-y-auto"
+                <motion.div
+                  className="w-full h-full"
                   style={{
                     background:   "rgba(255,255,255,0.97)",
                     borderRadius: Math.round(cw * 0.04),
+                    overflow:     "hidden",
                   }}
+                  animate={{ opacity: exiting ? 0 : 1 }}
+                  transition={{ delay: exiting ? 0.3 : 0, duration: 0.45 }}
                 >
-                  <div className="px-5 py-4">
-                    <h2 className="text-base font-bold mb-1" style={{ color: "rgba(15,23,42,0.9)" }}>{title}</h2>
-                    <p className="text-xs mb-3" style={{ color: "rgba(59,130,246,0.7)" }}>{subtitle}</p>
-                    <div className="text-sm" style={{ color: "rgba(15,23,42,0.75)", lineHeight: 1.7 }}>
-                      {which === 'terms2'
-                        ? <FrootsCustomerInfo />
-                        : which === 'sustainabilityTerms'
-                        ? <SustainabilityRisksInfo />
-                        : <FourMoneyInfo />}
-                    </div>
-                  </div>
-                </div>
+                  {/* Keyed by document: when `which` changes on the live
+                      instance, the old content fades out and the new fades in
+                      INSIDE the persistent frame. The scroll container lives
+                      on the keyed element so scroll position resets per
+                      document. initial={false} keeps first mount unanimated
+                      (revealContent already handles the entry fade). */}
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={which}
+                      className="w-full h-full overflow-y-auto"
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      <div className="px-5 py-4">
+                        <h2 className="text-base font-bold mb-1" style={{ color: "rgba(15,23,42,0.9)" }}>{title}</h2>
+                        <p className="text-xs mb-3" style={{ color: "rgba(59,130,246,0.7)" }}>{subtitle}</p>
+                        <div className="text-sm" style={{ color: "rgba(15,23,42,0.75)", lineHeight: 1.7 }}>
+                          {which === 'terms2'
+                            ? <FrootsCustomerInfo />
+                            : which === 'sustainabilityTerms'
+                            ? <SustainabilityRisksInfo />
+                            : <FourMoneyInfo />}
+                        </div>
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+                </motion.div>
               </AnimatedFrame>
             </div>
 
@@ -215,6 +268,8 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTSta
                   : "0 4px 16px rgba(59,130,246,0.35)",
                 marginTop: 40,
               }}
+              animate={{ opacity: exiting ? 0 : 1 }}
+              transition={{ delay: exiting ? 0.25 : 0, duration: 0.45 }}
               whileTap={{ scale: 0.97 }}
               disabled={confirming}
               onClick={handleConfirm}
@@ -226,7 +281,11 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTSta
       </div>
 
       {/* ── Push-to-talk button ── */}
-      <div className="fixed bottom-8 right-6 flex flex-col items-center gap-2 z-[60]">
+      <motion.div
+        className="fixed bottom-8 right-6 flex flex-col items-center gap-2 z-[60]"
+        animate={{ opacity: exiting ? 0 : 1 }}
+        transition={{ delay: exiting ? 0.25 : 0, duration: 0.45 }}
+      >
         <AnimatePresence>
           {!isPTTActive && !isSpeaking && (
             <motion.p
@@ -260,7 +319,7 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTSta
         >
           <Mic className="text-white" size={26} />
         </motion.button>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }

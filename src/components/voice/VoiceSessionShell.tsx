@@ -157,6 +157,19 @@ export default function VoiceSessionShell({
   const [expandedRect, setExpandedRect] = useState<FrameRect | null>(null);
   const orbWrapperRef = useRef<HTMLDivElement>(null);
 
+  // Phase 0 → 1 handoff: the terms2 document's rect, reported when the last
+  // document is confirmed. Phase 1's persistent canvas reads it at mount and
+  // plays a frame → orb collapse instead of popping in settled. A ref (not
+  // state) because it must survive the phase-0 branch unmounting; cleared
+  // shortly after Phase 1 mounts so later re-entries (e.g. revisit from
+  // Phase 2) don't replay the collapse.
+  const phase0ExitRectRef = useRef<FrameRect | null>(null);
+  useEffect(() => {
+    if (voicePhase !== 1) return;
+    const t = window.setTimeout(() => { phase0ExitRectRef.current = null; }, 1500);
+    return () => window.clearTimeout(t);
+  }, [voicePhase]);
+
   // expandedRect only depends on viewport size — mount + resize is enough.
   useEffect(() => {
     const measure = () => setExpandedRect(computeExpandedRect(window.innerWidth, window.innerHeight));
@@ -746,8 +759,11 @@ export default function VoiceSessionShell({
   if (voicePhase === 0 && (termsSubStep === 'terms1' || termsSubStep === 'terms2')) {
     return (
       <>
+        {/* No key: the same instance survives terms1 → terms2, so the neural
+            frame stays wrapped around the document and only the content
+            crossfades inside it (mirroring the Pecunai 2.0 reference's legal
+            page flip) — instead of the old full-screen slide-in remount. */}
         <VoiceTermsPhase
-          key={termsSubStep}
           which={termsSubStep}
           isSpeaking={isSpeaking}
           onConfirm={termsSubStep === 'terms1'
@@ -755,6 +771,7 @@ export default function VoiceSessionShell({
             : () => { stopAudio(); return confirmTerms2(); }}
           onPTTStart={startPTT}
           onPTTRelease={submitPTTQuestion}
+          onExitRect={(rect) => { phase0ExitRectRef.current = rect; }}
         />
         {!started && (
           <motion.div
@@ -1134,6 +1151,7 @@ export default function VoiceSessionShell({
         <PhaseOneNeuralModel
           shape={modalOpen || sustainabilityVisible ? "cardFrame" : "orb"}
           frameRect={modalOpen || sustainabilityVisible ? expandedRect : null}
+          initialFrameRect={phase0ExitRectRef.current}
           sphereCenter={orbOrigin}
           sphereRadius={380 * 0.3}
           isSpeaking={isSpeaking}

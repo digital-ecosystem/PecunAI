@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { SPHERE_NODE_COUNT, generateSphereNodes, projectSpherePoint } from "./sphereMath";
-import { frameOutlineTargets, getFrameColors, type FrameRect } from "./frameMath";
+import { frameOutlineTargets, generateFrameSpikeNodes, getFrameColors, type FrameRect } from "./frameMath";
 
 /**
  * One-shot canvas transition: morphs a shared set of nodes between a live,
@@ -59,6 +59,11 @@ function lerp(a: number, b: number, t: number) {
 
 function lerpRect(a: FrameRect, b: FrameRect, t: number): FrameRect {
   return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), w: lerp(a.w, b.w, t), h: lerp(a.h, b.h, t) };
+}
+
+function smoothstep(edge0: number, edge1: number, x: number) {
+  const s = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+  return s * s * (3 - 2 * s);
 }
 
 // Same cubic ease-out used by the Pecunai 2.0 AISpeechModel reference — this
@@ -150,6 +155,16 @@ export function SphereToFrameTransition({
 
       const connectionDist = lerp(sphereConnDist, frameConnDistAt(frameRectNow), shapeT);
 
+      // The 80 flying nodes only sketch the frame's outline; the "consume"
+      // feel comes from the dense spike-cluster web materializing around the
+      // rect as the nodes land — the exact crossfade PhaseOneNeuralModel uses
+      // for Phase 1's cards (same math, same 0.7→1 window), so both phases'
+      // morphs read identically. The final handoff to the real AnimatedFrame
+      // then crossfades between two matching dense webs.
+      const denseAlphaRaw = smoothstep(0.7, 1, shapeT);
+      const denseAlpha = denseAlphaRaw * fadeOut;
+      const skeletonFade = (1 - denseAlphaRaw) * fadeOut;
+
       ctx.clearRect(0, 0, vw, vh);
 
       const points: Array<{ x: number; y: number; energy: number }> = new Array(N);
@@ -179,7 +194,7 @@ export function SphereToFrameTransition({
 
           if (dist < connectionDist) {
             const avgEnergy = (points[i].energy + points[j].energy) / 2;
-            const alpha = (0.1 + avgEnergy * 0.22) * fadeOut;
+            const alpha = (0.1 + avgEnergy * 0.22) * skeletonFade;
 
             ctx.strokeStyle = `rgba(${colors.lineColor}, ${alpha})`;
             ctx.lineWidth = 0.6 + avgEnergy * 0.8;
@@ -193,7 +208,7 @@ export function SphereToFrameTransition({
 
       for (const p of points) {
         const nodeSize = 2 + p.energy * 2.2;
-        const alpha = (0.45 + p.energy * 0.35) * fadeOut;
+        const alpha = (0.45 + p.energy * 0.35) * skeletonFade;
 
         const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, nodeSize * 2.2);
         gradient.addColorStop(0, `rgba(${colors.nodeLight}, ${alpha})`);
@@ -210,6 +225,87 @@ export function SphereToFrameTransition({
         ctx.beginPath();
         ctx.arc(p.x, p.y, nodeSize * 0.6, 0, Math.PI * 2);
         ctx.fill();
+      }
+
+      // Dense resting frame materializing — ported verbatim from
+      // PhaseOneNeuralModel's cardFrame crossfade (the exact spike-cluster
+      // rendering AnimatedFrame itself uses at steady state).
+      if (denseAlpha > 0.02) {
+        const denseTime = elapsed * 0.00052; // AnimatedFrame's idle time speed (0.52/s)
+        const denseNodes = generateFrameSpikeNodes({
+          contentWidth: frameRectNow.w,
+          contentHeight: frameRectNow.h,
+          time: denseTime,
+          isSpeaking: false,
+          isListening: false,
+          wavePad,
+        });
+        const offX = frameRectNow.x - wavePad;
+        const offY = frameRectNow.y - wavePad;
+
+        // Soft pulsing aura matching AnimatedFrame's blurred glow layers.
+        const glowPulse = 0.42 + 0.14 * Math.sin(denseTime * 1.7);
+        ctx.save();
+        ctx.translate(frameRectNow.x + frameRectNow.w / 2, frameRectNow.y + frameRectNow.h / 2);
+        ctx.scale(frameRectNow.w / 2 + wavePad * 1.6, frameRectNow.h / 2 + wavePad * 1.6);
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+        glow.addColorStop(0, `rgba(${colors.lineColor}, ${0.13 * glowPulse * denseAlpha})`);
+        glow.addColorStop(0.62, `rgba(${colors.lineColor}, ${0.1 * glowPulse * denseAlpha})`);
+        glow.addColorStop(1, `rgba(${colors.lineColor}, 0)`);
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(0, 0, 1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        const maxNearbyNodes = frameRectNow.w < 400 ? 15 : 20;
+        const maxConnectionDist = frameRectNow.w < 400 ? 70 : 80;
+        const lineWidthMultiplier = frameRectNow.w < 400 ? 0.36 : 0.42;
+        const nodeSizeMultiplier = frameRectNow.w < 400 ? 0.85 : 1;
+
+        for (let i = 0; i < denseNodes.length; i++) {
+          for (let j = i + 1; j < Math.min(i + maxNearbyNodes, denseNodes.length); j++) {
+            const dx = denseNodes[i].x - denseNodes[j].x;
+            const dy = denseNodes[i].y - denseNodes[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < maxConnectionDist) {
+              const avgEnergy = (denseNodes[i].energy + denseNodes[j].energy) / 2;
+              const sameSpikeBonus = denseNodes[i].spikeIndex === denseNodes[j].spikeIndex ? 0.2 : 0;
+              const alpha = (0.12 + avgEnergy * 0.2 + sameSpikeBonus) * denseAlpha;
+
+              ctx.strokeStyle = `rgba(${colors.lineColor}, ${alpha})`;
+              ctx.lineWidth = (0.8 + avgEnergy * 0.8) * lineWidthMultiplier;
+              ctx.beginPath();
+              ctx.moveTo(offX + denseNodes[i].x, offY + denseNodes[i].y);
+              ctx.lineTo(offX + denseNodes[j].x, offY + denseNodes[j].y);
+              ctx.stroke();
+            }
+          }
+        }
+
+        for (const node of denseNodes) {
+          const x = offX + node.x;
+          const y = offY + node.y;
+          const nodeSize = (2 + node.energy * 1.5) * nodeSizeMultiplier;
+          const alpha = (0.5 + node.energy * 0.3) * denseAlpha;
+
+          const gradient = ctx.createRadialGradient(x, y, 0, x, y, nodeSize * 2);
+          gradient.addColorStop(0, `rgba(${colors.nodeLight}, ${alpha})`);
+          gradient.addColorStop(0.4, `rgba(${colors.nodeMid}, ${alpha * 0.5})`);
+          gradient.addColorStop(0.7, `rgba(${colors.nodeDark}, ${alpha * 0.2})`);
+          gradient.addColorStop(1, `rgba(${colors.nodeDarkest}, 0)`);
+
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(x, y, nodeSize * 2, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = `rgba(${colors.nodeCore}, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(x, y, nodeSize * 0.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       if (!mostlyDoneFiredRef.current && t >= MOSTLY_DONE_AT) {
