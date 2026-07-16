@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, User, Mic, X, ChevronLeft, ChevronRight } from "lucide-react";
 import dynamic from "next/dynamic";
 import { AnimatedFrame } from "./AnimatedFrame";
+import { SphereToFrameTransition } from "./SphereToFrameTransition";
+import type { FrameRect } from "./frameMath";
 import { ProductData, SessionState } from "@/hooks/useVoiceSession";
 
 const PDFViewerClient = dynamic(() => import("./PDFViewerClient"), {
@@ -53,6 +55,14 @@ interface VoiceProductPhaseProps {
   onPTTRelease:  () => void;
   onConfirm:     () => void;
   onRevisit:     () => void;
+  /** Phase 1's orb centre at handoff time. When set at mount, the entry plays
+   *  the orb → document-frame consume morph (same as Phase 0's terms1 entry)
+   *  instead of the content just fading in. Null on direct resume. */
+  entryOrbOrigin?:  { x: number; y: number } | null;
+  /** Continuously reports the PDF frame's viewport rect — the shell keeps the
+   *  latest value so a revisit back to Phase 1 can collapse this frame into
+   *  the orb (the same initialFrameRect handoff terms2 → Phase 1 uses). */
+  onFrameRect?:     (rect: FrameRect) => void;
 }
 
 export default function VoiceProductPhase({
@@ -66,12 +76,79 @@ export default function VoiceProductPhase({
   onPTTRelease,
   onConfirm,
   onRevisit,
+  entryOrbOrigin,
+  onFrameRect,
 }: VoiceProductPhaseProps) {
   const [pdfSize,       setPdfSize]       = useState<{ width: number; height: number } | null>(null);
   const [pageNumber,    setPageNumber]    = useState(1);
   const [numPages,      setNumPages]      = useState(0);
   const [pdfFullscreen, setPdfFullscreen] = useState(false);
   const [isPTTActive,   setIsPTTActive]   = useState(false);
+
+  // ── Entry morph (orb → document frame), mirroring VoiceTermsPhase's terms1
+  // entry: the real AnimatedFrame + content stay invisible while the one-shot
+  // transition canvas flies the orb's nodes onto the PDF's frame, then the
+  // content fades in at onMostlyDone. Skipped entirely (revealContent starts
+  // true) when there's no orb origin — e.g. resuming straight into Phase 2.
+  const [entryOrigin]   = useState(entryOrbOrigin ?? null); // snapshot at mount
+  const [showTransition, setShowTransition] = useState(!!entryOrbOrigin);
+  const [revealContent,  setRevealContent]  = useState(!entryOrbOrigin);
+  const [entryRect,      setEntryRect]      = useState<FrameRect | null>(null);
+  const contentBoxRef = useRef<HTMLDivElement>(null);
+
+  // Measure the real frame box for the morph target (retries while layout settles).
+  useEffect(() => {
+    if (!showTransition || !pdfSize) return;
+    let raf = 0;
+    let attempts = 0;
+    const measure = () => {
+      const el = contentBoxRef.current;
+      if (el) {
+        const b = el.getBoundingClientRect();
+        if (b.width > 0 && b.height > 0) {
+          setEntryRect({ x: b.left, y: b.top, w: b.width, h: b.height });
+          return;
+        }
+      }
+      attempts += 1;
+      if (attempts < 30) raf = requestAnimationFrame(measure);
+    };
+    raf = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(raf);
+  }, [showTransition, pdfSize]);
+
+  // Safety net: never leave the screen stuck if the morph can't run.
+  useEffect(() => {
+    if (!showTransition) return;
+    const t = setTimeout(() => {
+      setRevealContent(true);
+      setShowTransition(false);
+    }, 1800);
+    return () => clearTimeout(t);
+  }, [showTransition]);
+
+  // Report the frame's live rect up for the revisit (Phase 2 → 1) collapse.
+  // Per-frame poll writing into a shell ref — no re-renders, and it tracks
+  // scrolling of the centre column so the collapse always starts from where
+  // the frame visually is.
+  useEffect(() => {
+    if (!onFrameRect) return;
+    let raf = 0;
+    let alive = true;
+    const tick = () => {
+      const el = contentBoxRef.current;
+      if (el) {
+        const b = el.getBoundingClientRect();
+        if (b.width > 0) onFrameRect({ x: b.left, y: b.top, w: b.width, h: b.height });
+      }
+      if (alive) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      alive = false;
+      cancelAnimationFrame(raf);
+    };
+  }, [onFrameRect]);
 
   const handlePdfLoad = useCallback((n: number) => setNumPages(n), []);
 
@@ -150,14 +227,31 @@ export default function VoiceProductPhase({
       {/* ── Scrollable center ───────────────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto pb-24 pt-4 md:pt-20 gap-4">
 
+        {/* Entry morph — the Phase 1 orb's nodes fly onto the PDF's frame and
+            the dense web materializes around it (same consume morph as Phase
+            0's terms1 entry), while the real frame below stays hidden. */}
+        {showTransition && entryOrigin && entryRect && (
+          <SphereToFrameTransition
+            sphereCenter={entryOrigin}
+            sphereRadius={380 * 0.3}
+            contentRect={entryRect}
+            onMostlyDone={() => setRevealContent(true)}
+            onComplete={() => setShowTransition(false)}
+          />
+        )}
+
         {/* AnimatedFrame — w-full + flex justify-center ensures true centering */}
         {pdfSize && (
           <div className="w-full flex justify-center">
           <motion.div
+            ref={contentBoxRef}
             className="relative cursor-pointer"
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
+            // On the morph path the box must stay at scale 1 even while hidden:
+            // its measured rect is the morph's landing target, and a transform
+            // would shrink the measurement (getBoundingClientRect includes it).
+            initial={{ opacity: 0, scale: entryOrigin ? 1 : 0.96 }}
+            animate={{ opacity: revealContent ? 1 : 0, scale: revealContent || entryOrigin ? 1 : 0.96 }}
+            transition={{ duration: 0.5, delay: revealContent && !entryOrigin ? 0.15 : 0 }}
             onClick={() => setPdfFullscreen(true)}
           >
             <AnimatedFrame
@@ -209,7 +303,9 @@ export default function VoiceProductPhase({
 
         {/* ── Action buttons — stacked centered, like Phase 0 confirm button ── */}
         {pdfSize && (
-          <div
+          <motion.div
+            animate={{ opacity: revealContent ? 1 : 0 }}
+            transition={{ duration: 0.4 }}
             style={{
               display:        'flex',
               flexDirection:  isNarrow ? 'column' : 'row',
@@ -221,6 +317,7 @@ export default function VoiceProductPhase({
               boxSizing:      'border-box',
               marginTop:      10,
               marginBottom:   32,
+              pointerEvents:  revealContent ? 'auto' : 'none',
             }}
           >
             {/* Bestätigen — filled primary */}
@@ -261,7 +358,7 @@ export default function VoiceProductPhase({
             >
               Fragen ändern
             </motion.button>
-          </div>
+          </motion.div>
         )}
 
       </div>

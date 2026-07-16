@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, User, Mic, VolumeX, Hand, Check, ChevronRight } from "lucide-react";
@@ -28,18 +28,6 @@ import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 // its card/frame appearing — long enough for the Q2 card's collapse-into-orb
 // morph (~1.2s) to fully play plus a beat of resting orb.
 const SUSTAINABILITY_MORPH_GAP_MS = 2200;
-
-// ── Phase slide variants ──────────────────────────────────────────
-
-const phaseSlideVariants = {
-  enter: (dir: "forward" | "backward") => ({
-    x: dir === "forward" ? "100%" : "-100%",
-  }),
-  center: { x: 0 },
-  exit: (dir: "forward" | "backward") => ({
-    x: dir === "forward" ? "-100%" : "100%",
-  }),
-};
 
 // ── Status labels ─────────────────────────────────────────────────
 
@@ -130,15 +118,6 @@ export default function VoiceSessionShell({
       initialIsRevisiting,
     });
 
-  // Track phase transition direction for the slide animation.
-  // Updated synchronously during render so the direction is correct before motion reads it.
-  const prevPhaseRef   = useRef(voicePhase);
-  const slideDirection = useRef<"forward" | "backward">("forward");
-  if ((voicePhase === 1 || voicePhase === 2) && voicePhase !== prevPhaseRef.current) {
-    slideDirection.current = voicePhase > prevPhaseRef.current ? "forward" : "backward";
-    prevPhaseRef.current   = voicePhase;
-  }
-
   const [modalOpen, setModalOpen] = useState(false);
   const [chatOpen,  setChatOpen]  = useState(false);
 
@@ -157,18 +136,22 @@ export default function VoiceSessionShell({
   const [expandedRect, setExpandedRect] = useState<FrameRect | null>(null);
   const orbWrapperRef = useRef<HTMLDivElement>(null);
 
-  // Phase 0 → 1 handoff: the terms2 document's rect, reported when the last
-  // document is confirmed. Phase 1's persistent canvas reads it at mount and
-  // plays a frame → orb collapse instead of popping in settled. A ref (not
-  // state) because it must survive the phase-0 branch unmounting; cleared
-  // shortly after Phase 1 mounts so later re-entries (e.g. revisit from
-  // Phase 2) don't replay the collapse.
-  const phase0ExitRectRef = useRef<FrameRect | null>(null);
+  // Frame → orb handoff rect for Phase 1's persistent canvas: set by terms2's
+  // confirm (Phase 0 → 1) and continuously by VoiceProductPhase's frame poll
+  // (so a revisit, Phase 2 → 1, collapses the product frame into the orb the
+  // same way). The canvas reads it at mount and plays the collapse instead of
+  // popping in settled. A ref (not state) because it must survive the other
+  // phase's branch unmounting; cleared shortly after Phase 1 mounts so later
+  // canvas re-mounts (resume, card cycles) start settled.
+  const phaseEntryFrameRectRef = useRef<FrameRect | null>(null);
   useEffect(() => {
     if (voicePhase !== 1) return;
-    const t = window.setTimeout(() => { phase0ExitRectRef.current = null; }, 1500);
+    const t = window.setTimeout(() => { phaseEntryFrameRectRef.current = null; }, 1500);
     return () => window.clearTimeout(t);
   }, [voicePhase]);
+  const reportPhase2FrameRect = useCallback((rect: FrameRect) => {
+    phaseEntryFrameRectRef.current = rect;
+  }, []);
 
   // expandedRect only depends on viewport size — mount + resize is enough.
   useEffect(() => {
@@ -771,7 +754,7 @@ export default function VoiceSessionShell({
             : () => { stopAudio(); return confirmTerms2(); }}
           onPTTStart={startPTT}
           onPTTRelease={submitPTTQuestion}
-          onExitRect={(rect) => { phase0ExitRectRef.current = rect; }}
+          onExitRect={(rect) => { phaseEntryFrameRectRef.current = rect; }}
         />
         {!started && (
           <motion.div
@@ -827,19 +810,19 @@ export default function VoiceSessionShell({
 
   return (
     <>
-      {/* ── Phase 1 / 2 slide container ───────────────────────────── */}
+      {/* ── Phase 1 / 2 container — crossfade, not a slide: the sphere morphs
+          carry the motion (orb → product frame on entry, product frame → orb
+          on revisit), matching the app's transition language everywhere else. */}
       <div style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
-        <AnimatePresence initial={false} custom={slideDirection.current} mode="sync">
+        <AnimatePresence initial={false} mode="sync">
           {voicePhase === 2 && productSuggestion ? (
             <motion.div
               key="phase-2"
-              custom={slideDirection.current}
-              variants={phaseSlideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
-              style={{ position: "absolute", top: 0, left: 0, right: 0, minHeight: "100vh", willChange: "transform" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, minHeight: "100vh" }}
             >
               <VoiceProductPhase
                 product={productSuggestion}
@@ -852,18 +835,18 @@ export default function VoiceSessionShell({
                 onPTTRelease={() => submitPTTQuestion('phase2')}
                 onConfirm={() => { stopAudio(); return advanceToPersonalInfo(); }}
                 onRevisit={() => { stopAudio(); revisitQuestions(); }}
+                entryOrbOrigin={orbOrigin}
+                onFrameRect={reportPhase2FrameRect}
               />
             </motion.div>
           ) : (
             <motion.div
               key="phase-1"
-              custom={slideDirection.current}
-              variants={phaseSlideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
-              style={{ position: "absolute", top: 0, left: 0, right: 0, minHeight: "100vh", willChange: "transform" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, minHeight: "100vh" }}
             >
       <div
         className="min-h-screen flex flex-col relative overflow-hidden"
@@ -1151,7 +1134,7 @@ export default function VoiceSessionShell({
         <PhaseOneNeuralModel
           shape={modalOpen || sustainabilityVisible ? "cardFrame" : "orb"}
           frameRect={modalOpen || sustainabilityVisible ? expandedRect : null}
-          initialFrameRect={phase0ExitRectRef.current}
+          initialFrameRect={phaseEntryFrameRectRef.current}
           sphereCenter={orbOrigin}
           sphereRadius={380 * 0.3}
           isSpeaking={isSpeaking}

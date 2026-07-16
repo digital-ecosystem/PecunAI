@@ -1,20 +1,38 @@
 "use client";
 
 /**
- * DEV-ONLY harness — mounts Phase 0's VoiceTermsPhase with the shell's exact
- * wiring (single persistent instance, no key) to exercise the terms1 → terms2
- * in-frame content crossfade AND the terms2 → Phase 1 frame-collapse handoff
- * without a live voice session. Safe to delete.
+ * DEV-ONLY harness — walks the full phase-transition journey with the shell's
+ * exact wiring, no voice session needed: terms1 entry morph → in-frame
+ * crossfade to terms2 → frame-collapse into the Phase 1 orb → orb-consume
+ * morph into Phase 2's product frame → revisit collapse back to the orb.
+ * Safe to delete.
  */
 
 import { useState, useEffect, useRef } from "react";
 import VoiceTermsPhase from "@/components/voice/VoiceTermsPhase";
+import VoiceProductPhase from "@/components/voice/VoiceProductPhase";
 import { PhaseOneNeuralModel } from "@/components/voice/PhaseOneNeuralModel";
 import type { FrameRect } from "@/components/voice/frameMath";
+import type { ProductData } from "@/hooks/useVoiceSession";
+
+const FAKE_PRODUCT: ProductData = {
+  id: "dev",
+  name: "Balance",
+  fullName: "Balance Portfolio",
+  description: "Dev harness product",
+  fileName: "/products/dev-placeholder.pdf",
+  from: 3,
+  to: 4,
+  risk: "Moderat",
+  riskType: "balanced",
+  sri: "3",
+  score: 50,
+  aiSettings: { prompt: "" },
+};
 
 export default function TermsTestPage() {
-  const [step, setStep] = useState<"terms1" | "terms2" | "phase1">("terms1");
-  const exitRectRef = useRef<FrameRect | null>(null);
+  const [step, setStep] = useState<"terms1" | "terms2" | "phase1" | "phase2">("terms1");
+  const entryRectRef = useRef<FrameRect | null>(null);
 
   // Mirrors the shell's Phase 1 orb wrapper + per-frame rect poll.
   const [orbOrigin, setOrbOrigin] = useState<{ x: number; y: number } | null>(null);
@@ -38,6 +56,13 @@ export default function TermsTestPage() {
     return () => { alive = false; cancelAnimationFrame(raf); };
   }, [step]);
 
+  // Mirrors the shell: the handoff rect is consumed at Phase 1 mount, then cleared.
+  useEffect(() => {
+    if (step !== "phase1") return;
+    const t = window.setTimeout(() => { entryRectRef.current = null; }, 1500);
+    return () => window.clearTimeout(t);
+  }, [step]);
+
   return (
     <>
       <div id="state-readout" className="fixed top-2 left-2 z-[99] text-xs font-mono" data-step={step}>
@@ -45,13 +70,22 @@ export default function TermsTestPage() {
         <button
           id="reset-btn"
           className="ml-3 px-2 py-0.5 rounded border border-blue-300 text-blue-600"
-          onClick={() => { exitRectRef.current = null; setStep("terms1"); }}
+          onClick={() => { entryRectRef.current = null; setStep("terms1"); }}
         >
           Reset
         </button>
+        {step === "phase1" && (
+          <button
+            id="to-phase2-btn"
+            className="ml-2 px-2 py-0.5 rounded border border-blue-300 text-blue-600"
+            onClick={() => setStep("phase2")}
+          >
+            → Phase 2
+          </button>
+        )}
       </div>
 
-      {step !== "phase1" && (
+      {(step === "terms1" || step === "terms2") && (
         <VoiceTermsPhase
           which={step}
           isSpeaking={false}
@@ -61,7 +95,7 @@ export default function TermsTestPage() {
           }}
           onPTTStart={() => {}}
           onPTTRelease={() => {}}
-          onExitRect={(rect) => { exitRectRef.current = rect; }}
+          onExitRect={(rect) => { entryRectRef.current = rect; }}
         />
       )}
 
@@ -80,7 +114,7 @@ export default function TermsTestPage() {
             <PhaseOneNeuralModel
               shape="orb"
               frameRect={null}
-              initialFrameRect={exitRectRef.current}
+              initialFrameRect={entryRectRef.current}
               sphereCenter={orbOrigin}
               sphereRadius={380 * 0.3}
               isSpeaking={false}
@@ -90,6 +124,23 @@ export default function TermsTestPage() {
             />
           )}
         </div>
+      )}
+
+      {step === "phase2" && (
+        <VoiceProductPhase
+          product={FAKE_PRODUCT}
+          isSpeaking={false}
+          isListening={false}
+          isMuted={false}
+          sessionState="listening"
+          onMuteToggle={() => {}}
+          onPTTStart={() => {}}
+          onPTTRelease={() => {}}
+          onConfirm={() => {}}
+          onRevisit={() => setStep("phase1")}
+          entryOrbOrigin={orbOrigin}
+          onFrameRect={(rect) => { entryRectRef.current = rect; }}
+        />
       )}
     </>
   );
