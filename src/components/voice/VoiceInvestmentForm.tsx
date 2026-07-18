@@ -103,22 +103,48 @@ function FeeInfoTooltip({ content }: { content: React.ReactNode }) {
   );
 }
 
+// Shared fee computation for the desktop table and the mobile cards — one source
+// of numbers so the two layouts can never drift apart.
+interface GebuehrenRow {
+  label:       string;
+  pct:         number | null; // null for fixed fees (table shows "—", cards omit the badge)
+  eur1:        number;
+  eur2:        number;
+  eur10:       number;
+  avg:         number;
+  description: string;
+}
+
+function computeGebuehren(oneTimeInvestment: number, monthlyInvestment: number) {
+  const volumes: number[] = [];
+  for (let y = 1; y <= 10; y++) volumes.push(getAvgVolume(oneTimeInvestment, monthlyInvestment, y));
+
+  const rows: GebuehrenRow[] = GEBUEHREN_DATA.map(row => {
+    const yearly = volumes.map(vol => getRowEur(row, vol));
+    return {
+      label:       row.label,
+      pct:         "fixed" in row && row.fixed ? null : "pct" in row ? row.pct : null,
+      eur1:        yearly[0],
+      eur2:        yearly[1],
+      eur10:       yearly[9],
+      avg:         yearly.reduce((a, b) => a + b, 0) / 10,
+      description: row.description,
+    };
+  });
+
+  const yearlyTotals = volumes.map(vol => GEBUEHREN_DATA.reduce((sum, row) => sum + getRowEur(row, vol), 0));
+
+  return {
+    rows,
+    jahr1:        yearlyTotals[0],
+    jahr2:        yearlyTotals[1],
+    jahr10:       yearlyTotals[9],
+    durchschnitt: yearlyTotals.reduce((a, b) => a + b, 0) / 10,
+  };
+}
+
 function GebuehrenTable({ oneTimeInvestment, monthlyInvestment }: { oneTimeInvestment: number; monthlyInvestment: number }) {
-  const vol1  = getAvgVolume(oneTimeInvestment, monthlyInvestment, 1);
-  const vol2  = getAvgVolume(oneTimeInvestment, monthlyInvestment, 2);
-  const vol10 = getAvgVolume(oneTimeInvestment, monthlyInvestment, 10);
-
-  const jahr1  = GEBUEHREN_DATA.reduce((sum, row) => sum + getRowEur(row, vol1), 0);
-  const jahr2  = GEBUEHREN_DATA.reduce((sum, row) => sum + getRowEur(row, vol2), 0);
-  const jahr10 = GEBUEHREN_DATA.reduce((sum, row) => sum + getRowEur(row, vol10), 0);
-
-  const yearlyFees = [jahr1, jahr2];
-  for (let y = 3; y <= 9; y++) {
-    const vol = getAvgVolume(oneTimeInvestment, monthlyInvestment, y);
-    yearlyFees.push(GEBUEHREN_DATA.reduce((sum, row) => sum + getRowEur(row, vol), 0));
-  }
-  yearlyFees.push(jahr10);
-  const durchschnitt = yearlyFees.reduce((a, b) => a + b, 0) / 10;
+  const { rows, jahr1, jahr2, jahr10, durchschnitt } = computeGebuehren(oneTimeInvestment, monthlyInvestment);
 
   return (
     <div className="overflow-x-auto border border-gray-200 rounded-lg">
@@ -135,35 +161,21 @@ function GebuehrenTable({ oneTimeInvestment, monthlyInvestment }: { oneTimeInves
           </tr>
         </thead>
         <tbody>
-          {GEBUEHREN_DATA.map((row, idx) => {
-            const pctVal = "fixed" in row && row.fixed ? null : "pct" in row ? row.pct : null;
-            const eur1   = getRowEur(row, vol1);
-            const eur2   = getRowEur(row, vol2);
-            const eur10  = getRowEur(row, vol10);
-            const rowYearlyFees = [eur1, eur2];
-            for (let y = 3; y <= 9; y++) {
-              const vol = getAvgVolume(oneTimeInvestment, monthlyInvestment, y);
-              rowYearlyFees.push(getRowEur(row, vol));
-            }
-            rowYearlyFees.push(eur10);
-            const avg     = rowYearlyFees.reduce((a, b) => a + b, 0) / 10;
-            const content = <p>{row.description}</p>;
-            return (
-              <tr key={idx} className="border-b border-gray-100 last:border-b-0">
-                <td className="py-2.5 px-3 text-gray-700">{row.label}</td>
-                <td className="py-2.5 px-3 text-right text-gray-600 whitespace-nowrap">
-                  {typeof pctVal === "number" ? `${pctVal.toFixed(2)}%` : "—"}
-                </td>
-                <td className="py-2.5 px-3 text-right text-gray-700">{formatEuro(eur1)}</td>
-                <td className="py-2.5 px-3 text-right text-gray-700">{formatEuro(eur2)}</td>
-                <td className="py-2.5 px-3 text-right text-gray-700">{formatEuro(eur10)}</td>
-                <td className="py-2.5 px-3 text-right text-gray-700">{formatEuro(avg)}</td>
-                <td className="py-2.5 px-2">
-                  <FeeInfoTooltip content={content} />
-                </td>
-              </tr>
-            );
-          })}
+          {rows.map((row, idx) => (
+            <tr key={idx} className="border-b border-gray-100 last:border-b-0">
+              <td className="py-2.5 px-3 text-gray-700">{row.label}</td>
+              <td className="py-2.5 px-3 text-right text-gray-600 whitespace-nowrap">
+                {typeof row.pct === "number" ? `${row.pct.toFixed(2)}%` : "—"}
+              </td>
+              <td className="py-2.5 px-3 text-right text-gray-700">{formatEuro(row.eur1)}</td>
+              <td className="py-2.5 px-3 text-right text-gray-700">{formatEuro(row.eur2)}</td>
+              <td className="py-2.5 px-3 text-right text-gray-700">{formatEuro(row.eur10)}</td>
+              <td className="py-2.5 px-3 text-right text-gray-700">{formatEuro(row.avg)}</td>
+              <td className="py-2.5 px-2">
+                <FeeInfoTooltip content={<p>{row.description}</p>} />
+              </td>
+            </tr>
+          ))}
           <tr className="bg-gray-50/80 border-t border-gray-200 font-medium">
             <td className="py-2.5 px-3 text-gray-900">Kosten laufend gesamt</td>
             <td className="py-2.5 px-3 text-right text-gray-900 whitespace-nowrap">—</td>
@@ -175,6 +187,60 @@ function GebuehrenTable({ oneTimeInvestment, monthlyInvestment }: { oneTimeInves
           </tr>
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** Mobile/tablet replacement for GebuehrenTable — one card per fee, no
+ *  horizontal scrolling. Same numbers via computeGebuehren. */
+function GebuehrenCards({ oneTimeInvestment, monthlyInvestment }: { oneTimeInvestment: number; monthlyInvestment: number }) {
+  const { rows, jahr1, jahr2, jahr10, durchschnitt } = computeGebuehren(oneTimeInvestment, monthlyInvestment);
+
+  const valueGrid = (eur1: number, eur2: number, eur10: number, avg: number, bold?: boolean) => (
+    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+      {[
+        ["€ Jahr 1", eur1],
+        ["€ Jahr 2", eur2],
+        ["€ Jahr 10", eur10],
+        ["Durchschnitt", avg],
+      ].map(([label, val]) => (
+        <div key={label as string} className="flex items-baseline justify-between gap-2">
+          <span className="text-[11px] text-gray-500">{label as string}</span>
+          <span className={`text-xs ${bold ? "font-bold text-gray-900" : "font-semibold text-gray-800"} tabular-nums`}>
+            {formatEuro(val as number)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-gray-600">Kosten und Gebühren (inkl. USt.)</p>
+      {rows.map((row, idx) => (
+        <div key={idx} className="border border-gray-200 rounded-lg p-3">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <p className="text-xs font-medium text-gray-800 leading-snug">{row.label}</p>
+            <FeeInfoTooltip content={<p>{row.description}</p>} />
+          </div>
+          {typeof row.pct === "number" && (
+            <span
+              className="inline-block px-2 py-0.5 mb-2 rounded-full text-[11px] font-medium"
+              style={{ background: "rgba(59,130,246,0.08)", color: "rgba(37,99,235,1)" }}
+            >
+              {row.pct.toFixed(2)}%
+            </span>
+          )}
+          {valueGrid(row.eur1, row.eur2, row.eur10, row.avg)}
+        </div>
+      ))}
+      <div
+        className="rounded-lg p-3"
+        style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.18)" }}
+      >
+        <p className="text-xs font-bold text-gray-900 mb-2">Kosten laufend gesamt</p>
+        {valueGrid(jahr1, jahr2, jahr10, durchschnitt, true)}
+      </div>
     </div>
   );
 }
@@ -205,22 +271,22 @@ const INITIAL_CHECKBOX_STATE: InvestmentFormData = {
   additionalLiquidityNeeds: false,
 };
 
-// ── Frame sizing — landscape/table-shaped content, not a PDF's portrait aspect ratio.
-// AnimatedFrame's content wrapper uses overflow-hidden, so the fee table/checkboxes inside
-// need their own internal overflow-y-auto scroll matching this height. ──────
+// ── Frame sizing — AnimatedFrame's content wrapper uses overflow-hidden, so the fee
+// table/checkboxes inside need their own internal overflow-y-auto scroll matching this
+// height. ──────
 
-// Same portrait "document card" proportions as Phase 2's getPdfSize() (VoiceProductPhase.tsx)
-// — tall and narrow, matching the vertical, centered feel used everywhere else in the app.
-// The fee table scrolls horizontally within its own wrapper if it doesn't fit the width
-// (GebuehrenTable already has overflow-x-auto) — consistency with the rest of the UI wins
-// over maximizing table width.
+// Desktop breaks from the portrait "document card" proportions the other phases use:
+// the fee table's 7 columns need ~750px, so the frame goes landscape there — wide enough
+// that the table renders without horizontal scrolling. Below 1024px the table is replaced
+// by stacked fee cards (GebuehrenCards), so tablet/phone keep the portrait proportions.
 function getInvestmentFrameSize() {
   const vw = typeof window !== "undefined" ? window.innerWidth  : 640;
   const vh = typeof window !== "undefined" ? window.innerHeight : 800;
   if (vw >= 1024) {
-    const maxH = Math.round(vh * 0.68);
-    const w    = Math.min(Math.round(maxH / 1.414), 500);
-    return { width: w, height: Math.round(w * 1.414) };
+    return {
+      width:  Math.min(Math.round(vw * 0.82), 860),
+      height: Math.min(Math.round(vh * 0.68), 720),
+    };
   } else if (vw >= 640) {
     const maxH = Math.round(vh * 0.72);
     const w    = Math.min(Math.round(maxH / 1.414), 420);
@@ -283,12 +349,18 @@ export default function VoiceInvestmentForm({
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
   const [isPTTActive, setIsPTTActive] = useState(false);
   const [formData, setFormData] = useState<InvestmentFormData>(INITIAL_CHECKBOX_STATE);
+  // Below 1024px the frame is too narrow for the 7-column fee table no matter what —
+  // those widths swap the tables for stacked cards (GebuehrenCards + product info box).
+  const [isCardLayout, setIsCardLayout] = useState(false);
 
   useEffect(() => {
-    setFrameSize(getInvestmentFrameSize());
-    const onResize = () => setFrameSize(getInvestmentFrameSize());
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    const apply = () => {
+      setFrameSize(getInvestmentFrameSize());
+      setIsCardLayout(window.innerWidth < 1024);
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
   }, []);
 
   // ── Entry morph (orb → form frame) — the VoiceProductPhase pattern, plus
@@ -569,16 +641,39 @@ export default function VoiceInvestmentForm({
                     </div>
                   </div>
 
-                  {/* Laufende Kosten */}
+                  {/* Laufende Kosten — table on desktop (wide frame), cards below 1024px */}
                   <div>
                     <h2 className="text-base font-bold text-gray-900 mb-2">Laufende Kosten</h2>
-                    <GebuehrenTable oneTimeInvestment={gebuehrenVolume} monthlyInvestment={gebuehrenMonthly} />
+                    {isCardLayout ? (
+                      <GebuehrenCards oneTimeInvestment={gebuehrenVolume} monthlyInvestment={gebuehrenMonthly} />
+                    ) : (
+                      <GebuehrenTable oneTimeInvestment={gebuehrenVolume} monthlyInvestment={gebuehrenMonthly} />
+                    )}
                   </div>
 
-                  {/* Investmentprodukte */}
+                  {/* Investmentprodukte — same split: table on desktop, info box on card layout */}
                   <div>
                     <p className="font-semibold text-sm mb-2">Investmentprodukte</p>
-                    <div className="overflow-x-auto">
+                    {isCardLayout ? (
+                      <div className="border border-gray-200 rounded-lg p-3 grid grid-cols-2 gap-x-4 gap-y-2">
+                        <div>
+                          <p className="text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Produkt</p>
+                          <p className="text-xs text-gray-800">{product.name}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Name</p>
+                          <p className="text-xs text-gray-800">{product.fullName}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold text-gray-500 uppercase mb-0.5">SRI</p>
+                          <p className="text-xs text-gray-800">{product.sri}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Anlagezeitraum</p>
+                          <p className="text-xs text-gray-800">{product.from}–{product.to} Jahre</p>
+                        </div>
+                      </div>
+                    ) : (
                       <table className="w-full border-collapse text-xs">
                         <thead>
                           <tr className="bg-gray-100">
@@ -597,7 +692,7 @@ export default function VoiceInvestmentForm({
                           </tr>
                         </tbody>
                       </table>
-                    </div>
+                    )}
                   </div>
 
                   {/* Bestätigungs-Checkboxen — same text as V1, verbatim */}
@@ -687,7 +782,9 @@ export default function VoiceInvestmentForm({
           <motion.div
             animate={{ opacity: revealContent ? 1 : 0 }}
             transition={{ duration: 0.4 }}
-            style={{ width: frameSize.width, marginTop: 10, marginBottom: 32, paddingLeft: 16, paddingRight: 16, boxSizing: "border-box", pointerEvents: revealContent ? "auto" : "none" }}>
+            // Cap the confirm button's width — the desktop frame is now landscape-wide
+            // (up to 860px) and a button spanning that whole width looks broken.
+            style={{ width: Math.min(frameSize.width, 500), marginTop: 10, marginBottom: 32, paddingLeft: 16, paddingRight: 16, boxSizing: "border-box", pointerEvents: revealContent ? "auto" : "none" }}>
             <motion.button
               className="w-full text-sm font-semibold rounded-2xl text-white py-3"
               style={{
