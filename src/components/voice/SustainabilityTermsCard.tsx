@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Mic } from "lucide-react";
 import type { FrameRect } from "./frameMath";
+import { LegalFrameCard } from "./LegalFrameCard";
 import { SustainabilityRisksInfo } from "@/components/terms/SustainabilityRisksInfo";
 
 /**
@@ -51,47 +52,19 @@ export function SustainabilityTermsCard({ rect, onConfirm }: SustainabilityTerms
           boxShadow: "0 20px 60px rgba(59,130,246,0.18), 0 4px 16px rgba(15,23,42,0.08)",
         }}
       >
-        {/* Header */}
-        <div className="flex-shrink-0 px-5 pt-5 pb-3">
-          <h2 className="text-base font-bold mb-1" style={{ color: "rgba(15,23,42,0.9)" }}>
-            Nachhaltigkeitsinformationen
-          </h2>
-          <p className="text-xs" style={{ color: "rgba(59,130,246,0.7)" }}>
-            Gesetzlich vorgeschriebene Information gemäß EU-Vorschriften
-          </p>
-        </div>
-
-        {/* Document body — scrolls internally, same as the question cards */}
-        <div className="flex-1 px-5 overflow-y-auto">
-          <motion.div
-            className="text-sm pb-2"
-            style={{ color: "rgba(15,23,42,0.75)", lineHeight: 1.7 }}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0, transition: { delay: 0.25, duration: 0.3 } }}
-          >
-            <SustainabilityRisksInfo />
-          </motion.div>
-        </div>
-
-        {/* Confirm button */}
-        <div className="flex-shrink-0 px-5 pb-4 pt-2">
-          <motion.button
-            className="w-full py-3.5 rounded-2xl font-semibold text-sm text-white"
-            style={{
-              background: confirmed
-                ? "linear-gradient(135deg, rgba(34,197,94,1) 0%, rgba(22,163,74,1) 100%)"
-                : "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
-              boxShadow: confirmed
-                ? "0 4px 16px rgba(34,197,94,0.35)"
-                : "0 4px 16px rgba(59,130,246,0.35)",
-            }}
-            whileTap={{ scale: 0.97 }}
-            disabled={confirming}
-            onClick={handleConfirm}
-          >
-            {confirmed ? "Bestätigt!" : "Ich bestätige"}
-          </motion.button>
-        </div>
+        {/* Figma LegalFrameCard interior — badge (3/3), title, subtitle fixed;
+            body scrolls alone; confirm button inside the card. */}
+        <LegalFrameCard
+          title="Nachhaltigkeitsinformationen"
+          subtitle="Gesetzlich vorgeschriebene Information gemäß EU-Vorschriften"
+          pageIndex={2}
+          totalPages={3}
+          confirmed={confirmed}
+          confirming={confirming}
+          onConfirm={handleConfirm}
+        >
+          <SustainabilityRisksInfo />
+        </LegalFrameCard>
       </div>
     </motion.div>
   );

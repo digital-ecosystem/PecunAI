@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Mic } from "lucide-react";
 import { AnimatedFrame } from "./AnimatedFrame";
 import { SphereToFrameTransition } from "./SphereToFrameTransition";
+import { LegalFrameCard } from "./LegalFrameCard";
 import type { FrameRect } from "./frameMath";
 import { FourMoneyInfo } from "@/components/terms/FourMoneyInfo";
 import { FrootsCustomerInfo } from "@/components/terms/FrootsCustomerInfo";
@@ -164,6 +165,9 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTSta
     : which === 'sustainabilityTerms'
     ? "Gesetzlich vorgeschriebene Information gemäß EU-Vorschriften"
     : "Information über das Wertpapierdienstleistungsunternehmen";
+  // Document position for the card's "N / 3" badge — the three legal docs the
+  // customer confirms across the session (4money → froots → sustainability).
+  const pageIndex = which === 'terms1' ? 0 : which === 'terms2' ? 1 : 2;
 
   const bg = "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)";
 
@@ -225,57 +229,40 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTSta
                 >
                   {/* Keyed by document: when `which` changes on the live
                       instance, the old content fades out and the new fades in
-                      INSIDE the persistent frame. The scroll container lives
-                      on the keyed element so scroll position resets per
+                      INSIDE the persistent frame — the whole card (badge,
+                      title, body, button) page-flips together. Scroll state
+                      lives inside LegalFrameCard's body, so it resets per
                       document. initial={false} keeps first mount unanimated
                       (revealContent already handles the entry fade). */}
                   <AnimatePresence mode="wait" initial={false}>
                     <motion.div
                       key={which}
-                      className="w-full h-full overflow-y-auto"
+                      className="w-full h-full"
                       initial={{ opacity: 0, y: 14 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                     >
-                      <div className="px-5 py-4">
-                        <h2 className="text-base font-bold mb-1" style={{ color: "rgba(15,23,42,0.9)" }}>{title}</h2>
-                        <p className="text-xs mb-3" style={{ color: "rgba(59,130,246,0.7)" }}>{subtitle}</p>
-                        <div className="text-sm" style={{ color: "rgba(15,23,42,0.75)", lineHeight: 1.7 }}>
-                          {which === 'terms2'
-                            ? <FrootsCustomerInfo />
-                            : which === 'sustainabilityTerms'
-                            ? <SustainabilityRisksInfo />
-                            : <FourMoneyInfo />}
-                        </div>
-                      </div>
+                      <LegalFrameCard
+                        title={title}
+                        subtitle={subtitle}
+                        pageIndex={pageIndex}
+                        totalPages={3}
+                        confirmed={confirmed}
+                        confirming={confirming}
+                        onConfirm={handleConfirm}
+                      >
+                        {which === 'terms2'
+                          ? <FrootsCustomerInfo />
+                          : which === 'sustainabilityTerms'
+                          ? <SustainabilityRisksInfo />
+                          : <FourMoneyInfo />}
+                      </LegalFrameCard>
                     </motion.div>
                   </AnimatePresence>
                 </motion.div>
               </AnimatedFrame>
             </div>
-
-            {/* Confirm button — same width as frame, below it */}
-            <motion.button
-              className="py-4 rounded-2xl text-sm font-semibold text-white"
-              style={{
-                width: cw,
-                background: confirmed
-                  ? "linear-gradient(135deg, rgba(34,197,94,1) 0%, rgba(22,163,74,1) 100%)"
-                  : "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
-                boxShadow: confirmed
-                  ? "0 4px 16px rgba(34,197,94,0.35)"
-                  : "0 4px 16px rgba(59,130,246,0.35)",
-                marginTop: 40,
-              }}
-              animate={{ opacity: exiting ? 0 : 1 }}
-              transition={{ delay: exiting ? 0.25 : 0, duration: 0.45 }}
-              whileTap={{ scale: 0.97 }}
-              disabled={confirming}
-              onClick={handleConfirm}
-            >
-              {confirmed ? "Bestätigt!" : "Ich bestätige"}
-            </motion.button>
           </motion.div>
         )}
       </div>
