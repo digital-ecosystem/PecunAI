@@ -20,6 +20,7 @@ export interface Session {
   answers?: Answer[]
   personalInfo?: PersonalInfo | null
   workflowState?: WorkflowState | null
+  excludedFromReport?: boolean
 }
 
 export interface WorkflowState {

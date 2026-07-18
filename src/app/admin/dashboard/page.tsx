@@ -25,6 +25,7 @@ const Dashboard = () => {
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [isChatLoading, setIsChatLoading] = useState(false);
+    const [togglingId, setTogglingId] = useState<string | null>(null);
 
 
     useEffect(() => {
@@ -172,6 +173,26 @@ const Dashboard = () => {
 
     }
 
+    const handleToggleExclude = async (sessionId: string) => {
+        setTogglingId(sessionId);
+        try {
+            const res = await fetch(`/api/admin/sessions/${sessionId}/exclude`, {
+                method: 'PATCH',
+                credentials: 'include',
+            });
+            const data = await res.json();
+            if (data.success) {
+                setSessions(prev => prev.map(s =>
+                    s.id === sessionId ? { ...s, excludedFromReport: data.excludedFromReport } : s
+                ));
+            }
+        } catch (error) {
+            console.error('Failed to toggle session exclude:', error);
+        } finally {
+            setTogglingId(null);
+        }
+    };
+
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('de-DE', {
             year: 'numeric',
@@ -306,6 +327,9 @@ const Dashboard = () => {
                                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                                         ERSTELLT
                                     </th>
+                                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                                        IN BERICHT
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -348,6 +372,28 @@ const Dashboard = () => {
                                         </td>
                                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
                                             {formatDate(session.createdAt)}
+                                        </td>
+                                        <td
+                                            className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            {togglingId === session.id ? (
+                                                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                                            ) : (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleToggleExclude(session.id); }}
+                                                    title={session.excludedFromReport ? 'Von Statistiken ausgeschlossen' : 'In Statistiken eingeschlossen'}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                                                        session.excludedFromReport ? 'bg-gray-300' : 'bg-emerald-500'
+                                                    }`}
+                                                >
+                                                    <span
+                                                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                                                            session.excludedFromReport ? 'translate-x-1' : 'translate-x-6'
+                                                        }`}
+                                                    />
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
