@@ -118,11 +118,18 @@ export default function VoiceExplainOverlay({
     return () => clearTimeout(timer);
   }, []);
 
-  // Voice-triggered close: start the exit animation without the isAISpeaking guard
+  // Exit choreography duration — the entry transition played in reverse
+  // (phantom orb travels from the top back to centre while growing, phantom
+  // question card slides back up from below), content fading out fast at the
+  // start and the root fading at the very end. onClose (flow resume) fires
+  // once the phantoms have landed.
+  const EXIT_MS = 1150;
+
+  // Voice-triggered close: start the exit animation without any guard
   useEffect(() => {
     if (!triggerClose || closing) return;
     setClosing(true);
-    closingTimerRef.current = setTimeout(onClose, 280);
+    closingTimerRef.current = setTimeout(onClose, EXIT_MS);
   }, [triggerClose, closing, onClose]);
 
   // Cleanup closing timer on unmount
@@ -131,14 +138,14 @@ export default function VoiceExplainOverlay({
   }, []);
 
   // Always allowed — even mid-explanation (client request). onCloseStart cuts
-  // the AI's audio at click time; onClose (after the 280ms exit fade) then
+  // the AI's audio at click time; onClose (after the exit choreography) then
   // resumes the flow exactly like the natural end-of-speech close: the
   // knowledge-blocker re-asks its question, the info-icon path continues.
   const handleClose = useCallback(() => {
     if (closing) return;
     onCloseStart?.();
     setClosing(true);
-    closingTimerRef.current = setTimeout(onClose, 280);
+    closingTimerRef.current = setTimeout(onClose, EXIT_MS);
   }, [closing, onCloseStart, onClose]);
 
   return (
@@ -150,7 +157,10 @@ export default function VoiceExplainOverlay({
       }}
       initial={{ opacity: 0 }}
       animate={{ opacity: closing ? 0 : 1 }}
-      transition={{ duration: closing ? 0.25 : 0.2 }}
+      // On close, the root (background) holds while the exit phantoms play,
+      // fading only at the very end so the handoff to the real screen
+      // underneath (same gradient, real orb where the phantom lands) is soft.
+      transition={closing ? { duration: 0.3, delay: 0.85 } : { duration: 0.2 }}
     >
       {/* Ambient background waves */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -250,12 +260,79 @@ export default function VoiceExplainOverlay({
         )}
       </AnimatePresence>
 
+      {/* ── Exit transition — the entry played in reverse ───────────── */}
+      {/* Phantom orb travels from the top back to centre while growing;
+          phantom question card slides back up from below. Both land where the
+          real screen underneath will show them (canvas orb at centre, the
+          question near the bottom) just as the root fades. */}
+      {closing && (
+        <>
+          <motion.div
+            key="exit-orb"
+            className="fixed z-[60] flex items-center justify-center pointer-events-none"
+            initial={{ top: "80px", left: "50%", x: "-50%", y: "-50%", scale: 0.4, opacity: 0 }}
+            animate={{ top: "50%", scale: 1, opacity: [0, 0.85, 1] }}
+            transition={{ duration: 1.0, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <VoiceSphere isActive isSpeaking size={280} analyserNode={null} />
+          </motion.div>
+
+          <motion.div
+            key="exit-card"
+            className="fixed z-[60] px-6 pointer-events-none"
+            style={{
+              width: "100%",
+              maxWidth: "400px",
+              left: "50%",
+              x: "-50%",
+            }}
+            initial={{ bottom: "-100px", opacity: 0 }}
+            animate={{ bottom: "120px", opacity: [0, 0.6, 1] }}
+            transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <div
+              className="relative overflow-hidden rounded-3xl px-6 py-5"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)",
+                backdropFilter: "blur(20px)",
+                border: "1px solid rgba(255,255,255,0.5)",
+                boxShadow:
+                  "0 0 40px rgba(59,130,246,0.6), 0 8px 32px rgba(59,130,246,0.15)",
+              }}
+            >
+              {questionCategory && (
+                <div
+                  className="text-xs font-medium mb-2"
+                  style={{ color: "rgba(59,130,246,0.8)" }}
+                >
+                  {questionCategory}
+                </div>
+              )}
+              <p
+                className="text-base font-medium"
+                style={{ color: "rgba(15,23,42,0.9)" }}
+              >
+                {questionText}
+              </p>
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgba(59,130,246,0.05) 0%, transparent 100%)",
+                }}
+              />
+            </div>
+          </motion.div>
+        </>
+      )}
+
       {/* ── Header — back button ───────────────────────────────────── */}
       <motion.div
         className="relative z-10 w-full px-6 py-5 flex-shrink-0"
         initial={{ opacity: 0 }}
-        animate={{ opacity: showTransition ? 0 : 1 }}
-        transition={{ duration: 0.4, delay: showTransition ? 0 : 0.3 }}
+        animate={{ opacity: closing || showTransition ? 0 : 1 }}
+        transition={closing ? { duration: 0.2 } : { duration: 0.4, delay: showTransition ? 0 : 0.3 }}
       >
         <motion.button
           className="flex items-center justify-center rounded-full"
@@ -280,10 +357,10 @@ export default function VoiceExplainOverlay({
         className="relative z-10 flex-1 flex flex-col px-6 pb-8 overflow-y-auto min-h-0"
         initial={{ opacity: 0, y: 20 }}
         animate={{
-          opacity: showTransition ? 0 : 1,
-          y:       showTransition ? 20 : 0,
+          opacity: closing || showTransition ? 0 : 1,
+          y:       closing ? 12 : showTransition ? 20 : 0,
         }}
-        transition={{ duration: 0.6, delay: showTransition ? 0 : 0.5 }}
+        transition={closing ? { duration: 0.25 } : { duration: 0.6, delay: showTransition ? 0 : 0.5 }}
       >
         {/* Waveform — visualizes the AI's spoken explanation */}
         <WaveformBars analyserNode={analyserNode} />
