@@ -25,8 +25,26 @@ export function buildSystemPrompt(
   isRevisiting?: boolean,
   lang:         "de" | "en" = "de",
 ): string {
+  const isMain = (q: CarouselQuestion) => q.questionOrder === undefined || q.questionOrder % 1 === 0;
+
+  // resumeIndex arrives as an index into the FULL question list (sub-questions included) —
+  // that's what saveVoiceState persists and what the carousel uses. The topic list below
+  // excludes sub-questions, so the index must be converted to main-list numbering before
+  // driving the "already collected" markers and the "pick up at topic N" line — otherwise
+  // every resume past Q12 makes the AI ask 1–3 topics ahead of the carousel.
+  const resumeTarget = resumeIndex < questions.length ? questions[resumeIndex] : undefined;
+  const resumeMain   = questions.slice(0, resumeIndex).filter(isMain).length;
+
+  // Resume landed ON a sub-question (12.1/13.1/14.1 — parent was answered "good", the
+  // follow-up is still pending). The filtered topic list can't express it, so without this
+  // note the AI would skip straight to the next main topic while the carousel shows the
+  // sub-question.
+  const pendingSubNote = resumeTarget && !isMain(resumeTarget)
+    ? `\n\nIMPORTANT: The first question after resuming is the pending follow-up "${resumeTarget.text}" (ID: ${resumeTarget.id}${resumeTarget.options?.length ? `, valid values: ${resumeTarget.options.map(o => `"${o.value ?? o.label}"`).join(", ")}` : ""}). Ask it FIRST, then continue with topic ${resumeMain + 1}.`
+    : "";
+
   const list = questions
-    .filter(q => q.questionOrder === undefined || q.questionOrder % 1 === 0) // exclude sub-questions (12.1, 13.1, 14.1) — injected dynamically via SYSTEM message
+    .filter(isMain) // exclude sub-questions (12.1, 13.1, 14.1) — injected dynamically via SYSTEM message
     .map((q, i) => {
       let extra = "";
       if (q.options?.length) {
@@ -49,7 +67,7 @@ export function buildSystemPrompt(
         extra += `\n  Legal context (cite when customer asks why this is asked): ${q.footnote}`;
       }
       const isSkipped  = skippedIds?.has(q.id) ?? false;
-      const isAnswered = !isSkipped && i < resumeIndex;
+      const isAnswered = !isSkipped && i < resumeMain;
       const skipped    = isSkipped  ? "  ← SKIPPED in previous session — not yet answered, will circle back at the end"
                        : isAnswered ? "  ← already collected — skip"
                        : "";
@@ -61,8 +79,8 @@ export function buildSystemPrompt(
     ? (lang === "de"
       ? `\n\nDer Kunde hat die Produktempfehlung gesehen und möchte einige seiner Antworten ändern. Alle Themen sind oben als „already collected" markiert. Fragen Sie in einem Satz, welches Thema er ändern möchte. Warten Sie auf seine Antwort.`
       : `\n\nThe customer has seen the product recommendation and wants to change some of their answers. All topics above are marked "already collected". Ask in one sentence which topic they'd like to change. Wait for their answer.`)
-    : (resumeIndex > 0
-      ? `\n\nYou resumed a previous session (topics marked above). Open with a brief one-sentence welcome-back and pick up directly at topic ${resumeIndex + 1}.${skippedCount > 0 ? ` Note: ${skippedCount} topic(s) earlier were skipped (marked SKIPPED above) — do NOT ask them now, they will circle back automatically at the end.` : ""}`
+    : (resumeMain > 0 || pendingSubNote
+      ? `\n\nYou resumed a previous session (topics marked above). Open with a brief one-sentence welcome-back and pick up directly at topic ${resumeMain + 1}.${skippedCount > 0 ? ` Note: ${skippedCount} topic(s) earlier were skipped (marked SKIPPED above) — do NOT ask them now, they will circle back automatically at the end.` : ""}${pendingSubNote}`
       : "");
 
   return `# Role and Objective
@@ -191,8 +209,8 @@ Cover all of them, one at a time. Do not group multiple topics into a single que
 
 ${list}
 
-${resumeIndex > 0
-  ? `You have already covered the first ${resumeIndex} topic${resumeIndex === 1 ? "" : "s"} in a previous session (marked above). Open with a brief one-sentence welcome-back and pick up directly at topic ${resumeIndex + 1}.`
+${resumeMain > 0 || pendingSubNote
+  ? `You have already covered the first ${resumeMain} topic${resumeMain === 1 ? "" : "s"} in a previous session (marked above). Open with a brief one-sentence welcome-back and pick up directly at topic ${resumeMain + 1}.${pendingSubNote}`
   : `Open with one professional, courteous sentence, then move directly into the first topic.`}`;
 }
 
