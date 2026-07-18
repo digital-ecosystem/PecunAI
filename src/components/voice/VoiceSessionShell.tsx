@@ -109,7 +109,7 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
-  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
+  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, isTransitioningToSigning, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
     useVoiceSession({
       sessionId,
       questions,
@@ -206,6 +206,27 @@ export default function VoiceSessionShell({
       return () => window.clearTimeout(t);
     }
   }, [isTransitioningToPersonalInfo, voicePhase]);
+
+  // ── Phase 6 → 7 signing-pause choreography ────────────────────────────
+  // Same shape as Seam B above: Phase 6's own sphere pulses through the AI's
+  // signing-pause announcement (isTransitioningToSigning — voicePhase stays 6,
+  // so no extra visual is needed there); when the speech ends and voicePhase
+  // flips to 7, a phantom sphere shrinks away over the mounting signing
+  // screen — the AI stepping out for the silent, disconnected final phase.
+  const [signingExitOrb, setSigningExitOrb] = useState(false);
+  const wasSigningPauseRef = useRef(false);
+  useEffect(() => {
+    if (isTransitioningToSigning) {
+      wasSigningPauseRef.current = true;
+      return;
+    }
+    if (voicePhase === 7 && wasSigningPauseRef.current) {
+      wasSigningPauseRef.current = false;
+      setSigningExitOrb(true);
+      const t = window.setTimeout(() => setSigningExitOrb(false), 1000);
+      return () => window.clearTimeout(t);
+    }
+  }, [isTransitioningToSigning, voicePhase]);
 
   // ── Phase 3 → 4 handoff choreography ──────────────────────────────────
   // The mirror of Seam B above: after the silent form is submitted and voice
@@ -662,7 +683,38 @@ export default function VoiceSessionShell({
   // a WebSocket either. Covers both the live transition (confirmReadyToSign already
   // disconnected voice before flipping the phase) and a fresh page load resuming into Phase 7.
   if (voicePhase === 7) {
-    return <VoiceSigningPhase sessionId={sessionId} />;
+    const enteredFromQA = signingExitOrb || wasSigningPauseRef.current;
+    return (
+      <>
+        <motion.div
+          initial={enteredFromQA ? { opacity: 0, y: 14 } : false}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.3 }}
+        >
+          <VoiceSigningPhase sessionId={sessionId} />
+        </motion.div>
+        {/* Phase 6's sphere shrinks away over the mounting signing screen —
+            same choreography as the Phase 2 → 3 privacy pause. */}
+        {enteredFromQA && (
+          <motion.div
+            className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center"
+            style={{ paddingTop: 84 }}
+            initial={{ opacity: 1, scale: 1 }}
+            animate={{ opacity: 0, scale: 0.1 }}
+            transition={{ duration: 0.75, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <VoiceSphere
+              isActive
+              isSpeaking={false}
+              isListening={false}
+              size={380}
+              analyserNode={null}
+              micAnalyserNode={null}
+            />
+          </motion.div>
+        )}
+      </>
+    );
   }
 
   // ── Phase 4 — Investment Form: AI-guided, mirrors Phase 2's voice-frame + PTT pattern ───

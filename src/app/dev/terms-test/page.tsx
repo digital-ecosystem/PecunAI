@@ -39,7 +39,7 @@ const FAKE_PRODUCT: ProductData = {
 };
 
 export default function TermsTestPage() {
-  const [step, setStep] = useState<"terms1" | "terms2" | "phase1" | "phase2" | "pause" | "form" | "phase4" | "phase5" | "phase6">("terms1");
+  const [step, setStep] = useState<"terms1" | "terms2" | "phase1" | "phase2" | "pause" | "form" | "phase4" | "phase5" | "phase6" | "phase7">("terms1");
   const entryRectRef = useRef<FrameRect | null>(null);
 
   // Phase 2 → 3 privacy-pause seams (mirrors the shell).
@@ -302,11 +302,35 @@ export default function TermsTestPage() {
           micAnalyserNode={null}
           onPTTStart={() => {}}
           onPTTRelease={() => {}}
-          onConfirm={() => {}}
+          onConfirm={() => setStep("phase7")}
           onChatClick={() => {}}
           isChatOpen={false}
           entryFrameRect={entryRectRef.current}
         />
+      )}
+
+      {step === "phase7" && (
+        <div className="fixed inset-0 overflow-hidden" style={{ background: BG }}>
+          <motion.div
+            className="max-w-md mx-auto mt-24 rounded-3xl bg-white p-8"
+            style={{ boxShadow: "0 20px 60px rgba(59,130,246,0.15)" }}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.3 }}
+          >
+            <h2 className="text-lg font-semibold mb-2" style={{ color: "rgba(15,23,42,0.9)" }}>[ Signing — SignTeq iframe ]</h2>
+            <p className="text-sm" style={{ color: "rgba(100,116,139,0.8)" }}>Silent phase — voice disconnected.</p>
+          </motion.div>
+          <motion.div
+            className="fixed inset-0 pointer-events-none flex flex-col items-center justify-center"
+            style={{ paddingTop: 84 }}
+            initial={{ opacity: 1, scale: 1 }}
+            animate={{ opacity: 0, scale: 0.1 }}
+            transition={{ duration: 0.75, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <VoiceSphere isActive isSpeaking={false} isListening={false} size={380} analyserNode={null} micAnalyserNode={null} />
+          </motion.div>
+        </div>
       )}
     </>
   );
