@@ -1,15 +1,21 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion } from "motion/react";
-import { Menu, User, Mic, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { Menu, User, Mic, ChevronLeft, ChevronRight, Download, Maximize2 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { AnimatedFrame } from "./AnimatedFrame";
+import FullscreenPDFViewer from "./FullscreenPDFViewer";
 import { SphereToFrameTransition } from "./SphereToFrameTransition";
 import VoiceSphere from "./VoiceSphere";
 import type { FrameRect } from "./frameMath";
-import PDFModal from "@/components/PDFModal";
 import type { CarouselQuestion } from "./VoiceCarousel";
 import type { SessionState } from "@/hooks/useVoiceSession";
+
+const PDFViewerClient = dynamic(() => import("./PDFViewerClient"), {
+  ssr:     false,
+  loading: () => <div className="w-full h-full animate-pulse" style={{ background: "rgba(59,130,246,0.06)", borderRadius: 8 }} />,
+});
 
 // ── Frame sizing — same portrait "document card" proportions used by every other
 // voice-frame phase (Phase 2's getPdfSize(), Phase 4's getInvestmentFrameSize()). Each phase
@@ -127,6 +133,11 @@ export default function VoiceContractDocuments({
   const [expandedSections, setExpandedSections] = useState({ vertraege: false, weitereInfo: false });
   const [selectedPDF, setSelectedPDF] = useState<{ url: string; fileName: string } | null>(null);
   const [isMerging, setIsMerging] = useState(false);
+  // Page/zoom viewing state — shared between the in-frame preview and the
+  // fullscreen viewer so the page position survives expanding, like Phase 2.
+  const [pdfPage,       setPdfPage]       = useState(1);
+  const [pdfNumPages,   setPdfNumPages]   = useState(0);
+  const [pdfFullscreen, setPdfFullscreen] = useState(false);
 
   useEffect(() => {
     setFrameSize(getContractFrameSize());
@@ -346,10 +357,29 @@ export default function VoiceContractDocuments({
   }, []);
 
   const openPDF = useCallback((fileName: string) => {
+    setPdfPage(1);
+    setPdfNumPages(0);
+    setPdfFullscreen(false);
     setSelectedPDF({ url: `/api/documents/${sessionId}/contract-document/${fileName}`, fileName });
   }, [sessionId]);
 
-  const closePDF = useCallback(() => setSelectedPDF(null), []);
+  const closePDF = useCallback(() => {
+    setPdfFullscreen(false);
+    setSelectedPDF(prev => {
+      if (prev?.url.startsWith("blob:")) window.URL.revokeObjectURL(prev.url);
+      return null;
+    });
+  }, []);
+
+  const downloadPDF = useCallback(() => {
+    if (!selectedPDF) return;
+    const link = document.createElement("a");
+    link.href = selectedPDF.url;
+    link.download = selectedPDF.fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [selectedPDF]);
 
   const handleMergePDFs = useCallback(async () => {
     setIsMerging(true);
@@ -364,6 +394,9 @@ export default function VoiceContractDocuments({
       const fileName = response.headers.get("Content-Disposition")?.split("filename=")[1] || "merged-contracts.pdf";
       const blob = await response.blob();
       const url  = window.URL.createObjectURL(blob);
+      setPdfPage(1);
+      setPdfNumPages(0);
+      setPdfFullscreen(false);
       setSelectedPDF({ url, fileName: fileName.replace(/"/g, "") });
     } catch (error) {
       console.error("Error merging PDFs:", error);
@@ -474,9 +507,72 @@ export default function VoiceContractDocuments({
                 contentWidth={frameSize.width}
                 contentHeight={frameSize.height}
               >
-                <div
+                {selectedPDF ? (
+                  /* ── In-frame document view — swaps the list in place, same frame.
+                     key remounts on document change so the fade replays per document. ── */
+                  <motion.div
+                    key={selectedPDF.url}
+                    className="w-full h-full flex flex-col"
+                    style={{ background: "rgba(255,255,255,0.97)" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100 flex-shrink-0">
+                      <motion.button
+                        className="flex items-center justify-center rounded-full flex-shrink-0"
+                        style={{ width: 32, height: 32, background: "rgba(59,130,246,0.08)" }}
+                        whileTap={{ scale: 0.92 }}
+                        onClick={closePDF}
+                        aria-label="Zurück zur Dokumentenliste"
+                      >
+                        <ChevronLeft size={18} style={{ color: "rgba(37,99,235,1)" }} />
+                      </motion.button>
+                      <span className="flex-1 text-xs font-semibold text-gray-900 truncate">
+                        {selectedPDF.fileName}
+                      </span>
+                      <motion.button
+                        className="flex items-center justify-center rounded-full flex-shrink-0"
+                        style={{ width: 32, height: 32, background: "rgba(59,130,246,0.08)" }}
+                        whileTap={{ scale: 0.92 }}
+                        onClick={() => setPdfFullscreen(true)}
+                        aria-label="Großansicht öffnen"
+                      >
+                        <Maximize2 size={15} style={{ color: "rgba(37,99,235,1)" }} />
+                      </motion.button>
+                      <motion.button
+                        className="flex items-center justify-center rounded-full flex-shrink-0"
+                        style={{ width: 32, height: 32, background: "rgba(59,130,246,0.08)" }}
+                        whileTap={{ scale: 0.92 }}
+                        onClick={downloadPDF}
+                        aria-label="PDF herunterladen"
+                      >
+                        <Download size={15} style={{ color: "rgba(37,99,235,1)" }} />
+                      </motion.button>
+                    </div>
+                    {/* Tap the document itself to expand — same gesture as
+                        Phase 2's tap-on-frame. Scrolling still works; only a
+                        clean tap opens the fullscreen viewer. */}
+                    <div
+                      className="flex-1 overflow-hidden cursor-pointer"
+                      onClick={() => setPdfFullscreen(true)}
+                    >
+                      <PDFViewerClient
+                        fileUrl={selectedPDF.url}
+                        currentPage={pdfPage}
+                        onLoadSuccess={setPdfNumPages}
+                        allowScroll
+                        onPageChange={setPdfPage}
+                      />
+                    </div>
+                  </motion.div>
+                ) : (
+                <motion.div
                   className="w-full h-full overflow-y-auto p-5 space-y-5"
                   style={{ background: "rgba(255,255,255,0.97)" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.25 }}
                 >
                   {loading ? (
                     <div className="flex items-center justify-center h-full">
@@ -704,7 +800,8 @@ export default function VoiceContractDocuments({
                       </div>
                     </>
                   )}
-                </div>
+                </motion.div>
+                )}
               </AnimatedFrame>
             </motion.div>
           </div>
@@ -768,9 +865,21 @@ export default function VoiceContractDocuments({
         </motion.button>
       </div>
 
-      {selectedPDF && (
-        <PDFModal isOpen={!!selectedPDF} pdfUrl={selectedPDF.url} fileName={selectedPDF.fileName} onClose={closePDF} />
-      )}
+      {/* ── Full-screen PDF viewer — shared with Phase 2 ──────────── */}
+      <AnimatePresence>
+        {selectedPDF && pdfFullscreen && (
+          <FullscreenPDFViewer
+            title={selectedPDF.fileName}
+            fileUrl={selectedPDF.url}
+            pageNumber={pdfPage}
+            numPages={pdfNumPages}
+            onPageChange={setPdfPage}
+            onLoadSuccess={setPdfNumPages}
+            onClose={() => setPdfFullscreen(false)}
+            onDownload={downloadPDF}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, User, Mic, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Menu, User, Mic } from "lucide-react";
 import dynamic from "next/dynamic";
 import { AnimatedFrame } from "./AnimatedFrame";
+import FullscreenPDFViewer from "./FullscreenPDFViewer";
 import { SphereToFrameTransition } from "./SphereToFrameTransition";
 import type { FrameRect } from "./frameMath";
 import { ProductData, SessionState } from "@/hooks/useVoiceSession";
@@ -400,109 +401,18 @@ export default function VoiceProductPhase({
         </motion.button>
       </div>
 
-      {/* ── Full-screen PDF modal ────────────────────────────────── */}
+      {/* ── Full-screen PDF viewer — shared with Phase 5 ─────────── */}
       <AnimatePresence>
         {pdfFullscreen && (
-          /* Backdrop — click outside the dialog to close on desktop */
-          <motion.div
-            className="fixed inset-0 z-[200] flex items-center justify-center"
-            style={{ background: "rgba(5,10,20,0.88)", backdropFilter: "blur(12px)" }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={() => setPdfFullscreen(false)}
-          >
-            {/* Dialog — full-screen on mobile, centered card on desktop */}
-            <motion.div
-              className="flex flex-col w-full h-full md:h-[88vh] md:max-w-2xl md:rounded-2xl overflow-hidden"
-              style={{
-                background: "rgba(8,12,24,0.97)",
-                border:     "1px solid rgba(255,255,255,0.09)",
-                boxShadow:  "0 24px 80px rgba(0,0,0,0.6)",
-              }}
-              initial={{ scale: 0.96, opacity: 0 }}
-              animate={{ scale: 1,    opacity: 1 }}
-              exit={{ scale: 0.96,    opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={e => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div
-                className="flex items-center justify-between px-5 py-4 flex-shrink-0"
-                style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
-              >
-                <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>
-                  Produktdokument
-                </span>
-                <motion.button
-                  className="flex items-center justify-center rounded-full"
-                  style={{
-                    width:      36,
-                    height:     36,
-                    background: "rgba(255,255,255,0.08)",
-                    border:     "1px solid rgba(255,255,255,0.13)",
-                  }}
-                  whileTap={{ scale: 0.92 }}
-                  onClick={() => setPdfFullscreen(false)}
-                >
-                  <X size={18} style={{ color: "rgba(255,255,255,0.8)" }} />
-                </motion.button>
-              </div>
-
-              {/* PDF */}
-              <div className="flex-1 overflow-hidden">
-                <PDFViewerClient
-                  fileUrl={pdfUrl}
-                  currentPage={pageNumber}
-                  onLoadSuccess={handlePdfLoad}
-                  allowScroll
-                />
-              </div>
-
-              {/* Page navigation */}
-              <div
-                className="flex items-center justify-center gap-6 py-4 flex-shrink-0"
-                style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
-              >
-                <motion.button
-                  className="flex items-center justify-center rounded-full"
-                  style={{
-                    width:      40,
-                    height:     40,
-                    background: pageNumber <= 1 ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.1)",
-                    border:     "1px solid rgba(255,255,255,0.1)",
-                    opacity:    pageNumber <= 1 ? 0.35 : 1,
-                  }}
-                  whileTap={pageNumber > 1 ? { scale: 0.92 } : {}}
-                  onClick={() => setPageNumber(p => Math.max(1, p - 1))}
-                  disabled={pageNumber <= 1}
-                >
-                  <ChevronLeft size={18} style={{ color: "rgba(255,255,255,0.8)" }} />
-                </motion.button>
-
-                {/* <span className="text-sm font-medium tabular-nums" style={{ color: "rgba(255,255,255,0.6)", minWidth: 60, textAlign: "center" }}>
-                  {pageNumber} / {numPages || "—"}
-                </span> */}
-
-                <motion.button
-                  className="flex items-center justify-center rounded-full"
-                  style={{
-                    width:      40,
-                    height:     40,
-                    background: pageNumber >= numPages ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.1)",
-                    border:     "1px solid rgba(255,255,255,0.1)",
-                    opacity:    pageNumber >= numPages ? 0.35 : 1,
-                  }}
-                  whileTap={pageNumber < numPages ? { scale: 0.92 } : {}}
-                  onClick={() => setPageNumber(p => Math.min(numPages, p + 1))}
-                  disabled={pageNumber >= numPages}
-                >
-                  <ChevronRight size={18} style={{ color: "rgba(255,255,255,0.8)" }} />
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
+          <FullscreenPDFViewer
+            title="Produktdokument"
+            fileUrl={pdfUrl}
+            pageNumber={pageNumber}
+            numPages={numPages}
+            onPageChange={setPageNumber}
+            onLoadSuccess={handlePdfLoad}
+            onClose={() => setPdfFullscreen(false)}
+          />
         )}
       </AnimatePresence>
     </div>
