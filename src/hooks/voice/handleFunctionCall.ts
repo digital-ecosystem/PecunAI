@@ -151,7 +151,21 @@ export async function handleFunctionCall(
       await saveAnswer(questionId, value);
 
       const qIdx     = questionsRef.current.findIndex(q => q.id === questionId);
-      const nextIndex = qIdx >= 0 ? qIdx + 1 : stateRef.current.currentQuestionIndex + 1;
+      let nextIndex  = qIdx >= 0 ? qIdx + 1 : stateRef.current.currentQuestionIndex + 1;
+      // Same sub-question skip as handleAnswerConfirmed's save: don't persist
+      // a resume index pointing at a 12.1/13.1/14.1 the answer just made
+      // irrelevant (only "good" makes them relevant).
+      const savedParentQ = qIdx >= 0 ? questionsRef.current[qIdx] : undefined;
+      const followingQ   = questionsRef.current[nextIndex];
+      if (
+        followingQ?.questionOrder !== undefined &&
+        followingQ.questionOrder % 1 !== 0 &&
+        savedParentQ?.questionOrder !== undefined &&
+        Math.floor(followingQ.questionOrder) === savedParentQ.questionOrder &&
+        value !== "good"
+      ) {
+        nextIndex += 1;
+      }
       await saveVoiceState(nextIndex);
 
       // Track answered ID and store value so tapping the card later shows it pre-filled.

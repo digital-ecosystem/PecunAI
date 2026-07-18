@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, User, Mic, VolumeX, Hand, Check, ChevronRight } from "lucide-react";
@@ -109,11 +109,26 @@ export default function VoiceSessionShell({
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
+  // Saved resume indexes can point at a sub-question (12.1/13.1/14.1) that the
+  // saved parent answer makes irrelevant — the save paths used to store raw
+  // idx+1 (fixed now, but old DB rows persist). Walk forward to the first
+  // relevant question so the resume card matches what the AI will actually
+  // ask (its prompt list excludes sub-questions entirely).
+  const resumeIndex = useMemo(() => {
+    let idx = initialQuestionIndex;
+    while (idx < questions.length && !isSubQuestionRelevant(questions[idx], questions, initialSavedAnswers ?? {})) {
+      idx += 1;
+    }
+    return Math.min(idx, Math.max(questions.length - 1, 0));
+    // Static resume inputs — computed once at mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, isTransitioningToSigning, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
     useVoiceSession({
       sessionId,
       questions,
-      initialQuestionIndex,
+      initialQuestionIndex: resumeIndex,
       initialTermsPhase,
       termsVectorId:       termsVectorId ?? null,
       initialAnsweredIds:  initialAnsweredIds  ?? [],
@@ -458,7 +473,7 @@ export default function VoiceSessionShell({
   // for which question the AI is currently on. No state machine sync needed.
   const viewIndex = activeCardId
     ? Math.max(0, questions.findIndex(q => q.id === activeCardId))
-    : initialQuestionIndex;
+    : resumeIndex;
 
   const n       = questions.length;
   const activeQ = n > 0 ? questions[Math.min(viewIndex, n - 1)] : null;

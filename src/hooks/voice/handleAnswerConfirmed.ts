@@ -55,7 +55,21 @@ export async function handleAnswerConfirmed(
   await saveAnswer(question.id, value);
   // Derive nextIndex from question position — more reliable than stateRef.
   const qIdx     = questionsRef.current.findIndex(q => q.id === question.id);
-  const nextIndex = qIdx >= 0 ? qIdx + 1 : stateRef.current.currentQuestionIndex + 1;
+  let nextIndex  = qIdx >= 0 ? qIdx + 1 : stateRef.current.currentQuestionIndex + 1;
+  // If the immediately-following flat entry is THIS question's sub-question
+  // (12.1/13.1/14.1) and the answer doesn't make it relevant (only "good"
+  // does), skip it in the SAVED resume index — otherwise a reload lands the
+  // card on an irrelevant sub-question while the AI (whose prompt list
+  // excludes sub-questions entirely) resumes on the next real one.
+  const followingQ = questionsRef.current[nextIndex];
+  if (
+    followingQ?.questionOrder !== undefined &&
+    followingQ.questionOrder % 1 !== 0 &&
+    Math.floor(followingQ.questionOrder) === question.questionOrder &&
+    value !== "good"
+  ) {
+    nextIndex += 1;
+  }
   await saveVoiceState(nextIndex);
 
   // Track answered ID before coverage check so the counts are up-to-date.
