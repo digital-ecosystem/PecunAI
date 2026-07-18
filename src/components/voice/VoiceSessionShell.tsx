@@ -7,7 +7,7 @@ import { Menu, User, Mic, VolumeX, Hand, Check, ChevronRight } from "lucide-reac
 import VoiceSphere from "./VoiceSphere";
 import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
 import { ExpandedQuestionCard, computeExpandedRect } from "./ExpandedQuestionCard";
-import { SustainabilityTermsCard, SustainabilityPTTButton } from "./SustainabilityTermsCard";
+import { SustainabilityTermsCard } from "./SustainabilityTermsCard";
 import { PhaseOneNeuralModel } from "./PhaseOneNeuralModel";
 import { SphereToFrameTransition } from "./SphereToFrameTransition";
 import type { FrameRect } from "./frameMath";
@@ -317,9 +317,18 @@ export default function VoiceSessionShell({
       setSustainabilityVisible(false);
       return;
     }
+    // The disclosure takes over the card slot — close any open question card.
+    // The tap path already closed it, but the VOICE answer path (submit_answer
+    // on Q2) flips termsSubStep without touching voiceAnswerCount/activeCardId,
+    // so the Q2 card would stay painted on top of the disclosure (both z-56;
+    // the question card wins by DOM order). Reachable since Round 14 made PTT
+    // usable while a card is open.
+    suppressAutoModalRef.current = true;
+    setModalOpen(false);
+    clearPendingVoiceAnswer();
     const t = window.setTimeout(() => setSustainabilityVisible(true), SUSTAINABILITY_MORPH_GAP_MS);
     return () => window.clearTimeout(t);
-  }, [sustainabilityOpen]);
+  }, [sustainabilityOpen, clearPendingVoiceAnswer]);
 
   // Set when the customer manually closes the modal — prevents it from immediately re-opening.
   // suppressAutoModalRef: set when user manually closes the modal; cleared on next card change.
@@ -375,6 +384,17 @@ export default function VoiceSessionShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAISpeaking]);
 
+  // Fast Mode turning ON clears any stale manual-close suppression, so the
+  // CURRENT question's card opens immediately regardless of question type —
+  // in Fast Mode every card must show (there's no spoken cue to rely on).
+  // A suppress set from an earlier X-close would otherwise silently block the
+  // auto-open below until the next card change, which in Fast Mode may never
+  // be narrated into existence. X-closing while already IN Fast Mode still
+  // works (this only fires on the toggle's rising edge).
+  useEffect(() => {
+    if (fastMode) suppressAutoModalRef.current = false;
+  }, [fastMode]);
+
   // Auto-open the modal for choice questions — but only after the AI has spoken AND finished.
   // This prevents immediate open on skip/prev navigation or phase start, where state is
   // already "listening" before the AI has asked the new question.
@@ -405,8 +425,14 @@ export default function VoiceSessionShell({
     if (explainOpen) return;
     if (!started) return;
     setModalOpen(true);
+    // explainOpen is a dep so the modal re-opens the moment the explanation
+    // overlay closes: the Q12/13/14 knowledge-blocker re-asks the SAME
+    // question (activeCardId doesn't change), and in Fast Mode the close path
+    // dispatches AI_SPEAKING + AI_DONE in one batch (no net state change) —
+    // without this dep nothing re-evaluates the effect and the options modal
+    // never comes back after the explanation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCardId, isAISpeaking, state.session, voicePhase, termsSubStep, bargeInActive, isRevisiting, fastMode]);
+  }, [activeCardId, isAISpeaking, state.session, voicePhase, termsSubStep, bargeInActive, isRevisiting, fastMode, explainOpen]);
 
   useEffect(() => {
     notifyChatOpen(chatOpen);
@@ -1186,7 +1212,7 @@ export default function VoiceSessionShell({
                 // Carousel position stays put while a card is expanded — nothing
                 // relies on the compact rect anymore, but rotating the carousel
                 // underneath an open card would still look wrong.
-                if (modalOpen || sustainabilityOpen) return;
+                if (sustainabilityOpen) return; // card-open no longer blocks: prev/next work while a card is open (bar stays accessible)
                 if (isRevisiting) {
                   const nextIdx = findRevisitStep(questions, savedAnswers, viewIndex, 1);
                   if (nextIdx === -1) return;
@@ -1199,7 +1225,7 @@ export default function VoiceSessionShell({
                 skipQuestion(questions[viewIndex]);
               }}
               onPrev={() => {
-                if (modalOpen || sustainabilityOpen) return;
+                if (sustainabilityOpen) return; // card-open no longer blocks: prev/next work while a card is open (bar stays accessible)
                 if (isRevisiting) {
                   const prevIdx = findRevisitStep(questions, savedAnswers, viewIndex, -1);
                   if (prevIdx === -1) return;
@@ -1235,7 +1261,17 @@ export default function VoiceSessionShell({
                 boxShadow:  "0 4px 16px rgba(59,130,246,0.3)",
               }}
               whileTap={{ scale: 0.96 }}
-              onClick={() => { if (modalOpen || sustainabilityOpen) return; stopAudio(); suppressAutoModalRef.current = true; advancePhase(); }}
+              onClick={() => {
+                if (sustainabilityOpen) return;
+                // Close any open card before leaving Phase 1 — the card
+                // overlay isn't phase-gated, so stale modalOpen state would
+                // render it on top of Phase 2.
+                suppressAutoModalRef.current = true;
+                setModalOpen(false);
+                clearPendingVoiceAnswer();
+                stopAudio();
+                advancePhase();
+              }}
             >
               <Check size={18} style={{ color: "white" }} />
               <span className="text-sm font-medium text-white">Fertig – Empfehlung ansehen</span>
@@ -1256,7 +1292,7 @@ export default function VoiceSessionShell({
           }}
           isPTTActive={isPhase1PTTActive}
           onPrevious={() => {
-            if (modalOpen || sustainabilityOpen) return;
+            if (sustainabilityOpen) return; // card-open no longer blocks: prev/next work while a card is open (bar stays accessible)
             if (isRevisiting) {
               const prevIdx = findRevisitStep(questions, savedAnswers, viewIndex, -1);
               if (prevIdx === -1) return;
@@ -1269,7 +1305,7 @@ export default function VoiceSessionShell({
             onPrev();
           }}
           onNext={() => {
-            if (modalOpen || sustainabilityOpen) return;
+            if (sustainabilityOpen) return; // card-open no longer blocks: prev/next work while a card is open (bar stays accessible)
             if (isRevisiting) {
               const nextIdx = findRevisitStep(questions, savedAnswers, viewIndex, 1);
               if (nextIdx === -1) return;
@@ -1281,9 +1317,25 @@ export default function VoiceSessionShell({
             stopAudio();
             skipQuestion(questions[viewIndex]);
           }}
-          onChatClick={() => { if (sustainabilityOpen) return; setChatOpen(true); }}
+          onChatClick={() => {
+            if (sustainabilityOpen) return;
+            // The chat sheet (z-50) would render underneath an open card
+            // (z-56) — close the card first; the existing chat-close effect
+            // resets the suppress flag so it re-opens per the normal flow.
+            if (modalOpen) {
+              suppressAutoModalRef.current = true;
+              setModalOpen(false);
+              clearPendingVoiceAnswer();
+            }
+            setChatOpen(true);
+          }}
           isFastMode={fastMode}
-          onFastModeToggle={() => { if (sustainabilityOpen) return; toggleFastMode(); }}
+          // Never gated: Fast Mode must be toggleable mid-speech from anywhere —
+          // including while the disclosure (or the gap before it) is showing,
+          // where the old sustainabilityOpen gate made the button a silent
+          // no-op. Enabling it cuts any in-flight speech via toggleFastMode's
+          // own stopAudio, which also restores the session state.
+          onFastModeToggle={toggleFastMode}
         />
       </div>
             </motion.div>
@@ -1308,19 +1360,10 @@ export default function VoiceSessionShell({
             onConfirm={() => { stopAudio(); return confirmSustainabilityTerms(); }}
           />
         )}
-        {/* The ~88vh card covers the ControlBar, so the disclosure gets its own
-            floating PTT (ported from the old VoiceTermsPhase overlay) wired to
-            the same ask-about-terms path. Driving isPhase1PTTActive also turns
-            the neural frame green while held. */}
-        {sustainabilityVisible && started && (
-          <SustainabilityPTTButton
-            key="sustainability-ptt"
-            isActive={isPhase1PTTActive}
-            isSpeaking={isSpeaking}
-            onStart={() => { startPTT(); setIsPhase1PTTActive(true); }}
-            onRelease={() => { submitPTTQuestion('sustainabilityTerms'); setIsPhase1PTTActive(false); }}
-          />
-        )}
+        {/* No floating PTT anymore: since the card shrank to the centre band
+            (boss feedback 2026-07-17), the ControlBar is visible and reachable
+            underneath — and its PTT already routes to the ask-about-terms path
+            while the disclosure is open. Two mic buttons would clash. */}
       </AnimatePresence>
 
       <VoiceChatModal
@@ -1343,6 +1386,10 @@ export default function VoiceSessionShell({
           analyserNode={analyserNode}
           isAISpeaking={isAISpeaking}
           triggerClose={explainTriggerClose}
+          // Back button works at ANY time (client request): onCloseStart cuts
+          // the explanation audio at click time; onClose then runs the normal
+          // resume path (knowledge-blocker re-ask included).
+          onCloseStart={stopAudio}
           onClose={() => { suppressAutoModalRef.current = false; closeExplainOverlay(); }}
           onFollowUp={() => { suppressAutoModalRef.current = false; closeExplainOverlay(); }}
         />

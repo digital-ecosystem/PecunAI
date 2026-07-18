@@ -7,8 +7,9 @@ import type { FrameRect } from "./frameMath";
 import type { ModalQuestion } from "./VoiceQuestionModal";
 
 /**
- * The resting, interactive answer card for Phase 1 — centered on screen,
- * near full-screen height. The neural frame around it is drawn by the
+ * The resting, interactive answer card for Phase 1 — floating centered in
+ * the band between the header and the ControlBar (which stays visible and
+ * usable while the card is open). The neural frame around it is drawn by the
  * persistent PhaseOneNeuralModel canvas underneath, not by this component —
  * this is just the white card content, faded in/out with modalOpen. See
  * VoiceSessionShell.tsx for the choreography and
@@ -30,18 +31,28 @@ interface ExpandedQuestionCardProps {
   contextMessage?: string;
 }
 
+// The band the expanded card floats in: below the header zone, above the
+// ControlBar, with visible air on both sides — the bar must stay fully
+// visible and tappable while a card is open (boss feedback 2026-07-17; the
+// previous vh*0.88 sizing covered it). The options area inside is plain
+// flex-1/overflow-y-auto, so longer lists scroll internally at any height.
+const TOP_MARGIN    = 72;  // header zone
+const BAR_CLEARANCE = 124; // ControlBar ≈88px + gap so even the frame's spikes clear it
+const BAND_PAD      = 12;
+
 export function computeExpandedCardSize(vw: number, vh: number) {
   const width = vw >= 1024 ? 480 : vw >= 640 ? 440 : Math.min(Math.round(vw * 0.9), 380);
-  // As tall as the screen (minus a small margin) — the options area inside
-  // is plain flex-1/overflow-y-auto, so it scrolls internally if a long list
-  // doesn't fit, regardless of how generous this outer height is.
-  const height = Math.round(vh * 0.88);
+  const height = Math.max(320, vh - TOP_MARGIN - BAR_CLEARANCE - BAND_PAD * 2);
   return { width, height };
 }
 
 export function computeExpandedRect(vw: number, vh: number): FrameRect {
   const { width, height } = computeExpandedCardSize(vw, vh);
-  return { x: (vw - width) / 2, y: (vh - height) / 2, w: width, h: height };
+  const y = Math.max(
+    8,
+    TOP_MARGIN + BAND_PAD + (vh - TOP_MARGIN - BAR_CLEARANCE - BAND_PAD * 2 - height) / 2
+  );
+  return { x: (vw - width) / 2, y, w: width, h: height };
 }
 
 function formatValue(value: number, placeholder?: string): string {

@@ -74,6 +74,22 @@ export async function handleAnswerConfirmed(
     setTermsSubStep('sustainabilityTerms');
     termsSubStepRef.current = 'sustainabilityTerms';
     saveVoiceState(questionsRef.current.findIndex(q => q.id === question.id)).catch(() => {});
+    // Fast Mode: keep the context update (grounds on-demand PTT questions about
+    // the disclosure) but skip the intro narration entirely — a NEUTRAL text
+    // without the "introduce this document" directive, so no later response
+    // can act on it. Without the gate, the ungated intro could still be
+    // in-flight at confirm time and start playing right as Q3 arrives
+    // (stopAudio can't cancel a response that hasn't been created yet).
+    if (fastModeRef.current) {
+      send({
+        type: "conversation.item.create",
+        item: { type: "message", role: "user", content: [{ type: "input_text",
+          text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is now displayed on screen. Fast Mode is ON — do NOT speak. The customer reads and confirms it on screen; they can hold the microphone button to ask questions about it.]",
+        }]},
+      });
+      if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+      return;
+    }
     send({
       type: "conversation.item.create",
       item: { type: "message", role: "user", content: [{ type: "input_text",

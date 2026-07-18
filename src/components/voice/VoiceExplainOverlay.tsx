@@ -22,6 +22,11 @@ interface VoiceExplainOverlayProps {
   analyserNode:     AnalyserNode | null;
   isAISpeaking:     boolean;
   triggerClose?:    boolean;
+  /** Fired synchronously the moment the back button is tapped — the shell
+   *  passes stopAudio so a mid-explanation exit cuts the AI off immediately
+   *  (client request: the back button works at ANY time; the flow then
+   *  continues via onClose's normal resume/re-ask path). */
+  onCloseStart?:    () => void;
   onClose:          () => void;
   onFollowUp:       () => void;
 }
@@ -99,8 +104,8 @@ export default function VoiceExplainOverlay({
   questionCategory,
   questionText,
   analyserNode,
-  isAISpeaking,
   triggerClose,
+  onCloseStart,
   onClose,
   onFollowUp,
 }: VoiceExplainOverlayProps) {
@@ -125,11 +130,16 @@ export default function VoiceExplainOverlay({
     if (closingTimerRef.current) clearTimeout(closingTimerRef.current);
   }, []);
 
+  // Always allowed — even mid-explanation (client request). onCloseStart cuts
+  // the AI's audio at click time; onClose (after the 280ms exit fade) then
+  // resumes the flow exactly like the natural end-of-speech close: the
+  // knowledge-blocker re-asks its question, the info-icon path continues.
   const handleClose = useCallback(() => {
-    if (isAISpeaking || closing) return;
+    if (closing) return;
+    onCloseStart?.();
     setClosing(true);
     closingTimerRef.current = setTimeout(onClose, 280);
-  }, [isAISpeaking, closing, onClose]);
+  }, [closing, onCloseStart, onClose]);
 
   return (
     <motion.div
@@ -256,13 +266,10 @@ export default function VoiceExplainOverlay({
             backdropFilter: "blur(10px)",
             border:         "1px solid rgba(255,255,255,0.6)",
             boxShadow:      "0 2px 8px rgba(0,0,0,0.04)",
-            opacity:        isAISpeaking ? 0.3 : 1,
-            pointerEvents:  isAISpeaking ? "none" : "auto",
-            transition:     "opacity 0.3s ease",
           }}
-          whileTap={isAISpeaking ? {} : { scale: 0.95 }}
+          whileTap={{ scale: 0.95 }}
           onClick={handleClose}
-          aria-disabled={isAISpeaking || closing}
+          aria-disabled={closing}
         >
           <ArrowLeft size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
         </motion.button>

@@ -241,6 +241,18 @@ export async function handleFunctionCall(
           setTermsSubStep('sustainabilityTerms');
           termsSubStepRef.current = 'sustainabilityTerms';
           saveVoiceState(questionsRef.current.findIndex(q => q.id === questionId)).catch(() => {});
+          // Fast Mode: same gate as the tap path (handleAnswerConfirmed) —
+          // neutral context only, no intro narration, AI_DONE correction.
+          if (fastModeRef.current && !chatOpenRef.current) {
+            send({
+              type: "conversation.item.create",
+              item: { type: "message", role: "user", content: [{ type: "input_text",
+                text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is now displayed on screen. Fast Mode is ON — do NOT speak. The customer reads and confirms it on screen; they can hold the microphone button to ask questions about it.]",
+              }]},
+            });
+            if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+            return;
+          }
           send({
             type: "conversation.item.create",
             item: { type: "message", role: "user", content: [{ type: "input_text",
