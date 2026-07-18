@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { ChatMessage } from "./types";
-import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS } from "./prompts";
+import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, ADVISOR_PERSONA } from "./prompts";
 import { TOOLS } from "./tools";
 import { base64ToPCM16AudioBuffer } from "./audio";
 import type { VoiceContext } from "./voiceContext";
@@ -191,8 +191,8 @@ export async function handleWsMessage(
             type: "response.create",
             response: {
               instructions: [
-                `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()}`,
-                `Die Sitzung wird fortgesetzt. Begrüßen Sie den Kunden herzlich zurück in 1 Satz.`,
+                ADVISOR_PERSONA(langRef.current),
+                `Die Sitzung wird fortgesetzt. Begrüßen Sie den Kunden kurz zurück in 1 Satz.`,
                 `Empfehlen Sie dann kurz das Portfolio "${product.fullName}" — nennen Sie NIEMALS den internen Code "${product.name}".`,
                 `Erinnern Sie in 1–2 Sätzen, warum es empfohlen wurde (Horizont: ${durationLabel}, Risiko: ${riskAnswer ?? product.risk}).`,
                 `Laden Sie zu Fragen ein oder fragen Sie, ob der Kunde fortfahren möchte. Maximal 3 Sätze gesamt.`,
@@ -211,7 +211,7 @@ export async function handleWsMessage(
             text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is displayed on screen. The customer returned to the session. Greet them back warmly in 1 sentence, mention they can continue reading the sustainability document and tap confirm when ready, and that they can hold the mic button to ask questions. Do NOT ask any Phase 1 questions. Wait for them to confirm.]",
           }]},
         });
-        send({ type: "response.create", response: { instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde ist zurückgekehrt und sieht das Nachhaltigkeitsdokument. Begrüßen Sie ihn herzlich in 1 Satz, erinnern Sie ihn daran, dass er das Dokument in seinem eigenen Tempo lesen und auf „Ich bestätige" tippen kann, und dass er die Mikrofontaste halten kann, um Fragen zu stellen. Stellen Sie KEINE Phase-1-Fragen. Warten Sie.` } });
+        send({ type: "response.create", response: { instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde ist zurückgekehrt und sieht das Nachhaltigkeitsdokument. Begrüßen Sie ihn kurz in 1 Satz, erinnern Sie ihn daran, dass er das Dokument in seinem eigenen Tempo lesen und auf „Ich bestätige" tippen kann, und dass er die Mikrofontaste halten kann, um Fragen zu stellen. Stellen Sie KEINE Phase-1-Fragen. Warten Sie.` } });
       } else {
         // Phase 1 (skip mode or after confirmTerms2) — normal greeting
         send({ type: "response.create" });

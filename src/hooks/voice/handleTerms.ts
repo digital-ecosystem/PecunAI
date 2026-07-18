@@ -1,4 +1,4 @@
-import { TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow } from "./prompts";
+import { TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
 /** Called both from VoiceSessionShell's auto-advance effect (isAISpeaking goes false in Phase 0
@@ -75,9 +75,6 @@ export async function handleConfirmSustainabilityTerms(ctx: VoiceContext): Promi
     setTermsSubStep, setCard, dispatch, send,
   } = ctx;
 
-  const langTag = () => langRef.current === "de"
-    ? `Sprechen Sie Deutsch mit formeller Anrede „Sie".`
-    : `English only.`;
   const qText = (text: string) => langRef.current === "de"
     ? `Fragen Sie nach dem Thema auf Deutsch — formulieren Sie es gesprächig, lesen Sie nicht wörtlich vor: „${text}".`
     : `Translate this German question to English — conversational phrasing, not like a questionnaire: "${text}".`;
@@ -122,16 +119,16 @@ export async function handleConfirmSustainabilityTerms(ctx: VoiceContext): Promi
         text: makeNextTopicMsg(q3, remaining.slice(1), false),
       }]},
     });
-    const q3Options = q3.options?.length
-      ? ` Valid values the customer must choose from: ${q3.options.map(o => `"${o.value ?? o.label}"`).join(", ")}.`
-      : "";
     // Fast Mode: context above stays updated so an on-demand PTT question still has it, but
     // skip the auto-narration itself. See private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
+    // Note: the valid values are deliberately NOT injected into the spoken instructions —
+    // the model read them aloud ("bitte antworten Sie mit Ja oder Nein"). Validation still
+    // works: the values live in the system prompt's topic list and the context messages.
     if (fastModeRef.current) return;
     send({
       type: "response.create",
       response: {
-        instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat die Nachhaltigkeitsinformationen gelesen und bestätigt. Phase 1 läuft weiter. Rufen Sie NICHT explain_topic auf. Fragen Sie jetzt direkt, ob der Kunde die Nachhaltigkeitsinformationen zur Kenntnis genommen hat. ${qText(q3.text)}${q3Options} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
+        instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat die Nachhaltigkeitsinformationen gelesen und bestätigt. Phase 1 läuft weiter. Rufen Sie NICHT explain_topic auf. Fragen Sie jetzt direkt, ob der Kunde die Nachhaltigkeitsinformationen zur Kenntnis genommen hat. ${qText(q3.text)} Maximal 2 kurze Sätze. Warten Sie auf die Antwort.`,
       },
     });
   } else {
@@ -155,7 +152,7 @@ export async function handleConfirmSustainabilityTerms(ctx: VoiceContext): Promi
       send({
         type: "response.create",
         response: {
-          instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat die Nachhaltigkeitsinformationen bestätigt. Phase 1 läuft weiter. Rufen Sie NICHT explain_topic auf. Leiten Sie natürlich zum nächsten Thema über. ${qText(nextQ.text)} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
+          instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat die Nachhaltigkeitsinformationen bestätigt. Phase 1 läuft weiter. Rufen Sie NICHT explain_topic auf. Stellen Sie direkt die Frage zum nächsten Thema. ${qText(nextQ.text)} Maximal 2 kurze Sätze. Warten Sie auf die Antwort.`,
         },
       });
     }

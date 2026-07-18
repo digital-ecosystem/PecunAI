@@ -1,5 +1,5 @@
 import type { VoiceContext } from "./voiceContext";
-import { isAskableNow } from "./prompts";
+import { isAskableNow, ADVISOR_PERSONA } from "./prompts";
 
 /** Called when the chat modal opens or closes. Silences audio on open; on close with queued answers,
  *  resets the audio buffer and sends one consolidated re-prompt so the AI speaks once. */
@@ -11,9 +11,6 @@ export function handleNotifyChatOpen(open: boolean, ctx: VoiceContext): void {
     savedAnswersRef, setIsChatAITyping, dispatch, send,
   } = ctx;
 
-  const langTag = () => langRef.current === "de"
-    ? `Sprechen Sie Deutsch mit formeller Anrede „Sie".`
-    : `English only.`;
   const qText = (text: string) => langRef.current === "de"
     ? `Fragen Sie nach dem Thema auf Deutsch — formulieren Sie es gesprächig, lesen Sie nicht wörtlich vor: „${text}".`
     : `Translate this German question to English — conversational phrasing, not like a questionnaire: "${text}".`;
@@ -107,7 +104,7 @@ export function handleNotifyChatOpen(open: boolean, ctx: VoiceContext): void {
       response: nextToAsk ? {
         // No welcome-back preamble — just pick up naturally where the session left off.
         // The customer knows they closed chat; no ceremony needed.
-        instructions: `You are PecunAI — a warm investment advisor. ${langTag()} Continue the voice interview naturally — no preamble or welcome-back line. Ask directly about ${nextToAsk.category} (ID: ${nextToAsk.id}). ${qText(nextToAsk.text)} Maximum 1–2 sentences. Do NOT call submit_answer — wait for the customer to respond by voice.`,
+        instructions: `${ADVISOR_PERSONA(langRef.current)} Continue the voice interview — no preamble or welcome-back line. Ask directly about ${nextToAsk.category} (ID: ${nextToAsk.id}). ${qText(nextToAsk.text)} Maximum 2 short sentences. Do NOT call submit_answer — wait for the customer to respond by voice.`,
       } : {},
     });
   }

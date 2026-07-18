@@ -13,7 +13,7 @@ import { handleAnswerConfirmed as _handleAnswerConfirmed } from "./voice/handleA
 import { handlePrev, handleSkipQuestion, handleRequestExplanation, handleCloseExplainOverlay, handleScrollCarousel, handleRevisitQuestions } from "./voice/handleNavigation";
 import { handleMoveToTerms1, handleConfirmTerms1, handleConfirmTerms2, handleConfirmSustainabilityTerms } from "./voice/handleTerms";
 import { handleNotifyChatOpen } from "./voice/handleChat";
-import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS } from "./voice/prompts";
+import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, ADVISOR_PERSONA } from "./voice/prompts";
 import type { VoiceContext } from "./voice/voiceContext";
 
 // re-export types consumed by VoiceSessionShell and other components
@@ -618,12 +618,12 @@ export function useVoiceSession({
         type: "response.create",
         response: {
           instructions: [
-            `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()}`,
+            ADVISOR_PERSONA(langRef.current),
             `Nennen Sie das empfohlene Portfolio „${product.fullName}" — nennen Sie NIEMALS den internen Code „${product.name}".`,
             opening,
             `Mention the SRI (Synthetic Risk Indicator) rating of ${product.sri} out of 7 — this is an EU regulatory requirement.`,
             `Erwähnen Sie außerdem, dass die PDF-Broschüre auf dem Bildschirm zu sehen ist und mit den Pfeil-Buttons geblättert werden kann. Laden Sie zu Fragen ein.`,
-            `Bleiben Sie natürlich und warm — kein Verkaufsgespräch.`,
+            `Sachlich und professionell — kein Verkaufsgespräch.`,
           ].join(" "),
         },
       });

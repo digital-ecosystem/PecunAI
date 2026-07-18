@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
-import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow } from "./prompts";
+import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
 export function handlePrev(ctx: VoiceContext): void {
@@ -10,9 +10,6 @@ export function handlePrev(ctx: VoiceContext): void {
     dispatch, setCard, send,
   } = ctx;
 
-  const langTag = () => langRef.current === "de"
-    ? `Sprechen Sie Deutsch mit formeller Anrede „Sie".`
-    : `English only.`;
   const qText = (text: string) => langRef.current === "de"
     ? `Fragen Sie nach dem Thema auf Deutsch — formulieren Sie es gesprächig, lesen Sie nicht wörtlich vor: „${text}".`
     : `Translate this German question to English — conversational phrasing, not like a questionnaire: "${text}".`;
@@ -54,8 +51,8 @@ export function handlePrev(ctx: VoiceContext): void {
     type: "response.create",
     response: prevQuestion ? {
       instructions: prevAnswer
-        ? `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat zurücknavigiert zu Thema „${prevQuestion.category}" (ID: ${prevQuestion.id}). Seine bisherige Antwort war „${prevAnswer}". Fragen Sie warmherzig in 1–2 Sätzen, ob er sie ändern möchte. Warten Sie auf die Antwort.`
-        : `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat zurücknavigiert zu Thema „${prevQuestion.category}" (ID: ${prevQuestion.id}), das übersprungen wurde und noch keine Antwort hat. ${qText(prevQuestion.text)} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
+        ? `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat zurücknavigiert zu Thema „${prevQuestion.category}" (ID: ${prevQuestion.id}). Seine bisherige Antwort war „${prevAnswer}". Fragen Sie in 1 Satz, ob er sie ändern möchte — beginnen Sie direkt mit der Frage, keine Bestätigungsfloskel davor. Warten Sie auf die Antwort.`
+        : `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat zurücknavigiert zu Thema „${prevQuestion.category}" (ID: ${prevQuestion.id}), das übersprungen wurde und noch keine Antwort hat. Stellen Sie die Frage direkt — keine Bestätigungsfloskel davor. ${qText(prevQuestion.text)} Maximal 2 Sätze. Warten Sie auf die Antwort.`,
     } : {},
   });
 }
@@ -67,9 +64,6 @@ export function handleSkipQuestion(question: CarouselQuestion, ctx: VoiceContext
     savedAnswersRef, dispatch, setCard, saveVoiceState, send, setTermsSubStep,
   } = ctx;
 
-  const langTag = () => langRef.current === "de"
-    ? `Sprechen Sie Deutsch mit formeller Anrede „Sie".`
-    : `English only.`;
   const qText = (text: string) => langRef.current === "de"
     ? `Fragen Sie nach dem Thema auf Deutsch — formulieren Sie es gesprächig, lesen Sie nicht wörtlich vor: „${text}".`
     : `Translate this German question to English — conversational phrasing, not like a questionnaire: "${text}".`;
@@ -130,7 +124,7 @@ export function handleSkipQuestion(question: CarouselQuestion, ctx: VoiceContext
   send({
     type: "response.create",
     response: nextQ ? {
-      instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Bestätigen Sie das Überspringen in 1 natürlichen Satz (z.B. „Natürlich, kommen wir später darauf zurück!"). Leiten Sie dann natürlich zum Thema ${nextQ.category} (ID: ${nextQ.id}) über. ${qText(nextQ.text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${nextQ.category} (ID: ${nextQ.id}). Warten Sie auf die Antwort.`,
+      instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat das Thema übersprungen. Stellen Sie direkt die Frage zum Thema ${nextQ.category} (ID: ${nextQ.id}) — keine Bestätigungsfloskel davor. ${qText(nextQ.text)} Maximal 2 kurze Sätze. Fragen Sie NUR nach ${nextQ.category} (ID: ${nextQ.id}). Warten Sie auf die Antwort.`,
     } : {},
   });
 }
@@ -159,9 +153,6 @@ export function handleCloseExplainOverlay(ctx: VoiceContext): void {
     dispatch, send, setCard, setExplainTriggerClose, setExplainOverlayData, setPostExplainReaskId,
   } = ctx;
 
-  const langTag = () => langRef.current === "de"
-    ? `Sprechen Sie Deutsch mit formeller Anrede „Sie".`
-    : `English only.`;
   const qText = (text: string) => langRef.current === "de"
     ? `Fragen Sie nach dem Thema auf Deutsch — formulieren Sie es gesprächig, lesen Sie nicht wörtlich vor: „${text}".`
     : `Translate this German question to English — conversational phrasing, not like a questionnaire: "${text}".`;
@@ -196,7 +187,7 @@ export function handleCloseExplainOverlay(ctx: VoiceContext): void {
     send({
       type: "response.create",
       response: {
-        instructions: `Sie sind PecunAI. ${langTag()} Die Erklärung ist abgeschlossen. Leiten Sie natürlich zur nächsten Frage über. ${qText(kbNextQ.text)} (ID: ${kbNextQ.id}). Kurz und herzlich. Warten Sie auf die Antwort des Kunden.`,
+        instructions: `${ADVISOR_PERSONA(langRef.current)} Die Erklärung ist abgeschlossen. Stellen Sie jetzt die nächste Frage. ${qText(kbNextQ.text)} (ID: ${kbNextQ.id}). Maximal 2 kurze Sätze. Warten Sie auf die Antwort des Kunden.`,
       },
     });
     return;
@@ -243,9 +234,6 @@ export function handleScrollCarousel(id: string, ctx: VoiceContext): void {
     setCard, dispatch, send,
   } = ctx;
 
-  const langTag = () => langRef.current === "de"
-    ? `Sprechen Sie Deutsch mit formeller Anrede „Sie".`
-    : `English only.`;
 
   const idx = questionsRef.current.findIndex(q => q.id === id);
   if (idx < 0) return;
@@ -294,7 +282,7 @@ export function handleScrollCarousel(id: string, ctx: VoiceContext): void {
     send({
       type: "response.create",
       response: {
-        instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat auf die Navigationspfeile geklickt und ist zu "${q.category}" navigiert.${savedAnswer ? ` Ihre bisherige Antwort war "${savedAnswer}".` : ""} Fragen Sie warmherzig in 1 Satz, ob sie diese Antwort ändern möchten. Warten Sie auf ihre Antwort.`,
+        instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat auf die Navigationspfeile geklickt und ist zu "${q.category}" navigiert.${savedAnswer ? ` Ihre bisherige Antwort war "${savedAnswer}".` : ""} Fragen Sie in 1 Satz, ob sie diese Antwort ändern möchten. Warten Sie auf ihre Antwort.`,
       },
     });
   }, 700);
@@ -306,9 +294,6 @@ export function handleRevisitQuestions(ctx: VoiceContext): void {
     setCard, setIsRevisiting_internal, saveVoiceState, send, setVoicePhase, setProductSuggestion,
   } = ctx;
 
-  const langTag = () => langRef.current === "de"
-    ? `Sprechen Sie Deutsch mit formeller Anrede „Sie".`
-    : `English only.`;
 
   isRevisitingRef.current = true;
   setIsRevisiting_internal(true);
@@ -342,7 +327,7 @@ export function handleRevisitQuestions(ctx: VoiceContext): void {
   send({
     type: "response.create",
     response: {
-      instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat auf Zurück getippt. Bestätigen Sie warmherzig in 1 Satz und fragen Sie, welches Thema er ändern möchte.`,
+      instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat auf Zurück getippt. Fragen Sie in 1 Satz, welches Thema er ändern möchte.`,
     },
   });
 }

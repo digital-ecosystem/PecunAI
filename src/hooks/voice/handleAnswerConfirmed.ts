@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
-import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow } from "./prompts";
+import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
 export async function handleAnswerConfirmed(
@@ -18,9 +18,6 @@ export async function handleAnswerConfirmed(
     setSavedAnswers, setTermsSubStep, setExplainOverlayData,
   } = ctx;
 
-  const langTag = () => langRef.current === "de"
-    ? `Sprechen Sie Deutsch mit formeller Anrede „Sie".`
-    : `English only.`;
   const qText = (text: string) => langRef.current === "de"
     ? `Fragen Sie nach dem Thema auf Deutsch — formulieren Sie es gesprächig, lesen Sie nicht wörtlich vor: „${text}".`
     : `Translate this German question to English — conversational phrasing, not like a questionnaire: "${text}".`;
@@ -120,7 +117,7 @@ export async function handleAnswerConfirmed(
     send({
       type: "response.create",
       response: {
-        instructions: `Sie sind PecunAI. ${langTag()} Der Kunde hat angegeben, die Nachhaltigkeitsinformationen nicht erhalten zu haben. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist es erforderlich, dass Sie die Nachhaltigkeitsinformationen zur Kenntnis genommen haben, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`,
+        instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat angegeben, die Nachhaltigkeitsinformationen nicht erhalten zu haben. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist es erforderlich, dass Sie die Nachhaltigkeitsinformationen zur Kenntnis genommen haben, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`,
       },
     });
     return;
@@ -132,7 +129,7 @@ export async function handleAnswerConfirmed(
     send({
       type: "response.create",
       response: {
-        instructions: `Sie sind PecunAI. ${langTag()} Der Kunde hat eine Nachhaltigkeitspräferenz angegeben, die mit dem aktuellen Produktangebot nicht abgedeckt werden kann. Erklären Sie in 2–3 Sätzen freundlich aber klar: Aufgrund der angegebenen Nachhaltigkeitspräferenzen ist eine persönliche Beratung erforderlich — das aktuelle Produktangebot deckt diese Präferenz nicht vollständig ab. Ein Berater wird sich in Kürze bei Ihnen melden. Verabschieden Sie sich herzlich.`,
+        instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat eine Nachhaltigkeitspräferenz angegeben, die mit dem aktuellen Produktangebot nicht abgedeckt werden kann. Erklären Sie in 2–3 Sätzen freundlich aber klar: Aufgrund der angegebenen Nachhaltigkeitspräferenzen ist eine persönliche Beratung erforderlich — das aktuelle Produktangebot deckt diese Präferenz nicht vollständig ab. Ein Berater wird sich in Kürze bei Ihnen melden. Verabschieden Sie sich herzlich.`,
       },
     });
     return;
@@ -149,7 +146,7 @@ export async function handleAnswerConfirmed(
       send({
         type: "response.create",
         response: {
-          instructions: `Sie sind PecunAI. ${langTag()} Das verfügbare monatliche Einkommen des Kunden beträgt nach Abzug der Ausgaben weniger als 150 Euro. Erklären Sie in 2–3 Sätzen verständnisvoll: Aufgrund der angegebenen finanziellen Verhältnisse ist eine Investition zum aktuellen Zeitpunkt leider nicht empfehlenswert — das verfügbare monatliche Budget reicht für eine sinnvolle Anlage nicht aus. Eine persönliche Beratung wird empfohlen. Verabschieden Sie sich herzlich.`,
+          instructions: `${ADVISOR_PERSONA(langRef.current)} Das verfügbare monatliche Einkommen des Kunden beträgt nach Abzug der Ausgaben weniger als 150 Euro. Erklären Sie in 2–3 Sätzen verständnisvoll: Aufgrund der angegebenen finanziellen Verhältnisse ist eine Investition zum aktuellen Zeitpunkt leider nicht empfehlenswert — das verfügbare monatliche Budget reicht für eine sinnvolle Anlage nicht aus. Eine persönliche Beratung wird empfohlen. Verabschieden Sie sich herzlich.`,
         },
       });
       return;
@@ -167,7 +164,7 @@ export async function handleAnswerConfirmed(
     send({
       type: "response.create",
       response: {
-        instructions: `Sie sind PecunAI. ${langTag()} Der Kunde hat angegeben, "${overlayEntry.data.title}" auch nach der Erklärung nicht zu verstehen. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist ein ausreichendes Verständnis dieser Anlageklasse erforderlich, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`,
+        instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat angegeben, "${overlayEntry.data.title}" auch nach der Erklärung nicht zu verstehen. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist ein ausreichendes Verständnis dieser Anlageklasse erforderlich, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`,
       },
     });
     return;
@@ -291,8 +288,8 @@ export async function handleAnswerConfirmed(
       type: "response.create",
       response: firstSkippedTap ? {
         instructions: isFirstCircleBackTap
-          ? `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Alle Hauptthemen sind beantwortet. Leiten Sie warmherzig in 1 Satz über. Führen Sie dann natürlich zum Thema ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}) über. ${qText(firstSkippedTap.text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Warten Sie auf die Antwort.`
-          : `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Fahren Sie natürlich mit den übersprungenen Themen fort. Führen Sie zum Thema ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}) über. ${qText(firstSkippedTap.text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Warten Sie auf die Antwort.`,
+          ? `${ADVISOR_PERSONA(langRef.current)} Alle Hauptthemen sind beantwortet. Sagen Sie in 1 Satz sachlich, dass Sie noch auf die zurückgestellten Themen zurückkommen, und stellen Sie dann die Frage zum Thema ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). ${qText(firstSkippedTap.text)} Maximal 2 Sätze. Fragen Sie NUR nach ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Warten Sie auf die Antwort.`
+          : `${ADVISOR_PERSONA(langRef.current)} Stellen Sie direkt die Frage zum nächsten zurückgestellten Thema ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). ${qText(firstSkippedTap.text)} Maximal 2 kurze Sätze. Fragen Sie NUR nach ${firstSkippedTap.category} (ID: ${firstSkippedTap.id}). Warten Sie auf die Antwort.`,
       } : {},
     });
     return;
@@ -320,7 +317,7 @@ export async function handleAnswerConfirmed(
       send({
         type: "response.create",
         response: {
-          instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Der Kunde hat bei "${question.category}" bestätigt, dass er/sie dies bereits genutzt hat. Reagieren Sie kurz, dann stellen Sie die Folgefrage: ${qText(revisitSubQ.text)} (ID: ${revisitSubQ.id}). Maximal 2 Sätze. Warten Sie auf die Antwort.`,
+          instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat bei "${question.category}" bestätigt, dass er/sie dies bereits genutzt hat. Stellen Sie direkt die Folgefrage: ${qText(revisitSubQ.text)} (ID: ${revisitSubQ.id}). Maximal 2 kurze Sätze. Warten Sie auf die Antwort.`,
         },
       });
       return;
@@ -339,7 +336,7 @@ export async function handleAnswerConfirmed(
     send({
       type: "response.create",
       response: {
-        instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Die Antwort wurde gespeichert. Fragen Sie warmherzig in 1 Satz: Möchte der Kunde noch etwas anderes ändern, oder ist er bereit, die aktualisierte Produktempfehlung zu sehen?`,
+        instructions: `${ADVISOR_PERSONA(langRef.current)} Die Antwort wurde gespeichert. Fragen Sie in 1 Satz: Möchte der Kunde noch etwas anderes ändern, oder ist er bereit, die aktualisierte Produktempfehlung zu sehen?`,
       },
     });
     return;
@@ -370,7 +367,7 @@ export async function handleAnswerConfirmed(
   send({
     type: "response.create",
     response: remainingQsTap[0] ? {
-      instructions: `Sie sind PecunAI — ein warmherziger Anlageberater. ${langTag()} Tun Sie genau zwei Dinge: (1) Reagieren Sie in 1 Satz auf die getippte Antwort des Kunden — etwas Echtes über seine Wahl, keine generische Überleitung. Sagen Sie nie „Weiter" oder „Nächste Frage". (2) Leiten Sie natürlich zum Thema ${remainingQsTap[0].category} (ID: ${remainingQsTap[0].id}) über. ${qText(remainingQsTap[0].text)} Maximal 2–3 Sätze. Fragen Sie NUR nach ${remainingQsTap[0].category} (ID: ${remainingQsTap[0].id}). Warten Sie auf die Antwort.`,
+      instructions: `${ADVISOR_PERSONA(langRef.current)} Die Antwort ist gespeichert — bewerten Sie sie inhaltlich nicht. Bestätigen Sie kurz und freundlich (variieren Sie die Formulierung) und stellen Sie dann die Frage zum Thema ${remainingQsTap[0].category} (ID: ${remainingQsTap[0].id}). ${qText(remainingQsTap[0].text)} Maximal 2 kurze Sätze. Sagen Sie nie „Weiter" oder „Nächste Frage". Fragen Sie NUR nach ${remainingQsTap[0].category} (ID: ${remainingQsTap[0].id}). Warten Sie auf die Antwort.`,
     } : {},
   });
 }
