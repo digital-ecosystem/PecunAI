@@ -1,4 +1,5 @@
 import type { VoiceContext } from "./voiceContext";
+import { isAskableNow } from "./prompts";
 
 /** Called when the chat modal opens or closes. Silences audio on open; on close with queued answers,
  *  resets the audio buffer and sends one consolidated re-prompt so the AI speaks once. */
@@ -7,7 +8,7 @@ export function handleNotifyChatOpen(open: boolean, ctx: VoiceContext): void {
     chatOpenRef, chatAnsweredRef, pendingVoiceTranscriptRef, gainRef, mutedRef,
     serverResponseActiveRef, audioCtxRef, nextPlayTimeRef, questionsRef,
     answeredIdsRef, skippedIdsRef, activeCardIdRef, langRef, voicePhaseRef,
-    setIsChatAITyping, dispatch, send,
+    savedAnswersRef, setIsChatAITyping, dispatch, send,
   } = ctx;
 
   const langTag = () => langRef.current === "de"
@@ -52,7 +53,7 @@ export function handleNotifyChatOpen(open: boolean, ctx: VoiceContext): void {
     if (audioCtxRef.current) nextPlayTimeRef.current = audioCtxRef.current.currentTime;
 
     const remainingNonSkipped = questionsRef.current.filter(
-      q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
+      q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id) && isAskableNow(q, questionsRef.current, savedAnswersRef.current)
     );
     const skippedRemaining = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
     const currentQ         = questionsRef.current.find(q => q.id === activeCardIdRef.current);

@@ -1,4 +1,4 @@
-import { TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg } from "./prompts";
+import { TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
 /** Called both from VoiceSessionShell's auto-advance effect (isAISpeaking goes false in Phase 0
@@ -71,7 +71,7 @@ export async function handleConfirmTerms2(ctx: VoiceContext): Promise<void> {
 export async function handleConfirmSustainabilityTerms(ctx: VoiceContext): Promise<void> {
   const {
     termsSubStepRef, sustainabilityConfirmedRef, sessionId, questionsRef,
-    skippedIdsRef, answeredIdsRef, langRef, fastModeRef,
+    skippedIdsRef, answeredIdsRef, langRef, fastModeRef, savedAnswersRef,
     setTermsSubStep, setCard, dispatch, send,
   } = ctx;
 
@@ -99,7 +99,7 @@ export async function handleConfirmSustainabilityTerms(ctx: VoiceContext): Promi
   const q3 = questionsRef.current.find(q => q.questionOrder === 3);
   // Recompute remaining after the Q2 skipped→answered promotion above.
   const remaining = questionsRef.current
-    .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
+    .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id) && isAskableNow(q, questionsRef.current, savedAnswersRef.current))
     .map(q => q.id);
 
   // Resume SYSTEM message — counters the "PHASE 1 PAUSED" entry still in history and

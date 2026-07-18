@@ -1,7 +1,7 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import type { ExplainOverlayStat } from "./types";
-import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg } from "./prompts";
+import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
 export async function handleFunctionCall(
@@ -340,7 +340,7 @@ export async function handleFunctionCall(
       }
       pendingVoiceTranscriptRef.current = null;
       const remaining = questionsRef.current
-        .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
+        .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id) && isAskableNow(q, questionsRef.current, savedAnswersRef.current))
         .map(q => q.id);
 
       sendResult({ success: true });
@@ -554,7 +554,7 @@ export async function handleFunctionCall(
         // but do NOT send response.create — the button's response.create drives this turn.
         if (skipInProgressRef.current) {
           const remaining = questionsRef.current.filter(
-            q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
+            q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id) && isAskableNow(q, questionsRef.current, savedAnswersRef.current)
           );
           const nextSkipQ = remaining[0] ?? null;
           sendResult(nextSkipQ ? {
@@ -604,7 +604,7 @@ export async function handleFunctionCall(
         }
 
         const remaining = questionsRef.current.filter(
-          q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
+          q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id) && isAskableNow(q, questionsRef.current, savedAnswersRef.current)
         );
         const nextQ    = remaining[0] ?? null;
         const nextQIdx = nextQ ? questionsRef.current.findIndex(q => q.id === nextQ.id) : -1;
@@ -667,7 +667,12 @@ export async function handleFunctionCall(
         const currentIdx   = activeCardIdRef.current
           ? questionsRef.current.findIndex(q => q.id === activeCardIdRef.current)
           : stateRef.current.currentQuestionIndex;
-        const prevIndex    = Math.max(0, currentIdx - 1);
+        // Step back past conditional sub-questions the parent's answer rules
+        // out (mirrors handlePrev — back from Q13 lands on Q12, not 12.1).
+        let prevIndex = Math.max(0, currentIdx - 1);
+        while (prevIndex > 0 && !isAskableNow(questionsRef.current[prevIndex], questionsRef.current, savedAnswersRef.current)) {
+          prevIndex -= 1;
+        }
         const prevQuestion = questionsRef.current[prevIndex];
 
         dispatch({ type: "SET_INDEX", index: prevIndex });

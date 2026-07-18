@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
-import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg } from "./prompts";
+import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
 export async function handleAnswerConfirmed(
@@ -205,7 +205,7 @@ export async function handleAnswerConfirmed(
     }
 
     const remainingNonSkipped = questionsRef.current.filter(
-      q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
+      q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id) && isAskableNow(q, questionsRef.current, savedAnswersRef.current)
     );
     const skippedRemaining = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
 
@@ -257,7 +257,7 @@ export async function handleAnswerConfirmed(
   }
 
   const remaining = questionsRef.current
-    .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id))
+    .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id) && isAskableNow(q, questionsRef.current, savedAnswersRef.current))
     .map(q => q.id);
 
   if (allCoveredExceptSkipped && skippedIdsRef.current.size > 0 && !isRevisitingRef.current) {

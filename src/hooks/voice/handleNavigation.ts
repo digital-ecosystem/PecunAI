@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
-import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg } from "./prompts";
+import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
 export function handlePrev(ctx: VoiceContext): void {
@@ -23,7 +23,12 @@ export function handlePrev(ctx: VoiceContext): void {
     ? questionsRef.current.findIndex(q => q.id === activeCardIdRef.current)
     : stateRef.current.currentQuestionIndex;
   if (currentIdx <= 0) return;
-  const prevIndex = currentIdx - 1;
+  // Step back past conditional sub-questions the parent's answer rules out
+  // (going back from Q13 must land on Q12, not an irrelevant 12.1).
+  let prevIndex = currentIdx - 1;
+  while (prevIndex > 0 && !isAskableNow(questionsRef.current[prevIndex], questionsRef.current, savedAnswersRef.current)) {
+    prevIndex -= 1;
+  }
   const prevQuestion = questionsRef.current[prevIndex];
   // Mark button nav in progress so navigate("prev") from the AI doesn't step back again.
   prevInProgressRef.current = true;
@@ -59,7 +64,7 @@ export function handleSkipQuestion(question: CarouselQuestion, ctx: VoiceContext
   const {
     skipInProgressRef, questionsRef, answeredIdsRef, skippedIdsRef, activeCardIdRef,
     sustainabilityConfirmedRef, termsSubStepRef, chatOpenRef, langRef, fastModeRef,
-    dispatch, setCard, saveVoiceState, send, setTermsSubStep,
+    savedAnswersRef, dispatch, setCard, saveVoiceState, send, setTermsSubStep,
   } = ctx;
 
   const langTag = () => langRef.current === "de"
@@ -96,7 +101,7 @@ export function handleSkipQuestion(question: CarouselQuestion, ctx: VoiceContext
   // Use the same remaining algorithm as navigate("next") — not raw index+1,
   // which could land on an already-answered or already-skipped slot.
   const remaining = questionsRef.current.filter(
-    q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id)
+    q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id) && isAskableNow(q, questionsRef.current, savedAnswersRef.current)
   );
   const nextQ    = remaining[0] ?? null;
   const nextQIdx = nextQ ? questionsRef.current.findIndex(q => q.id === nextQ.id) : -1;

@@ -369,6 +369,22 @@ export const ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS = (lang: "de" | "en" = "de", q
 
 // ── Helpers ───────────────────────────────────────────────────────
 
+/** A conditional sub-question (12.1/13.1/14.1 — decimal questionOrder) is only
+ *  askable while its parent's SAVED answer is "good" ("Habe ich genutzt").
+ *  With the parent skipped or not yet answered, its relevance is unknown — it
+ *  must never surface from a remaining/next/prev computation. The parent's
+ *  eventual answer wires it back in: "good" injects it explicitly, anything
+ *  else marks it covered. Mirrors VoiceSessionShell's isSubQuestionRelevant. */
+export function isAskableNow(
+  q:            CarouselQuestion,
+  questions:    CarouselQuestion[],
+  savedAnswers: Record<string, string>,
+): boolean {
+  if (q.questionOrder === undefined || q.questionOrder % 1 === 0) return true; // not a sub-question
+  const parent = questions.find(p => p.questionOrder === Math.floor(q.questionOrder!));
+  return !parent || savedAnswers[parent.id] === "good";
+}
+
 export function makeNextTopicMsg(
   nextQ:        CarouselQuestion,
   remainingIds?: string[],
