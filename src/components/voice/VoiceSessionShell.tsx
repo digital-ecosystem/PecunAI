@@ -124,7 +124,7 @@ export default function VoiceSessionShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, isTransitioningToSigning, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
+  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, skipPendingTransition, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, isTransitioningToSigning, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
     useVoiceSession({
       sessionId,
       questions,
@@ -860,6 +860,10 @@ export default function VoiceSessionShell({
           // Live 5 → 6 handoff: Phase 5's poll left its frame rect here, so
           // the contracts frame collapses into this screen's sphere.
           entryFrameRect={phaseEntryFrameRectRef.current}
+          // Tap-to-stop; during the 6→7 signing-pause announcement the tap
+          // also runs the parked transition so the customer lands in the
+          // signing phase immediately instead of a stranded pause screen.
+          onSphereTap={isTransitioningToSigning ? skipPendingTransition : stopAudio}
         />
         <VoiceChatModal
           isOpen={chatOpen}
@@ -879,6 +883,16 @@ export default function VoiceSessionShell({
   // 3), and the brief moment between voicePhase flipping to 4 and productSuggestion/the AI
   // re-greet actually being ready (see the voicePhase === 4 branch above).
   if ((voicePhase === 0 && termsSubStep === 'intro') || isTransitioningToPersonalInfo || voicePhase === 4) {
+    // Sphere tap-to-stop — everywhere EXCEPT the Phase 0 intro (its skip
+    // button covers that, and the intro deliberately explains the product).
+    // During the Phase 2→3 privacy pause the tap must also RUN the parked
+    // phase transition, not just silence it — otherwise the pause screen
+    // hangs forever. See private-documents/SPHERE_TAP_TO_STOP_PLAN.md.
+    const orbTapAction = voicePhase === 0 && termsSubStep === 'intro'
+      ? undefined
+      : isTransitioningToPersonalInfo
+      ? skipPendingTransition
+      : stopAudio;
     return (
       <>
         <div
@@ -948,7 +962,7 @@ export default function VoiceSessionShell({
               />
             </div>
             <motion.div
-              className="relative z-10"
+              className={`relative z-10${orbTapAction ? " cursor-pointer" : ""}`}
               initial={{ opacity: 0, scale: 0.9 }}
               // While the Phase 2 → 3 collapse canvas is flying the product
               // frame into this spot, the real sphere stays hidden — it fades
@@ -958,6 +972,7 @@ export default function VoiceSessionShell({
                 scale: 1,
               }}
               transition={{ duration: pauseCollapse ? 0.35 : 0.6 }}
+              onClick={orbTapAction}
             >
               <VoiceSphere
                 isActive={started}
@@ -1428,6 +1443,29 @@ export default function VoiceSessionShell({
           micAnalyserNode={micAnalyserNode}
           containerWidth={typeof window !== "undefined" ? window.innerWidth : 0}
           containerHeight={typeof window !== "undefined" ? window.innerHeight : 0}
+        />
+      )}
+
+      {/* Sphere tap-to-stop for Phase 1 — the neural canvas above is
+          pointer-events-none, so a dedicated circular hit area sits over the
+          orb. Rendered ONLY while the AI is actually talking and the canvas
+          is in orb shape (card/sustainability morphs, overlays, and chat all
+          hide it), so it can never swallow taps meant for anything else.
+          z-[36]: just above the canvas (z-[35]). See
+          private-documents/SPHERE_TAP_TO_STOP_PLAN.md. */}
+      {voicePhase === 1 && started && orbOrigin && isAISpeaking &&
+        !modalOpen && !sustainabilityVisible && !explainOpen && !chatOpen && (
+        <div
+          className="fixed z-[36] rounded-full cursor-pointer"
+          style={{
+            left:   orbOrigin.x - 128,
+            top:    orbOrigin.y - 128,
+            width:  256,
+            height: 256,
+          }}
+          onClick={stopAudio}
+          aria-label="Sprachausgabe stoppen"
+          role="button"
         />
       )}
 

@@ -36,6 +36,10 @@ interface VoiceSessionReviewProps {
    *  frame visibly collapses into this screen's sphere (which IS the
    *  destination — Phase 6 is a sphere screen). Null on cold resume. */
   entryFrameRect?: FrameRect | null;
+  /** Tap-to-stop on the sphere: barge in on AI speech (and, during the
+   *  6→7 signing-pause announcement, skip straight to the signing phase —
+   *  the shell passes the matching handler). */
+  onSphereTap?:    () => void;
 }
 
 // Phase 6 — Final Q&A: the last AI-guided moment before signing. Visually the same orb
@@ -53,6 +57,7 @@ export default function VoiceSessionReview({
   onChatClick,
   isChatOpen,
   entryFrameRect,
+  onSphereTap,
 }: VoiceSessionReviewProps) {
   const [isPTTActive, setIsPTTActive] = useState(false);
 
@@ -124,13 +129,14 @@ export default function VoiceSessionReview({
           />
         </div>
         <motion.div
-          className="relative z-10"
+          className={`relative z-10${onSphereTap ? " cursor-pointer" : ""}`}
           initial={{ opacity: 0, scale: 0.9 }}
           // Hidden while the collapse canvas flies the frame in; fades in as
           // it mostly lands (scale pinned at 1 on that path so the real
           // sphere appears exactly where the nodes converge).
           animate={{ opacity: revealed ? 1 : 0, scale: revealed ? 1 : entryStart ? 1 : 0.9 }}
           transition={{ duration: entryStart ? 0.35 : 0.6 }}
+          onClick={onSphereTap}
         >
           <VoiceSphere
             isActive={true}

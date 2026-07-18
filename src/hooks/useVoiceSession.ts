@@ -721,6 +721,21 @@ export function useVoiceSession({
     if (!mutedRef.current) dispatch({ type: "AI_DONE" });
   }, [send]);
 
+  /** Sphere-tap barge-in for the between-phase privacy-pause announcements
+   *  (Phase 2→3, Phase 6→7): stops the speech AND immediately runs the phase
+   *  transition that scheduleAIDone would have fired when the announcement
+   *  audio ended. Plain stopAudio() would strand the transition forever —
+   *  it clears the audio-end timer, and pendingPhaseTransitionRef is only
+   *  ever consumed by that timer's callback. Null-safe: with no pending
+   *  transition (already fired, or none scheduled) this degrades to a
+   *  normal barge-in. See private-documents/SPHERE_TAP_TO_STOP_PLAN.md. */
+  const skipPendingTransition = useCallback(() => {
+    stopAudio();
+    const fn = pendingPhaseTransitionRef.current;
+    pendingPhaseTransitionRef.current = null;
+    fn?.();
+  }, [stopAudio]);
+
   // ── Voice connection lifecycle (silent-phase support) ─────────
   // Tears down WS + mic — used to go silent for Phases 3 & 6. Also reused as the
   // true-unmount cleanup (see the dedicated effect below) since it's idempotent and safe
@@ -1395,6 +1410,7 @@ export function useVoiceSession({
     onPrev,
     skipQuestion,
     stopAudio,
+    skipPendingTransition,
     activeCardId,
     requestExplanation,
     closeExplainOverlay,
