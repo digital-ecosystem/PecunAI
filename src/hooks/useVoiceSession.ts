@@ -215,6 +215,17 @@ export function useVoiceSession({
   // deltas for a response we've already moved past keep getting scheduled and played. See
   // private-documents/after-demo/PHASE_0_INTRO_SKIP_PLAN.md.
   const activeResponseIdRef       = useRef<string | null>(null);
+  // True from sending a barge-able response.create (Phase 0's intro) until ANY response.created
+  // arrives — "a response was requested but isn't born yet". Together with
+  // pendingResponseAfterCancelRef this closes the intro-skip race: skipping before the intro's
+  // response.created meant there was nothing to cancel, the intro then claimed
+  // activeResponseIdRef on birth (audio played over the terms1 screen), and the terms1
+  // response.create collided with it ("conversation_already_has_active_response"). See
+  // private-documents/PHASE_0_INTRO_SKIP_RACE_PLAN.md.
+  const awaitingResponseCreatedRef = useRef(false);
+  // A response.create parked until the currently-alive response dies: fired on response.done,
+  // and any response born while this is set gets cancelled immediately (audio never accepted).
+  const pendingResponseAfterCancelRef = useRef<object | null>(null);
   const knowledgeBlockerNextQRef   = useRef<CarouselQuestion | null>(null); // next question to ask after a knowledge-blocker overlay closes
   const kbExplanationStartedRef    = useRef(false); // true once the first explanation audio delta arrives — guards against stale cancelled-response audio.done closing the overlay early
   const kbExplanationResponseIdRef = useRef<string | null>(null); // response ID of the KB explanation response — stale cancelled-response events have a different ID and are ignored
@@ -924,7 +935,7 @@ export function useVoiceSession({
     pendingVoiceTranscriptRef, currentSpeechItemIdRef, applyPendingTranscriptRef,
     needsTranscriptBubbleRef, questionsRef, stateRef, micStreamRef, micSourceRef,
     workletNodeRef, micAnalyserRef, mutedRef, explainOpenRef, latencyStartRef,
-    activeSourcesRef, serverResponseActiveRef, activeResponseIdRef, knowledgeBlockerNextQRef,
+    activeSourcesRef, serverResponseActiveRef, activeResponseIdRef, awaitingResponseCreatedRef, pendingResponseAfterCancelRef, knowledgeBlockerNextQRef,
     kbExplanationStartedRef, kbExplanationResponseIdRef, pendingPhaseTransitionRef,
     chatOpenRef, chatAnsweredRef,
     voiceThreadIdRef, explainIdleTimerRef, resetExplainIdleRef, productVectorIdRef,

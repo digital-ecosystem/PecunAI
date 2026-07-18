@@ -163,7 +163,10 @@ export async function handleWsMessage(
         // Resume: customer already confirmed terms1 — go straight to terms2 explanation
         send({ type: "response.create", response: { instructions: TERMS2_EXPLAIN_INSTRUCTIONS(langRef.current) } });
       } else if (voicePhaseRef.current === 0) {
-        // Fresh start: welcome intro before terms
+        // Fresh start: welcome intro before terms. Mark the request so an
+        // intro-skip landing before this response is even born can still be
+        // sequenced correctly — see PHASE_0_INTRO_SKIP_RACE_PLAN.md.
+        vc.awaitingResponseCreatedRef.current = true;
         send({ type: "response.create", response: { instructions: INTRO_INSTRUCTIONS(langRef.current) } });
       } else if (voicePhaseRef.current === 2) {
         // Phase 2 resume — re-inject product context and greet back
@@ -348,6 +351,16 @@ export async function handleWsMessage(
 
     case "response.done": {
       serverResponseActiveRef.current = false;
+
+      // Fire a response.create that was parked while this (now finished or
+      // cancelled) response was still alive — the intro-skip path parks the
+      // terms1 narration here instead of racing the cancel
+      // ("conversation_already_has_active_response").
+      if (vc.pendingResponseAfterCancelRef.current) {
+        const parked = vc.pendingResponseAfterCancelRef.current;
+        vc.pendingResponseAfterCancelRef.current = null;
+        send(parked);
+      }
 
       // PTT response cycle complete — restore semantic_vad where it's still wanted.
       // Phases 1, 2, 4, 5, and 6 are PTT-only: keep VAD off between presses. Only restore for
@@ -573,6 +586,16 @@ export async function handleWsMessage(
 
     case "response.created": {
       serverResponseActiveRef.current = true;
+      vc.awaitingResponseCreatedRef.current = false;
+      // Barged before birth: the customer already moved past this response (intro
+      // skip) while it was still being created. Cancel it now and keep
+      // activeResponseIdRef null so its audio is never accepted — the parked
+      // follow-up response fires on this response's response.done. See
+      // private-documents/PHASE_0_INTRO_SKIP_RACE_PLAN.md.
+      if (vc.pendingResponseAfterCancelRef.current) {
+        send({ type: "response.cancel" });
+        break;
+      }
       // See activeResponseIdRef's declaration in useVoiceSession.ts — rejects stale audio from
       // a response we've since stopped/cancelled/barged past.
       activeResponseIdRef.current = (msg.response as { id: string }).id;

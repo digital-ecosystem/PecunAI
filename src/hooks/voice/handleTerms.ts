@@ -9,7 +9,11 @@ import type { VoiceContext } from "./voiceContext";
  *  stopAudio() flips isAISpeaking false, which is exactly what that effect watches for) into
  *  double-sending response.create. */
 export async function handleMoveToTerms1(ctx: VoiceContext): Promise<void> {
-  const { sessionId, termsSubStepRef, langRef, setTermsSubStep, saveVoiceState, send } = ctx;
+  const {
+    sessionId, termsSubStepRef, langRef, serverResponseActiveRef,
+    awaitingResponseCreatedRef, pendingResponseAfterCancelRef,
+    setTermsSubStep, saveVoiceState, send,
+  } = ctx;
   if (termsSubStepRef.current !== 'intro') return;
   termsSubStepRef.current = 'terms1';
   setTermsSubStep('terms1');
@@ -20,7 +24,20 @@ export async function handleMoveToTerms1(ctx: VoiceContext): Promise<void> {
     body:    JSON.stringify({ sessionId, phase: "TERMS1" }),
   }).catch(() => {});
   saveVoiceState(0).catch(() => {});
-  send({ type: "response.create", response: { instructions: TERMS1_EXPLAIN_INSTRUCTIONS(langRef.current) } });
+
+  const terms1Create = { type: "response.create", response: { instructions: TERMS1_EXPLAIN_INSTRUCTIONS(langRef.current) } };
+  // Skip-intro race guard: if the intro response is still alive server-side
+  // (generating) or was requested but not yet born, sending this create now
+  // collides with it ("conversation_already_has_active_response") — and in the
+  // not-yet-born case the intro would then claim activeResponseIdRef and play
+  // its self-introduction over the document screen. Park the create instead;
+  // wsMessageHandler cancels a late-born intro on response.created and fires
+  // the parked create on response.done. See PHASE_0_INTRO_SKIP_RACE_PLAN.md.
+  if (serverResponseActiveRef.current || awaitingResponseCreatedRef.current) {
+    pendingResponseAfterCancelRef.current = terms1Create;
+    return;
+  }
+  send(terms1Create);
 }
 
 /** Customer tapped "Ich bestätige" on the 4money (terms1) document */

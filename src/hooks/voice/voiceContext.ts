@@ -74,6 +74,8 @@ export interface VoiceContext {
   activeSourcesRef:          MutableRefObject<AudioBufferSourceNode[]>;
   serverResponseActiveRef:   MutableRefObject<boolean>;
   activeResponseIdRef:       MutableRefObject<string | null>;
+  awaitingResponseCreatedRef:    MutableRefObject<boolean>;
+  pendingResponseAfterCancelRef: MutableRefObject<object | null>;
   knowledgeBlockerNextQRef:  MutableRefObject<CarouselQuestion | null>;
   kbExplanationStartedRef:   MutableRefObject<boolean>;
   kbExplanationResponseIdRef:MutableRefObject<string | null>;
