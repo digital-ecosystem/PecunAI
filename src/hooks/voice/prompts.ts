@@ -2,7 +2,9 @@
 // This replaces the Sprint 2 plan of moving prompts to the DB admin panel.
 
 import { CarouselQuestion } from "@/components/voice/VoiceCarousel";
-import { ExplainOverlayData } from "./types";
+import { ExplainOverlayData, ProductData } from "./types";
+import { computeGebuehren } from "@/lib/gebuehren";
+import { formatEuro } from "@/utils/helper";
 
 // ── Shared persona for per-response instruction overrides ────────
 // response.create `instructions` REPLACE the session-level system prompt for
@@ -398,6 +400,52 @@ export const ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS = (lang: "de" | "en" = "de", q
     ? `${ADVISOR_PERSONA("de")} Der Kunde hat angegeben, "${entry.data.title}" nicht zu kennen. Erklären Sie ihm jetzt den VOLLSTÄNDIGEN folgenden Inhalt — jeden einzelnen Abschnitt (Definition, Ertrag, und JEDES genannte Risiko), ohne einen davon auszulassen oder zusammenzufassen. Formulieren Sie es in Ihren eigenen, natürlichen Worten wie in einem Beratungsgespräch, nicht wie ein vorgelesenes Dokument — aber lassen Sie inhaltlich nichts weg und erfinden Sie nichts hinzu. Das wird länger als eine normale Antwort sein, das ist hier ausdrücklich erwünscht. Vollständiger Inhalt, den Sie erklären müssen: ${entry.explainText}`
     : `${ADVISOR_PERSONA("en")} The customer said they don't know "${entry.data.title}". Explain the FULL content below to them now — every single section (definition, yield/return, and EVERY risk mentioned), without skipping or summarizing any of it. Phrase it in your own natural words like an advisory conversation, not like reading a document aloud — but don't omit any content and don't invent anything new. This will be longer than a typical answer, and that's expected here. Full content you must explain: ${entry.explainText}`;
 };
+
+// ── Phase 4 PTT grounding — the customer's own investment presentation ──
+// The Phase 4 screen (VoiceInvestmentForm) derives everything it shows from
+// questions + answers + product; the shared vector store only holds GENERIC
+// fee FAQ content, so PTT questions about the customer's concrete numbers
+// ("wie hoch sind meine Kosten im ersten Jahr?") were unanswerable. This
+// builds the exact same data as a compact text block for the PTT answer
+// instructions. Derivations mirror VoiceInvestmentForm 1:1 — same
+// array-index lookups (a V1 inheritance, see PHASE_4_INVESTMENT_FORM_PLAN.md)
+// and the same 10.000 € fallback volume the on-screen table uses, so spoken
+// numbers always match the screen. The internal product code (product.name)
+// is deliberately omitted — the AI must never say it, and what it doesn't
+// have it can't leak. See PHASE_4_PTT_PRESENTATION_CONTEXT_PLAN.md.
+export function buildPhase4PresentationContext(
+  questions: CarouselQuestion[],
+  answers:   Record<string, string>,
+  product:   ProductData | null,
+): string | null {
+  if (!questions.length) return null;
+
+  const reasonLabel   = questions[0]?.options?.find(o => o.value === answers[questions[0]?.id])?.label ?? "";
+  const durationYears = Number(answers[questions[1]?.id]);
+  const oneTime       = parseFloat(answers[questions[20]?.id] ?? "") || 0;
+  const monthly       = parseFloat(answers[questions[21]?.id] ?? "") || 0;
+
+  const gebuehrenVolume  = oneTime > 0 ? oneTime : 10000;
+  const gebuehrenMonthly = monthly > 0 ? monthly : 0;
+  const { rows, jahr1, jahr2, jahr10, durchschnitt } = computeGebuehren(gebuehrenVolume, gebuehrenMonthly);
+
+  const feeLines = rows.map(r =>
+    `- ${r.label}${r.pct !== null ? ` (${r.pct.toFixed(2)}%)` : ""}: Jahr 1 ${formatEuro(r.eur1)}, Jahr 2 ${formatEuro(r.eur2)}, Jahr 10 ${formatEuro(r.eur10)}, Durchschnitt ${formatEuro(r.avg)}`
+  ).join("\n");
+
+  return [
+    `DATEN DER VERANLAGUNG DIESES KUNDEN (identisch mit der Anzeige auf dem Bildschirm):`,
+    reasonLabel ? `Anlageziel/Grund: ${reasonLabel}` : null,
+    Number.isFinite(durationYears) && durationYears > 0 ? `Anlagehorizont: ${durationYears} Jahre` : null,
+    `Einmalige Einzahlung: ${formatEuro(oneTime)}`,
+    `Monatliche Zahlung: ${formatEuro(monthly)}`,
+    `Einmalige Kosten: Kosten Einmalerlag (5%): ${formatEuro(oneTime * 0.05)}; Sparplan Set-up Fee: ${formatEuro(monthly * 3)}`,
+    `Laufende Kosten p.a.${oneTime > 0 ? "" : " (berechnet auf Basis eines Beispielvolumens von 10.000 €)"}:`,
+    feeLines,
+    `Kosten laufend gesamt: Jahr 1 ${formatEuro(jahr1)}, Jahr 2 ${formatEuro(jahr2)}, Jahr 10 ${formatEuro(jahr10)}, Durchschnitt ${formatEuro(durchschnitt)}`,
+    product ? `Empfohlenes Produkt: ${product.fullName}, SRI ${product.sri} von 7, Anlagezeitraum ${product.from}–${product.to} Jahre` : null,
+  ].filter(Boolean).join("\n");
+}
 
 // ── Helpers ───────────────────────────────────────────────────────
 

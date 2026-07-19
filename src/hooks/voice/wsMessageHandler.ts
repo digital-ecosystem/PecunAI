@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { ChatMessage } from "./types";
-import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, ADVISOR_PERSONA } from "./prompts";
+import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, ADVISOR_PERSONA, buildPhase4PresentationContext } from "./prompts";
 import { TOOLS } from "./tools";
 import { base64ToPCM16AudioBuffer } from "./audio";
 import type { VoiceContext } from "./voiceContext";
@@ -504,9 +504,24 @@ export async function handleWsMessage(
             )
           : fullTranscriptSearch();
 
+        // Phase 4: the shared store only holds GENERIC fee FAQ content — questions about
+        // the customer's OWN presentation (their amounts, their computed fees, their
+        // product) need the on-screen data injected alongside the search results, and the
+        // "use ONLY the search results" wording relaxed to cover both sources. See
+        // private-documents/PHASE_4_PTT_PRESENTATION_CONTEXT_PLAN.md.
+        const phase4Context = vc.pttContextRef.current === 'phase4'
+          ? buildPhase4PresentationContext(questionsRef.current, savedAnswersRef.current, vc.productRef.current)
+          : null;
+
         searchPromise.then(results => {
           if (!results || results.trim() === "" || results === "No relevant content found.") {
-            send({ type: "response.create", response: { instructions: `Sie sind PecunAI. ${langTag()} Die Suche in ${docLabel} hat für diese Frage keine passende Antwort gefunden. Teilen Sie dem Kunden freundlich mit, dass diese spezifische Information nicht im Dokument verfügbar ist, und laden Sie ihn ein, eine andere Frage zu stellen.` } });
+            if (phase4Context) {
+              send({ type: "response.create", response: { instructions: `Sie sind PecunAI. ${langTag()} Die Suche in ${docLabel} hat für diese Frage nichts geliefert. Ihnen liegen aber die folgenden konkreten Daten der Veranlagung dieses Kunden vor:\n\n${phase4Context}\n\nWenn die Frage des Kunden damit beantwortet werden kann, beantworten Sie sie in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Daten. Andernfalls teilen Sie dem Kunden freundlich mit, dass diese spezifische Information hier nicht verfügbar ist. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
+            } else {
+              send({ type: "response.create", response: { instructions: `Sie sind PecunAI. ${langTag()} Die Suche in ${docLabel} hat für diese Frage keine passende Antwort gefunden. Teilen Sie dem Kunden freundlich mit, dass diese spezifische Information nicht im Dokument verfügbar ist, und laden Sie ihn ein, eine andere Frage zu stellen.` } });
+            }
+          } else if (phase4Context) {
+            send({ type: "response.create", response: { instructions: `Sie sind PecunAI. ${langTag()} Die Dokumentensuche hat folgende allgemeine Informationen geliefert:\n\n${results}\n\nZusätzlich liegen Ihnen die folgenden konkreten Daten der Veranlagung dieses Kunden vor:\n\n${phase4Context}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser beiden Quellen. Bei Fragen zu den konkreten Zahlen oder Details der Veranlagung des Kunden nutzen Sie dessen Daten. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
           } else {
             send({ type: "response.create", response: { instructions: `Sie sind PecunAI. ${langTag()} Die Dokumentensuche hat folgende Informationen geliefert:\n\n${results}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
           }
