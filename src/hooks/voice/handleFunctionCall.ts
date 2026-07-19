@@ -1,7 +1,7 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import type { ExplainOverlayStat } from "./types";
-import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA } from "./prompts";
+import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
 export async function handleFunctionCall(
@@ -24,7 +24,7 @@ export async function handleFunctionCall(
   } = ctx;
 
   const langTag = () => langRef.current === "de"
-    ? `Sprechen Sie Deutsch mit formeller Anrede „Sie".`
+    ? GERMAN_SPEECH_DIRECTIVE
     : `English only.`;
   const qText = (text: string) => langRef.current === "de"
     ? `Fragen Sie nach dem Thema auf Deutsch — formulieren Sie es gesprächig, lesen Sie nicht wörtlich vor: „${text}".`

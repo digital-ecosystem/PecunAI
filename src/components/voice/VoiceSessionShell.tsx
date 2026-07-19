@@ -23,6 +23,7 @@ import VoiceSessionReview from "./VoiceSessionReview";
 import VoiceSigningPhase from "./VoiceSigningPhase";
 import VoiceMicAccessModal from "./VoiceMicAccessModal";
 import VoiceRecordingDisclaimerModal from "./VoiceRecordingDisclaimerModal";
+import VoiceLanguageSelectModal from "./VoiceLanguageSelectModal";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 
 // Gap between the disclosure step activating (right as Q2's answer saves) and
@@ -124,7 +125,7 @@ export default function VoiceSessionShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, skipPendingTransition, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, isTransitioningToSigning, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
+  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, languageSelected, selectLanguage, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, skipPendingTransition, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, isTransitioningToSigning, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
     useVoiceSession({
       sessionId,
       questions,
@@ -658,6 +659,15 @@ export default function VoiceSessionShell({
   // this point. See private-documents/after-demo/RECORDING_DISCLAIMER_PLAN.md.
   if (!recordingDisclaimerConfirmed) {
     return <VoiceRecordingDisclaimerModal onConfirm={confirmRecordingDisclaimer} />;
+  }
+
+  // ── Language choice: German by default, one-tap switch to English ──────
+  // Right after the disclaimer, still before anything session-related — langRef must be
+  // final before the WS opens (buildSystemPrompt reads it at session.created). Once per
+  // session, same localStorage persistence pattern as the disclaimer above. See
+  // private-documents/LANGUAGE_SELECT_MODAL_PLAN.md.
+  if (!languageSelected) {
+    return <VoiceLanguageSelectModal onSelect={selectLanguage} />;
   }
 
   // ── Mic access required: blocks every phase ─────────────────────────

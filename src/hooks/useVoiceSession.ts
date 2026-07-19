@@ -13,7 +13,7 @@ import { handleAnswerConfirmed as _handleAnswerConfirmed } from "./voice/handleA
 import { handlePrev, handleSkipQuestion, handleRequestExplanation, handleCloseExplainOverlay, handleScrollCarousel, handleRevisitQuestions } from "./voice/handleNavigation";
 import { handleMoveToTerms1, handleConfirmTerms1, handleConfirmTerms2, handleConfirmSustainabilityTerms } from "./voice/handleTerms";
 import { handleNotifyChatOpen } from "./voice/handleChat";
-import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, ADVISOR_PERSONA } from "./voice/prompts";
+import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./voice/prompts";
 import type { VoiceContext } from "./voice/voiceContext";
 
 // re-export types consumed by VoiceSessionShell and other components
@@ -151,7 +151,12 @@ export function useVoiceSession({
   // showing more than once per session (e.g. if Q2 is skipped and later circles back).
   // TODO: persist in DB instead of localStorage when the session-state API supports it (Sprint 4).
   const sustainabilityConfirmedRef = useRef(false);
-  const langRef = useRef<"de" | "en">("en"); // TESTING — restore to "de" before production
+  // Session language — German by default; the customer can switch to English via the
+  // language-choice modal shown after the recording disclaimer (see
+  // private-documents/LANGUAGE_SELECT_MODAL_PLAN.md). Persisted per session so a
+  // refresh-resume rebuilds the system prompt in the chosen language without re-asking.
+  const langRef = useRef<"de" | "en">("de");
+  const [languageSelected, setLanguageSelected] = useState(false);
   // Same guard for button-initiated prev — prevents AI from calling navigate("prev") a second time.
   const prevInProgressRef = useRef(false);
   // Debounces revisit chevron browsing — only the question the customer settles on triggers
@@ -255,7 +260,7 @@ export function useVoiceSession({
 
   // Language helper — read langRef.current at call-time so it always reflects the active language
   const langTag  = () => langRef.current === "de"
-    ? `Sprechen Sie Deutsch mit formeller Anrede „Sie".`
+    ? GERMAN_SPEECH_DIRECTIVE
     : `English only.`;
 
 
@@ -289,6 +294,24 @@ export function useVoiceSession({
   const confirmRecordingDisclaimer = useCallback(() => {
     setRecordingDisclaimerConfirmed(true);
     try { localStorage.setItem(`pecunai_recording_disclaimer_${sessionId}`, "1"); } catch {}
+  }, [sessionId]);
+
+  // Same pattern again for the language choice — restore BEFORE the WS opens (the choice
+  // gate blocks tap-to-start, and langRef feeds buildSystemPrompt at session.created).
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`pecunai_lang_${sessionId}`);
+      if (stored === "de" || stored === "en") {
+        langRef.current = stored;
+        setLanguageSelected(true);
+      }
+    } catch {}
+  }, [sessionId]);
+
+  const selectLanguage = useCallback((lang: "de" | "en") => {
+    langRef.current = lang;
+    setLanguageSelected(true);
+    try { localStorage.setItem(`pecunai_lang_${sessionId}`, lang); } catch {}
   }, [sessionId]);
 
   const appendChatMessage = useCallback((text: string, sender: "ai" | "user", questionId?: string) => {
@@ -1374,6 +1397,8 @@ export function useVoiceSession({
     retryMicAccess,
     recordingDisclaimerConfirmed,
     confirmRecordingDisclaimer,
+    languageSelected,
+    selectLanguage,
     isAISpeaking,
     bargeInActive,
     voiceAnswerCount,
