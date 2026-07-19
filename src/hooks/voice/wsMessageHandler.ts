@@ -60,7 +60,12 @@ export async function handleWsMessage(
             audio: {
               input: {
                 format: { type: "audio/pcm", rate: 24000 },
-                turn_detection: { type: "semantic_vad" },
+                // Phases 4/5/6 are PTT-only — VAD must be off from the very first moment.
+                // This used to be semantic_vad, which (with the mic-gate hole above) made
+                // the AI spontaneously respond to speech between phase entry and the first
+                // PTT press. startPTT/response.done already keep VAD off for these phases;
+                // now entry matches. See PHASE_4_5_6_PTT_MIC_GATE_PLAN.md.
+                turn_detection: null,
                 transcription: { model: "gpt-4o-transcribe" },
               },
               output: {
@@ -142,6 +147,14 @@ export async function handleWsMessage(
           if (termsSubStepRef.current === 'sustainabilityTerms' && !pttActiveRef.current) return;
           if (voicePhaseRef.current === 1 && !pttActiveRef.current) return;
           if (voicePhaseRef.current === 2 && !pttActiveRef.current) return;
+          // Phases 4/5/6 are PTT-only too — added late (they were built after the Phase 1
+          // PTT conversion), which left the mic streaming continuously there: combined with
+          // the semantic_vad the 4/5/6 reconnect branch used to set, the AI heard and
+          // answered speech made without holding the button. See
+          // private-documents/PHASE_4_5_6_PTT_MIC_GATE_PLAN.md.
+          if (voicePhaseRef.current === 4 && !pttActiveRef.current) return;
+          if (voicePhaseRef.current === 5 && !pttActiveRef.current) return;
+          if (voicePhaseRef.current === 6 && !pttActiveRef.current) return;
           const bytes = new Uint8Array(e.data);
           let binary = "";
           for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);

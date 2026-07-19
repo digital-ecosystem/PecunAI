@@ -175,18 +175,18 @@ const INITIAL_CHECKBOX_STATE: InvestmentFormData = {
 // table/checkboxes inside need their own internal overflow-y-auto scroll matching this
 // height. ──────
 
-// Desktop breaks from the portrait "document card" proportions the other phases use:
-// the fee table's 7 columns need ~750px, so the frame goes landscape there — wide enough
-// that the table renders without horizontal scrolling. Below 1024px the table is replaced
-// by stacked fee cards (GebuehrenCards), so tablet/phone keep the portrait proportions.
+// Same portrait "document card" proportions as every other voice-frame phase (a brief
+// landscape-desktop experiment was reverted 2026-07-19 on Sibora's call — see
+// PHASE_4_FEE_TABLE_RESPONSIVE_PLAN.md). The 7-column fee table therefore scrolls
+// horizontally inside its own overflow-x-auto wrapper on desktop, accepted for now;
+// below 1024px it's replaced by stacked fee cards (GebuehrenCards) instead.
 function getInvestmentFrameSize() {
   const vw = typeof window !== "undefined" ? window.innerWidth  : 640;
   const vh = typeof window !== "undefined" ? window.innerHeight : 800;
   if (vw >= 1024) {
-    return {
-      width:  Math.min(Math.round(vw * 0.82), 860),
-      height: Math.min(Math.round(vh * 0.68), 720),
-    };
+    const maxH = Math.round(vh * 0.68);
+    const w    = Math.min(Math.round(maxH / 1.414), 500);
+    return { width: w, height: Math.round(w * 1.414) };
   } else if (vw >= 640) {
     const maxH = Math.round(vh * 0.72);
     const w    = Math.min(Math.round(maxH / 1.414), 420);
@@ -457,12 +457,14 @@ export default function VoiceInvestmentForm({
                 contentWidth={frameSize.width}
                 contentHeight={frameSize.height}
               >
-                {/* Internal scroll container — AnimatedFrame's content wrapper is overflow-hidden,
-                    so this is where actual scrolling happens for content taller than the frame. */}
+                {/* LegalFrameCard-style split: scrollable body + confirm button fixed at the
+                    card's bottom (inside the frame, per Sibora 2026-07-19). AnimatedFrame's
+                    content wrapper is overflow-hidden, so the body owns the actual scrolling. */}
                 <div
-                  className="w-full h-full overflow-y-auto p-5 space-y-5"
+                  className="w-full h-full flex flex-col"
                   style={{ background: "rgba(255,255,255,0.97)" }}
                 >
+                <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
                   {/* Allgemeine Informationen */}
                   <div>
                     <p className="text-xs text-gray-500 mb-1">GRUND</p>
@@ -574,6 +576,7 @@ export default function VoiceInvestmentForm({
                         </div>
                       </div>
                     ) : (
+                      <div className="overflow-x-auto">
                       <table className="w-full border-collapse text-xs">
                         <thead>
                           <tr className="bg-gray-100">
@@ -592,6 +595,7 @@ export default function VoiceInvestmentForm({
                           </tr>
                         </tbody>
                       </table>
+                      </div>
                     )}
                   </div>
 
@@ -672,35 +676,29 @@ export default function VoiceInvestmentForm({
                     </label>
                   </div>
                 </div>
+
+                {/* ── Bestätigen — inside the frame, LegalFrameCard-style footer ── */}
+                <div className="flex-shrink-0 px-5 pb-4 pt-3 border-t border-gray-100">
+                  <motion.button
+                    className="w-full text-sm font-semibold rounded-2xl text-white py-3"
+                    style={{
+                      background: formData.allConfirmed
+                        ? "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)"
+                        : "rgba(148,163,184,0.3)",
+                      color:     formData.allConfirmed ? "white" : "rgba(100,116,139,0.5)",
+                      boxShadow: formData.allConfirmed ? "0 4px 16px rgba(59,130,246,0.35)" : "none",
+                    }}
+                    whileTap={formData.allConfirmed ? { scale: 0.97 } : {}}
+                    onClick={onConfirm}
+                    disabled={!formData.allConfirmed}
+                  >
+                    Bestätigen
+                  </motion.button>
+                </div>
+                </div>
               </AnimatedFrame>
             </motion.div>
           </div>
-        )}
-
-        {/* ── Bestätigen — same styling as VoiceProductPhase's confirm button ── */}
-        {frameSize && (
-          <motion.div
-            animate={{ opacity: revealContent ? 1 : 0 }}
-            transition={{ duration: 0.4 }}
-            // Cap the confirm button's width — the desktop frame is now landscape-wide
-            // (up to 860px) and a button spanning that whole width looks broken.
-            style={{ width: Math.min(frameSize.width, 500), marginTop: 10, marginBottom: 32, paddingLeft: 16, paddingRight: 16, boxSizing: "border-box", pointerEvents: revealContent ? "auto" : "none" }}>
-            <motion.button
-              className="w-full text-sm font-semibold rounded-2xl text-white py-3"
-              style={{
-                background: formData.allConfirmed
-                  ? "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)"
-                  : "rgba(148,163,184,0.3)",
-                color:     formData.allConfirmed ? "white" : "rgba(100,116,139,0.5)",
-                boxShadow: formData.allConfirmed ? "0 4px 16px rgba(59,130,246,0.35)" : "none",
-              }}
-              whileTap={formData.allConfirmed ? { scale: 0.97 } : {}}
-              onClick={onConfirm}
-              disabled={!formData.allConfirmed}
-            >
-              Bestätigen
-            </motion.button>
-          </motion.div>
         )}
 
         {/* Status label, matching Phase 0 intro's placement/style */}

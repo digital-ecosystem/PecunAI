@@ -568,12 +568,15 @@ export default function VoiceContractDocuments({
                   </motion.div>
                 ) : (
                 <motion.div
-                  className="w-full h-full overflow-y-auto p-5 space-y-5"
+                  className="w-full h-full flex flex-col"
                   style={{ background: "rgba(255,255,255,0.97)" }}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.25 }}
                 >
+                {/* LegalFrameCard-style split: scrollable body + confirm button fixed at
+                    the card's bottom (inside the frame, per Sibora 2026-07-19). */}
+                <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
                   {loading ? (
                     <div className="flex items-center justify-center h-full">
                       <p className="text-sm text-gray-500 animate-pulse">Vertragsdokumente werden erstellt...</p>
@@ -800,35 +803,34 @@ export default function VoiceContractDocuments({
                       </div>
                     </>
                   )}
+                </div>
+
+                {/* ── Bestätigen — inside the frame, LegalFrameCard-style footer.
+                    Hidden while the PDFs are still generating (nothing to confirm yet). ── */}
+                {!loading && (
+                  <div className="flex-shrink-0 px-5 pb-4 pt-3 border-t border-gray-100">
+                    <motion.button
+                      className="w-full text-sm font-semibold rounded-2xl text-white py-3"
+                      style={{
+                        background: agreements.acceptAll
+                          ? "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)"
+                          : "rgba(148,163,184,0.3)",
+                        color:     agreements.acceptAll ? "white" : "rgba(100,116,139,0.5)",
+                        boxShadow: agreements.acceptAll ? "0 4px 16px rgba(59,130,246,0.35)" : "none",
+                      }}
+                      whileTap={agreements.acceptAll ? { scale: 0.97 } : {}}
+                      onClick={onConfirm}
+                      disabled={!agreements.acceptAll}
+                    >
+                      Bestätigen
+                    </motion.button>
+                  </div>
+                )}
                 </motion.div>
                 )}
               </AnimatedFrame>
             </motion.div>
           </div>
-        )}
-
-        {/* ── Bestätigen — same styling as VoiceInvestmentForm's confirm button ── */}
-        {frameSize && (
-          <motion.div
-            animate={{ opacity: revealContent ? 1 : 0 }}
-            transition={{ duration: 0.4 }}
-            style={{ width: frameSize.width, marginTop: 10, marginBottom: 32, paddingLeft: 16, paddingRight: 16, boxSizing: "border-box", pointerEvents: revealContent ? "auto" : "none" }}>
-            <motion.button
-              className="w-full text-sm font-semibold rounded-2xl text-white py-3"
-              style={{
-                background: agreements.acceptAll
-                  ? "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)"
-                  : "rgba(148,163,184,0.3)",
-                color:     agreements.acceptAll ? "white" : "rgba(100,116,139,0.5)",
-                boxShadow: agreements.acceptAll ? "0 4px 16px rgba(59,130,246,0.35)" : "none",
-              }}
-              whileTap={agreements.acceptAll ? { scale: 0.97 } : {}}
-              onClick={onConfirm}
-              disabled={!agreements.acceptAll}
-            >
-              Bestätigen
-            </motion.button>
-          </motion.div>
         )}
 
         <p className="text-sm font-medium" style={{ color: "rgba(59,130,246,0.7)" }}>
