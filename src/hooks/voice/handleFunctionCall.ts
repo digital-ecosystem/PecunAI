@@ -229,8 +229,8 @@ export async function handleFunctionCall(
       // ── ASSET KNOWLEDGE TWO-STRIKE: Q12/13/14 "none" — 2nd (final) attempt ──
       // Reaching here means assetKnowledgeShownRef already had this question — the customer
       // still doesn't understand it after seeing the explanation. Hard-block, same pattern as
-      // the Q3/Q4/Q7 blockers above. Placed before allAnswered is computed (further below) so
-      // this can't be bypassed by advancePhase() if it happens to be the last remaining question.
+      // the Q3/Q4/Q7 blockers above. Placed before end-of-phase detection runs (further below)
+      // so this can't be bypassed by advancePhase() if it happens to be the last remaining question.
       if (isAssetKnowledgeQ && value === "none") {
         const overlayEntry = ASSET_CLASS_OVERLAY[validatingQ!.questionOrder!];
         pendingVoiceTranscriptRef.current = null;
@@ -346,16 +346,19 @@ export async function handleFunctionCall(
       sendResult({ success: true });
       setVoiceAnswerCount(c => c + 1);
 
-      const allAnswered            = answeredIdsRef.current.size === questionsRef.current.length;
-      const allCoveredExceptSkipped = answeredIdsRef.current.size + skippedIdsRef.current.size === questionsRef.current.length;
+      // Askable-based end detection — a raw count against questionsRef.length breaks once a
+      // non-askable sub-question (parent not answered "good") exists: answered+skipped can never
+      // reach the total, so circle-back never fires and skipped topics are skipped forever. See
+      // isAskableNow + the matching fix in handleAnswerConfirmed.ts.
+      const nothingLeftToAsk = remaining.length === 0;
 
-      if (allAnswered && !isRevisitingRef.current) {
+      if (nothingLeftToAsk && skippedIdsRef.current.size === 0 && !isRevisitingRef.current) {
         circleBackActiveRef.current = false;
         await advancePhase();
         return;
       }
 
-      if (allCoveredExceptSkipped && skippedIdsRef.current.size > 0 && !isRevisitingRef.current) {
+      if (nothingLeftToAsk && skippedIdsRef.current.size > 0 && !isRevisitingRef.current) {
         dispatch({ type: "ANSWER_SAVED" });
         const firstSkipped    = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));
         const allSkippedQs    = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));

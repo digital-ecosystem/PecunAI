@@ -142,7 +142,13 @@ export default function VoiceSessionPage() {
       // For old sessions without skippedIds in DB, reconstruct from the Zustand cache if available.
       const dbSkippedIds: string[] = vsData?.skippedIds ?? [];
       const cachedSkipped          = cached.sessionId === sessionId ? cached.skippedIds : [];
-      const resolvedSkippedIds     = dbSkippedIds.length > 0 ? dbSkippedIds : cachedSkipped;
+      // Subtract anything already answered: the saveVoiceState-before-delete ordering in the
+      // answer handlers means the persisted skippedIds blob can still list a question that was
+      // answered during circle-back. Without this, a refresh mid-circle-back would resurrect it
+      // as "skipped" and re-ask an already-answered question. Answers are the source of truth.
+      const answeredSet            = new Set(allAnsweredIds);
+      const resolvedSkippedIds     = (dbSkippedIds.length > 0 ? dbSkippedIds : cachedSkipped)
+        .filter(id => !answeredSet.has(id));
 
       // Use DB index (absolute position) for system-prompt resume marker.
       // Clamp to question count to avoid stale out-of-bounds values.
