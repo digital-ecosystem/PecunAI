@@ -175,7 +175,13 @@ export async function handleWsMessage(
       } else if (voicePhaseRef.current === 0 && termsSubStepRef.current === 'terms2') {
         // Resume: customer already confirmed terms1 — go straight to terms2 explanation
         send({ type: "response.create", response: { instructions: TERMS2_EXPLAIN_INSTRUCTIONS(langRef.current) } });
-      } else if (voicePhaseRef.current === 0) {
+      } else if (voicePhaseRef.current === 0 && termsSubStepRef.current === 'terms1') {
+        // Customer tapped "skip" during the tap-to-start → session.updated window, before the
+        // intro create was ever sent (handleMoveToTerms1 deferred it here to avoid a duplicate-
+        // create collision). The intro is gone; send the terms1 narration directly. See
+        // PHASE_0_INTRO_SKIP_RACE_PLAN.md.
+        send({ type: "response.create", response: { instructions: TERMS1_EXPLAIN_INSTRUCTIONS(langRef.current) } });
+      } else if (voicePhaseRef.current === 0 && termsSubStepRef.current === 'intro') {
         // Fresh start: welcome intro before terms. Mark the request so an
         // intro-skip landing before this response is even born can still be
         // sequenced correctly — see PHASE_0_INTRO_SKIP_RACE_PLAN.md.
@@ -239,9 +245,17 @@ export async function handleWsMessage(
       // Reject stale audio for a response we've already stopAudio()'d/barged past — cancel
       // doesn't retroactively discard audio the server already generated and is still
       // streaming. See private-documents/after-demo/PHASE_0_INTRO_SKIP_PLAN.md.
+      //
+      // A null activeResponseIdRef means we've explicitly stopped/cancelled/barged and have
+      // NOT yet adopted a replacement response (e.g. Phase 0 skip: stopAudio() nulled it and
+      // the terms1 create is parked until the intro's response.done). Drop ALL audio in that
+      // window — never trust an incoming delta's own response_id to gate it, since a
+      // still-generating intro keeps streaming deltas and, when one lacks a usable response_id,
+      // the `responseId && …` form below short-circuits to false and lets the intro bleed onto
+      // the terms1 screen. See private-documents/PHASE_0_INTRO_SKIP_RACE_PLAN.md.
       {
         const responseId = (msg as { response_id?: string }).response_id;
-        if (responseId && responseId !== activeResponseIdRef.current) break;
+        if (activeResponseIdRef.current === null || (responseId && responseId !== activeResponseIdRef.current)) break;
       }
       // Tracks any open explanation (general explain_topic flow or the KB two-strike flow) —
       // see private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
@@ -271,10 +285,12 @@ export async function handleWsMessage(
 
     case "response.output_audio.done": {
       // Reject stale audio.done for a response we've already stopAudio()'d/barged past. See
-      // private-documents/after-demo/PHASE_0_INTRO_SKIP_PLAN.md.
+      // private-documents/after-demo/PHASE_0_INTRO_SKIP_PLAN.md. Null id = explicitly stopped
+      // with no adopted replacement yet — drop it (matches the delta guard above; keeps a
+      // cancelled intro's audio.done from scheduling AI_DONE over the parked terms1 narration).
       {
         const responseId = (msg as { response_id?: string }).response_id;
-        if (responseId && responseId !== activeResponseIdRef.current) break;
+        if (activeResponseIdRef.current === null || (responseId && responseId !== activeResponseIdRef.current)) break;
       }
       // If an explanation overlay is open and this done event belongs to a cancelled/stale
       // response (not the current explanation's own response), ignore it — stopAudio already
@@ -372,7 +388,9 @@ export async function handleWsMessage(
       if (vc.pendingResponseAfterCancelRef.current) {
         const parked = vc.pendingResponseAfterCancelRef.current;
         vc.pendingResponseAfterCancelRef.current = null;
-        send(parked);
+        // May be a single response.create or an ordered [skip-marker item, response.create]
+        // pair (mid-flight intro skip) — send each in order so the marker precedes the create.
+        (Array.isArray(parked) ? parked : [parked]).forEach(m => send(m));
       }
 
       // PTT response cycle complete — restore semantic_vad where it's still wanted.

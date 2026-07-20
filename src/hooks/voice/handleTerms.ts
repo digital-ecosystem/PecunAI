@@ -10,7 +10,7 @@ import type { VoiceContext } from "./voiceContext";
  *  double-sending response.create. */
 export async function handleMoveToTerms1(ctx: VoiceContext): Promise<void> {
   const {
-    sessionId, termsSubStepRef, langRef, serverResponseActiveRef,
+    sessionId, termsSubStepRef, langRef, serverResponseActiveRef, sessionConfiguredRef,
     awaitingResponseCreatedRef, pendingResponseAfterCancelRef,
     setTermsSubStep, saveVoiceState, send,
   } = ctx;
@@ -25,6 +25,13 @@ export async function handleMoveToTerms1(ctx: VoiceContext): Promise<void> {
   }).catch(() => {});
   saveVoiceState(0).catch(() => {});
 
+  // Skip tapped before the session finished configuring (session.updated hasn't fired, so the
+  // intro create was never sent). Don't send the terms1 create now — it would collide with the
+  // intro create that session.updated is about to fire ("conversation_already_has_active_-
+  // response"). We've flipped termsSubStep to 'terms1' above; session.updated sees that and
+  // sends the terms1 narration itself. See PHASE_0_INTRO_SKIP_RACE_PLAN.md.
+  if (!sessionConfiguredRef.current) return;
+
   const terms1Create = { type: "response.create", response: { instructions: TERMS1_EXPLAIN_INSTRUCTIONS(langRef.current) } };
   // Skip-intro race guard: if the intro response is still alive server-side
   // (generating) or was requested but not yet born, sending this create now
@@ -34,7 +41,18 @@ export async function handleMoveToTerms1(ctx: VoiceContext): Promise<void> {
   // wsMessageHandler cancels a late-born intro on response.created and fires
   // the parked create on response.done. See PHASE_0_INTRO_SKIP_RACE_PLAN.md.
   if (serverResponseActiveRef.current || awaitingResponseCreatedRef.current) {
-    pendingResponseAfterCancelRef.current = terms1Create;
+    // The intro is cancelled mid-flight, so a half-spoken "Hallo, ich bin PecunAI…" stays in
+    // the conversation as the last assistant turn. Left alone, the model finishes/repeats that
+    // introduction on the terms1 screen instead of describing the document. Prepend a skip
+    // marker — wsMessageHandler fires the whole array on response.done, so it lands AFTER the
+    // cancelled intro item and BEFORE the terms1 narration. The tail-playback path below needs
+    // no marker: there the intro finished cleanly and the model already moves on.
+    pendingResponseAfterCancelRef.current = [
+      { type: "conversation.item.create", item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: '[SYSTEM: The customer tapped "skip" during your self-introduction. Do NOT greet, introduce yourself, state your name, or continue that introduction. Speak ONLY about the first document now.]',
+      }] } },
+      terms1Create,
+    ];
     return;
   }
   send(terms1Create);
