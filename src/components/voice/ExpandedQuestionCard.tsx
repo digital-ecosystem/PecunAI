@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { X, ArrowRight } from "lucide-react";
 import type { FrameRect } from "./frameMath";
-import type { ModalQuestion } from "./VoiceQuestionModal";
+import type { ModalQuestion, QuestionOption } from "./VoiceQuestionModal";
 
 /**
  * The resting, interactive answer card for Phase 1 — floating centered in
@@ -75,6 +75,10 @@ export function ExpandedQuestionCard({
   const [selected,   setSelected]   = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [aiProposed, setAiProposed] = useState(!!preSelectedValue);
+  // Guards against a fast double-tap firing onNext twice (choice questions now submit on the
+  // option tap itself, with no confirm button between tap and submit). Resets per question —
+  // the card is remounted via key={question.id} each time.
+  const submittedRef = useRef(false);
 
   // When AI proposes a value via highlight_answer, apply it based on question type.
   // Ported verbatim from VoiceQuestionModal.tsx.
@@ -109,13 +113,26 @@ export function ExpandedQuestionCard({
     : inputValue.trim() !== "";
 
   const handleSubmit = () => {
-    if (!canSubmit) return;
+    if (!canSubmit || submittedRef.current) return;
+    submittedRef.current = true;
     if (isChoice) {
       const selectedOpt = question.options.find(o => o.id === selected);
       onNext(selectedOpt?.value ?? selected!);
     } else {
       onNext(inputValue);
     }
+  };
+
+  // Choice questions submit the moment an option is tapped — no separate confirm button
+  // (boss request 2026-07-20). Number/text still need the button so the customer can finish
+  // typing first. This also serves as the confirm gesture for an AI-proposed (amber) value:
+  // tapping the option — the same one or a different one — commits it.
+  const handleChoiceTap = (opt: QuestionOption) => {
+    if (submittedRef.current) return;
+    submittedRef.current = true;
+    setSelected(opt.id);
+    setAiProposed(false);
+    onNext(opt.value ?? opt.id);
   };
 
   return (
@@ -214,7 +231,7 @@ export function ExpandedQuestionCard({
                           : "0 2px 8px rgba(0,0,0,0.04)",
                       }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => { setSelected(opt.id); setAiProposed(false); }}
+                      onClick={() => handleChoiceTap(opt)}
                     >
                       <div className="flex items-center gap-3 px-4 py-3">
                         <div
@@ -295,23 +312,26 @@ export function ExpandedQuestionCard({
             )}
           </div>
 
-          {/* Weiter button */}
-          <div className="flex-shrink-0 px-5 pb-4 pt-2">
-            <motion.button
-              className="w-full py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
-              style={{
-                background: canSubmit ? "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)" : "rgba(148,163,184,0.3)",
-                color: canSubmit ? "white" : "rgba(100,116,139,0.5)",
-                boxShadow: canSubmit ? "0 4px 16px rgba(59,130,246,0.3)" : "none",
-              }}
-              whileTap={canSubmit ? { scale: 0.98 } : {}}
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-            >
-              Weiter
-              <ArrowRight size={18} />
-            </motion.button>
-          </div>
+          {/* Weiter button — number/text only. Choice questions submit on the option tap
+              itself (boss request 2026-07-20), so no confirm button is rendered for them. */}
+          {(isNumber || isText) && (
+            <div className="flex-shrink-0 px-5 pb-4 pt-2">
+              <motion.button
+                className="w-full py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
+                style={{
+                  background: canSubmit ? "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)" : "rgba(148,163,184,0.3)",
+                  color: canSubmit ? "white" : "rgba(100,116,139,0.5)",
+                  boxShadow: canSubmit ? "0 4px 16px rgba(59,130,246,0.3)" : "none",
+                }}
+                whileTap={canSubmit ? { scale: 0.98 } : {}}
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+              >
+                Weiter
+                <ArrowRight size={18} />
+              </motion.button>
+            </div>
+          )}
       </div>
     </motion.div>
   );
