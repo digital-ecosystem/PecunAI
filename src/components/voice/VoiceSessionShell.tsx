@@ -155,6 +155,9 @@ export default function VoiceSessionShell({
   // re-measured per expand/collapse.
   const [orbOrigin, setOrbOrigin] = useState<{ x: number; y: number } | null>(null);
   const [expandedRect, setExpandedRect] = useState<FrameRect | null>(null);
+  // Round 21: live rect of the active carousel card — the expanded card and the
+  // neural frame grow FROM it ("same card grows"). Reported by VoiceCarousel.
+  const [compactRect, setCompactRect] = useState<FrameRect | null>(null);
   const orbWrapperRef = useRef<HTMLDivElement>(null);
 
   // Frame → orb handoff rect for Phase 1's persistent canvas: set by terms2's
@@ -1279,6 +1282,7 @@ export default function VoiceSessionShell({
               }}
               onActiveCardExpand={() => setModalOpen(true)}
               onInfoClick={requestExplanation}
+              onActiveCardRectChange={setCompactRect}
               expandedQuestionId={
                 modalOpen ? modalQ?.id ?? null : sustainabilityVisible ? activeQ?.id ?? null : null
               }
@@ -1444,6 +1448,9 @@ export default function VoiceSessionShell({
         <PhaseOneNeuralModel
           shape={modalOpen || sustainabilityVisible ? "cardFrame" : "orb"}
           frameRect={modalOpen || sustainabilityVisible ? expandedRect : null}
+          // Grow the frame from the tapped card only for a question card — the
+          // disclosure has no carousel card, so it keeps growing from the orb.
+          frameRectStart={modalOpen ? compactRect : null}
           initialFrameRect={phaseEntryFrameRectRef.current}
           sphereCenter={orbOrigin}
           sphereRadius={380 * 0.3}
@@ -1484,6 +1491,7 @@ export default function VoiceSessionShell({
           <ExpandedQuestionCard
             key={modalQ.id}
             rect={expandedRect}
+            startRect={compactRect ?? undefined}
             question={{
               number:           modalQIndex + 1,
               total:            n,

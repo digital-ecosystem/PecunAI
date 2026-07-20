@@ -38,6 +38,13 @@ interface PhaseOneNeuralModelProps {
    *  the reverse of the intro's orb → document morph — instead of starting
    *  already settled. Read once at mount. */
   initialFrameRect?: FrameRect | null;
+  /** Round 21 "same card grows": the compact carousel-card rect the frame
+   *  should grow FROM while morphing into `frameRect`. When set, the frame
+   *  outline (and dense web) interpolate compactRect → frameRect over the
+   *  morph, in lockstep with the card, instead of jumping straight to the
+   *  final rect. Only meaningful for the question-card open (not the
+   *  disclosure, which grows from the orb). */
+  frameRectStart?: FrameRect | null;
   containerWidth: number;
   containerHeight: number;
 }
@@ -52,6 +59,15 @@ function clamp(n: number, min: number, max: number) {
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
+}
+
+function lerpRect(a: FrameRect, b: FrameRect, t: number): FrameRect {
+  return {
+    x: lerp(a.x, b.x, t),
+    y: lerp(a.y, b.y, t),
+    w: lerp(a.w, b.w, t),
+    h: lerp(a.h, b.h, t),
+  };
 }
 
 function easeMorph(t: number) {
@@ -81,10 +97,16 @@ export function PhaseOneNeuralModel({
   analyserNode,
   micAnalyserNode,
   initialFrameRect,
+  frameRectStart,
   containerWidth: cw,
   containerHeight: ch,
 }: PhaseOneNeuralModelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Round 21: live-read in the draw loop so the frame can grow from the compact
+  // card rect toward the final rect during the open morph without resetting it.
+  const frameRectStartRef = useRef<FrameRect | null>(frameRectStart ?? null);
+  useEffect(() => { frameRectStartRef.current = frameRectStart ?? null; }, [frameRectStart?.x, frameRectStart?.y, frameRectStart?.w, frameRectStart?.h]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shapeRef = useRef(shape);
   const isSpeakingRef = useRef(isSpeaking);
@@ -284,10 +306,26 @@ export function PhaseOneNeuralModel({
       }
       const avgEnergy = energySum / N;
 
-      // The frame target is a static rect between retarget events; the orb
-      // target is recomputed every frame so it's always visibly alive/rotating,
-      // never a frozen snapshot.
-      const liveTo = isFrame ? toRef.current : orbTargetsNow(deforms);
+      // Round 21 "same card grows": while morphing INTO the frame with a start
+      // rect provided, the effective frame rect interpolates compactRect →
+      // endRect over morphT (the SphereToFrameTransition.contentRectStart
+      // pattern), so the outline and dense web wrap the card as it grows. At
+      // the settled state (morphT === 1) this is just endRect; on collapse
+      // (isFrame false) it's unused. Recomputed per frame off the live rect.
+      // endRect stays the TRUE final rect (set by the retarget effect); never
+      // overwrite lastFrameRectRef with the growing rect or it would drift.
+      const endRect = lastFrameRectRef.current;
+      const startRect = frameRectStartRef.current;
+      const growing = isFrame && startRect !== null && endRect !== null && mixToRef.current === 1 && t < 1;
+      const liveRect: FrameRect | null = growing
+        ? lerpRect(startRect!, endRect!, morphT)
+        : endRect;
+
+      // The frame target follows the live (possibly growing) rect; the orb
+      // target is recomputed every frame so it's always visibly alive/rotating.
+      const liveTo = isFrame
+        ? frameOutlineTargets(N, liveRect ?? defaultFrameRect(cw, ch), WAVE_PAD)
+        : orbTargetsNow(deforms);
 
       const colors = getFrameColors(listening);
       const activity = speaking ? 0.62 : listening ? 0.48 : 0.38;
@@ -379,8 +417,8 @@ export function PhaseOneNeuralModel({
       // uses around Phase 0/2 documents (same math, same connection rules,
       // same palette), offset from its pad-local coordinates to the card's
       // viewport rect.
-      if (frameAlpha > 0.02 && lastFrameRectRef.current) {
-        const rect = lastFrameRectRef.current;
+      if (frameAlpha > 0.02 && (liveRect ?? lastFrameRectRef.current)) {
+        const rect = liveRect ?? lastFrameRectRef.current!;
         const denseNodes = generateFrameSpikeNodes({
           contentWidth: rect.w,
           contentHeight: rect.h,

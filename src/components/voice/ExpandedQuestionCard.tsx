@@ -24,6 +24,10 @@ import type { ModalQuestion, QuestionOption } from "./VoiceQuestionModal";
 
 interface ExpandedQuestionCardProps {
   rect: FrameRect;
+  /** Compact carousel-card rect to grow FROM (Round 21). When set, the card
+   *  animates its geometry startRect → rect ("same card grows"); when absent
+   *  it falls back to the old fade-in at the fixed rect. */
+  startRect?: FrameRect;
   question: ModalQuestion;
   onClose: () => void;
   onNext: (value: string) => void;
@@ -39,10 +43,15 @@ interface ExpandedQuestionCardProps {
 const TOP_MARGIN    = 72;  // header zone
 const BAR_CLEARANCE = 124; // ControlBar ≈88px + gap so even the frame's spikes clear it
 const BAND_PAD      = 12;
+// Round 21 (boss: "not that much heighty"): a fixed medium band instead of
+// filling the whole available height. Long option lists still scroll inside
+// the plain flex-1/overflow-y-auto answer area; short ones just have air.
+const CARD_MAX_H    = 470;
 
 export function computeExpandedCardSize(vw: number, vh: number) {
   const width = vw >= 1024 ? 480 : vw >= 640 ? 440 : Math.min(Math.round(vw * 0.9), 380);
-  const height = Math.max(320, vh - TOP_MARGIN - BAR_CLEARANCE - BAND_PAD * 2);
+  const available = vh - TOP_MARGIN - BAR_CLEARANCE - BAND_PAD * 2;
+  const height = Math.max(320, Math.min(CARD_MAX_H, available));
   return { width, height };
 }
 
@@ -62,6 +71,7 @@ function formatValue(value: number, placeholder?: string): string {
 
 export function ExpandedQuestionCard({
   rect,
+  startRect,
   question,
   onClose,
   onNext,
@@ -135,17 +145,31 @@ export function ExpandedQuestionCard({
     onNext(opt.value ?? opt.id);
   };
 
+  // Round 21 "same card grows": when a startRect is given, the card animates its
+  // geometry (left/top/width/height) from the compact carousel card to the final
+  // band in lockstep with the neural frame; the inner content fades in only near
+  // the end (~70% grown) so text never stretches. No startRect → old fade-in.
+  const GROW_S    = 1.05;
+  const GROW_EASE = [0.22, 1, 0.36, 1] as const;
+  const contentDelay = startRect ? GROW_S * 0.7 : 0.15;
+
   return (
     <motion.div
       className="fixed z-[56]"
-      style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
-      initial={{ opacity: 0, scale: 0.98 }}
-      // Enter waits for the neural frame to mostly arrive; exit is fast and
-      // immediate so the collapse morph plays out visibly BEHIND the card
-      // rather than underneath a lingering white sheet (mirrors the Pecunai
-      // 2.0 reference, where expanded content vanishes first and only then
-      // the frame contracts back into the orb).
-      animate={{ opacity: 1, scale: 1, transition: { duration: 0.3, delay: 0.15 } }}
+      initial={startRect
+        ? { left: startRect.x, top: startRect.y, width: startRect.w, height: startRect.h, opacity: 1, scale: 1 }
+        : { left: rect.x, top: rect.y, width: rect.w, height: rect.h, opacity: 0, scale: 0.98 }}
+      // Enter: grow from the compact card (or the old delayed fade if no startRect).
+      // Exit is fast and immediate so the collapse morph plays out visibly BEHIND
+      // the card rather than underneath a lingering white sheet (mirrors the
+      // Pecunai 2.0 reference, where expanded content vanishes first and only
+      // then the frame contracts back into the orb).
+      animate={{
+        left: rect.x, top: rect.y, width: rect.w, height: rect.h, opacity: 1, scale: 1,
+        transition: startRect
+          ? { duration: GROW_S, ease: GROW_EASE }
+          : { duration: 0.3, delay: 0.15 },
+      }}
       exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.18 } }}
     >
       <div
@@ -156,6 +180,11 @@ export function ExpandedQuestionCard({
           boxShadow: "0 20px 60px rgba(59,130,246,0.18), 0 4px 16px rgba(15,23,42,0.08)",
         }}
       >
+        <motion.div
+          className="flex flex-col flex-1 min-h-0"
+          initial={{ opacity: startRect ? 0 : 1 }}
+          animate={{ opacity: 1, transition: { delay: contentDelay, duration: 0.28 } }}
+        >
         {/* Header */}
           <div className="flex-shrink-0 px-5 pt-4 pb-3">
             <div className="flex items-center justify-between mb-3">
@@ -332,6 +361,7 @@ export function ExpandedQuestionCard({
               </motion.button>
             </div>
           )}
+        </motion.div>
       </div>
     </motion.div>
   );

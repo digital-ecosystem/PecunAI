@@ -2,7 +2,8 @@
 
 import { motion } from "motion/react";
 import { Info, Edit3 } from "lucide-react";
-import { useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { useRef, useEffect, type PointerEvent as ReactPointerEvent } from "react";
+import type { FrameRect } from "./frameMath";
 
 export interface CarouselQuestion {
   id: string;
@@ -29,6 +30,10 @@ interface VoiceCarouselProps {
    *  compact rendering here goes invisible but stays mounted — nothing else
    *  in the carousel moves while a card is expanded. */
   expandedQuestionId: string | null;
+  /** Round 21: reports the active (center) card's live viewport rect so the
+   *  shell can grow the expanded card / neural frame FROM it. Covers both the
+   *  tap-open and auto-open paths since it doesn't depend on a click. */
+  onActiveCardRectChange?: (rect: FrameRect) => void;
 }
 
 export default function VoiceCarousel({
@@ -39,10 +44,44 @@ export default function VoiceCarousel({
   onActiveCardExpand,
   onInfoClick,
   expandedQuestionId,
+  onActiveCardRectChange,
 }: VoiceCarouselProps) {
   const n             = questions.length;
   const pointerStartX = useRef<number | null>(null);
   const didSwipe      = useRef(false);
+  const activeCardRef = useRef<HTMLDivElement>(null);
+
+  // Report the active card's live on-screen rect (>0.75px-change gate, same
+  // pattern the shell uses for orbOrigin) — the morph's grow-from origin. The
+  // compact card stays mounted at its rest position even while a card is
+  // expanded (just opacity 0), so this keeps reporting the correct rest rect
+  // for the collapse target too.
+  useEffect(() => {
+    if (!onActiveCardRectChange) return;
+    let raf = 0;
+    let alive = true;
+    let last: FrameRect | null = null;
+    const tick = () => {
+      const el = activeCardRef.current;
+      if (el) {
+        const r = el.getBoundingClientRect();
+        if (r.width > 0) {
+          const next = { x: r.left, y: r.top, w: r.width, h: r.height };
+          if (
+            !last ||
+            Math.abs(last.x - next.x) > 0.75 || Math.abs(last.y - next.y) > 0.75 ||
+            Math.abs(last.w - next.w) > 0.75 || Math.abs(last.h - next.h) > 0.75
+          ) {
+            last = next;
+            onActiveCardRectChange(next);
+          }
+        }
+      }
+      if (alive) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { alive = false; cancelAnimationFrame(raf); };
+  }, [onActiveCardRectChange]);
 
   const SWIPE_THRESHOLD = 40;
 
@@ -141,6 +180,7 @@ export default function VoiceCarousel({
             return (
               <motion.div
                 key={q.id || index}
+                ref={isActive ? activeCardRef : undefined}
                 className="absolute cursor-pointer"
                 style={style}
                 animate={style}
