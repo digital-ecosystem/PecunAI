@@ -93,6 +93,7 @@ export default function MorphTestPage() {
 
   const [orbOrigin, setOrbOrigin] = useState<{ x: number; y: number } | null>(null);
   const [expandedRect, setExpandedRect] = useState<FrameRect | null>(null);
+  const [compactRect, setCompactRect] = useState<FrameRect | null>(null);
   const orbWrapperRef = useRef<HTMLDivElement>(null);
 
   // Entry gate mirrors the real shell: the orb wrapper does NOT exist at page
@@ -202,6 +203,7 @@ export default function MorphTestPage() {
           }}
           onActiveCardExpand={() => setModalOpen(true)}
           onInfoClick={() => {}}
+          onActiveCardRectChange={setCompactRect}
           expandedQuestionId={modalOpen ? modalQ?.id ?? null : null}
         />
       </div>
@@ -210,6 +212,7 @@ export default function MorphTestPage() {
         <PhaseOneNeuralModel
           shape={modalOpen || sustOpen ? "cardFrame" : "orb"}
           frameRect={modalOpen || sustOpen ? expandedRect : null}
+          frameRectStart={modalOpen ? compactRect : null}
           sphereCenter={orbOrigin}
           sphereRadius={380 * 0.3}
           isSpeaking={speaking}
@@ -231,6 +234,7 @@ export default function MorphTestPage() {
           <ExpandedQuestionCard
             key={modalQ.id}
             rect={expandedRect}
+            startRect={compactRect ?? undefined}
             question={{
               number: viewIndex + 1,
               total: n,

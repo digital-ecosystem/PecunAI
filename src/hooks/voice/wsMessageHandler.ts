@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { ChatMessage } from "./types";
-import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, ADVISOR_PERSONA, buildPhase4PresentationContext, GERMAN_SPEECH_DIRECTIVE } from "./prompts";
+import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, ADVISOR_PERSONA, buildPhase4PresentationContext, GERMAN_SPEECH_DIRECTIVE, isAskableNow } from "./prompts";
 import { TOOLS } from "./tools";
 import { base64ToPCM16AudioBuffer } from "./audio";
 import type { VoiceContext } from "./voiceContext";
@@ -234,6 +234,43 @@ export async function handleWsMessage(
           }]},
         });
         send({ type: "response.create", response: { instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde ist zurückgekehrt und sieht das Nachhaltigkeitsdokument. Begrüßen Sie ihn kurz in 1 Satz, erinnern Sie ihn daran, dass er das Dokument in seinem eigenen Tempo lesen und auf „Ich bestätige" tippen kann, und dass er die Mikrofontaste halten kann, um Fragen zu stellen. Stellen Sie KEINE Phase-1-Fragen. Warten Sie.` } });
+      } else if (
+        voicePhaseRef.current === 1 && !isRevisitingRef.current &&
+        skippedIdsRef.current.size > 0 &&
+        questionsRef.current.filter(q =>
+          !vc.answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id) &&
+          isAskableNow(q, questionsRef.current, savedAnswersRef.current)
+        ).length === 0
+      ) {
+        // Circle-back resume: a browser refresh during the circle-back stage — every askable,
+        // non-skipped topic is answered, only skipped ones remain. The linear lastQuestionIndex
+        // can't express this (a skip that left nothing askable even saved index 0), so the
+        // index-based resume would cold-start at topic 1 and ask the wrong question. Drive the
+        // circle-back explicitly, exactly like the live branch in handleAnswerConfirmed /
+        // handleFunctionCall: land the carousel on the first skipped topic and instruct the AI
+        // to ask it. Already-answered skipped topics were subtracted from skippedIds at resume
+        // (see the voice-session page), so only genuinely-pending ones are here.
+        const allSkipped   = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
+        const firstSkipped = allSkipped[0];
+        const skippedIdx   = questionsRef.current.findIndex(q => q.id === firstSkipped.id);
+        if (skippedIdx >= 0) dispatch({ type: "SET_INDEX", index: skippedIdx });
+        setCard(firstSkipped.id);
+        vc.circleBackActiveRef.current = true; // preamble is in the instruction below; don't repeat it per-question
+        const qText = (text: string) => langRef.current === "de"
+          ? `Fragen Sie nach dem Thema auf Deutsch — formulieren Sie es gesprächig, lesen Sie nicht wörtlich vor: „${text}".`
+          : `Translate this German question to English — conversational phrasing, not like a questionnaire: "${text}".`;
+        send({
+          type: "conversation.item.create",
+          item: { type: "message", role: "user", content: [{ type: "input_text",
+            text: `[SYSTEM: Session resumed. All main topics are answered. Now circle back through ${allSkipped.length} skipped topic(s). Your ONLY next topic is "${firstSkipped.category}" (ID: ${firstSkipped.id}). Ask about this now. Remaining skipped after this: ${allSkipped.slice(1).map(q => q.id).join(", ") || "none"}.]`,
+          }]},
+        });
+        send({
+          type: "response.create",
+          response: {
+            instructions: `${ADVISOR_PERSONA(langRef.current)} Willkommen zurück. Alle Hauptthemen sind beantwortet. Sagen Sie in 1 Satz sachlich, dass Sie noch auf die zurückgestellten Themen zurückkommen, und stellen Sie dann die Frage zum Thema ${firstSkipped.category} (ID: ${firstSkipped.id}). ${qText(firstSkipped.text)} Maximal 2 Sätze. Fragen Sie NUR nach ${firstSkipped.category} (ID: ${firstSkipped.id}). Warten Sie auf die Antwort.`,
+          },
+        });
       } else {
         // Phase 1 (skip mode or after confirmTerms2) — normal greeting
         send({ type: "response.create" });

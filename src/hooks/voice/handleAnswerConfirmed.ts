@@ -156,7 +156,7 @@ export async function handleAnswerConfirmed(
   // ── ASSET KNOWLEDGE TWO-STRIKE: Q12/13/14 "none" — 2nd (final) attempt ──
   // Reaching here means assetKnowledgeShownRef already had this question — the customer still
   // doesn't understand it after seeing the explanation. Hard-block, same pattern as the Q3
-  // sustainability blocker above. Placed before allAnswered is computed so this can't be
+  // sustainability blocker above. Placed before end-of-phase detection runs so this can't be
   // bypassed by advancePhase() if it happens to be the last remaining question.
   if (isAssetKnowledgeQ && value === "none") {
     const overlayEntry = ASSET_CLASS_OVERLAY[question.questionOrder!];
@@ -195,16 +195,18 @@ export async function handleAnswerConfirmed(
   if (chatOpenRef.current) {
     chatAnsweredRef.current++;
 
-    const allAnswered = answeredIdsRef.current.size === questionsRef.current.length;
-    if (allAnswered) {
-      await advancePhase();
-      return;
-    }
-
+    // Askable-based detection (same reasoning as the voice path below) — a raw count against
+    // questionsRef.length breaks once a non-askable sub-question exists.
     const remainingNonSkipped = questionsRef.current.filter(
       q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id) && isAskableNow(q, questionsRef.current, savedAnswersRef.current)
     );
     const skippedRemaining = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
+
+    // Nothing askable left and nothing parked as skipped — Phase 1 is complete.
+    if (remainingNonSkipped.length === 0 && skippedRemaining.length === 0) {
+      await advancePhase();
+      return;
+    }
 
     // All non-skipped covered — circle back to skipped topics inside chat
     if (remainingNonSkipped.length === 0 && skippedRemaining.length > 0) {
@@ -244,20 +246,24 @@ export async function handleAnswerConfirmed(
     return; // no response.create — notifyChatOpen(false) sends one consolidated prompt on close
   }
 
-  const allAnswered            = answeredIdsRef.current.size === questionsRef.current.length;
-  const allCoveredExceptSkipped = answeredIdsRef.current.size + skippedIdsRef.current.size === questionsRef.current.length;
+  // End-of-phase detection is based on what's still ASKABLE right now — NOT a raw count
+  // against questionsRef.length. Sub-questions (12.1/13.1/14.1) whose parent wasn't answered
+  // "good" never become askable, so they're never answered or skipped, yet they still inflate
+  // questionsRef.length. Comparing counts against that total meant answered+skipped could never
+  // reach it once such a sub-question existed: the circle-back branch went dead and skipped
+  // topics were never revisited before Phase 2. See isAskableNow.
+  const remaining = questionsRef.current
+    .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id) && isAskableNow(q, questionsRef.current, savedAnswersRef.current))
+    .map(q => q.id);
+  const nothingLeftToAsk = remaining.length === 0;
 
-  if (allAnswered && !isRevisitingRef.current) {
+  if (nothingLeftToAsk && skippedIdsRef.current.size === 0 && !isRevisitingRef.current) {
     circleBackActiveRef.current = false;
     await advancePhase();
     return;
   }
 
-  const remaining = questionsRef.current
-    .filter(q => !answeredIdsRef.current.has(q.id) && !skippedIdsRef.current.has(q.id) && isAskableNow(q, questionsRef.current, savedAnswersRef.current))
-    .map(q => q.id);
-
-  if (allCoveredExceptSkipped && skippedIdsRef.current.size > 0 && !isRevisitingRef.current) {
+  if (nothingLeftToAsk && skippedIdsRef.current.size > 0 && !isRevisitingRef.current) {
     const firstSkippedTap = questionsRef.current.find(q => skippedIdsRef.current.has(q.id));
     const allSkippedTap   = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
     dispatch({ type: "ANSWER_SAVED" });
