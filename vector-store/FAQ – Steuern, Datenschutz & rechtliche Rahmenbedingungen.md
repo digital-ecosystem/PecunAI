@@ -134,7 +134,7 @@ Kontakt Datenschutz:
 📧 **datenschutz@4money.at** (bzw. Datenschutzbeauftragter Jörg Hammer)
 
 > *Bot-Hinweis:*  
-> Im PecunAI-Bot kann auf Anfrage automatisch eine DSGVO-Selbstauskunft (Template) generiert werden.
+> Im Digital Onboarding Guide-Bot kann auf Anfrage automatisch eine DSGVO-Selbstauskunft (Template) generiert werden.
 
 ---
 
@@ -304,7 +304,7 @@ Die FMA überwacht Wertpapierdienstleister, Banken und Fondsanbieter in Österre
 ### 25. Gebt ihr Steuer- oder Rechtsberatung?
 
 Nein.  
-4money / froots / PecunAI sind keine Steuer- oder Rechtsberater.  
+4money / froots / Digital Onboarding Guide sind keine Steuer- oder Rechtsberater.  
 Wir informieren dich über die geltenden steuerlichen Grundregeln,  
 aber für eine individuelle Beratung solltest du einen Steuerberater beiziehen.
 

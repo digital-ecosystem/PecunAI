@@ -1,7 +1,7 @@
 # FAQ – Kosten, Gebühren & Zuwendungen
 
 > **Kontext:** Dieses Kapitel beschreibt alle Kostenarten, Gebührenmodelle und Offenlegungspflichten im Rahmen der **Anlageberatung (4money)** sowie – sofern genutzt – der **Vermögensverwaltung durch Partner (z. B. froots)**.  
-> Es basiert auf den 4money-Dokumenten „Anleger:innenprofil“, „Kosten-ex-ante“, „Vermögensverwaltung (Beispiel)“, „PecunAI v1“ sowie den ESMA-/FMA-Regeln zu MiFID II (WAG 2018 § 60).
+> Es basiert auf den 4money-Dokumenten „Anleger:innenprofil“, „Kosten-ex-ante“, „Vermögensverwaltung (Beispiel)“, „Digital Onboarding Guide v1“ sowie den ESMA-/FMA-Regeln zu MiFID II (WAG 2018 § 60).
 
 ---
 

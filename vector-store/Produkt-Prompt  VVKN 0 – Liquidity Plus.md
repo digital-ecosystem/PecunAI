@@ -61,4 +61,4 @@
 ### ⚙️ Technische Hinweise
 - `product_id`: vvkn_0_liquidityplus  
 - `source_docs`: [froots GmbH.md, Produkte & Service.docx, 4money_protokoll_v11_interaktiv.pdf]  
-- `faq_linked`: [FAQ – Anlageprodukte & Risiken.md, FAQ – Prozess, Ablauf & Kundenreise (PecunAI - 4money).md, FAQ – Kosten, Gebühren & Zuwendungen.md, FAQ - Risikoprofil & Geeignetheit.md]
+- `faq_linked`: [FAQ – Anlageprodukte & Risiken.md, FAQ – Prozess, Ablauf & Kundenreise (Digital Onboarding Guide - 4money).md, FAQ – Kosten, Gebühren & Zuwendungen.md, FAQ - Risikoprofil & Geeignetheit.md]

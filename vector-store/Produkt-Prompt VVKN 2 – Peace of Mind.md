@@ -1,7 +1,7 @@
 # Produkt-Prompt: VVKN 2 – Peace of Mind
 
-> **Status (wichtige Produktlogik):** Im PecunAI/4money-Onboarding soll „Peace of Mind“ **derzeit nicht aktiv angeboten oder proaktiv erwähnt** werden.  
-> **Nur wenn der Kunde ausdrücklich danach fragt**, darf PecunAI es einordnen – dann aber mit dem Hinweis, dass es aktuell **nicht Teil des Angebots** ist und welche Alternativen es gibt.
+> **Status (wichtige Produktlogik):** Im Digital Onboarding Guide/4money-Onboarding soll „Peace of Mind“ **derzeit nicht aktiv angeboten oder proaktiv erwähnt** werden.  
+> **Nur wenn der Kunde ausdrücklich danach fragt**, darf Digital Onboarding Guide es einordnen – dann aber mit dem Hinweis, dass es aktuell **nicht Teil des Angebots** ist und welche Alternativen es gibt.
 
 > **Wichtig (Kundenkommunikation):** „VVKN“ ist eine **interne Kennung**. In Antworten an Kund:innen **nie „VVKN 2“ verwenden**.
 
@@ -14,7 +14,7 @@
 
 ## 2️⃣ Wenn der Kunde ausdrücklich nach „Peace of Mind“ fragt
 **Standardantwort (kurz):**  
-„Peace of Mind“ ist im aktuellen PecunAI/4money-Setup **derzeit nicht als auswählbares Portfolio vorgesehen**. Ich kann Ihnen aber gern erklären, welche der verfügbaren Portfolios (z. B. Goal, Balance, Future, Dream Big) in Bezug auf Risiko und Anlagehorizont am ehesten vergleichbar sind – oder wir schauen gemeinsam in die Unterlagen, welche Strategien konkret angeboten werden.
+„Peace of Mind“ ist im aktuellen Digital Onboarding Guide/4money-Setup **derzeit nicht als auswählbares Portfolio vorgesehen**. Ich kann Ihnen aber gern erklären, welche der verfügbaren Portfolios (z. B. Goal, Balance, Future, Dream Big) in Bezug auf Risiko und Anlagehorizont am ehesten vergleichbar sind – oder wir schauen gemeinsam in die Unterlagen, welche Strategien konkret angeboten werden.
 
 **Wichtige Regeln dabei:**
 - **Keine Renditeversprechen**, keine historischen Renditeangaben, keine Zahlenbeispiele.  
@@ -31,5 +31,5 @@
 
 ### ⚙️ Technische Hinweise
 - `product_id`: vvkn_2_peaceofmind  
-- `source_docs`: [froots GmbH.md, Produkte & Service.docx, Beratungsgespräche PecunAI.docx]  
+- `source_docs`: [froots GmbH.md, Produkte & Service.docx, Beratungsgespräche Digital Onboarding Guide.docx]  
 - `faq_linked`: [FAQ – Risikoprofil & Geeignetheit.md, FAQ – Anlageprodukte & Risiken.md]

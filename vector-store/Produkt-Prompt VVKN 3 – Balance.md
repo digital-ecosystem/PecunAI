@@ -51,5 +51,5 @@
 
 ### ⚙️ Technische Hinweise
 - `product_id`: vvkn_3_balance  
-- `source_docs`: [froots GmbH.md, froots Portfolioauswahl.pdf, Beratungsgespräche PecunAI.docx]  
-- `faq_linked`: [FAQ - Risikoprofil & Geeignetheit.md, FAQ – Anlageprodukte & Risiken.md, FAQ – Prozess, Ablauf & Kundenreise (PecunAI - 4money).md]
+- `source_docs`: [froots GmbH.md, froots Portfolioauswahl.pdf, Beratungsgespräche Digital Onboarding Guide.docx]  
+- `faq_linked`: [FAQ - Risikoprofil & Geeignetheit.md, FAQ – Anlageprodukte & Risiken.md, FAQ – Prozess, Ablauf & Kundenreise (Digital Onboarding Guide - 4money).md]

@@ -51,5 +51,5 @@
 
 ### ⚙️ Technische Hinweise
 - `product_id`: vvkn_4_future  
-- `source_docs`: [froots GmbH.md, froots Portfolioauswahl.pdf, Beratungsgespräche PecunAI.docx]  
+- `source_docs`: [froots GmbH.md, froots Portfolioauswahl.pdf, Beratungsgespräche Digital Onboarding Guide.docx]  
 - `faq_linked`: [FAQ - Risikoprofil & Geeignetheit.md, FAQ – Anlageprodukte & Risiken.md]

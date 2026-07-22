@@ -39,7 +39,7 @@ froots stellt die digitale Infrastruktur bereit, um Portfolios strukturiert abzu
 **Hinweis:** Kund:innenfragen zur konkreten aktuellen Zusammensetzung werden über **Factsheet/Portfolioübersicht** beantwortet.
 
 ### 2) Zusammenarbeit im Onboarding
-Im PecunAI/4money‑Setup gilt:
+Im Digital Onboarding Guide/4money‑Setup gilt:
 - Anlageziel, Risikoprofil und Nachhaltigkeitspräferenzen werden **über 4money** erhoben und verantwortet.  
 - froots nutzt diese Angaben, um die Strategie-/Portfolio‑Logik passend abzubilden.
 
@@ -48,13 +48,13 @@ Im PecunAI/4money‑Setup gilt:
 ## Portfolio Structure & interne Kennungen (VVKN)
 froots arbeitet intern mit einer Portfolio‑Codierung („VVKN“), um Profile/Portfolios systematisch zuzuordnen.
 
-> **Wichtig (Kundenkommunikation):** „VVKN“ ist **intern**. PecunAI nennt gegenüber Kund:innen **nie** „VVKN x“.  
+> **Wichtig (Kundenkommunikation):** „VVKN“ ist **intern**. Digital Onboarding Guide nennt gegenüber Kund:innen **nie** „VVKN x“.  
 > Bei Risikofragen ist der **SRI** aus Factsheet/KID/Unterlagen maßgeblich.
 
 | Interne Kennung | Portfolio-Name | Charakter (vereinfacht) | Richtwert Anlagehorizont |
 |---|---|---|---|
 | VVKN 1 | Goal | konservativ/defensiv | > 1 Jahr |
-| VVKN 2 | Peace of Mind | (derzeit nicht aktiv im PecunAI/4money‑Angebot) | – |
+| VVKN 2 | Peace of Mind | (derzeit nicht aktiv im Digital Onboarding Guide/4money‑Angebot) | – |
 | VVKN 3 | Balance | ausgewogen | 5–7 Jahre |
 | VVKN 4 | Future | dynamisch/wachstumsorientiert | 7–10 Jahre |
 | VVKN 5 | Dream Big | offensiv/chancenorientiert | > 10 Jahre |

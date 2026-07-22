@@ -53,5 +53,5 @@
 
 ### ⚙️ Technische Hinweise
 - `product_id`: vvkn_5_dreambig  
-- `source_docs`: [froots GmbH.md, froots Portfolioauswahl.pdf, Beratungsgespräche PecunAI.docx]  
+- `source_docs`: [froots GmbH.md, froots Portfolioauswahl.pdf, Beratungsgespräche Digital Onboarding Guide.docx]  
 - `faq_linked`: [FAQ – Anlageprodukte & Risiken.md, FAQ – Kosten, Gebühren & Zuwendungen.md, FAQ - Risikoprofil & Geeignetheit.md]
