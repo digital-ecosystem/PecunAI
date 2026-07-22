@@ -162,7 +162,7 @@ export function ExpandedQuestionCard({
       // Enter: grow from the compact card (or the old delayed fade if no startRect).
       // Exit is fast and immediate so the collapse morph plays out visibly BEHIND
       // the card rather than underneath a lingering white sheet (mirrors the
-      // Pecunai 2.0 reference, where expanded content vanishes first and only
+      // Digital Onboarding Guide reference, where expanded content vanishes first and only
       // then the frame contracts back into the orb).
       animate={{
         left: rect.x, top: rect.y, width: rect.w, height: rect.h, opacity: 1, scale: 1,

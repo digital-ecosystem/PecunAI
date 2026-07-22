@@ -71,8 +71,6 @@ function smoothstep(edge0: number, edge1: number, x: number) {
   return s * s * (3 - 2 * s);
 }
 
-// Same cubic ease-out used by the Pecunai 2.0 AISpeechModel reference — this
-// is the specific curve that reads as "smooth" for this kind of shape morph.
 function easeMorph(t: number) {
   return 1 - Math.pow(1 - clamp(t, 0, 1), 3.2);
 }

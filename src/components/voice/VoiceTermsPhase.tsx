@@ -77,7 +77,6 @@ export default function VoiceTermsPhase({ which, isSpeaking, onConfirm, onPTTSta
 
   // The shell keeps this instance mounted across terms1 → terms2 (no key), so
   // the AnimatedFrame stays wrapped and only the document content crossfades —
-  // the Pecunai 2.0 reference's legal page flip, replacing the old full-screen
   // slide-in remount. On a document change, reset the confirm state the
   // previous document left behind.
   const prevWhichRef = useRef(which);

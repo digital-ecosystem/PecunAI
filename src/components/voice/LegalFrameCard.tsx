@@ -4,18 +4,6 @@ import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import { Check, FileText } from "lucide-react";
 
-/**
- * Shared interior for the legal/terms document cards — the Figma "Pecunai
- * 2.0" LegalFrameCard design (see private-documents/Pecunai 2.0/src/app/
- * components/LegalFrameCard.tsx): fixed header (page badge, title, subtitle),
- * independently scrolling body, confirm button inside the card. Transparent
- * background — the parent owns the white surface, radius, and shadow (either
- * an AnimatedFrame interior or the Phase 1 morph-target rect).
- *
- * Confirm timing (green pause before onConfirm advances) stays in the
- * parents — this component only renders the confirmed state.
- */
-
 interface LegalFrameCardProps {
   title:       string;
   subtitle:    string;

@@ -4,20 +4,6 @@ import { useEffect, useRef } from "react";
 import { SPHERE_NODE_COUNT, generateSphereNodes, projectSpherePoint } from "./sphereMath";
 import { frameOutlineTargets, generateFrameSpikeNodes, getFrameColors, type FrameRect } from "./frameMath";
 
-/**
- * Persistent Phase 1 orb ⇄ cardFrame canvas — mounted once for the whole of
- * Phase 1 and never unmounted. It just retargets its shape/rect whenever
- * `shape`/`frameRect` change, easing from wherever it currently is toward the
- * new target. This mirrors how Pecunai 2.0's AISpeechModel actually works
- * (one persistent model, smoothly retargeted) rather than the one-shot
- * mount/unmount transition used for Phase 0 (SphereToFrameTransition), which
- * is fine for something that only ever plays once per session but proved
- * fragile for a feature that repeats many times in both directions — see
- * "Round 3" in private-documents/after-demo/PHASE_1_QUESTION_CARD_MORPH_PLAN.md
- * for the bugs that came from trying to stretch the one-shot design to do
- * this instead of building the reference's actual architecture.
- */
-
 export type PhaseOneShape = "orb" | "cardFrame";
 
 interface PhaseOneNeuralModelProps {

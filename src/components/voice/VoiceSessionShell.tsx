@@ -284,7 +284,6 @@ export default function VoiceSessionShell({
   // reproduced on PC). The wrapper's position also shifts during the phase
   // 1 ⇄ 2 slide transition. So: poll per frame while phase 1 is active,
   // committing state only when the centre actually moves — the same live-rect
-  // pattern the Pecunai 2.0 reference uses.
   useEffect(() => {
     if (voicePhase !== 1) return;
     let raf = 0;
@@ -1034,10 +1033,6 @@ export default function VoiceSessionShell({
   if (voicePhase === 0 && (termsSubStep === 'terms1' || termsSubStep === 'terms2')) {
     return (
       <>
-        {/* No key: the same instance survives terms1 → terms2, so the neural
-            frame stays wrapped around the document and only the content
-            crossfades inside it (mirroring the Pecunai 2.0 reference's legal
-            page flip) — instead of the old full-screen slide-in remount. */}
         <VoiceTermsPhase
           which={termsSubStep}
           isSpeaking={isSpeaking}
