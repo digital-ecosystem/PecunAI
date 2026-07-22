@@ -3,7 +3,7 @@ import { saveChatMessage } from '@/lib/chat';
 import { Role } from '@/types';
 import { prisma } from '@/lib/prisma';
 
-// POST: Save a single chat message to the DB (used by V2 voice session)
+// POST: Save a single chat message to the DB (used by the voice session)
 export async function POST(req: Request) {
   try {
     const { sessionId, threadId, role, content } = await req.json();

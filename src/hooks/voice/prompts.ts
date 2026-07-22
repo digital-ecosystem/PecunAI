@@ -418,7 +418,7 @@ export const ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS = (lang: "de" | "en" = "de", q
 // ("wie hoch sind meine Kosten im ersten Jahr?") were unanswerable. This
 // builds the exact same data as a compact text block for the PTT answer
 // instructions. Derivations mirror VoiceInvestmentForm 1:1 — same
-// array-index lookups (a V1 inheritance, see PHASE_4_INVESTMENT_FORM_PLAN.md)
+// array-index lookups (see PHASE_4_INVESTMENT_FORM_PLAN.md)
 // and the same 10.000 € fallback volume the on-screen table uses, so spoken
 // numbers always match the screen. The internal product code (product.name)
 // is deliberately omitted — the AI must never say it, and what it doesn't

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { decrypt } from '@/lib/session';
 
 // Define which routes are protected
-const protectedRoutes = ['/customer/dashboard', '/customer/phase', '/admin/dashboard', '/advisor/dashboard', '/customer/stepper'];
+const protectedRoutes = ['/customer/dashboard', '/customer/phase', '/admin/dashboard', '/advisor/dashboard', '/customer/voice-session'];
 const adminSignInRoute = '/admin/signin';
 const customerSignInRoute = '/customer/signin';
 

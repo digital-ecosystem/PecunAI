@@ -145,9 +145,11 @@ function GebuehrenCards({ oneTimeInvestment, monthlyInvestment }: { oneTimeInves
   );
 }
 
-// ── Checkbox state — same shape and cascade logic as V1's stepper/[session_id]/page.tsx
-// (handleCheckboxChange), including the 3 fields with no rendered UI (liquidationRequired,
-// timelyUmschichtung, additionalLiquidityNeeds) — kept for exact functional parity. ──────
+// ── Checkbox state. Three fields have no rendered UI: liquidationRequired and
+// timelyUmschichtung are inert, while additionalLiquidityNeeds still takes part in the
+// cascade below. Consequence: allConfirmed can only ever be set by the "accept all"
+// checkbox — ticking the four visible boxes individually leaves additionalLiquidityNeeds
+// false, so the submit button stays disabled. Deliberate; leave the shape as is. ──────
 
 interface InvestmentFormData {
   liquidationRequired:      boolean;
@@ -333,7 +335,6 @@ export default function VoiceInvestmentForm({
     };
   }, [onFrameRect]);
 
-  // Cascade logic copied verbatim from V1's handleCheckboxChange.
   const handleCheckboxChange = useCallback((field: keyof InvestmentFormData) => {
     setFormData(prev => {
       const updated = { ...prev, [field]: !prev[field] };
@@ -370,11 +371,11 @@ export default function VoiceInvestmentForm({
 
   const statusLabel = STATUS_LABEL[sessionState] ?? "";
 
-  // Same array-index question lookups as V1's InvestmentForm.tsx, kept identical per
-  // explicit instruction — this is existing, working functionality, not something to
-  // "fix" during the V2 port. See PHASE_4_INVESTMENT_FORM_PLAN.md's ⚠️ section: two of
-  // these are confirmed (Q18 = one-time, Q19 = monthly investment), the others carry the
-  // same array-index assumption V1 already relies on.
+  // ⚠️ These question lookups are by array index, not by question ID — kept identical per
+  // explicit instruction, this is existing, working functionality and not something to
+  // "fix" here. See PHASE_4_INVESTMENT_FORM_PLAN.md's ⚠️ section: two of these are
+  // confirmed (Q18 = one-time, Q19 = monthly investment), the others rest on the same
+  // positional assumption. Reordering or inserting questions silently changes what they read.
   const reasonLabel = questions[0]?.options?.find(o => o.value === answers[questions[0]?.id])?.label ?? "";
   const durationYears = Number(answers[questions[1]?.id]);
   const oneTimeInvestment = parseFloat(answers[questions[20]?.id] ?? "") || 0;
@@ -599,7 +600,7 @@ export default function VoiceInvestmentForm({
                     )}
                   </div>
 
-                  {/* Bestätigungs-Checkboxen — same text as V1, verbatim */}
+                  {/* Bestätigungs-Checkboxen — compliance-approved wording, do not reword */}
                   <div className="space-y-3 pt-2 border-t border-gray-100">
                     <label className="flex items-start gap-3 cursor-pointer group">
                       <input

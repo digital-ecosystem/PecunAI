@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'SessionId is required' }, { status: 400 });
     }
 
-    // Get or create the thread for this session (V2 sessions don't pre-create threads)
+    // Get or create the thread for this session (voice sessions don't pre-create threads)
     const thread = await prisma.thread.upsert({
       where:  { qaSessionId: sessionId },
       update: {},

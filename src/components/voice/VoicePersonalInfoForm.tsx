@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import PersonalInfoForm from "@/app/customer/stepper/PersonalInfoForm";
+import PersonalInfoForm from "@/components/PersonalInfoForm";
 import PrivacyPauseBanner from "./PrivacyPauseBanner";
 import type { PersonalInfoFormData } from "@/types";
 
-// Validation schema — copied verbatim from V1 (stepper/[session_id]/page.tsx).
 const validationSchema = Yup.object({
   iban: Yup.string()
     .matches(/^([A-Z]{2}[0-9]{2}[A-Z0-9]{1,30})$/, "Ungültiges IBAN-Format")
@@ -146,7 +145,7 @@ export default function VoicePersonalInfoForm({ sessionId, onSubmitted, onPrimeA
     onSubmit: (values) => onPersonalInfoSubmit(values),
   });
 
-  // Same high-risk-country source as V1 — used only for the compliance gate below.
+  // High-risk country list — used only for the compliance gate below.
   useEffect(() => {
     const fetchHighRiskCountries = async () => {
       try {
@@ -162,9 +161,9 @@ export default function VoicePersonalInfoForm({ sessionId, onSubmitted, onPrimeA
     fetchHighRiskCountries();
   }, []);
 
-  // Pre-load any already-saved PersonalInfo — fetched fresh from the DB every time, same as
-  // V1. Deliberately NOT cached in Zustand/localStorage — this is the whole point of the
-  // silent phase. See private-documents/remaining-phases/PHASE_3_PERSONAL_INFO_PLAN.md Step 4.
+  // Pre-load any already-saved PersonalInfo — fetched fresh from the DB every time and
+  // deliberately NOT cached in Zustand/localStorage; that is the whole point of the silent
+  // phase. See private-documents/remaining-phases/PHASE_3_PERSONAL_INFO_PLAN.md Step 4.
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
@@ -219,8 +218,8 @@ export default function VoicePersonalInfoForm({ sessionId, onSubmitted, onPrimeA
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
-  // Submit + compliance gate — copied verbatim from V1's onPersonalInfoSubmit
-  // (stepper/[session_id]/page.tsx). This is a legal gate, not a UX choice.
+  // Submit + compliance gate. The stop conditions below are a legal gate, not a UX
+  // choice — do not soften or bypass them.
   const onPersonalInfoSubmit = async (data: PersonalInfoFormData) => {
     setSubmitting(true);
     try {
@@ -280,7 +279,7 @@ export default function VoicePersonalInfoForm({ sessionId, onSubmitted, onPrimeA
       console.error("API error:", error);
     }
 
-    // High-Risk & Tax Residency Checks — verbatim from V1.
+    // High-Risk & Tax Residency Checks — part of the legal compliance gate.
     const isHighRiskCountry = (country: string) => highRiskCountries.includes(country);
 
     const isUSCitizen =
@@ -335,7 +334,7 @@ export default function VoicePersonalInfoForm({ sessionId, onSubmitted, onPrimeA
         </button>
       </div>
 
-      {/* PEP Stop Screen — verbatim from V1 */}
+      {/* PEP Stop Screen — compliance-approved wording, do not reword */}
       {isPepStop && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center transform transition-all scale-100">

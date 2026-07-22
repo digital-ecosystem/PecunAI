@@ -1,5 +1,5 @@
-// ── Fee calculation logic — copied verbatim from V1's stepper/InvestmentForm.tsx.
-// These numbers are compliance-relevant — do not recompute differently.
+// ── Fee calculation logic. These numbers are compliance-relevant — do not recompute
+// differently.
 // Moved out of VoiceInvestmentForm.tsx so Phase 4's PTT answer grounding
 // (prompts.ts buildPhase4PresentationContext) uses the exact same math the
 // screen shows — see private-documents/PHASE_4_PTT_PRESENTATION_CONTEXT_PLAN.md. ──────

@@ -58,13 +58,6 @@ function SuccessContent() {
           >
             Zurück zum Dashboard
           </button>
-          
-          {/* <button 
-            onClick={() => router.push('/customer/stepper/' + (sessionId || 'new'))}
-            className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-          >
-            Start New Process
-          </button> */}
         </div>
       </div>
 

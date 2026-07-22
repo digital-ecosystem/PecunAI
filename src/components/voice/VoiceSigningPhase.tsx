@@ -57,9 +57,8 @@ function SuccessState() {
 }
 
 // Phase 7 — Signing: silent, tap-only, no AI voice at all, same treatment as Phase 3.
-// Ports V1's stepper RESULT_PDF step (generatePDF / handleSigningSuccess/Error/Cancel) almost
-// verbatim — the one deliberate behavior change is the retry path on cancel/error, which V1
-// doesn't have (see PHASE_7_SIGNING_PLAN.md decision #4).
+// The retry path on cancel/error is a deliberate design decision rather than an oversight —
+// see PHASE_7_SIGNING_PLAN.md decision #4.
 export default function VoiceSigningPhase({ sessionId }: VoiceSigningPhaseProps) {
   const router = useRouter();
   const [phase, setPhase] = useState<SigningPhase>("preparing");

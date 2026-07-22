@@ -239,7 +239,7 @@ export function useVoiceSession({
   const pendingPhaseTransitionRef  = useRef<(() => void) | null>(null);
   const chatOpenRef            = useRef(false); // true while chat modal is open
   const chatAnsweredRef        = useRef(0);     // count of answers given while chat was open
-  const voiceThreadIdRef       = useRef<string | null>(null); // threadId from chat/init, used to persist V2 chat messages
+  const voiceThreadIdRef       = useRef<string | null>(null); // threadId from chat/init, used to persist voice chat messages
   const explainIdleTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetExplainIdleRef    = useRef<() => void>(() => {});
   const productVectorIdRef     = useRef<string | null>(null); // vector store ID for the recommended product (set in advancePhase)
@@ -598,7 +598,7 @@ export function useVoiceSession({
         body: JSON.stringify({ sessionId, phase: "SUGGESTIONS" }),
       });
 
-      // Create or get the Thread for this session so V2 chat messages are persisted
+      // Create or get the Thread for this session so voice chat messages are persisted
       try {
         const initRes  = await fetch("/api/phase/chat/init", {
           method:  "POST",
