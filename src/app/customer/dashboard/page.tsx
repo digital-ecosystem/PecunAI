@@ -209,7 +209,7 @@ const Dashboard = () => {
             if (res?.success && res?.session?.id) {
                 if (opts?.agentCode) {
                     await fetch('/api/qa-session/agent', {
-                        method: 'POST',
+                        method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ sessionId: res.session.id, agentCode: opts.agentCode }),
                     }).catch(() => console.warn('agent code assignment failed'));
