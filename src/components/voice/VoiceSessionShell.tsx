@@ -40,8 +40,8 @@ const PHASE4_GROW_MS = 780;
 const STATUS_LABEL: Record<SessionState, string> = {
   idle:        "Bereit...",
   connecting:  "Verbinde...",
-  greeting:    "PecunAI begrüßt Sie...",
-  speaking:    "PecunAI spricht",
+  greeting:    "Digital Onboarding Guide begrüßt Sie...",
+  speaking:    "Digital Onboarding Guide spricht",
   listening:   "Zuhören...",
   processing:  "Verarbeite...",
   muted:       "Stumm – tippen Sie Ihre Antwort",
@@ -531,7 +531,7 @@ export default function VoiceSessionShell({
               backgroundClip:       "text",
             }}
           >
-            PecunAI Beratung
+            Digital Onboarding Guide Beratung
           </h1>
           <p className="text-sm" style={{ color: "rgba(100,116,139,0.85)" }}>
             Ihre persönliche KI-Finanzberatung
@@ -543,7 +543,7 @@ export default function VoiceSessionShell({
           {
             icon: <Mic size={17} style={{ color: "rgba(59,130,246,0.85)" }} />,
             title: "Sprachbasierte Beratung",
-            desc:  "PecunAI führt Sie per Stimme durch die gesamte Beratung.",
+            desc:  "Digital Onboarding Guide führt Sie per Stimme durch die gesamte Beratung.",
           },
           {
             icon: <VolumeX size={17} style={{ color: "rgba(59,130,246,0.85)" }} />,
@@ -936,7 +936,7 @@ export default function VoiceSessionShell({
 
           {/* Skip intro — Phase 0 intro only, not the Phase 2→3 / Phase 4 reuses of this screen.
               Jumps straight to the Terms1 (4money) document instead of waiting for the AI to
-              finish introducing PecunAI. See
+              finish introducing Digital Onboarding Guide. See
               private-documents/after-demo/PHASE_0_INTRO_SKIP_PLAN.md. */}
           {voicePhase === 0 && termsSubStep === 'intro' && (
             <motion.button
@@ -1087,7 +1087,7 @@ export default function VoiceSessionShell({
                     backgroundClip:       "text",
                   }}
                 >
-                  PecunAI Beratung
+                  Digital Onboarding Guide Beratung
                 </motion.h1>
                 <p className="text-sm" style={{ color: "rgba(59,130,246,0.6)" }}>
                   Tippen um zu starten
@@ -1572,7 +1572,7 @@ export default function VoiceSessionShell({
                   backgroundClip:       "text",
                 }}
               >
-                PecunAI Beratung
+                Digital Onboarding Guide Beratung
               </motion.h1>
               <p className="text-sm" style={{ color: "rgba(59,130,246,0.6)" }}>
                 Tippen um zu starten

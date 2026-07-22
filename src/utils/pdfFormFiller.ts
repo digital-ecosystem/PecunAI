@@ -1246,7 +1246,7 @@ const FORM_MAPPERS: Record<string, (userInfo: UserInfo, questions: Question[], a
   // Done
   "Vermittlungsgebühr.pdf": vermittlungsgebuehrMapper,
   "Vermögensverwaltungsvertrag.pdf": vermoegensverwaltungsvertragMapper,
-  "4money_protokoll_PecunAI_v.pdf": moneyProtokollMapper,
+  "4money_protokoll_digital_onboarding_guide_v.pdf": moneyProtokollMapper,
 };
 
 

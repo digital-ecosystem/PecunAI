@@ -543,7 +543,7 @@ export async function handleWsMessage(
         pttSpeculativeSearchRef.current  = null;
         pttPartialTranscriptRef.current  = "";
         if (!vectorStoreId) {
-          send({ type: "response.create", response: { instructions: `You are PecunAI. The document search system is not configured for this session. Apologize briefly. ${langTag()}` } });
+          send({ type: "response.create", response: { instructions: `You are Digital Onboarding Guide. The document search system is not configured for this session. Apologize briefly. ${langTag()}` } });
           break;
         }
         // Use the speculative search (already in-flight since first delta) if available,
@@ -584,17 +584,17 @@ export async function handleWsMessage(
         searchPromise.then(results => {
           if (!results || results.trim() === "" || results === "No relevant content found.") {
             if (phase4Context) {
-              send({ type: "response.create", response: { instructions: `Sie sind PecunAI. ${langTag()} Die Suche in ${docLabel} hat für diese Frage nichts geliefert. Ihnen liegen aber die folgenden konkreten Daten der Veranlagung dieses Kunden vor:\n\n${phase4Context}\n\nWenn die Frage des Kunden damit beantwortet werden kann, beantworten Sie sie in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Daten. Andernfalls teilen Sie dem Kunden freundlich mit, dass diese spezifische Information hier nicht verfügbar ist. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
+              send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Suche in ${docLabel} hat für diese Frage nichts geliefert. Ihnen liegen aber die folgenden konkreten Daten der Veranlagung dieses Kunden vor:\n\n${phase4Context}\n\nWenn die Frage des Kunden damit beantwortet werden kann, beantworten Sie sie in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Daten. Andernfalls teilen Sie dem Kunden freundlich mit, dass diese spezifische Information hier nicht verfügbar ist. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
             } else {
-              send({ type: "response.create", response: { instructions: `Sie sind PecunAI. ${langTag()} Die Suche in ${docLabel} hat für diese Frage keine passende Antwort gefunden. Teilen Sie dem Kunden freundlich mit, dass diese spezifische Information nicht im Dokument verfügbar ist, und laden Sie ihn ein, eine andere Frage zu stellen.` } });
+              send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Suche in ${docLabel} hat für diese Frage keine passende Antwort gefunden. Teilen Sie dem Kunden freundlich mit, dass diese spezifische Information nicht im Dokument verfügbar ist, und laden Sie ihn ein, eine andere Frage zu stellen.` } });
             }
           } else if (phase4Context) {
-            send({ type: "response.create", response: { instructions: `Sie sind PecunAI. ${langTag()} Die Dokumentensuche hat folgende allgemeine Informationen geliefert:\n\n${results}\n\nZusätzlich liegen Ihnen die folgenden konkreten Daten der Veranlagung dieses Kunden vor:\n\n${phase4Context}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser beiden Quellen. Bei Fragen zu den konkreten Zahlen oder Details der Veranlagung des Kunden nutzen Sie dessen Daten. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
+            send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Dokumentensuche hat folgende allgemeine Informationen geliefert:\n\n${results}\n\nZusätzlich liegen Ihnen die folgenden konkreten Daten der Veranlagung dieses Kunden vor:\n\n${phase4Context}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser beiden Quellen. Bei Fragen zu den konkreten Zahlen oder Details der Veranlagung des Kunden nutzen Sie dessen Daten. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
           } else {
-            send({ type: "response.create", response: { instructions: `Sie sind PecunAI. ${langTag()} Die Dokumentensuche hat folgende Informationen geliefert:\n\n${results}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
+            send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Dokumentensuche hat folgende Informationen geliefert:\n\n${results}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
           }
         }).catch(() => {
-          send({ type: "response.create", response: { instructions: `Sie sind PecunAI. ${langTag()} Bei der Dokumentensuche ist ein technischer Fehler aufgetreten. Entschuldigen Sie sich kurz und bitten Sie den Kunden, es erneut zu versuchen.` } });
+          send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Bei der Dokumentensuche ist ein technischer Fehler aufgetreten. Entschuldigen Sie sich kurz und bitten Sie den Kunden, es erneut zu versuchen.` } });
         });
         break;
       }

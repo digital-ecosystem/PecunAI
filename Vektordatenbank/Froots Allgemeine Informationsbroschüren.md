@@ -1,7 +1,7 @@
 # Entity: Froots Allgemeine Informationsbroschüren
 
 ## Was ist das?
-Sammeldokument aus **vier gesetzlich vorgeschriebenen Informationsschriften** der **Asset Management by froots GmbH** ("froots"), die Kund:innen im Rahmen des Vertragsabschlusses bei PecunAI (Kooperation mit **4money Financial Services GmbH**) zur Kenntnis gebracht werden. Kein Formular — reine Informationsurkunde. Wird in der Vertragsabschluss-Phase gezeigt (separat von der kürzeren `froots GmbH.md`, die in Phase 0 für die AGB-Zustimmung dient).
+Sammeldokument aus **vier gesetzlich vorgeschriebenen Informationsschriften** der **Asset Management by froots GmbH** ("froots"), die Kund:innen im Rahmen des Vertragsabschlusses bei Digital Onboarding Guide (Kooperation mit **4money Financial Services GmbH**) zur Kenntnis gebracht werden. Kein Formular — reine Informationsurkunde. Wird in der Vertragsabschluss-Phase gezeigt (separat von der kürzeren `froots GmbH.md`, die in Phase 0 für die AGB-Zustimmung dient).
 
 Die vier Teile:
 1. **FernFinG-Verbraucherinformationen** (Fernabsatz von Finanzdienstleistungen) — Stand 11/2023

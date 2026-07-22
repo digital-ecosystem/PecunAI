@@ -247,7 +247,7 @@ function OTPAuthPostgresContent() {
           </h1>
           <p className="text-gray-600">
             {step === 'email' 
-              ? 'Geben Sie Ihre Daten ein, um einen Verifizierungscode für Ihr Pecun AI Konto zu erhalten.' 
+              ? 'Geben Sie Ihre Daten ein, um einen Verifizierungscode für Ihr Digital Onboarding Guide Konto zu erhalten.'
               // : `Enter the 6-digit code sent to ${email}`
               : `Geben Sie den 6-stelligen Code ein, der an ${email} gesendet wurde.`
             }

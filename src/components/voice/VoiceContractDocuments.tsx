@@ -37,7 +37,7 @@ function getContractFrameSize() {
   }
 }
 
-// ── Document list — same 8 files, same two accordion sections as V1's ContractDocuments.tsx ──
+// ── Document list — 8 files across two accordion sections ──
 const VERTRAEGE_DOCS = [
   { file: "Depoteröffnungsantrag.pdf",       label: "Depoteröffnungsantrag" },
   { file: "Deckblatt_Vertragspaket.pdf",     label: "Deckblatt Vertragspaket" },
@@ -45,15 +45,12 @@ const VERTRAEGE_DOCS = [
   { file: "Vermittlungsgebühr.pdf",          label: "Vermittlungsgebühr" },
   { file: "Servicegebühr.pdf",               label: "Servicegebühren" },
   { file: "Serviceentgelt.pdf",              label: "Serviceentgelt" },
-  { file: "4money_protokoll_PecunAI_v.pdf",  label: "4money Protokoll" },
+  { file: "4money_protokoll_digital_onboarding_guide_v.pdf",  label: "4money Protokoll" },
 ] as const;
 
 const WEITERE_INFO_DOCS = [
   { file: "Froots_Allgemeine_Informationsbroschüren.pdf", label: "Froots Allgemeine Informationsbroschüren" },
 ] as const;
-
-// ── Checkbox state — same shape and cascade logic as V1's stepper/[session_id]/page.tsx
-// (handleCheckboxChangeContractDocument / handleAcceptAll). ──────
 
 interface Agreements {
   acceptAll:            boolean;
@@ -84,8 +81,8 @@ const INITIAL_AGREEMENTS: Agreements = {
 const STATUS_LABEL: Record<SessionState, string> = {
   idle:        "Bereit...",
   connecting:  "Verbinde...",
-  greeting:    "PecunAI begrüßt Sie...",
-  speaking:    "PecunAI spricht",
+  greeting:    "Digital Onboarding Guide begrüßt Sie...",
+  speaking:    "Digital Onboarding Guide spricht",
   listening:   "Zuhören...",
   processing:  "Verarbeite...",
   muted:       "Stumm – tippen Sie Ihre Antwort",
@@ -231,11 +228,10 @@ export default function VoiceContractDocuments({
     };
   }, [onFrameRect]);
 
-  // Generate the 8 contract PDFs on phase entry — same trigger as V1's `useEffect` on
-  // `step === PHASES.CONTRACT_DOCUMENT`. userInfo is fetched fresh from the DB (same
-  // fields/shape as VoicePersonalInfoForm.tsx's fetchUserInfo — never carried over via
-  // Zustand/localStorage, per the standing PII rule). V1 blocks its whole UI behind `loading`
-  // while this runs (a few seconds — 8 PDF fills) — mirrored here by gating the accordion.
+  // Generate the 8 contract PDFs on phase entry. userInfo is fetched fresh from the DB
+  // (same fields/shape as VoicePersonalInfoForm.tsx's fetchUserInfo) and is deliberately
+  // never carried over via Zustand/localStorage, per the standing PII rule. The 8 PDF fills
+  // take a few seconds, so the accordion stays gated behind `loading` while they run.
   useEffect(() => {
     const generateContractDocuments = async () => {
       setLoading(true);
@@ -312,7 +308,6 @@ export default function VoiceContractDocuments({
     }));
   }, []);
 
-  // Cascade logic copied verbatim from V1's handleCheckboxChangeContractDocument / handleAcceptAll.
   const handleCheckboxChange = useCallback((field: keyof Agreements) => {
     setAgreements(prev => {
       const updated = { ...prev, [field]: !prev[field] };
@@ -655,7 +650,7 @@ export default function VoiceContractDocuments({
                         </div>
                       </div>
 
-                      {/* Bestätigungs-Checkboxen — same text as V1, verbatim */}
+                      {/* Bestätigungs-Checkboxen — compliance-approved wording, do not reword */}
                       <div className="space-y-3 pt-2 border-t border-gray-100">
                         <label className="flex items-start gap-3 cursor-pointer group">
                           <input

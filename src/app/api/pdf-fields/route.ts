@@ -4,7 +4,7 @@ import path from 'path';
 
 export async function GET() {
   try {
-    const pdfPath = path.join(process.cwd(), 'public/static-pdf/4money_protokoll_PecunAI_v1.pdf');
+    const pdfPath = path.join(process.cwd(), 'public/static-pdf/4money_protokoll_digital_onboarding_guide_v1.pdf');
     
     console.log('📄 Analyzing PDF form fields:', pdfPath);
     

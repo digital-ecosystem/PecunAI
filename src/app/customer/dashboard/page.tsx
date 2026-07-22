@@ -188,56 +188,6 @@ const Dashboard = () => {
         }
     }
 
-    const startSession = async (opts?: { partnerCode?: string; agentCode?: string }) => {
-        setStartError(null);
-        setLoading(true);
-
-        let didNavigate = false;
-
-        try {
-            const response = await fetch('/api/qa-session/create', {
-                method: 'POST',
-                body: JSON.stringify(opts?.partnerCode ? { partnerCode: opts.partnerCode } : {}),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const res = await response.json();
-
-            if (res?.success && res?.session?.id) {
-                if (opts?.agentCode) {
-                    await fetch('/api/qa-session/agent', {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ sessionId: res.session.id, agentCode: opts.agentCode }),
-                    });
-                }
-                setIsStartDrawerOpen(false);
-                didNavigate = true;
-                router.push('/customer/stepper/' + res.session.id);
-                return;
-            }
-
-            if (response.status === 409 && res?.sessionId) {
-                setIsStartDrawerOpen(true);
-            }
-
-            if (res?.error === 'PARTNER_REQUIRED' || res?.error === 'PARTNER_INVALID') {
-                setIsStartDrawerOpen(true);
-            }
-
-            setStartError(res?.message || 'Sitzung konnte nicht erstellt werden');
-        } catch (error) {
-            console.log('error : ', error)
-            setStartError('Sitzung konnte nicht erstellt werden');
-        } finally {
-            if (!didNavigate) {
-                setLoading(false);
-            }
-        }
-    };
-
     const openWelcomeAndQueueStart = (opts?: { partnerCode?: string; agentCode?: string }) => {
         setIsStartDrawerOpen(false);
         setPendingStartPartnerCode(opts?.partnerCode || null);
@@ -245,19 +195,7 @@ const Dashboard = () => {
         setShowOnboardingWelcomePopup(true);
     };
 
-    const handleWelcomeContinue = async () => {
-        const queuedPartnerCode = pendingStartPartnerCode;
-        const queuedAgentCode = pendingStartAgentCode;
-        setShowOnboardingWelcomePopup(false);
-        setPendingStartPartnerCode(null);
-        setPendingStartAgentCode(null);
-        await startSession({
-            ...(queuedPartnerCode ? { partnerCode: queuedPartnerCode } : {}),
-            ...(queuedAgentCode ? { agentCode: queuedAgentCode } : {}),
-        });
-    };
-
-    const startSessionV2 = async (opts?: { partnerCode?: string; agentCode?: string }) => {
+    const startSession = async (opts?: { partnerCode?: string; agentCode?: string }) => {
         setStartError(null);
         setLoading(true);
         let didNavigate = false;
@@ -269,13 +207,12 @@ const Dashboard = () => {
             });
             const res = await response.json();
             if (res?.success && res?.session?.id) {
-                // Assign agent code if provided (same as V1 flow)
                 if (opts?.agentCode) {
                     await fetch('/api/qa-session/agent', {
-                        method: 'POST',
+                        method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ sessionId: res.session.id, agentCode: opts.agentCode }),
-                    }).catch(() => console.warn('[v2] agent code assignment failed'));
+                    }).catch(() => console.warn('agent code assignment failed'));
                 }
                 setIsStartDrawerOpen(false);
                 didNavigate = true;
@@ -290,13 +227,13 @@ const Dashboard = () => {
         }
     };
 
-    const handleWelcomeContinueV2 = async () => {
+    const handleWelcomeContinue = async () => {
         const queuedPartnerCode = pendingStartPartnerCode;
         const queuedAgentCode   = pendingStartAgentCode;
         setShowOnboardingWelcomePopup(false);
         setPendingStartPartnerCode(null);
         setPendingStartAgentCode(null);
-        await startSessionV2({
+        await startSession({
             ...(queuedPartnerCode ? { partnerCode: queuedPartnerCode } : {}),
             ...(queuedAgentCode   ? { agentCode:   queuedAgentCode   } : {}),
         });
@@ -369,7 +306,7 @@ const Dashboard = () => {
             setStartError('Sie haben bereits eine offene Beratung. Bitte zuerst abschließen.');
             return;
         }
-        // Require explicit confirmation before starting the stepper
+        // Require explicit confirmation before starting the onboarding session
         setIsStartDrawerOpen(true);
         const agentCodeFromCookie = getCookieValue('agent_code') || undefined;
         clearCookie('agent_code');
@@ -545,7 +482,7 @@ const Dashboard = () => {
                                     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-5 sm:p-8">
                                             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3">
-                                                Willkommen bei PecunAI.
+                                                Willkommen bei Digital Onboarding Guide.
                                             </h2>
                                             <div className="max-h-[60vh] overflow-y-auto pr-1 text-sm sm:text-base text-gray-700 space-y-3">
                                                 <p>
@@ -558,7 +495,7 @@ const Dashboard = () => {
                                                     Die Anlageberatung und Vermittlung erfolgt durch 4money Financial Services GmbH, die Vermögensverwaltung übernimmt froots (Asset Management by froots GmbH). Ihr Wertpapierdepot wird auf Ihren Namen bei der Schelhammer Capital Bank geführt.
                                                 </p>
                                                 <p>
-                                                    Am Ende der Beratungsstrecke steht Ihnen PecunAI – unser digitaler KI-Assistent – zur Verfügung, um Ihre Fragen zu beantworten und Sie bei der Entscheidungsfindung zu unterstützen.
+                                                    Am Ende der Beratungsstrecke steht Ihnen Digital Onboarding Guide – unser digitaler KI-Assistent – zur Verfügung, um Ihre Fragen zu beantworten und Sie bei der Entscheidungsfindung zu unterstützen.
                                                 </p>
                                                 <p>
                                                     Ihre Angaben werden vertraulich behandelt und ausschließlich im Rahmen dieser Beratung verwendet.
@@ -580,13 +517,6 @@ const Dashboard = () => {
                                                     className="w-full sm:w-auto px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                                                 >
                                                     Weiter
-                                                </button>
-                                                <button
-                                                    onClick={handleWelcomeContinueV2}
-                                                    className="w-full sm:w-auto px-4 py-2.5 text-white rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                                                    style={{ background: "linear-gradient(135deg, #4f46e5, #3b82f6)" }}
-                                                >
-                                                    Try V2
                                                 </button>
                                             </div>
                                         </div>

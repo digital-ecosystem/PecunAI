@@ -1,7 +1,7 @@
 # FAQ – Risikoprofil & Geeignetheit
 
 > **Kontext:** Dieses Kapitel behandelt alle Fragen, die Kund:innen beim Erstellen des Anleger:innenprofils oder bei der Risikoeinstufung typischerweise stellen.  
-> Es basiert auf den rechtlichen Vorgaben des WAG 2018 (§ 25), den 4money-Dokumenten „Anleger:innenprofil“ (V 2.4) und „PecunAI v1“, sowie den realen Beratungstranskripten.
+> Es basiert auf den rechtlichen Vorgaben des WAG 2018 (§ 25), den 4money-Dokumenten „Anleger:innenprofil“ (V 2.4) und „Digital Onboarding Guide“, sowie den realen Beratungstranskripten.
 
 ---
 

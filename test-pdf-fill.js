@@ -6,7 +6,7 @@ async function testPDFFormFilling() {
   
   try {
     // Path to your PDF
-    const pdfPath = path.join(process.cwd(), 'public/static-pdf/4money_protokoll_PecunAI_v1.pdf');
+    const pdfPath = path.join(process.cwd(), 'public/static-pdf/4money_protokoll_digital_onboarding_guide_v1.pdf');
     console.log('📄 PDF Path:', pdfPath);
     
     // Load the PDF and analyze fields

@@ -767,7 +767,7 @@ export async function handleFunctionCall(
         send({
           type: "response.create",
           response: {
-            instructions: `You are PecunAI. The document search system is not configured. Apologize briefly and let the customer know you cannot search the document right now. ${langTag()}`,
+            instructions: `You are Digital Onboarding Guide. The document search system is not configured. Apologize briefly and let the customer know you cannot search the document right now. ${langTag()}`,
           },
         });
         return;
@@ -786,7 +786,7 @@ export async function handleFunctionCall(
           send({
             type: "response.create",
             response: {
-              instructions: `You are PecunAI. The document search returned no results for this question. Let the customer know you could not find that specific information in the document, and invite them to ask another question or contact support. ${langTag()}`,
+              instructions: `You are Digital Onboarding Guide. The document search returned no results for this question. Let the customer know you could not find that specific information in the document, and invite them to ask another question or contact support. ${langTag()}`,
             },
           });
           return;
@@ -796,7 +796,7 @@ export async function handleFunctionCall(
         send({
           type: "response.create",
           response: {
-            instructions: `You are PecunAI. The document search returned the following content:\n\n${results}\n\nUsing ONLY the above content, answer the customer's question in 2–3 clear and natural sentences. Do not add information from your training data or memory. If the results do not directly answer the question, say so honestly and suggest they ask another question. ${langTag()}`,
+            instructions: `You are Digital Onboarding Guide. The document search returned the following content:\n\n${results}\n\nUsing ONLY the above content, answer the customer's question in 2–3 clear and natural sentences. Do not add information from your training data or memory. If the results do not directly answer the question, say so honestly and suggest they ask another question. ${langTag()}`,
           },
         });
       } catch {
@@ -804,7 +804,7 @@ export async function handleFunctionCall(
         send({
           type: "response.create",
           response: {
-            instructions: `You are PecunAI. The document search failed due to a technical error. Apologize briefly and suggest the customer try again or contact support. ${langTag()}`,
+            instructions: `You are Digital Onboarding Guide. The document search failed due to a technical error. Apologize briefly and suggest the customer try again or contact support. ${langTag()}`,
           },
         });
       }

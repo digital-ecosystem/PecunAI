@@ -80,7 +80,7 @@ froots ist lediglich mit der Verwaltung beauftragt und besitzt keine Verfügungs
 
 ### 5. Service-Erweiterung & Zukunftsvision
 - **App-Entwicklung:** Eine mobile Anwendung ist in technischer Planung, derzeit Zugang über Kundenportal-Link (App-ähnliche Funktion über Smartphone-Shortcut).  
-- **Erweiterte Schnittstellen:** Zukünftig sollen KI-Module (PecunAI) direkt mit froots interagieren, um Kundenprozesse (Onboarding, Portfolioerklärung, Risikoanalyse) automatisiert zu gestalten.  
+- **Erweiterte Schnittstellen:** Zukünftig sollen KI-Module (Digital Onboarding Guide) direkt mit froots interagieren, um Kundenprozesse (Onboarding, Portfolioerklärung, Risikoanalyse) automatisiert zu gestalten.  
 - **Nachhaltigkeitsausbau:** Integration von ESG-basierten Portfolios und nachhaltigen ETF-Produkten.
 
 ---
@@ -144,7 +144,7 @@ froots selbst tritt als **technischer und strategischer Vermögensverwalter** au
 Alle rechtlich relevanten Schritte (KYC, Eignung, Risikoaufklärung) werden über 4money abgewickelt.
 
 **Ablauf:**
-1. **Onboarding** über 4money oder PecunAI-System.  
+1. **Onboarding** über 4money oder Digital Onboarding Guide-System.  
 2. **Portfolio-Zuordnung** durch Algorithmus und Beraterprüfung.  
 3. **Eröffnung eines Depots** bei der **Schelhammer Capital Bank** im Namen der Kundin/des Kunden.  
 4. **Investition und laufende Verwaltung** durch froots.  
@@ -162,7 +162,7 @@ froots bietet eine benutzerfreundliche Weboberfläche für den gesamten Anlagepr
 
 ### Geplante Erweiterungen (2025–2026)
 - **Native App (iOS/Android)** mit biometrischem Login  
-- **Verknüpfung mit PecunAI-Sprachdialogen** zur Erklärung von Portfolios in natürlicher Sprache  
+- **Verknüpfung mit Digital Onboarding Guide-Sprachdialogen** zur Erklärung von Portfolios in natürlicher Sprache  
 - **Integration von Nachhaltigkeitspräferenz-Dialogen (ESG Chat)**  
 - **Predictive Analytics** für Rebalancing und Zielerreichungsanalyse
 
@@ -208,4 +208,4 @@ Das Advisory Board vereint über 50 Jahre Erfahrung in **Behavioral Finance**, *
 **froots GmbH** ist das **Investment-Frontend und Portfolio-Herzstück** des digitalen Anlageökosystems rund um **4money**.  
 Während 4money die rechtliche und regulatorische Struktur bereitstellt, ist froots die Marke, die Kund:innen erleben: digital, sympathisch, wissenschaftlich fundiert.  
 Das Unternehmen transformiert die klassische Vermögensverwaltung in eine **automatisierte, transparente und inklusive Investmenterfahrung**,  
-die über Systeme wie **PecunAI** zunehmend sprach- und KI-gesteuert zugänglich gemacht wird.
+die über Systeme wie **Digital Onboarding Guide** zunehmend sprach- und KI-gesteuert zugänglich gemacht wird.

@@ -1,6 +1,8 @@
 export const CONFIG = {
-  APP_NAME: 'PecunAI',
-  SUPPORT_EMAIL: 'support@pecunai.com', // Replace with actual support email
+  APP_NAME: 'Digital Onboarding Guide',
+  // TODO: confirm the real support domain — 'digitalonboardingguide.tbd' is a placeholder
+  // standing in for the not-yet-decided production domain. Replace before launch.
+  SUPPORT_EMAIL: 'support@digitalonboardingguide.tbd',
   DEFAULT_LOCALE: 'de',
   
   SIGNTEQ: {

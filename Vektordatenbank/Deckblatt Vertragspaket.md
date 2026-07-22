@@ -8,7 +8,7 @@
 
 ## Was ist das?
 
-Dies ist das **Deckblatt für die Unterzeichnung des Vertragspakets** im PecunAI-Onboarding-Prozess. Es ist kein eigenständiger Vertrag, sondern eine Art **Sammel-Unterschriftenblatt** bzw. Inhaltsverzeichnis: Auf diesem Deckblatt unterzeichnet der Auftraggeber (Kunde) gesammelt alle im Vertragspaket enthaltenen Einzeldokumente. Es dient dazu, die Unterschrift(en) einmalig zu bündeln, statt jedes Dokument einzeln zu unterschreiben.
+Dies ist das **Deckblatt für die Unterzeichnung des Vertragspakets** im Digital Onboarding Guide-Onboarding-Prozess. Es ist kein eigenständiger Vertrag, sondern eine Art **Sammel-Unterschriftenblatt** bzw. Inhaltsverzeichnis: Auf diesem Deckblatt unterzeichnet der Auftraggeber (Kunde) gesammelt alle im Vertragspaket enthaltenen Einzeldokumente. Es dient dazu, die Unterschrift(en) einmalig zu bündeln, statt jedes Dokument einzeln zu unterschreiben.
 
 ---
 

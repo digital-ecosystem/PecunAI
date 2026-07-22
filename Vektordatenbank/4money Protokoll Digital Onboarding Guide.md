@@ -4,7 +4,7 @@
 
 ## Was ist das?
 
-Das **Anleger:innenprofil / Beratungsprotokoll** ist das gesetzlich vorgeschriebene Protokoll der Wertpapierdienstleistung gemäß **Wertpapieraufsichtsgesetz 2018 (WAG 2018)** bzw. **MiFID II**, das im Rahmen der Anlageberatung bei PecunAI erstellt wird. Es dokumentiert:
+Das **Anleger:innenprofil / Beratungsprotokoll** ist das gesetzlich vorgeschriebene Protokoll der Wertpapierdienstleistung gemäß **Wertpapieraufsichtsgesetz 2018 (WAG 2018)** bzw. **MiFID II**, das im Rahmen der Anlageberatung bei Digital Onboarding Guide erstellt wird. Es dokumentiert:
 - Informationen über 4money und ihren rechtlichen Status
 - Finanz- und Risikoanalyse (Anlageziele, -horizont, Risikoneigung, finanzielle Verhältnisse, Erfahrung/Kenntnisse)
 - Nachhaltigkeitspräferenzen (ESG)

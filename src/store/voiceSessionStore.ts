@@ -79,7 +79,7 @@ export const useVoiceSessionStore = create<VoiceSessionStore>()(
       reset:           ()     => set(INITIAL_STATE),
     }),
     {
-      name:    "pecunai-voice-session",
+      name:    "doguide-voice-session",
       storage: createJSONStorage(() => {
         if (typeof window === "undefined") return sessionStorage; // SSR guard
         return localStorage;
