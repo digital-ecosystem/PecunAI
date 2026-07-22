@@ -21,6 +21,9 @@ export interface QuestionOption {
 export interface ModalQuestion {
   number:           number;
   total:            number;
+  /** Carousel category label (e.g. "Frage") — the expanded card mirrors the
+   *  compact card's header for the Round 22 "same card grows" continuity. */
+  category?:        string;
   text:             string;
   options:          QuestionOption[];
   questionType?:    string;

@@ -76,6 +76,18 @@ textarea {
   display: none;  /* Safari and Chrome */
 }
 
+/* Phase 1 expanded card's hero number input — hide the browser's native
+   spin buttons (they clip the centered value/placeholder in the 300px card). */
+.hero-number-input::-webkit-outer-spin-button,
+.hero-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.hero-number-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 /* Prevents iOS Safari's long-press text-selection/callout menu from firing when the customer
    holds the push-to-talk button — see private-documents/after-demo/PTT_TEXT_SELECTION_FIX_PLAN.md */
 .ptt-button {
