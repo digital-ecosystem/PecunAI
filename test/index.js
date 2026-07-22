@@ -1,9 +1,9 @@
 import fs from "fs";
 import { PDFDocument } from "pdf-lib";
 
-async function fillPecunAIPdf() {
+async function fillDigitalOnboardingGuidePdf() {
   // 1️⃣ Load the original PDF
-  const existingPdfBytes = fs.readFileSync("./4money_protokoll_PecunAI_v1.pdf");
+  const existingPdfBytes = fs.readFileSync("./4money_protokoll_digital_onboarding_guide_v1.pdf");
 
   // 2️⃣ Load it into pdf-lib
   const pdfDoc = await PDFDocument.load(existingPdfBytes);
@@ -39,4 +39,4 @@ async function fillPecunAIPdf() {
   console.log("✅ PDF filled and saved as 4money_filled.pdf");
 }
 
-fillPecunAIPdf().catch(console.error);
+fillDigitalOnboardingGuidePdf().catch(console.error);

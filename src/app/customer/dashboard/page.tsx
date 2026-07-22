@@ -545,7 +545,7 @@ const Dashboard = () => {
                                     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-5 sm:p-8">
                                             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3">
-                                                Willkommen bei PecunAI.
+                                                Willkommen bei Digital Onboarding Guide.
                                             </h2>
                                             <div className="max-h-[60vh] overflow-y-auto pr-1 text-sm sm:text-base text-gray-700 space-y-3">
                                                 <p>
@@ -558,7 +558,7 @@ const Dashboard = () => {
                                                     Die Anlageberatung und Vermittlung erfolgt durch 4money Financial Services GmbH, die Vermögensverwaltung übernimmt froots (Asset Management by froots GmbH). Ihr Wertpapierdepot wird auf Ihren Namen bei der Schelhammer Capital Bank geführt.
                                                 </p>
                                                 <p>
-                                                    Am Ende der Beratungsstrecke steht Ihnen PecunAI – unser digitaler KI-Assistent – zur Verfügung, um Ihre Fragen zu beantworten und Sie bei der Entscheidungsfindung zu unterstützen.
+                                                    Am Ende der Beratungsstrecke steht Ihnen Digital Onboarding Guide – unser digitaler KI-Assistent – zur Verfügung, um Ihre Fragen zu beantworten und Sie bei der Entscheidungsfindung zu unterstützen.
                                                 </p>
                                                 <p>
                                                     Ihre Angaben werden vertraulich behandelt und ausschließlich im Rahmen dieser Beratung verwendet.

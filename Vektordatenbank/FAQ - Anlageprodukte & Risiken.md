@@ -327,7 +327,7 @@ Was du stattdessen bekommst:
 Die historische Entwicklung findest du im **Factsheet** bzw. in den Unterlagen zur Strategie (meist direkt bei der Portfolioübersicht/Performance‑Darstellung).
 
 > *Wichtig:* **Vergangene Performance ist kein Indikator für zukünftige Performance.**  
-> Wenn du möchtest, kann PecunAI dir helfen, das Factsheet zu lesen (z. B. Zeitraum, Volatilität, maximale Rückgänge, Kostenwirkung) – ohne daraus Prognosen abzuleiten.
+> Wenn du möchtest, kann Digital Onboarding Guide dir helfen, das Factsheet zu lesen (z. B. Zeitraum, Volatilität, maximale Rückgänge, Kostenwirkung) – ohne daraus Prognosen abzuleiten.
 
 
 ---

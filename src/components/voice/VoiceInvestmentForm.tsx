@@ -200,8 +200,8 @@ function getInvestmentFrameSize() {
 const STATUS_LABEL: Record<SessionState, string> = {
   idle:        "Bereit...",
   connecting:  "Verbinde...",
-  greeting:    "PecunAI begrüßt Sie...",
-  speaking:    "PecunAI spricht",
+  greeting:    "Digital Onboarding Guide begrüßt Sie...",
+  speaking:    "Digital Onboarding Guide spricht",
   listening:   "Zuhören...",
   processing:  "Verarbeite...",
   muted:       "Stumm – tippen Sie Ihre Antwort",

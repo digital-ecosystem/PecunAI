@@ -41,7 +41,7 @@ export async function handleMoveToTerms1(ctx: VoiceContext): Promise<void> {
   // wsMessageHandler cancels a late-born intro on response.created and fires
   // the parked create on response.done. See PHASE_0_INTRO_SKIP_RACE_PLAN.md.
   if (serverResponseActiveRef.current || awaitingResponseCreatedRef.current) {
-    // The intro is cancelled mid-flight, so a half-spoken "Hallo, ich bin PecunAI…" stays in
+    // The intro is cancelled mid-flight, so a half-spoken "Hallo, ich bin Digital Onboarding Guide…" stays in
     // the conversation as the last assistant turn. Left alone, the model finishes/repeats that
     // introduction on the terms1 screen instead of describing the document. Prepend a skip
     // marker — wsMessageHandler fires the whole array on response.done, so it lands AFTER the
@@ -119,7 +119,7 @@ export async function handleConfirmSustainabilityTerms(ctx: VoiceContext): Promi
 
   // Mark as confirmed so the modal is never shown again this session.
   sustainabilityConfirmedRef.current = true;
-  try { localStorage.setItem(`pecunai_sus_${sessionId}`, "1"); } catch {}
+  try { localStorage.setItem(`doguide_sus_${sessionId}`, "1"); } catch {}
 
   // If Q2 was skipped (not answered), promote it to answered so it doesn't appear in circle-back.
   const q2 = questionsRef.current.find(q => q.questionOrder === 2);

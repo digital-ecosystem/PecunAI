@@ -2,7 +2,7 @@
 
 *(Stand: Oktober 2025)*
 
-Der **Vermögensverwaltungsvertrag** ist der zentrale, kundenindividuelle Hauptvertrag des PecunAI/froots-Vertragspakets. Mit Unterzeichnung beauftragt der Auftraggeber die **Asset Management by froots GmbH** (FN 540838a, Rauhensteingasse 12, 1010 Wien, "froots"/"Auftragnehmer") mit der Verwaltung seiner Vermögenswerte. Der Vertrag regelt in sechs Abschnitten: Anlegerprofil & Eignungsprüfung, Anlagestrategie & Portfolio-Management (inkl. Verwaltungsvollmacht von froots), Pricing (froots + 4money), den vermittelten Depotbankvertrag sowie Schlussbestimmungen (Haftung, Datenschutz, Kündigung, Rechtswahl/Gerichtsstand).
+Der **Vermögensverwaltungsvertrag** ist der zentrale, kundenindividuelle Hauptvertrag des Digital Onboarding Guide/froots-Vertragspakets. Mit Unterzeichnung beauftragt der Auftraggeber die **Asset Management by froots GmbH** (FN 540838a, Rauhensteingasse 12, 1010 Wien, "froots"/"Auftragnehmer") mit der Verwaltung seiner Vermögenswerte. Der Vertrag regelt in sechs Abschnitten: Anlegerprofil & Eignungsprüfung, Anlagestrategie & Portfolio-Management (inkl. Verwaltungsvollmacht von froots), Pricing (froots + 4money), den vermittelten Depotbankvertrag sowie Schlussbestimmungen (Haftung, Datenschutz, Kündigung, Rechtswahl/Gerichtsstand).
 
 ---
 

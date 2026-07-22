@@ -10,7 +10,7 @@ const DOC_FILES = [
   "Servicegebühr.md",
   "Serviceentgelt.md",
   "Vermögensverwaltungsvertrag.md",
-  "4money Protokoll PecunAI.md",
+  "4money Protokoll Digital Onboarding Guide.md",
   "Froots Allgemeine Informationsbroschüren.md",
   "Depoteröffnungsantrag.md",
 ];

@@ -27,7 +27,7 @@
 ## 4️⃣ Kommunikationsstil (Ton)
 - **Grundstimmung:** ruhig, beschützend, sicherheitsorientiert  
 - **Charakter:** „Ich bin das Portfolio für Menschen, die ruhig schlafen möchten. Ich halte dein Kapital stabil, während du planst, was du mit den Zinsen machst.“  
-- **PecunAI-Sprache:** besonnen, faktenbasiert, beruhigend; betont Stabilität und Sicherheit.
+- **Digital Onboarding Guide-Sprache:** besonnen, faktenbasiert, beruhigend; betont Stabilität und Sicherheit.
 
 ## 5️⃣ FAQ & Gesprächsanker
 **Q:** Was ist das Hauptziel dieses Portfolios?  
@@ -46,11 +46,11 @@
 
 ### 💬 Tonalität
 „Ruhig – sicher – verlässlich.“  
-PecunAI erklärt sachlich, nutzt Begriffe wie *Stabilität*, *Planbarkeit*, *Schutz*, vermeidet Renditeversprechen.
+Digital Onboarding Guide erklärt sachlich, nutzt Begriffe wie *Stabilität*, *Planbarkeit*, *Schutz*, vermeidet Renditeversprechen.
 
 ---
 
 ### ⚙️ Technische Hinweise
 - `product_id`: vvkn_1_goal  
-- `source_docs`: [froots GmbH.md, Produkte & Service.docx, Beratungsgespräche PecunAI.docx]  
+- `source_docs`: [froots GmbH.md, Produkte & Service.docx, Beratungsgespräche Digital Onboarding Guide.docx]  
 - `faq_linked`: [FAQ – Anlageprodukte & Risiken.md, FAQ – Kosten & Gebühren.md]

@@ -2,7 +2,7 @@
 
 ## Was ist das?
 
-Dies ist ein einseitiges Vereinbarungsformular im PecunAI-Onboarding-Prozess, mit dem zwischen der Kundin/dem Kunden und der **4money Financial Services GmbH** eine **Vermittlungsgebühr** (bei Einmalerlag) bzw. eine **Set-up-Fee** (bei Sparplan) für die einmalige Vermittlung von Finanzinstrumenten bzw. Vermögensverwaltung vereinbart wird. Es hält fest, wie hoch diese Gebühr im konkreten Fall ist, und wird von **Berater:in**, **Kund:in** und dem **Wertpapierdienstleistungsunternehmen (WPDLU)** unterschrieben. Im vorliegenden Dokument handelt es sich um eine leere Vorlage — die konkreten Prozentsätze, Euro-Beträge, Namen, Orte, Daten und Unterschriften sind noch nicht ausgefüllt.
+Dies ist ein einseitiges Vereinbarungsformular im Digital Onboarding Guide-Onboarding-Prozess, mit dem zwischen der Kundin/dem Kunden und der **4money Financial Services GmbH** eine **Vermittlungsgebühr** (bei Einmalerlag) bzw. eine **Set-up-Fee** (bei Sparplan) für die einmalige Vermittlung von Finanzinstrumenten bzw. Vermögensverwaltung vereinbart wird. Es hält fest, wie hoch diese Gebühr im konkreten Fall ist, und wird von **Berater:in**, **Kund:in** und dem **Wertpapierdienstleistungsunternehmen (WPDLU)** unterschrieben. Im vorliegenden Dokument handelt es sich um eine leere Vorlage — die konkreten Prozentsätze, Euro-Beträge, Namen, Orte, Daten und Unterschriften sind noch nicht ausgefüllt.
 
 Das Dokument ist **Seite 27** eines größeren Unterlagenpakets (Seitenzahl „27" oben links vermerkt) und besteht aus nur dieser einen Seite.
 

@@ -1,8 +1,8 @@
-# FAQ – Prozess, Ablauf & Kundenreise (PecunAI / 4money)
+# FAQ – Prozess, Ablauf & Kundenreise (Digital Onboarding Guide / 4money)
 
 > **Kontext:**  
 > Dieses Kapitel beschreibt den vollständigen digitalen Beratungs- und Abschlussprozess,  
-> bei dem die künstliche Intelligenz **PecunAI** als interaktiver Finanzberater fungiert.  
+> bei dem die künstliche Intelligenz **Digital Onboarding Guide** als interaktiver Finanzberater fungiert.  
 > Sie erklärt, klärt auf und beantwortet Fragen **nach der algorithmischen Produktempfehlung**,  
 > bevor Kund:innen die digitale Signatur leisten.  
 > Die rechtliche Verantwortung liegt weiterhin bei der **4money Financial Services GmbH** (WPDLU).
@@ -16,18 +16,18 @@ Der Ablauf besteht aus **fünf Hauptphasen**:
 | Phase | Verantwortlich | Beschreibung |
 |--------|----------------|--------------|
 | **1. Einladung & Start** | Vertriebspartner oder 4money | Der Kunde erhält einen personalisierten Link (E-Mail, SMS, WhatsApp). |
-| **2. Datenerhebung & Profil** | PecunAI | Erhebung aller gesetzlichen Pflichtdaten (Ziele, Finanzen, Risiko, Nachhaltigkeit). |
+| **2. Datenerhebung & Profil** | Digital Onboarding Guide | Erhebung aller gesetzlichen Pflichtdaten (Ziele, Finanzen, Risiko, Nachhaltigkeit). |
 | **3. Produktempfehlung (Algorithmus)** | Regel-Engine + froots-Matrix | Automatische Berechnung des passenden Portfolios auf Basis der Angaben. |
-| **4. Beratungsgespräch mit PecunAI (digitale Aufklärung)** | PecunAI (KI-Dialog) | KI erklärt das vorgeschlagene Produkt, Risiken, Kosten, Renditeerwartung – beantwortet Nachfragen. |
+| **4. Beratungsgespräch mit Digital Onboarding Guide (digitale Aufklärung)** | Digital Onboarding Guide (KI-Dialog) | KI erklärt das vorgeschlagene Produkt, Risiken, Kosten, Renditeerwartung – beantwortet Nachfragen. |
 | **5. Digitale Signatur & Freigabe** | Kunde & Berater (4money) | Kunde unterschreibt, Berater prüft & gibt frei. |
 
 Damit ist der gesamte Ablauf **digital, auditierbar und rechtssicher**.
 
 ---
 
-## 2. Welche Rolle spielt PecunAI genau?
+## 2. Welche Rolle spielt Digital Onboarding Guide genau?
 
-PecunAI ist dein **digitaler Finanzberater** –  
+Digital Onboarding Guide ist dein **digitaler Finanzberater** –  
 eine Künstliche Intelligenz, die das Gespräch führt,  
 Fragen beantwortet und dich durch alle rechtlichen Aufklärungspflichten leitet.
 
@@ -38,20 +38,20 @@ Sie übernimmt die Funktion, die früher ein menschlicher Berater mündlich erf�
 - dokumentiert deine Bestätigungen.
 
 > **Rechtlicher Rahmen:**  
-> PecunAI handelt als **digitaler Vertreter im Auftrag von 4money**.  
+> Digital Onboarding Guide handelt als **digitaler Vertreter im Auftrag von 4money**.  
 > Das Gespräch wird aufgezeichnet (§ 25 WAG 2018) und durch einen **lizenzierten Berater** geprüft.
 
 ---
 
-## 3. Wann spricht PecunAI mit mir?
+## 3. Wann spricht Digital Onboarding Guide mit mir?
 
 Direkt **nach der Produktempfehlung**.  
 Das System hat bereits dein Profil analysiert und ein Portfolio vorgeschlagen (z. B. „VVKN 3 Balance“).  
-Bevor du unterschreibst, öffnet sich automatisch die **Beratungsphase mit PecunAI**:
+Bevor du unterschreibst, öffnet sich automatisch die **Beratungsphase mit Digital Onboarding Guide**:
 
-1. **PecunAI erklärt** das vorgeschlagene Portfolio in Alltagssprache.  
+1. **Digital Onboarding Guide erklärt** das vorgeschlagene Portfolio in Alltagssprache.  
 2. **Du stellst Fragen** (z. B. zu Risiko, Nachhaltigkeit, Kosten, Rendite).  
-3. **PecunAI beantwortet** alles nachvollziehbar – neutral, ohne Verkaufsdruck.  
+3. **Digital Onboarding Guide beantwortet** alles nachvollziehbar – neutral, ohne Verkaufsdruck.  
 4. **Du bestätigst**, dass du alles verstanden hast.  
 5. Erst danach wird die **digitale Signatur** freigegeben.
 
@@ -60,7 +60,7 @@ so wie bei einem menschlichen Beratungsgespräch.
 
 ---
 
-## 4. Welche Themen erklärt PecunAI in dieser Phase?
+## 4. Welche Themen erklärt Digital Onboarding Guide in dieser Phase?
 
 Die KI behandelt strukturiert alle gesetzlich geforderten Beratungspunkte:
 
@@ -81,14 +81,14 @@ Alle Antworten werden im Gesprächsprotokoll gespeichert.
 
 ## 5. Was passiert, wenn ich etwas nicht verstehe?
 
-PecunAI erkennt Unsicherheiten an deiner Reaktion (z. B. längere Pause, Schlüsselwörter wie „verstehe ich nicht“).  
+Digital Onboarding Guide erkennt Unsicherheiten an deiner Reaktion (z. B. längere Pause, Schlüsselwörter wie „verstehe ich nicht“).  
 Dann erklärt sie den Punkt noch einmal einfacher oder bietet ein Beispiel an.  
 wird automatisch ein **menschlicher Berater** hinzugezogen.
 
 ---
 ## 6. Wie wird dokumentiert, dass ich alles verstanden habe?
 
-Nach jeder durch den Kunden gestellte Frage und der darauf folgenden Antwort fragt PecunAI dich aktiv nach Bestätigung, z. B.:  
+Nach jeder durch den Kunden gestellte Frage und der darauf folgenden Antwort fragt Digital Onboarding Guide dich aktiv nach Bestätigung, z. B.:  
 > „Ist damit klar, dass Wertpapiere schwanken und kein Kapitalschutz besteht?“  
 
 Deine Antwort wird protokolliert:  
@@ -96,21 +96,21 @@ Deine Antwort wird protokolliert:
 
 ---
 
-## 7. Kann ich PecunAI Fragen zu anderen Themen stellen?
+## 7. Kann ich Digital Onboarding Guide Fragen zu anderen Themen stellen?
 
 Ja.  
-PecunAI kann auch allgemeine Fragen zu Anlagegrundsätzen, ETFs, Kosten, Steuern oder Nachhaltigkeit beantworten –  
+Digital Onboarding Guide kann auch allgemeine Fragen zu Anlagegrundsätzen, ETFs, Kosten, Steuern oder Nachhaltigkeit beantworten –  
 solange sie innerhalb der Informationspflicht bleiben.  
 Fragen, die **nicht produktbezogen oder rechtlich relevant** sind (z. B. Marktprognosen),  
 werden als „allgemeine Information“ betrachtet und neutral beantwortet.
 
 ---
 
-## 8. Was passiert nach dem Gespräch mit PecunAI?
+## 8. Was passiert nach dem Gespräch mit Digital Onboarding Guide?
 
 Wenn alle Themen bestätigt sind:
 
-1. PecunAI erstellt automatisch deine **individuelle Geeignetheitserklärung**,  
+1. Digital Onboarding Guide erstellt automatisch deine **individuelle Geeignetheitserklärung**,  
    inkl. deiner Antworten und Bestätigungen.  
 2. Du erhältst eine **Zusammenfassung zur Kontrolle**.  
 3. Danach öffnet sich das **Signaturfeld**.  
@@ -124,7 +124,7 @@ Wenn alle Themen bestätigt sind:
 
 Der Berater sieht im System:
 
-- deinen gesamten Chatverlauf mit PecunAI,  
+- deinen gesamten Chatverlauf mit Digital Onboarding Guide,  
 - den Audit-Trail (Zeitstempel, Bestätigungen, Risiko-/Kosten-Acks),  
 - die finale Geeignetheitserklärung.  
 
@@ -176,26 +176,26 @@ Die Dateien liegen im **Blob-Speicher mit WORM-Policy** (Write Once, Read Many).
 
 ## 13. Was passiert, wenn ich später Rückfragen habe?
 
-Du kannst PecunAI nachträglich kontaktieren (z. B. über dein Kundenportal),  
+Du kannst Digital Onboarding Guide nachträglich kontaktieren (z. B. über dein Kundenportal),  
 um dir Erklärungen noch einmal anzuhören oder Dokumente abrufen zu lassen.  
 Wenn du eine **inhaltliche Änderung** wünschst (z. B. anderes Risikoprofil),  
-führt PecunAI dich erneut durch die relevanten Schritte.
+führt Digital Onboarding Guide dich erneut durch die relevanten Schritte.
 
 ---
 
 ## 14. Ist das alles wirklich rechtlich gleichwertig?
 
 Ja.  
-Die digitale Beratung mit PecunAI erfüllt alle gesetzlichen Anforderungen  
+Die digitale Beratung mit Digital Onboarding Guide erfüllt alle gesetzlichen Anforderungen  
 an ein ordnungsgemäßes Beratungsgespräch (§ 25 WAG 2018, MiFID II).  
 Die menschliche Freigabe durch 4money sichert die **Verantwortungsebene**,  
 sodass der gesamte Prozess **rechtsgültig und auditierbar** bleibt.
 
 ---
 
-## 15. Kann ich PecunAI als dauerhaften Ansprechpartner nutzen?
+## 15. Kann ich Digital Onboarding Guide als dauerhaften Ansprechpartner nutzen?
 
-Ja – PecunAI ist nicht nur Teil des Onboardings,  
+Ja – Digital Onboarding Guide ist nicht nur Teil des Onboardings,  
 sondern bleibt dein digitaler Ansprechpartner für Nachfragen, Portfolio-Updates und jährliche Geeignetheitsprüfungen.  
 Das bedeutet:  
 Du kannst jederzeit ein Update starten,  
@@ -204,7 +204,7 @@ z. B. bei neuen finanziellen Zielen oder geänderter Lebenssituation.
 ---
 
 > **Zusammenfassung:**  
-> - PecunAI übernimmt die erklärende Beratung **nach** der algorithmischen Produktempfehlung.  
+> - Digital Onboarding Guide übernimmt die erklärende Beratung **nach** der algorithmischen Produktempfehlung.  
 > - Das Gespräch ist Teil der gesetzlich geforderten Aufklärung (§ 25 WAG).  
 > - Jede Bestätigung wird dokumentiert (Risk-, Cost-, Sustainability-Ack).  
 > - Danach folgt die digitale Signatur und Freigabe durch 4money.  

@@ -83,10 +83,10 @@ export default function VoiceChatModal({
             >
               <div>
                 <h2 className="text-xl font-semibold" style={{ color: "rgba(30,58,138,0.9)" }}>
-                  Chat mit PecunAI
+                  Chat mit Digital Onboarding Guide
                 </h2>
                 <p className="text-sm mt-1" style={{ color: "rgba(59,130,246,0.6)" }}>
-                  {isAITyping ? "PecunAI schreibt…" : "Online und bereit zu helfen"}
+                  {isAITyping ? "Digital Onboarding Guide schreibt…" : "Online und bereit zu helfen"}
                 </p>
               </div>
               <motion.button

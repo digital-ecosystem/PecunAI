@@ -2,7 +2,7 @@
 
 ## Was ist das?
 
-Die **Servicegebührvereinbarung** ist eine Vereinbarung zwischen der **4money Financial Services GmbH** (Einspinnergasse 1, 8010 Graz; im Dokument "4money" genannt) und dem/der Konto-/Depotinhaber:in. Sie regelt eine pauschale, laufende Servicegebühr, die für den Zugang zu qualifizierten Vor-Ort-Berater:innen und eine jährliche Überprüfung der Veranlagungsstrategie/Portfoliostruktur anfällt. Im Onboarding-Flow von PecunAI dient dieses Dokument dazu, den/die Kund:in über Höhe, Berechnung, Verrechnungsrhythmus und Kündigungsbedingungen dieser Servicegebühr aufzuklären und deren Einverständnis (per Unterschrift) einzuholen. Der Vertrag kommt jedoch erst mit der Unterschrift des WPDLU (Wertpapierdienstleistungsunternehmen) zustande.
+Die **Servicegebührvereinbarung** ist eine Vereinbarung zwischen der **4money Financial Services GmbH** (Einspinnergasse 1, 8010 Graz; im Dokument "4money" genannt) und dem/der Konto-/Depotinhaber:in. Sie regelt eine pauschale, laufende Servicegebühr, die für den Zugang zu qualifizierten Vor-Ort-Berater:innen und eine jährliche Überprüfung der Veranlagungsstrategie/Portfoliostruktur anfällt. Im Onboarding-Flow von Digital Onboarding Guide dient dieses Dokument dazu, den/die Kund:in über Höhe, Berechnung, Verrechnungsrhythmus und Kündigungsbedingungen dieser Servicegebühr aufzuklären und deren Einverständnis (per Unterschrift) einzuholen. Der Vertrag kommt jedoch erst mit der Unterschrift des WPDLU (Wertpapierdienstleistungsunternehmen) zustande.
 
 Das vorliegende Dokument ist eine leere Vorlage (Template) — Felder wie Name, IBAN, Depotnummer, Adresse, Ort/Datum und Unterschriften sind im Original noch nicht ausgefüllt und werden hier nicht als Inhalt behandelt.
 

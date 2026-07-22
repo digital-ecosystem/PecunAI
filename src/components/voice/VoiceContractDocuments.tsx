@@ -45,7 +45,7 @@ const VERTRAEGE_DOCS = [
   { file: "Vermittlungsgebühr.pdf",          label: "Vermittlungsgebühr" },
   { file: "Servicegebühr.pdf",               label: "Servicegebühren" },
   { file: "Serviceentgelt.pdf",              label: "Serviceentgelt" },
-  { file: "4money_protokoll_PecunAI_v.pdf",  label: "4money Protokoll" },
+  { file: "4money_protokoll_digital_onboarding_guide_v.pdf",  label: "4money Protokoll" },
 ] as const;
 
 const WEITERE_INFO_DOCS = [
@@ -84,8 +84,8 @@ const INITIAL_AGREEMENTS: Agreements = {
 const STATUS_LABEL: Record<SessionState, string> = {
   idle:        "Bereit...",
   connecting:  "Verbinde...",
-  greeting:    "PecunAI begrüßt Sie...",
-  speaking:    "PecunAI spricht",
+  greeting:    "Digital Onboarding Guide begrüßt Sie...",
+  speaking:    "Digital Onboarding Guide spricht",
   listening:   "Zuhören...",
   processing:  "Verarbeite...",
   muted:       "Stumm – tippen Sie Ihre Antwort",

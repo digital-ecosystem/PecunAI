@@ -39,7 +39,7 @@ export default function VoiceMicAccessModal({ onRetry }: VoiceMicAccessModalProp
             Mikrofonzugriff erforderlich
           </h1>
           <p className="text-sm" style={{ color: "rgba(100,116,139,0.85)" }}>
-            PecunAI führt die gesamte Beratung per Stimme. Ohne Mikrofonzugriff kann die Sitzung leider nicht fortgesetzt werden.
+            Digital Onboarding Guide führt die gesamte Beratung per Stimme. Ohne Mikrofonzugriff kann die Sitzung leider nicht fortgesetzt werden.
           </p>
         </div>
 

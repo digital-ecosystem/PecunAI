@@ -78,24 +78,24 @@ Das Unternehmen unterliegt strengen Pflichten in Bezug auf:
 4money arbeitet mit externen, geprüften **Finanzberater:innen** und **Vertriebspartner:innen** zusammen.  
 Diese dürfen im Namen von 4money Kundendaten aufnehmen und Beratungen durchführen, sofern sie unter der Aufsicht von 4money stehen.  
 
-Seit 2025 wird dieser Prozess schrittweise über **digitale Onboarding-Lösungen (PecunAI)** automatisiert:
+Seit 2025 wird dieser Prozess schrittweise über **digitale Onboarding-Lösungen (Digital Onboarding Guide)** automatisiert:
 - KI-gestützte Gesprächsführung (Sprach- und Chat-Interface)  
 - Automatisierte Formularbefüllung und Signaturerfassung  
 - Vollständige Audit-Logs gemäß WAG 2018
 
 ---
 
-## Relationship to froots and PecunAI
+## Relationship to froots and Digital Onboarding Guide
 4money Financial Services GmbH steht im Zentrum eines kooperativen Ökosystems:
 
 | Partner | Funktion |
 |----------|-----------|
 | **froots GmbH (Wien)** | Digitaler Vermögensverwalter; erstellt die tatsächlichen ETF-Portfolios und steuert die Vermögensverwaltung. |
 | **Schelhammer Capital Bank AG (Wien)** | Depotführende Bank; verwahrt Kundengelder und führt Transaktionen aus. |
-| **PecunAI (Project)** | KI-basierte Onboarding-Technologie zur Automatisierung des Beratungs- und Dokumentationsprozesses für 4money. |
+| **Digital Onboarding Guide (Project)** | KI-basierte Onboarding-Technologie zur Automatisierung des Beratungs- und Dokumentationsprozesses für 4money. |
 
 **Rollenverteilung im Ablauf:**
-1. **PecunAI** sammelt alle Kundendaten über einen sprach- oder textbasierten Dialog.  
+1. **Digital Onboarding Guide** sammelt alle Kundendaten über einen sprach- oder textbasierten Dialog.  
 2. Die Daten werden an 4money übertragen und in das CRM (Dynamics 365) eingespielt.  
 3. 4money prüft den Vorgang, zeichnet elektronisch gegen und übermittelt an froots zur Vermögensverwaltung.  
 4. Die Depotbank führt die Transaktionen aus und verwahrt das Vermögen.
@@ -128,7 +128,7 @@ Seit 2025 wird dieser Prozess schrittweise über **digitale Onboarding-Lösungen
 ## Customer Journey & Workflow
 
 ### 1. Erstkontakt / Analyse
-- Kund:in wird durch Berater:in oder digital (PecunAI) angesprochen.  
+- Kund:in wird durch Berater:in oder digital (Digital Onboarding Guide) angesprochen.  
 - Erstellung des **Anleger:innenprofils** mit Zielen, Anlagehorizont, Nachhaltigkeitspräferenzen und Risikoneigung.  
 
 ### 2. Beratung & Geeignetheitsprüfung
@@ -190,6 +190,6 @@ Seit 2025 wird dieser Prozess schrittweise über **digitale Onboarding-Lösungen
 ---
 
 ## Summary Insight
-Die 4money Financial Services GmbH bildet die **regulatorische Rückgrat-Ebene** im Ökosystem froots / PecunAI.  
+Die 4money Financial Services GmbH bildet die **regulatorische Rückgrat-Ebene** im Ökosystem froots / Digital Onboarding Guide.  
 Sie stellt sicher, dass jeder Beratungs- und Abschlussvorgang den **österreichischen und europäischen Finanzmarkt-, Verbraucher- und Datenschutzvorgaben** entspricht.  
-Durch die Integration von PecunAI wird dieser Prozess zunehmend vollautomatisiert, ohne die rechtliche Integrität zu gefährden – ein entscheidender Schritt zur Digitalisierung der Vermögensberatung in Österreich.
+Durch die Integration von Digital Onboarding Guide wird dieser Prozess zunehmend vollautomatisiert, ohne die rechtliche Integrität zu gefährden – ein entscheidender Schritt zur Digitalisierung der Vermögensberatung in Österreich.

@@ -1,4 +1,4 @@
-# PecunAI Voice Session – V2 Specification
+# Digital Onboarding Guide Voice Session – V2 Specification
 
 **Version:** 2.0-draft  
 **Date:** 2026-03-10  
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-Version 2 replaces the current text-based stepper/chatbot hybrid with a **voice-first onboarding experience** powered by a real-time speech-to-speech AI. PecunAI speaks to the customer, guides them through every step of the onboarding workflow, and listens to answers. The customer can also tap options on-screen – both channels (voice and tap) are fully supported at all times.
+Version 2 replaces the current text-based stepper/chatbot hybrid with a **voice-first onboarding experience** powered by a real-time speech-to-speech AI. Digital Onboarding Guide speaks to the customer, guides them through every step of the onboarding workflow, and listens to answers. The customer can also tap options on-screen – both channels (voice and tap) are fully supported at all times.
 
 The full workflow spans five phases:
 
@@ -64,7 +64,7 @@ After the customer completes all questions, the backend calculates a risk score 
 - **Future** – moderate to high risk (SRI 4–5)
 - **Dream Big** – high risk (SRI 5)
 
-Each portfolio has a dedicated AI prompt document in the knowledge base that PecunAI uses when explaining the product to the customer.
+Each portfolio has a dedicated AI prompt document in the knowledge base that Digital Onboarding Guide uses when explaining the product to the customer.
 
 ### 2.5 Signing Flow
 
@@ -112,7 +112,7 @@ A white card with a soft drop shadow showing the current question text in large,
 Full-width tappable tiles stacked vertically. Each tile is at least 56px tall for comfortable thumb-tapping on mobile. Unselected tiles have a light grey background. The selected tile turns a light indigo with an indigo border. When the AI detects a spoken answer, it highlights the matching tile automatically.
 
 **Zone 4 – Voice Wave Strip (64px tall)**
-A horizontal waveform visualiser centred on the screen. Below it, a small status label reads "PecunAI spricht" while the AI is talking, or changes to "Bitte antworten Sie" when the AI is listening.
+A horizontal waveform visualiser centred on the screen. Below it, a small status label reads "Digital Onboarding Guide spricht" while the AI is talking, or changes to "Bitte antworten Sie" when the AI is listening.
 
 **Zone 5 – Navigation Bar (pinned to bottom)**
 Three controls: a mute toggle on the left, a back button in the centre-left, and a forward/confirm button on the right. The forward button is disabled until an answer has been selected or spoken. The bar sits above the iOS/Android safe area so it is never hidden by the home indicator.
@@ -211,7 +211,7 @@ When a customer returns to an in-progress session, the application loads the sav
 
 The AI operates under a system prompt that establishes its identity and rules for the Questions phase. The key rules are:
 
-- It is PecunAI, the same digital onboarding assistant described in the base system prompt document, with the same professional, formal, German-language persona
+- It is Digital Onboarding Guide, the same digital onboarding assistant described in the base system prompt document, with the same professional, formal, German-language persona
 - It is currently conducting a structured questionnaire and must follow the question order exactly
 - After reading each question and its options, it must wait for the customer to answer before proceeding
 - It must read out the available options so the customer knows what choices are available

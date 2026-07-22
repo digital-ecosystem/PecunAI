@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PecunAI – Voice Session Prototype</title>
+  <title>Digital Onboarding Guide – Voice Session Prototype</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -336,7 +336,7 @@
 </head>
 <body>
 
-<p class="page-label">PecunAI V2 · Voice Session Prototype</p>
+<p class="page-label">Digital Onboarding Guide V2 · Voice Session Prototype</p>
 
 <div class="phone">
 
@@ -385,7 +385,7 @@
         </svg>
       </div>
       <div>
-        <div class="ai-name">PecunAI</div>
+        <div class="ai-name">Digital Onboarding Guide</div>
         <div class="ai-status" id="aiStatusText">spricht gerade …</div>
       </div>
     </div>
@@ -413,7 +413,7 @@
     <!-- Voice wave -->
     <div class="wave-section">
       <canvas id="wave" width="700" height="104"></canvas>
-      <span class="wave-status speaking" id="waveStatus">PecunAI spricht</span>
+      <span class="wave-status speaking" id="waveStatus">Digital Onboarding Guide spricht</span>
     </div>
 
     <div class="muted-hint" id="mutedHint">Stumm – tippen Sie Ihre Antwort</div>
@@ -582,7 +582,7 @@ function setVoiceState(state) {
   const aiText = document.getElementById("aiStatusText");
   status.className = "wave-status " + state;
   if (state === "speaking") {
-    status.textContent = "PecunAI spricht";
+    status.textContent = "Digital Onboarding Guide spricht";
     aiText.textContent = "spricht gerade …";
   } else if (state === "listening") {
     status.textContent = "Bitte antworten Sie";

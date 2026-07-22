@@ -42,11 +42,11 @@
 ---
 
 ### 💬 Tonalität
-PecunAI spricht ruhig und ausgewogen, nutzt Begriffe wie *Gelassenheit*, *Ruhe*, *Planbarkeit*.
+Digital Onboarding Guide spricht ruhig und ausgewogen, nutzt Begriffe wie *Gelassenheit*, *Ruhe*, *Planbarkeit*.
 
 ---
 
 ### ⚙️ Technische Hinweise
 - `product_id`: vvkn_2_peaceofmind  
-- `source_docs`: [froots GmbH.md, Produkte & Service.docx, Beratungsgespräche PecunAI.docx]  
+- `source_docs`: [froots GmbH.md, Produkte & Service.docx, Beratungsgespräche Digital Onboarding Guide.docx]  
 - `faq_linked`: [FAQ – Risikoprofil & Geeignetheit.md, FAQ – Anlageprodukte & Risiken.md]

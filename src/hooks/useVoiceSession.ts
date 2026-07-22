@@ -275,7 +275,7 @@ export function useVoiceSession({
   // even if the page is refreshed mid-session before Sprint 4 persists skip-state to the DB.
   useEffect(() => {
     try {
-      const key = `pecunai_sus_${sessionId}`;
+      const key = `doguide_sus_${sessionId}`;
       if (localStorage.getItem(key)) sustainabilityConfirmedRef.current = true;
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -285,7 +285,7 @@ export function useVoiceSession({
   // see private-documents/after-demo/RECORDING_DISCLAIMER_PLAN.md.
   useEffect(() => {
     try {
-      if (localStorage.getItem(`pecunai_recording_disclaimer_${sessionId}`)) {
+      if (localStorage.getItem(`doguide_recording_disclaimer_${sessionId}`)) {
         setRecordingDisclaimerConfirmed(true);
       }
     } catch {}
@@ -293,14 +293,14 @@ export function useVoiceSession({
 
   const confirmRecordingDisclaimer = useCallback(() => {
     setRecordingDisclaimerConfirmed(true);
-    try { localStorage.setItem(`pecunai_recording_disclaimer_${sessionId}`, "1"); } catch {}
+    try { localStorage.setItem(`doguide_recording_disclaimer_${sessionId}`, "1"); } catch {}
   }, [sessionId]);
 
   // Same pattern again for the language choice — restore BEFORE the WS opens (the choice
   // gate blocks tap-to-start, and langRef feeds buildSystemPrompt at session.created).
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(`pecunai_lang_${sessionId}`);
+      const stored = localStorage.getItem(`doguide_lang_${sessionId}`);
       if (stored === "de" || stored === "en") {
         langRef.current = stored;
         setLanguageSelected(true);
@@ -311,7 +311,7 @@ export function useVoiceSession({
   const selectLanguage = useCallback((lang: "de" | "en") => {
     langRef.current = lang;
     setLanguageSelected(true);
-    try { localStorage.setItem(`pecunai_lang_${sessionId}`, lang); } catch {}
+    try { localStorage.setItem(`doguide_lang_${sessionId}`, lang); } catch {}
   }, [sessionId]);
 
   const appendChatMessage = useCallback((text: string, sender: "ai" | "user", questionId?: string) => {
@@ -1263,7 +1263,7 @@ export function useVoiceSession({
     // 'phase5' uses a temporary local stand-in (see PHASE_5_LOCAL_KNOWLEDGE_PLAN.md) — none of
     // the shared store's documents cover the actual contract PDFs, so this sentinel routes
     // /api/documents/search to a local embeddings-based search over the 8 contract knowledge
-    // docs in /pecunai/Vektordatenbank/ instead. Swap this back to a real vector store ID once
+    // docs in /Vektordatenbank/ instead. Swap this back to a real vector store ID once
     // those docs are uploaded to one.
     pttVectorStoreRef.current = context === 'phase2'
       ? (productVectorIdRef.current ?? termsVectorId ?? "")
@@ -1276,7 +1276,7 @@ export function useVoiceSession({
       send({
         type: "response.create",
         response: {
-          instructions: `You are PecunAI. The document search system is not configured for this session. Apologize briefly and let the customer know you cannot search the document right now. ${langTag()}`,
+          instructions: `You are Digital Onboarding Guide. The document search system is not configured for this session. Apologize briefly and let the customer know you cannot search the document right now. ${langTag()}`,
         },
       });
       return;
@@ -1359,7 +1359,7 @@ export function useVoiceSession({
         type: "response.create",
         response: {
           output_modalities: ["text"],
-          instructions: `You are PecunAI. The document search system is not configured for this session. Apologize briefly. ${langTag()}`,
+          instructions: `You are Digital Onboarding Guide. The document search system is not configured for this session. Apologize briefly. ${langTag()}`,
         },
       });
       return;
@@ -1374,15 +1374,15 @@ export function useVoiceSession({
       const data    = await res.json() as { results?: string };
       const results = data.results ?? "";
       const instructions = (!results || results.trim() === "" || results === "No relevant content found.")
-        ? `Sie sind PecunAI. ${langTag()} Die Suche hat für diese Frage keine passende Antwort gefunden. Teilen Sie dem Kunden freundlich mit, dass diese spezifische Information nicht verfügbar ist, und laden Sie ihn ein, eine andere Frage zu stellen.`
-        : `Sie sind PecunAI. ${langTag()} Die Dokumentensuche hat folgende Informationen geliefert:\n\n${results}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.`;
+        ? `Sie sind Digital Onboarding Guide. ${langTag()} Die Suche hat für diese Frage keine passende Antwort gefunden. Teilen Sie dem Kunden freundlich mit, dass diese spezifische Information nicht verfügbar ist, und laden Sie ihn ein, eine andere Frage zu stellen.`
+        : `Sie sind Digital Onboarding Guide. ${langTag()} Die Dokumentensuche hat folgende Informationen geliefert:\n\n${results}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.`;
       send({ type: "response.create", response: { output_modalities: ["text"], instructions } });
     } catch {
       send({
         type: "response.create",
         response: {
           output_modalities: ["text"],
-          instructions: `Sie sind PecunAI. ${langTag()} Bei der Dokumentensuche ist ein technischer Fehler aufgetreten. Entschuldigen Sie sich kurz und bitten Sie den Kunden, es erneut zu versuchen.`,
+          instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Bei der Dokumentensuche ist ein technischer Fehler aufgetreten. Entschuldigen Sie sich kurz und bitten Sie den Kunden, es erneut zu versuchen.`,
         },
       });
     }

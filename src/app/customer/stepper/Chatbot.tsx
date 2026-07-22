@@ -535,7 +535,7 @@ export default function Chatbot({
         {/* Header - ChatGPT Style */}
         <div className="border-b border-gray-200 bg-white/95 backdrop-blur-sm sticky top-0 z-10 flex-shrink-0">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
-            <h2 className="text-base sm:text-lg font-semibold text-gray-800">PecunAI– Ihr digitaler Vermögensberater</h2>
+            <h2 className="text-base sm:text-lg font-semibold text-gray-800">Digital Onboarding Guide– Ihr digitaler Vermögensberater</h2>
             {/* {threadId && (
               <span className="text-xs text-gray-400 truncate max-w-32 sm:max-w-none font-mono">
                 {threadId.slice(0, 8)}...
@@ -590,7 +590,7 @@ export default function Chatbot({
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-gray-900">
-                          {message.role === Role.customer ? 'Sie' : 'PecunAI Assistant'}
+                          {message.role === Role.customer ? 'Sie' : 'Digital Onboarding Guide Assistant'}
                         </span>
                         <span className="text-xs text-gray-400">
                           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -652,7 +652,7 @@ export default function Chatbot({
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-sm font-semibold text-gray-900">PecunAI Assistant</span>
+                      <span className="text-sm font-semibold text-gray-900">Digital Onboarding Guide Assistant</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
@@ -681,7 +681,7 @@ export default function Chatbot({
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-sm font-semibold text-gray-900">PecunAI Assistant</span>
+                      <span className="text-sm font-semibold text-gray-900">Digital Onboarding Guide Assistant</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">

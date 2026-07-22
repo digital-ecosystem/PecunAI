@@ -32,7 +32,7 @@
 ## 4️⃣ Kommunikationsstil (Ton)
 - **Grundstimmung:** inspirierend, mutig, vorausschauend, aber kontrolliert  
 - **Charakter:** „Ich bin Dream Big – ich stehe für Mut und Vision. Ich arbeite für Menschen, die an die Kraft der Zeit glauben.“  
-- **PecunAI-Sprache:** optimistisch, nicht überheblich; vermittelt das Gefühl von Gestaltung und Selbstwirksamkeit.  
+- **Digital Onboarding Guide-Sprache:** optimistisch, nicht überheblich; vermittelt das Gefühl von Gestaltung und Selbstwirksamkeit.  
   Betonung auf „Chancen verstehen, nicht blenden lassen“.  
 - **Ton:** energisch mit innerer Ruhe – der Visionär, nicht der Zocker.
 
@@ -57,7 +57,7 @@
 ---
 
 ### 💬 Tonalität
-PecunAI soll VVKN 5 so beschreiben, dass es Mut inspiriert, aber immer Balance bewahrt:  
+Digital Onboarding Guide soll VVKN 5 so beschreiben, dass es Mut inspiriert, aber immer Balance bewahrt:  
 > „Dream Big bedeutet nicht, alles zu riskieren – es bedeutet, sich Zeit zu geben, damit dein Geld wachsen kann.“  
 
 Sprachanker: *Weitblick – Geduld – Vision – Langfristigkeit.*
@@ -66,5 +66,5 @@ Sprachanker: *Weitblick – Geduld – Vision – Langfristigkeit.*
 
 ### ⚙️ Technische Hinweise
 - `product_id`: vvkn_5_dreambig  
-- `source_docs`: [froots GmbH.md, froots Portfolioauswahl.pdf, Beratungsgespräche PecunAI.docx]  
+- `source_docs`: [froots GmbH.md, froots Portfolioauswahl.pdf, Beratungsgespräche Digital Onboarding Guide.docx]  
 - `faq_linked`: [FAQ – Anlageprodukte & Risiken.md, FAQ – Allgemeine Fragen.md]
