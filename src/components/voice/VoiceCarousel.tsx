@@ -49,7 +49,17 @@ export default function VoiceCarousel({
   const n             = questions.length;
   const pointerStartX = useRef<number | null>(null);
   const didSwipe      = useRef(false);
-  const activeCardRef = useRef<HTMLDivElement>(null);
+  // Round 22 fix: per-card element registry instead of a conditional
+  // `ref={isActive ? activeCardRef : undefined}` — motion components attach
+  // the external ref only at mount and IGNORE later ref-prop changes, so the
+  // single ref stayed bound to whichever card was active at FIRST render and
+  // every later question's morph grew from that card's side-slot rect (boss
+  // report: "Q1 expands centered, Q2+ expand somewhere else"). Each card
+  // registers its element once at mount; the poll picks the active one by
+  // index per frame.
+  const cardElsRef      = useRef<(HTMLDivElement | null)[]>([]);
+  const currentIndexRef = useRef(currentIndex);
+  useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
 
   // Report the active card's live on-screen rect (>0.75px-change gate, same
   // pattern the shell uses for orbOrigin) — the morph's grow-from origin. The
@@ -62,7 +72,7 @@ export default function VoiceCarousel({
     let alive = true;
     let last: FrameRect | null = null;
     const tick = () => {
-      const el = activeCardRef.current;
+      const el = cardElsRef.current[currentIndexRef.current] ?? null;
       if (el) {
         const r = el.getBoundingClientRect();
         if (r.width > 0) {
@@ -180,11 +190,21 @@ export default function VoiceCarousel({
             return (
               <motion.div
                 key={q.id || index}
-                ref={isActive ? activeCardRef : undefined}
+                ref={el => { cardElsRef.current[index] = el; }}
                 className="absolute cursor-pointer"
                 style={style}
                 animate={style}
-                transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+                // Round 22 glass chrome: the expanded overlay's surface is now
+                // translucent, so this compact copy must vanish FAST on expand
+                // or it ghosts through the pane as a double image. Restore
+                // (collapse) keeps the slow fade — the overlay covers it.
+                transition={{
+                  duration: 0.6,
+                  ease: [0.32, 0.72, 0, 1],
+                  opacity: isExpandedCard
+                    ? { duration: 0.12 }
+                    : { duration: 0.6, ease: [0.32, 0.72, 0, 1] },
+                }}
                 onClick={handleClick}
               >
                 <motion.div

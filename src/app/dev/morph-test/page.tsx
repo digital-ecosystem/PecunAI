@@ -10,7 +10,7 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence } from "motion/react";
 import VoiceCarousel, { CarouselQuestion } from "@/components/voice/VoiceCarousel";
-import { ExpandedQuestionCard, computeExpandedRect } from "@/components/voice/ExpandedQuestionCard";
+import { ExpandedQuestionCard, computeExpandedRect, computeInPlaceRect } from "@/components/voice/ExpandedQuestionCard";
 import { SustainabilityTermsCard } from "@/components/voice/SustainabilityTermsCard";
 import { PhaseOneNeuralModel } from "@/components/voice/PhaseOneNeuralModel";
 import type { FrameRect } from "@/components/voice/frameMath";
@@ -50,6 +50,15 @@ const QUESTIONS: CarouselQuestion[] = [
       { id: "o2", value: "mittel", label: "Mittel" },
       { id: "o3", value: "hoch", label: "Hoch" },
     ],
+  },
+  {
+    id: "q4",
+    category: "Frage",
+    text: "Aktuelles Nettogesamtvermögen – Wie hoch ist Ihr derzeitiges Vermögen?",
+    questionType: "number",
+    minValue: 1000,
+    inputPlaceholder: "Bitte Betrag in Euro eingeben...",
+    options: [],
   },
 ];
 
@@ -134,6 +143,24 @@ export default function MorphTestPage() {
   const n = QUESTIONS.length;
   const modalQ = QUESTIONS[viewIndex];
 
+  // Mirrors the shell's Round 22 wiring: in-place content-sized rect off the
+  // compact card, centered-band fallback only while no compact rect exists.
+  const modalCardQ = modalQ
+    ? {
+        number: viewIndex + 1,
+        total: n,
+        category: modalQ.category,
+        text: modalQ.text,
+        options: modalQ.options ?? [],
+        questionType: modalQ.questionType,
+        minValue: modalQ.minValue,
+        maxValue: modalQ.maxValue,
+        inputPlaceholder: modalQ.inputPlaceholder,
+      }
+    : null;
+  const inPlaceRect = modalCardQ && compactRect ? computeInPlaceRect(compactRect, modalCardQ) : null;
+  const cardRect = inPlaceRect ?? expandedRect;
+
   if (!entered) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -211,7 +238,7 @@ export default function MorphTestPage() {
       {orbOrigin && (
         <PhaseOneNeuralModel
           shape={modalOpen || sustOpen ? "cardFrame" : "orb"}
-          frameRect={modalOpen || sustOpen ? expandedRect : null}
+          frameRect={modalOpen ? cardRect : sustOpen ? expandedRect : null}
           frameRectStart={modalOpen ? compactRect : null}
           sphereCenter={orbOrigin}
           sphereRadius={380 * 0.3}
@@ -230,18 +257,12 @@ export default function MorphTestPage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {modalOpen && expandedRect && modalQ && (
+        {modalOpen && cardRect && modalQ && modalCardQ && (
           <ExpandedQuestionCard
             key={modalQ.id}
-            rect={expandedRect}
+            rect={cardRect}
             startRect={compactRect ?? undefined}
-            question={{
-              number: viewIndex + 1,
-              total: n,
-              text: modalQ.text,
-              options: modalQ.options ?? [],
-              questionType: modalQ.questionType,
-            }}
+            question={modalCardQ}
             onClose={() => setModalOpen(false)}
             onNext={() => {
               setModalOpen(false);

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Menu, User, Mic, VolumeX, Hand, Check, ChevronRight } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
 import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
-import { ExpandedQuestionCard, computeExpandedRect } from "./ExpandedQuestionCard";
+import { ExpandedQuestionCard, computeExpandedRect, computeInPlaceRect } from "./ExpandedQuestionCard";
 import { SustainabilityTermsCard } from "./SustainabilityTermsCard";
 import { PhaseOneNeuralModel } from "./PhaseOneNeuralModel";
 import { SphereToFrameTransition } from "./SphereToFrameTransition";
@@ -490,6 +490,46 @@ export default function VoiceSessionShell({
   const modalQIndex = pendingVoiceAnswer
     ? questions.findIndex(q => q.id === pendingVoiceAnswer.questionId)
     : viewIndex;
+
+  // Round 22 "expand in place": the expanded card's target rect is computed
+  // from the compact card's live rect + the question's own content (bottom-
+  // anchored, grows upward), not from the viewport. modalCardQ is the exact
+  // question object the card renders, shared with computeInPlaceRect so both
+  // see the same content; cardRect falls back to the old centered band only
+  // if no compact rect has been reported yet. The sustainability disclosure
+  // deliberately keeps expandedRect — it has no carousel card to grow from.
+  const modalCardQ = useMemo(() => modalQ ? {
+    number:           modalQIndex + 1,
+    total:            n,
+    category:         modalQ.category,
+    text:             modalQ.text,
+    options:          modalQ.options ?? [],
+    questionType:     modalQ.questionType,
+    questionOrder:    modalQ.questionOrder,
+    minValue:         modalQ.minValue,
+    maxValue:         modalQ.maxValue,
+    inputPlaceholder: modalQ.inputPlaceholder,
+  } : null, [modalQ, modalQIndex, n]);
+
+  const cardContextMessage = modalQ && postExplainReaskId === modalQ.id
+    ? "Sie haben die Erklärung gesehen — beantworten Sie nun bitte die Frage."
+    : undefined;
+  const cardPreSelected = modalQ
+    ? (pendingVoiceAnswer?.questionId === modalQ.id
+        ? pendingVoiceAnswer.value
+        : savedAnswers[modalQ.id] ?? undefined)
+    : undefined;
+
+  const inPlaceRect = useMemo(
+    () => (modalCardQ && compactRect
+      ? computeInPlaceRect(compactRect, modalCardQ, {
+          hasContext:  !!cardContextMessage,
+          hasProposed: cardPreSelected !== undefined,
+        })
+      : null),
+    [modalCardQ, compactRect, cardContextMessage, cardPreSelected]
+  );
+  const cardRect = inPlaceRect ?? expandedRect;
 
   const isMuted           = state.session === "muted";
   const sessionIsSpeaking = ["speaking", "greeting", "resuming"].includes(state.session);
@@ -1447,7 +1487,7 @@ export default function VoiceSessionShell({
       {voicePhase === 1 && started && orbOrigin && (
         <PhaseOneNeuralModel
           shape={modalOpen || sustainabilityVisible ? "cardFrame" : "orb"}
-          frameRect={modalOpen || sustainabilityVisible ? expandedRect : null}
+          frameRect={modalOpen ? cardRect : sustainabilityVisible ? expandedRect : null}
           // Grow the frame from the tapped card only for a question card — the
           // disclosure has no carousel card, so it keeps growing from the orb.
           frameRectStart={modalOpen ? compactRect : null}
@@ -1487,32 +1527,14 @@ export default function VoiceSessionShell({
       )}
 
       <AnimatePresence>
-        {modalOpen && expandedRect && modalQ && (
+        {modalOpen && cardRect && modalQ && modalCardQ && (
           <ExpandedQuestionCard
             key={modalQ.id}
-            rect={expandedRect}
+            rect={cardRect}
             startRect={compactRect ?? undefined}
-            question={{
-              number:           modalQIndex + 1,
-              total:            n,
-              text:             modalQ.text,
-              options:          modalQ.options ?? [],
-              questionType:     modalQ.questionType,
-              questionOrder:    modalQ.questionOrder,
-              minValue:         modalQ.minValue,
-              maxValue:         modalQ.maxValue,
-              inputPlaceholder: modalQ.inputPlaceholder,
-            }}
-            preSelectedValue={
-              pendingVoiceAnswer?.questionId === modalQ.id
-                ? pendingVoiceAnswer.value
-                : savedAnswers[modalQ.id] ?? undefined
-            }
-            contextMessage={
-              postExplainReaskId === modalQ.id
-                ? "Sie haben die Erklärung gesehen — beantworten Sie nun bitte die Frage."
-                : undefined
-            }
+            question={modalCardQ}
+            preSelectedValue={cardPreSelected}
+            contextMessage={cardContextMessage}
             onClose={() => {
               suppressAutoModalRef.current = true;
               setModalOpen(false);
