@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Menu, User, Mic } from "lucide-react";
 import dynamic from "next/dynamic";
 import { AnimatedFrame } from "./AnimatedFrame";
@@ -60,6 +60,9 @@ interface VoiceProductPhaseProps {
    *  the orb → document-frame consume morph (same as Phase 0's terms1 entry)
    *  instead of the content just fading in. Null on direct resume. */
   entryOrbOrigin?:  { x: number; y: number } | null;
+  /** BACK from Phase 3: delays the orb→frame morph (ms) so the shell's grow-in sphere phantom
+   *  (the AI "stepping back in" after the silent form) finishes first — mirror of P3→P4. */
+  entryDelayMs?:    number;
   /** Continuously reports the PDF frame's viewport rect — the shell keeps the
    *  latest value so a revisit back to Phase 1 can collapse this frame into
    *  the orb (the same initialFrameRect handoff terms2 → Phase 1 uses). */
@@ -78,8 +81,10 @@ export default function VoiceProductPhase({
   onConfirm,
   onRevisit,
   entryOrbOrigin,
+  entryDelayMs,
   onFrameRect,
 }: VoiceProductPhaseProps) {
+  const reduceMotion = !!useReducedMotion();
   const [pdfSize,       setPdfSize]       = useState<{ width: number; height: number } | null>(null);
   const [pageNumber,    setPageNumber]    = useState(1);
   const [numPages,      setNumPages]      = useState(0);
@@ -92,10 +97,20 @@ export default function VoiceProductPhase({
   // content fades in at onMostlyDone. Skipped entirely (revealContent starts
   // true) when there's no orb origin — e.g. resuming straight into Phase 2.
   const [entryOrigin]   = useState(entryOrbOrigin ?? null); // snapshot at mount
-  const [showTransition, setShowTransition] = useState(!!entryOrbOrigin);
-  const [revealContent,  setRevealContent]  = useState(!entryOrbOrigin);
+  const [showTransition, setShowTransition] = useState(!!entryOrbOrigin && !reduceMotion);
+  const [revealContent,  setRevealContent]  = useState(reduceMotion || !entryOrbOrigin);
+  const [entryStarted,   setEntryStarted]   = useState(false); // gates the morph until entryDelayMs elapses
   const [entryRect,      setEntryRect]      = useState<FrameRect | null>(null);
   const contentBoxRef = useRef<HTMLDivElement>(null);
+
+  // Delay the morph start so the shell's grow-in sphere phantom completes first (P3→P2 back).
+  // entryDelayMs is 0/undefined on the P1→P2 forward entry, so the morph starts immediately there.
+  useEffect(() => {
+    if (!showTransition) return;
+    const t = setTimeout(() => setEntryStarted(true), entryDelayMs ?? 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Measure the real frame box for the morph target (retries while layout settles).
   useEffect(() => {
@@ -124,8 +139,9 @@ export default function VoiceProductPhase({
     const t = setTimeout(() => {
       setRevealContent(true);
       setShowTransition(false);
-    }, 1800);
+    }, 1800 + (entryDelayMs ?? 0));
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTransition]);
 
   // Report the frame's live rect up for the revisit (Phase 2 → 1) collapse.
@@ -231,7 +247,7 @@ export default function VoiceProductPhase({
         {/* Entry morph — the Phase 1 orb's nodes fly onto the PDF's frame and
             the dense web materializes around it (same consume morph as Phase
             0's terms1 entry), while the real frame below stays hidden. */}
-        {showTransition && entryOrigin && entryRect && (
+        {showTransition && entryOrigin && entryRect && entryStarted && (
           <SphereToFrameTransition
             sphereCenter={entryOrigin}
             sphereRadius={380 * 0.3}

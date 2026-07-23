@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Menu, User, Mic, VolumeX, Hand, Check, ChevronRight } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
 import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
@@ -167,6 +167,7 @@ export default function VoiceSessionShell({
   // popping in settled. A ref (not state) because it must survive the other
   // phase's branch unmounting; cleared shortly after Phase 1 mounts so later
   // canvas re-mounts (resume, card cycles) start settled.
+  const reduceMotion = !!useReducedMotion();
   const phaseEntryFrameRectRef = useRef<FrameRect | null>(null);
   useEffect(() => {
     // Clear shortly after any consumer phase mounts (Phase 1's collapse,
@@ -280,6 +281,35 @@ export default function VoiceSessionShell({
   const phase5FromFinalQARef = useRef(false);
   useEffect(() => {
     if (voicePhase !== 5) phase5FromFinalQARef.current = false;
+  }, [voicePhase]);
+
+  // BACK P3→P2: reconnect mirror of P3→P4 — a sphere grows in ("AI steps back in"), then the
+  // product screen's orb→frame morph consumes it. Same grow phantom + PHASE4_GROW_MS delay as P4.
+  const [phase2GrowOrb, setPhase2GrowOrb] = useState(false);
+  const phase2FromPersonalInfoRef = useRef(false);
+  useEffect(() => {
+    if (voicePhase !== 2 || !phase2FromPersonalInfoRef.current || reduceMotion) return;
+    setPhase2GrowOrb(true);
+    const t = window.setTimeout(() => {
+      setPhase2GrowOrb(false);
+      phase2FromPersonalInfoRef.current = false;
+    }, PHASE4_GROW_MS);
+    return () => window.clearTimeout(t);
+  }, [voicePhase]);
+
+  // BACK P7→P6: reconnect mirror of P6→P7 — a sphere blooms back into the Final-Q&A screen (the
+  // exact inverse of the "AI steps out" shrink). VoiceSessionReview holds its real sphere hidden
+  // (entryGrow) until the phantom lands.
+  const [phase6GrowOrb, setPhase6GrowOrb] = useState(false);
+  const phase6FromSigningRef = useRef(false);
+  useEffect(() => {
+    if (voicePhase !== 6 || !phase6FromSigningRef.current || reduceMotion) return;
+    setPhase6GrowOrb(true);
+    const t = window.setTimeout(() => {
+      setPhase6GrowOrb(false);
+      phase6FromSigningRef.current = false;
+    }, PHASE4_GROW_MS);
+    return () => window.clearTimeout(t);
   }, [voicePhase]);
 
   // expandedRect only depends on viewport size — mount + resize is enough.
@@ -759,7 +789,7 @@ export default function VoiceSessionShell({
               return onPersonalInfoSubmitted();
             }}
             onPrimeAudio={primeReconnectAudio}
-            onBack={() => { primeReconnectAudio(); return backToProduct(); }}
+            onBack={() => { primeReconnectAudio(); phase2FromPersonalInfoRef.current = true; return backToProduct(); }}
           />
         </motion.div>
         {/* The pause screen's sphere shrinks away over the mounting form —
@@ -802,7 +832,7 @@ export default function VoiceSessionShell({
         >
           <VoiceSigningPhase
             sessionId={sessionId}
-            onBack={() => { primeReconnectAudio(); return backToFinalQA(); }}
+            onBack={() => { primeReconnectAudio(); phase6FromSigningRef.current = true; return backToFinalQA(); }}
           />
         </motion.div>
         {/* Phase 6's sphere shrinks away over the mounting signing screen —
@@ -948,7 +978,21 @@ export default function VoiceSessionShell({
           // also runs the parked transition so the customer lands in the
           // signing phase immediately instead of a stranded pause screen.
           onSphereTap={isTransitioningToSigning ? skipPendingTransition : stopAudio}
+          entryGrow={phase6FromSigningRef.current && !reduceMotion}
         />
+        {/* BACK P7→P6 — sphere blooms back into the Final-Q&A screen (mirror of the P6→P7 "AI
+            steps out" shrink). VoiceSessionReview holds its real sphere hidden until this lands. */}
+        {phase6GrowOrb && (
+          <motion.div
+            className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center"
+            style={{ paddingTop: 84 }}
+            initial={{ opacity: 0, scale: 0.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <VoiceSphere isActive isSpeaking={false} isListening={false} size={380} analyserNode={null} micAnalyserNode={null} />
+          </motion.div>
+        )}
         <VoiceChatModal
           isOpen={chatOpen}
           onClose={() => setChatOpen(false)}
@@ -1194,9 +1238,23 @@ export default function VoiceSessionShell({
                 onPTTRelease={() => submitPTTQuestion('phase2')}
                 onConfirm={() => { stopAudio(); return advanceToPersonalInfo(); }}
                 onRevisit={() => { stopAudio(); revisitQuestions(); }}
-                entryOrbOrigin={orbOrigin}
+                entryOrbOrigin={phase2FromPersonalInfoRef.current && typeof window !== "undefined" ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 } : orbOrigin}
+                entryDelayMs={phase2FromPersonalInfoRef.current ? PHASE4_GROW_MS : undefined}
                 onFrameRect={reportFrameRect}
               />
+              {/* BACK P3→P2 — sphere grows in (AI steps back in), then VoiceProductPhase's
+                  orb→frame morph consumes it. Mirror of the P3→P4 grow phantom. */}
+              {phase2GrowOrb && (
+                <motion.div
+                  className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center"
+                  style={{ paddingTop: 84 }}
+                  initial={{ opacity: 0, scale: 0.1 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <VoiceSphere isActive isSpeaking={false} isListening={false} size={380} analyserNode={null} micAnalyserNode={null} />
+                </motion.div>
+              )}
             </motion.div>
           ) : (
             <motion.div

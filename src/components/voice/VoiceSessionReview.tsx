@@ -42,6 +42,9 @@ interface VoiceSessionReviewProps {
    *  6→7 signing-pause announcement, skip straight to the signing phase —
    *  the shell passes the matching handler). */
   onSphereTap?:    () => void;
+  /** BACK from Phase 7: the sphere blooms back in (a shell grow phantom). Keeps the real sphere +
+   *  buttons hidden until the phantom lands, so they don't double up. Mirror of the P6→P7 shrink. */
+  entryGrow?:      boolean;
 }
 
 // Phase 6 — Final Q&A: the last AI-guided moment before signing. Visually the same orb
@@ -61,6 +64,7 @@ export default function VoiceSessionReview({
   isChatOpen,
   entryFrameRect,
   onSphereTap,
+  entryGrow,
 }: VoiceSessionReviewProps) {
   const [isPTTActive, setIsPTTActive] = useState(false);
 
@@ -75,7 +79,10 @@ export default function VoiceSessionReview({
       : null
   );
   const [collapsing, setCollapsing] = useState(!!entryFrameRect);
-  const [revealed,   setRevealed]   = useState(!entryFrameRect);
+  // BACK P7→P6: hold the real sphere + buttons hidden while the shell's grow phantom blooms in,
+  // then reveal them as it lands (mirror of the P6→P7 shrink). Snapshot at mount.
+  const [growEntry] = useState(!!entryGrow);
+  const [revealed,   setRevealed]   = useState(!entryFrameRect && !entryGrow);
 
   // Safety net: never leave the screen stuck mid-collapse.
   useEffect(() => {
@@ -86,6 +93,13 @@ export default function VoiceSessionReview({
     }, 1800);
     return () => clearTimeout(t);
   }, [collapsing]);
+
+  // Reveal the real sphere as the grow phantom finishes (~the shell's PHASE4_GROW_MS).
+  useEffect(() => {
+    if (!growEntry) return;
+    const t = setTimeout(() => setRevealed(true), 760);
+    return () => clearTimeout(t);
+  }, [growEntry]);
 
   const statusLabel = STATUS_LABEL[sessionState] ?? "";
 
