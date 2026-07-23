@@ -267,6 +267,21 @@ export default function VoiceSessionShell({
     return () => window.clearTimeout(t);
   }, [voicePhase]);
 
+  // BACK P5→P4: the 3-beat mirror. Set in Phase 5's back handler; read once during the Phase 4
+  // render to feed VoiceInvestmentForm the contracts frame rect (instead of the orb-grow origin).
+  // Cleared whenever we're not in Phase 4 so a normal P3→P4 forward entry stays clean.
+  const phase4FromContractsRef = useRef(false);
+  useEffect(() => {
+    if (voicePhase !== 4) phase4FromContractsRef.current = false;
+  }, [voicePhase]);
+
+  // BACK P6→P5: orb→frame mirror. Set in Phase 6's back handler; read once during the Phase 5
+  // render to feed VoiceContractDocuments the Final-Q&A sphere centre (instead of a frame rect).
+  const phase5FromFinalQARef = useRef(false);
+  useEffect(() => {
+    if (voicePhase !== 5) phase5FromFinalQARef.current = false;
+  }, [voicePhase]);
+
   // expandedRect only depends on viewport size — mount + resize is enough.
   useEffect(() => {
     const measure = () => setExpandedRect(computeExpandedRect(window.innerWidth, window.innerHeight));
@@ -832,7 +847,7 @@ export default function VoiceSessionShell({
   if (voicePhase === 4 && productSuggestion && !isTransitioningToPersonalInfo) {
     // Live handoff from Phase 3 (ref readable during the flip render): sphere
     // grows back in, then the form's delayed entry morph consumes it.
-    const phase4Entry = phase4FromFormRef.current || phase4GrowOrb;
+    const phase4Entry = !phase4FromContractsRef.current && (phase4FromFormRef.current || phase4GrowOrb);
     return (
       <>
         <VoiceInvestmentForm
@@ -845,6 +860,7 @@ export default function VoiceSessionShell({
           onPTTRelease={() => submitPTTQuestion('phase4')}
           onConfirm={() => { stopAudio(); return confirmInvestment(); }}
           onBack={() => { stopAudio(); return backToPersonalInfo(); }}
+          entryFrameRect={phase4FromContractsRef.current ? phaseEntryFrameRectRef.current : null}
           entryOrbOrigin={
             phase4Entry && typeof window !== "undefined"
               ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 }
@@ -894,10 +910,12 @@ export default function VoiceSessionShell({
           onPTTStart={startPTT}
           onPTTRelease={() => submitPTTQuestion('phase5')}
           onConfirm={() => { stopAudio(); return confirmContracts(); }}
-          onBack={() => { stopAudio(); phaseEntryFrameRectRef.current = null; return backToInvestment(); }}
+          onBack={() => { stopAudio(); phase4FromContractsRef.current = true; return backToInvestment(); }}
           // Live 4 → 5 handoff: Phase 4's poll left its frame rect here, so the
           // frame glides onto this screen. Cold resume: null (no poll ran).
           entryFrameRect={phaseEntryFrameRectRef.current}
+          // BACK 6 → 5: the Final-Q&A sphere blooms into this frame (orb→frame).
+          entryOrbOrigin={phase5FromFinalQARef.current && typeof window !== "undefined" ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 } : null}
           onFrameRect={reportFrameRect}
         />
         {resumeTapOverlay}
@@ -920,7 +938,7 @@ export default function VoiceSessionShell({
           onPTTStart={startPTT}
           onPTTRelease={() => submitPTTQuestion('phase6')}
           onConfirm={() => { stopAudio(); return confirmReadyToSign(); }}
-          onBack={() => { stopAudio(); phaseEntryFrameRectRef.current = null; return backToContracts(); }}
+          onBack={() => { stopAudio(); phaseEntryFrameRectRef.current = null; phase5FromFinalQARef.current = true; return backToContracts(); }}
           onChatClick={() => setChatOpen(true)}
           isChatOpen={chatOpen}
           // Live 5 → 6 handoff: Phase 5's poll left its frame rect here, so

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Menu, User, Mic, ChevronLeft, ChevronRight, Download, Maximize2, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -109,6 +109,10 @@ interface VoiceContractDocumentsProps {
    *  the sphere holds a beat (pulsing while the AI talks), then consumes into
    *  this screen's frame. Null on cold resume — content fades in as before. */
   entryFrameRect?: FrameRect | null;
+  /** BACK from Phase 6: the Final-Q&A sphere's centre. When set at mount, the entry plays the
+   *  mirror of the Phase 5→6 forward morph — the sphere blooms into this frame (orb→frame). Only
+   *  consulted when entryFrameRect is absent (the two are never set together). */
+  entryOrbOrigin?: { x: number; y: number } | null;
   /** Continuously reports this frame's viewport rect — the shell keeps the
    *  latest value so the Phase 5 → 6 handoff can collapse this frame into
    *  Phase 6's sphere. */
@@ -126,9 +130,11 @@ export default function VoiceContractDocuments({
   onConfirm,
   onBack,
   entryFrameRect,
+  entryOrbOrigin,
   onFrameRect,
 }: VoiceContractDocumentsProps) {
   const router = useRouter();
+  const reduceMotion = !!useReducedMotion();
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
   const [isPTTActive, setIsPTTActive] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -157,20 +163,22 @@ export default function VoiceContractDocuments({
   // the content as it lands. Cold resume (no entryFrameRect): skip straight
   // to "done", content fades in as before.
   type EntryStage = "collapse" | "sphere" | "consume" | "done";
-  const [entryStart]    = useState(entryFrameRect ?? null); // snapshot at mount
+  const [entryStart]    = useState(entryFrameRect ?? null); // 3-beat from-rect (forward P4→P5)
+  const [entryOrigin]   = useState(entryOrbOrigin ?? null); // orb→frame origin (back P6→P5)
   const [entryCenter]   = useState(() =>
     entryFrameRect && typeof window !== "undefined"
       ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 }
       : null
   );
-  const [entryStage,    setEntryStage]    = useState<EntryStage>(entryStart ? "collapse" : "done");
+  const [entryStage,    setEntryStage]    = useState<EntryStage>(entryFrameRect && !reduceMotion ? "collapse" : "done");
   const [sphereVisible, setSphereVisible] = useState(false);
-  const [revealContent, setRevealContent] = useState(!entryStart);
+  const [showTransition, setShowTransition] = useState(!!entryOrbOrigin && !reduceMotion);
+  const [revealContent, setRevealContent] = useState(reduceMotion || (!entryFrameRect && !entryOrbOrigin));
   const [entryRect,     setEntryRect]     = useState<FrameRect | null>(null);
   const contentBoxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!entryStart || !frameSize) return;
+    if (!(entryStart || entryOrigin) || !frameSize) return;
     let raf = 0;
     let attempts = 0;
     const measure = () => {
@@ -211,6 +219,17 @@ export default function VoiceContractDocuments({
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Safety net (back orb→frame): never leave the screen stuck if that morph can't run.
+  useEffect(() => {
+    if (!showTransition) return;
+    const t = setTimeout(() => {
+      setRevealContent(true);
+      setShowTransition(false);
+    }, 1800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTransition]);
 
   // Report the frame's live rect up for the Phase 5 → 6 collapse — same
   // per-frame poll pattern as the earlier framed phases (writes a shell ref,
@@ -504,6 +523,17 @@ export default function VoiceContractDocuments({
         </motion.div>
       )}
 
+      {/* BACK (P6→P5) — the Final-Q&A sphere blooms into this frame (orb→frame). */}
+      {showTransition && entryOrigin && entryRect && (
+        <SphereToFrameTransition
+          sphereCenter={entryOrigin}
+          sphereRadius={380 * 0.3}
+          contentRect={entryRect}
+          onMostlyDone={() => setRevealContent(true)}
+          onComplete={() => setShowTransition(false)}
+        />
+      )}
+
       {/* ── Scrollable center ───────────────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto pb-24 pt-4 md:pt-10 gap-4">
         {frameSize && (
@@ -513,9 +543,9 @@ export default function VoiceContractDocuments({
               className="relative"
               // Morph path stays at scale 1 while hidden — the measured rect is
               // the glide's landing target and transforms would shrink it.
-              initial={{ opacity: 0, scale: entryStart ? 1 : 0.96 }}
-              animate={{ opacity: revealContent ? 1 : 0, scale: revealContent || entryStart ? 1 : 0.96 }}
-              transition={{ duration: 0.5, delay: revealContent && !entryStart ? 0.15 : 0 }}
+              initial={{ opacity: 0, scale: (entryStart || entryOrigin) ? 1 : 0.96 }}
+              animate={{ opacity: revealContent ? 1 : 0, scale: revealContent || entryStart || entryOrigin ? 1 : 0.96 }}
+              transition={{ duration: 0.5, delay: revealContent && !entryStart && !entryOrigin ? 0.15 : 0 }}
             >
               <AnimatedFrame
                 isSpeaking={isSpeaking}

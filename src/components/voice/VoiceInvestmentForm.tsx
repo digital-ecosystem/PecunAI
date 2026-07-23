@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { Menu, User, Mic, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as Popover from "@radix-ui/react-popover";
 import { HelpCircle } from "lucide-react";
 import { AnimatedFrame } from "./AnimatedFrame";
 import { SphereToFrameTransition } from "./SphereToFrameTransition";
+import VoiceSphere from "./VoiceSphere";
 import type { FrameRect } from "./frameMath";
 import { formatEuro } from "@/utils/helper";
 import { computeGebuehren } from "@/lib/gebuehren";
@@ -230,6 +231,11 @@ interface VoiceInvestmentFormProps {
    *  Phase 2's product entry). Null on cold resume — content fades in as
    *  before. */
   entryOrbOrigin?: { x: number; y: number } | null;
+  /** BACK from Phase 5: the contract-documents frame rect at hand-off. When set at mount, the
+   *  entry plays the three-beat mirror of the Phase 4→5 forward morph — that frame collapses to a
+   *  sphere, the sphere holds a beat, then it consumes into this form's frame. Takes precedence
+   *  over entryOrbOrigin (the two are never set together). */
+  entryFrameRect?: FrameRect | null;
   /** Delays the morph start (ms) so the shell's grow-in sphere phantom (the
    *  AI "stepping back in" after the privacy pause) finishes first. */
   entryDelayMs?:   number;
@@ -250,10 +256,12 @@ export default function VoiceInvestmentForm({
   onConfirm,
   onBack,
   entryOrbOrigin,
+  entryFrameRect,
   entryDelayMs,
   onFrameRect,
 }: VoiceInvestmentFormProps) {
   const router = useRouter();
+  const reduceMotion = !!useReducedMotion();
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
   const [isPTTActive, setIsPTTActive] = useState(false);
   const [formData, setFormData] = useState<InvestmentFormData>(INITIAL_CHECKBOX_STATE);
@@ -271,12 +279,25 @@ export default function VoiceInvestmentForm({
     return () => window.removeEventListener("resize", apply);
   }, []);
 
-  // ── Entry morph (orb → form frame) — the VoiceProductPhase pattern, plus
-  // an optional start delay so the shell's grow-in sphere phantom completes
-  // first. Content stays hidden until the morph mostly lands.
-  const [entryOrigin]   = useState(entryOrbOrigin ?? null); // snapshot at mount
-  const [showTransition, setShowTransition] = useState(!!entryOrbOrigin);
-  const [revealContent,  setRevealContent]  = useState(!entryOrbOrigin);
+  // ── Entry morph. Two mirror-image modes, never both at once:
+  //   • FORWARD P3→P4: orb → form frame (the VoiceProductPhase pattern), optionally delayed by
+  //     entryDelayMs so the shell's grow-in sphere phantom finishes first.
+  //   • BACK P5→P4: the three-beat mirror of P4→P5 — the contracts frame collapses to a sphere
+  //     (toOrb), a real sphere holds a beat (the AI keeps talking), then it consumes into this
+  //     frame (toFrame). Copied from VoiceContractDocuments' forward entry.
+  // Content stays hidden until whichever morph mostly lands. Reduced motion skips both → fade.
+  const [entryOrigin]   = useState(entryOrbOrigin ?? null); // orb→frame origin (forward)
+  const [entryStart]    = useState(entryFrameRect ?? null); // 3-beat from-rect (back)
+  const [entryCenter]   = useState(() =>
+    entryFrameRect && typeof window !== "undefined"
+      ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 }
+      : null
+  );
+  type EntryStage = "collapse" | "sphere" | "consume" | "done";
+  const [entryStage,    setEntryStage]    = useState<EntryStage>(entryFrameRect && !reduceMotion ? "collapse" : "done");
+  const [sphereVisible, setSphereVisible] = useState(false);
+  const [showTransition, setShowTransition] = useState(!!entryOrbOrigin && !reduceMotion);
+  const [revealContent,  setRevealContent]  = useState(reduceMotion || (!entryOrbOrigin && !entryFrameRect));
   const [entryStarted,   setEntryStarted]   = useState(false);
   const [entryRect,      setEntryRect]      = useState<FrameRect | null>(null);
   const contentBoxRef = useRef<HTMLDivElement>(null);
@@ -289,7 +310,7 @@ export default function VoiceInvestmentForm({
   }, []);
 
   useEffect(() => {
-    if (!showTransition || !frameSize) return;
+    if (!(showTransition || entryStart) || !frameSize) return;
     let raf = 0;
     let attempts = 0;
     const measure = () => {
@@ -306,9 +327,9 @@ export default function VoiceInvestmentForm({
     };
     raf = requestAnimationFrame(measure);
     return () => cancelAnimationFrame(raf);
-  }, [showTransition, frameSize]);
+  }, [showTransition, entryStart, frameSize]);
 
-  // Safety net: never leave the screen stuck if the morph can't run.
+  // Safety net (forward orb→frame): never leave the screen stuck if the morph can't run.
   useEffect(() => {
     if (!showTransition) return;
     const t = setTimeout(() => {
@@ -318,6 +339,28 @@ export default function VoiceInvestmentForm({
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTransition]);
+
+  // 3-beat (back): hold the real sphere a beat between collapse and consume.
+  useEffect(() => {
+    if (entryStage !== "sphere") return;
+    const t = setTimeout(() => {
+      setSphereVisible(false);
+      setEntryStage("consume");
+    }, 600);
+    return () => clearTimeout(t);
+  }, [entryStage]);
+
+  // 3-beat (back) safety net: never leave the screen stuck mid-sequence.
+  useEffect(() => {
+    if (entryStage === "done") return;
+    const t = setTimeout(() => {
+      setSphereVisible(false);
+      setRevealContent(true);
+      setEntryStage("done");
+    }, 4500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Report the frame's live rect up for the Phase 4 → 5 frame glide — same
   // per-frame poll pattern as VoiceProductPhase (writes a shell ref, no
@@ -460,6 +503,50 @@ export default function VoiceInvestmentForm({
         />
       )}
 
+      {/* BACK 3-beat, beat 1 — the contracts frame collapses into the sphere. */}
+      {entryStage === "collapse" && entryStart && entryCenter && (
+        <SphereToFrameTransition
+          direction="toOrb"
+          sphereCenter={entryCenter}
+          sphereRadius={380 * 0.3}
+          contentRect={entryStart}
+          onMostlyDone={() => setSphereVisible(true)}
+          onComplete={() => setEntryStage("sphere")}
+        />
+      )}
+
+      {/* BACK 3-beat, beat 3 — the sphere consumes into this form's frame. */}
+      {entryStage === "consume" && entryRect && entryCenter && (
+        <SphereToFrameTransition
+          sphereCenter={entryCenter}
+          sphereRadius={380 * 0.3}
+          contentRect={entryRect}
+          onMostlyDone={() => setRevealContent(true)}
+          onComplete={() => setEntryStage("done")}
+        />
+      )}
+
+      {/* BACK 3-beat, beat 2 — the real sphere holds centre stage, pulsing while the AI
+          re-introduces the costs. Fades in under the dissolving collapse canvas. */}
+      {sphereVisible && (
+        <motion.div
+          className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center"
+          style={{ paddingTop: 84 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.35 }}
+        >
+          <VoiceSphere
+            isActive
+            isSpeaking={isSpeaking}
+            isListening={false}
+            size={380}
+            analyserNode={null}
+            micAnalyserNode={null}
+          />
+        </motion.div>
+      )}
+
       {/* ── Scrollable center ───────────────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto pb-24 pt-4 md:pt-10 gap-4">
         {frameSize && (
@@ -469,9 +556,9 @@ export default function VoiceInvestmentForm({
               className="relative"
               // Morph path stays at scale 1 while hidden — the measured rect is
               // the morph's landing target and transforms would shrink it.
-              initial={{ opacity: 0, scale: entryOrigin ? 1 : 0.96 }}
-              animate={{ opacity: revealContent ? 1 : 0, scale: revealContent || entryOrigin ? 1 : 0.96 }}
-              transition={{ duration: 0.5, delay: revealContent && !entryOrigin ? 0.15 : 0 }}
+              initial={{ opacity: 0, scale: (entryOrigin || entryStart) ? 1 : 0.96 }}
+              animate={{ opacity: revealContent ? 1 : 0, scale: revealContent || entryOrigin || entryStart ? 1 : 0.96 }}
+              transition={{ duration: 0.5, delay: revealContent && !entryOrigin && !entryStart ? 0.15 : 0 }}
             >
               <AnimatedFrame
                 isSpeaking={isSpeaking}
