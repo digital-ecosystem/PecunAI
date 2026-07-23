@@ -12,13 +12,14 @@ export async function handleFunctionCall(
 ): Promise<void> {
   const {
     questionsRef, stateRef, savedAnswersRef, answeredIdsRef, skippedIdsRef,
-    activeCardIdRef, voicePhaseRef, langRef, isRevisitingRef, circleBackActiveRef,
+    activeCardIdRef, voicePhaseRef, suppressNavBackRef, langRef, isRevisitingRef, circleBackActiveRef,
     explainOpenRef, knowledgeBlockerNextQRef, kbExplanationStartedRef, audioEndTimer,
     termsSubStepRef, explainedQuestionsRef, chatOpenRef, pttVectorStoreRef,
     sustainabilityConfirmedRef, pendingVoiceTranscriptRef, applyPendingTranscriptRef,
     skipInProgressRef, prevInProgressRef, assetKnowledgeShownRef, pendingPhaseTransitionRef, fastModeRef, mutedRef,
     send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase,
-    advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign, setIsRevisiting_internal, router, sessionId,
+    advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign,
+    backToPersonalInfo, backToInvestment, backToContracts, setIsRevisiting_internal, router, sessionId,
     setPendingVoiceAnswer, setExplainOverlayData, setTermsSubStep,
     setVoicePhase, setProductSuggestion, setSavedAnswers, setVoiceAnswerCount, setChatMessages,
   } = ctx;
@@ -726,6 +727,22 @@ export async function handleFunctionCall(
         // function call has already finished — there is no active response to cancel.
         advanceToPersonalInfo();
       }
+      return;
+    }
+
+    if (name === "navigate_back") {
+      sendResult({ success: true });
+      // Ignore the AI "echoing" a back-nav system message by reflexively calling navigate_back
+      // right after a programmatic back step — that would over-shoot by one phase (e.g. P5→P4
+      // then straight to P3). suppressNavBackRef is set by every back fn and cleared on the next
+      // real user action (startPTT). See useVoiceSession.ts.
+      if (suppressNavBackRef.current) return;
+      // One phase back, dispatched by current phase. Only the voice-connected phases (4/5/6)
+      // can reach this tool — Personal Info (3) and Signing (7) are silent, so their back is
+      // button-only. See private-documents/back-navigation/PHASE_BACK_NAVIGATION_PLAN.md.
+      if (voicePhaseRef.current === 4)      backToPersonalInfo();
+      else if (voicePhaseRef.current === 5) backToInvestment();
+      else if (voicePhaseRef.current === 6) backToContracts();
       return;
     }
 

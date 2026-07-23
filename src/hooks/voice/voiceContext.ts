@@ -29,6 +29,12 @@ export interface VoiceContext {
   confirmInvestment:     () => Promise<void>;
   confirmContracts:      () => void;
   confirmReadyToSign:    () => void;
+  // Back navigation (one phase per tap) — see PHASE_BACK_NAVIGATION_PLAN.md. Only the three
+  // voice-phase (4/5/6) back fns are dispatched from handleFunctionCall's navigate_back tool;
+  // backToProduct (P3→P2) and backToFinalQA (P7→P6) are button-only (silent phases).
+  backToPersonalInfo:    () => void;
+  backToInvestment:      () => void;
+  backToContracts:       () => void;
 
   // State setters
   setIsAISpeaking:          (v: boolean) => void;
@@ -80,6 +86,7 @@ export interface VoiceContext {
   kbExplanationStartedRef:   MutableRefObject<boolean>;
   kbExplanationResponseIdRef:MutableRefObject<string | null>;
   pendingPhaseTransitionRef: MutableRefObject<(() => void) | null>;
+  suppressNavBackRef:        MutableRefObject<boolean>;
   chatOpenRef:               MutableRefObject<boolean>;
   chatAnsweredRef:           MutableRefObject<number>;
   voiceThreadIdRef:          MutableRefObject<string | null>;

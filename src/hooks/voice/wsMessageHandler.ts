@@ -697,10 +697,18 @@ export async function handleWsMessage(
 
     case "error": {
       const err = msg.error as Record<string, unknown>;
+      // Benign race: a response.cancel (from stopAudio() on a confirm/back tap) reached the server
+      // just after it had already finished the response on its own — the client still had
+      // serverResponseActiveRef true, but there was nothing left to cancel. It cannot be cleanly
+      // prevented (it's a client/server timing race with no ack), and nothing breaks. Log it
+      // quietly so it doesn't surface as a scary red error in dev.
+      if (err?.code === "response_cancel_not_active") {
+        console.debug("[voice] benign: response.cancel lost the race with response completion");
+        break;
+      }
       console.error("[voice] OpenAI error:", JSON.stringify(err));
-      // Most OpenAI API errors (e.g. response.cancel with no active response) are non-fatal —
-      // the session WS is still open. Only hard connection failures are caught by ws.onclose.
-      // Avoid killing the session on every API-level error.
+      // Most other OpenAI API errors are non-fatal too — the session WS is still open. Only hard
+      // connection failures are caught by ws.onclose. Avoid killing the session on API-level errors.
       break;
     }
   }

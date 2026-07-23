@@ -125,7 +125,7 @@ export default function VoiceSessionShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, languageSelected, selectLanguage, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, skipPendingTransition, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, isTransitioningToSigning, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
+  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, languageSelected, selectLanguage, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, skipPendingTransition, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, isTransitioningToSigning, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, backToProduct, backToPersonalInfo, backToInvestment, backToContracts, backToFinalQA, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
     useVoiceSession({
       sessionId,
       questions,
@@ -744,6 +744,7 @@ export default function VoiceSessionShell({
               return onPersonalInfoSubmitted();
             }}
             onPrimeAudio={primeReconnectAudio}
+            onBack={() => { primeReconnectAudio(); return backToProduct(); }}
           />
         </motion.div>
         {/* The pause screen's sphere shrinks away over the mounting form —
@@ -784,7 +785,10 @@ export default function VoiceSessionShell({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.3 }}
         >
-          <VoiceSigningPhase sessionId={sessionId} />
+          <VoiceSigningPhase
+            sessionId={sessionId}
+            onBack={() => { primeReconnectAudio(); return backToFinalQA(); }}
+          />
         </motion.div>
         {/* Phase 6's sphere shrinks away over the mounting signing screen —
             same choreography as the Phase 2 → 3 privacy pause. */}
@@ -818,7 +822,14 @@ export default function VoiceSessionShell({
   // rehydrate effect in useVoiceSession.ts (mirrors Phase 2's), independent of `started`, so
   // this renders even before the tap-to-resume overlay below is dismissed. Fall through to the
   // orb screen for the narrow window before either path has productSuggestion ready yet.
-  if (voicePhase === 4 && productSuggestion) {
+  //
+  // `!isTransitioningToPersonalInfo` guard: a Phase 4 → 3 BACK step announces the privacy pause
+  // while voicePhase is still 4 (it only flips to 3 once the announcement audio ends). Without
+  // this guard, this branch would keep the investment form on screen through the whole
+  // announcement instead of the "stepping away" orb (which the isTransitioningToPersonalInfo
+  // branch below renders) — the forward Phase 2 → 3 path doesn't hit this because its Phase 2
+  // branch sits after the orb branch. See PHASE_BACK_NAVIGATION_PLAN.md §"What actually happened".
+  if (voicePhase === 4 && productSuggestion && !isTransitioningToPersonalInfo) {
     // Live handoff from Phase 3 (ref readable during the flip render): sphere
     // grows back in, then the form's delayed entry morph consumes it.
     const phase4Entry = phase4FromFormRef.current || phase4GrowOrb;
@@ -833,6 +844,7 @@ export default function VoiceSessionShell({
           onPTTStart={startPTT}
           onPTTRelease={() => submitPTTQuestion('phase4')}
           onConfirm={() => { stopAudio(); return confirmInvestment(); }}
+          onBack={() => { stopAudio(); return backToPersonalInfo(); }}
           entryOrbOrigin={
             phase4Entry && typeof window !== "undefined"
               ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 }
@@ -882,6 +894,7 @@ export default function VoiceSessionShell({
           onPTTStart={startPTT}
           onPTTRelease={() => submitPTTQuestion('phase5')}
           onConfirm={() => { stopAudio(); return confirmContracts(); }}
+          onBack={() => { stopAudio(); phaseEntryFrameRectRef.current = null; return backToInvestment(); }}
           // Live 4 → 5 handoff: Phase 4's poll left its frame rect here, so the
           // frame glides onto this screen. Cold resume: null (no poll ran).
           entryFrameRect={phaseEntryFrameRectRef.current}
@@ -907,6 +920,7 @@ export default function VoiceSessionShell({
           onPTTStart={startPTT}
           onPTTRelease={() => submitPTTQuestion('phase6')}
           onConfirm={() => { stopAudio(); return confirmReadyToSign(); }}
+          onBack={() => { stopAudio(); phaseEntryFrameRectRef.current = null; return backToContracts(); }}
           onChatClick={() => setChatOpen(true)}
           isChatOpen={chatOpen}
           // Live 5 → 6 handoff: Phase 5's poll left its frame rect here, so

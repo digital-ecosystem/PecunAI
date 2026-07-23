@@ -94,9 +94,12 @@ interface VoicePersonalInfoFormProps {
   /** Must be invoked synchronously from the submit button's onClick, before any async
    *  work — see useVoiceSession.ts's primeReconnectAudio for why. */
   onPrimeAudio: () => void;
+  /** One phase back → Phase 2 (Product recommendation). Optional; the shell's handler primes
+   *  the AudioContext and reconnects voice (this phase is silent). */
+  onBack?:      () => void;
 }
 
-export default function VoicePersonalInfoForm({ sessionId, onSubmitted, onPrimeAudio }: VoicePersonalInfoFormProps) {
+export default function VoicePersonalInfoForm({ sessionId, onSubmitted, onPrimeAudio, onBack }: VoicePersonalInfoFormProps) {
   const router = useRouter();
   const [highRiskCountries, setHighRiskCountries] = useState<string[]>([]);
   const [isPepStop, setIsPepStop] = useState(false);
@@ -316,6 +319,19 @@ export default function VoicePersonalInfoForm({ sessionId, onSubmitted, onPrimeA
       style={{ background: "linear-gradient(155deg, #dce8fb 0%, #edf4ff 28%, #f6faff 55%, #fdfeff 100%)" }}
     >
       <PrivacyPauseBanner />
+
+      {onBack && (
+        <div className="px-4 sm:px-6 md:px-8 pt-3">
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={submitting}
+            className="inline-flex items-center gap-1 text-sm font-semibold rounded-xl px-5 py-2.5 border-[1.5px] border-blue-500/50 bg-white/85 text-blue-700 hover:bg-blue-50 transition-colors disabled:opacity-50"
+          >
+            ← Zurück
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto">
         <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-6xl">

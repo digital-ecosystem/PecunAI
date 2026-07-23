@@ -9,6 +9,10 @@ type SigningPhase = "preparing" | "signing" | "success" | "failed";
 
 interface VoiceSigningPhaseProps {
   sessionId: string;
+  /** One phase back → Phase 6 (Final Q&A). Optional; the shell's handler primes the AudioContext
+   *  and reconnects voice (this phase is silent). Only offered before the document is signed —
+   *  the button is hidden once phase === "success". See PHASE_BACK_NAVIGATION_PLAN.md. */
+  onBack?:   () => void;
 }
 
 function LoadingState({ label }: { label: string }) {
@@ -59,7 +63,7 @@ function SuccessState() {
 // Phase 7 — Signing: silent, tap-only, no AI voice at all, same treatment as Phase 3.
 // The retry path on cancel/error is a deliberate design decision rather than an oversight —
 // see PHASE_7_SIGNING_PLAN.md decision #4.
-export default function VoiceSigningPhase({ sessionId }: VoiceSigningPhaseProps) {
+export default function VoiceSigningPhase({ sessionId, onBack }: VoiceSigningPhaseProps) {
   const router = useRouter();
   const [phase, setPhase] = useState<SigningPhase>("preparing");
   const [signingUrl, setSigningUrl] = useState<string | null>(null);
@@ -146,6 +150,20 @@ export default function VoiceSigningPhase({ sessionId }: VoiceSigningPhaseProps)
       style={{ background: "linear-gradient(155deg, #dce8fb 0%, #edf4ff 28%, #f6faff 55%, #fdfeff 100%)" }}
     >
       <PrivacyPauseBanner />
+
+      {/* Back to Final Q&A — only before the document is signed (hidden once success). Reconnects
+          voice, so the shell's handler primes the AudioContext synchronously. */}
+      {onBack && phase !== "success" && (
+        <div className="px-4 sm:px-6 pt-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-sm font-semibold rounded-xl px-5 py-2.5 border-[1.5px] border-blue-500/50 bg-white/85 text-blue-700 hover:bg-blue-50 transition-colors"
+          >
+            ← Zurück
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col min-h-0">
         {phase === "preparing" && <LoadingState label="Signatursitzung wird vorbereitet..." />}

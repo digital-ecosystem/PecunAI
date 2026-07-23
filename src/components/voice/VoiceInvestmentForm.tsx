@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "motion/react";
-import { Menu, User, Mic } from "lucide-react";
+import { Menu, User, Mic, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import * as Popover from "@radix-ui/react-popover";
 import { HelpCircle } from "lucide-react";
 import { AnimatedFrame } from "./AnimatedFrame";
@@ -221,6 +222,9 @@ interface VoiceInvestmentFormProps {
   onPTTStart:   () => void;
   onPTTRelease: () => void;
   onConfirm:    () => void;
+  /** One phase back → Phase 3 (Personal Info). Optional; renders a subtle "Zurück" button.
+   *  Not gated by the confirmation checkboxes — going back is always allowed. */
+  onBack?:      () => void;
   /** The reconnect sphere's centre after the live Phase 3 → 4 handoff. When
    *  set at mount, the entry plays the orb → frame consume morph (same as
    *  Phase 2's product entry). Null on cold resume — content fades in as
@@ -244,10 +248,12 @@ export default function VoiceInvestmentForm({
   onPTTStart,
   onPTTRelease,
   onConfirm,
+  onBack,
   entryOrbOrigin,
   entryDelayMs,
   onFrameRect,
 }: VoiceInvestmentFormProps) {
+  const router = useRouter();
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
   const [isPTTActive, setIsPTTActive] = useState(false);
   const [formData, setFormData] = useState<InvestmentFormData>(INITIAL_CHECKBOX_STATE);
@@ -398,13 +404,17 @@ export default function VoiceInvestmentForm({
       {/* ── Header — identical structure to VoiceProductPhase ─────── */}
       <div className="w-full px-6 py-5 relative z-10">
         <div className="flex items-center justify-between">
-          <motion.button
-            className="flex items-center justify-center rounded-full"
-            style={{ width: 44, height: 44, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.5)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Menu size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
-          </motion.button>
+          {onBack ? (
+            <motion.button
+              className="flex items-center justify-center rounded-full"
+              style={{ width: 44, height: 44, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.5)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onBack}
+              aria-label="Einen Schritt zurück"
+            >
+              <ArrowLeft size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
+            </motion.button>
+          ) : <div style={{ width: 44, height: 44 }} />}
 
           <motion.h1
             className="text-2xl font-bold tracking-tight"
@@ -416,13 +426,24 @@ export default function VoiceInvestmentForm({
             Vox.2
           </motion.h1>
 
-          <motion.button
-            className="flex items-center justify-center rounded-full"
-            style={{ width: 44, height: 44, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.5)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <User size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <motion.button
+              className="flex items-center justify-center rounded-full"
+              style={{ width: 44, height: 44, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.5)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push("/customer/dashboard")}
+              aria-label="Zum Dashboard"
+            >
+              <Menu size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
+            </motion.button>
+            <motion.button
+              className="flex items-center justify-center rounded-full"
+              style={{ width: 44, height: 44, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.5)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <User size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
+            </motion.button>
+          </div>
         </div>
       </div>
 

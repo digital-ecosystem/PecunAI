@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Mic, MessageCircle } from "lucide-react";
+import { Mic, MessageCircle, ArrowLeft } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
 import { SphereToFrameTransition } from "./SphereToFrameTransition";
 import type { FrameRect } from "./frameMath";
@@ -30,6 +30,8 @@ interface VoiceSessionReviewProps {
   onPTTStart:      () => void;
   onPTTRelease:    () => void;
   onConfirm:       () => void;
+  /** One phase back → Phase 5 (Contract Documents). Optional; renders a subtle "Zurück" button. */
+  onBack?:         () => void;
   onChatClick:     () => void;
   isChatOpen:      boolean;
   /** Phase 5's frame rect at handoff time. When set at mount, the contracts
@@ -54,6 +56,7 @@ export default function VoiceSessionReview({
   onPTTStart,
   onPTTRelease,
   onConfirm,
+  onBack,
   onChatClick,
   isChatOpen,
   entryFrameRect,
@@ -91,9 +94,20 @@ export default function VoiceSessionReview({
       className="min-h-screen flex flex-col relative overflow-hidden"
       style={{ background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)" }}
     >
-      {/* Header — same Vox.2 title as every other phase */}
+      {/* Header — Vox.2 title, plus a one-step-back button on the left (Phase 6 → 5). */}
       <div className="w-full px-6 py-5 relative z-10">
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-between">
+          {onBack ? (
+            <motion.button
+              className="flex items-center justify-center rounded-full"
+              style={{ width: 44, height: 44, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.5)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onBack}
+              aria-label="Einen Schritt zurück"
+            >
+              <ArrowLeft size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
+            </motion.button>
+          ) : <div style={{ width: 44, height: 44 }} />}
           <motion.h1
             className="text-2xl font-bold tracking-tight"
             style={{ background: "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
@@ -103,6 +117,7 @@ export default function VoiceSessionReview({
           >
             Vox.2
           </motion.h1>
+          <div style={{ width: 44, height: 44 }} />
         </div>
       </div>
 

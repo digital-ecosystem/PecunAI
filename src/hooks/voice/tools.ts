@@ -114,6 +114,12 @@ export const TOOLS = [
   },
   {
     type: "function",
+    name: "navigate_back",
+    description: "Call when the customer explicitly asks to go BACK to the previous step/screen (e.g. 'go back', 'take me back a step', 'I want to change the previous section'). Moves exactly one phase backward and keeps all their data. Do NOT use this for moving between Phase 1 questions (use navigate) or for going from the product screen back to the Phase 1 questions (use revisit_questions).",
+    parameters: { type: "object", properties: {} },
+  },
+  {
+    type: "function",
     name: "confirm_investment",
     description: "Call when the customer explicitly confirms the investment costs and terms shown in Phase 4 (Investment Form) and wants to proceed to the contract documents. Only call this after the customer has verbally agreed — do not call it just because they asked a question about the costs.",
     parameters: { type: "object", properties: {} },

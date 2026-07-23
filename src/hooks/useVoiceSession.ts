@@ -13,7 +13,7 @@ import { handleAnswerConfirmed as _handleAnswerConfirmed } from "./voice/handleA
 import { handlePrev, handleSkipQuestion, handleRequestExplanation, handleCloseExplainOverlay, handleScrollCarousel, handleRevisitQuestions } from "./voice/handleNavigation";
 import { handleMoveToTerms1, handleConfirmTerms1, handleConfirmTerms2, handleConfirmSustainabilityTerms } from "./voice/handleTerms";
 import { handleNotifyChatOpen } from "./voice/handleChat";
-import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./voice/prompts";
+import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./voice/prompts";
 import type { VoiceContext } from "./voice/voiceContext";
 
 // re-export types consumed by VoiceSessionShell and other components
@@ -953,6 +953,138 @@ export function useVoiceSession({
     });
   }, [sessionId, send, saveVoiceState, disconnectVoice]);
 
+  // Guards the "AI echo" over-shoot: after a programmatic back step the AI can reflexively call
+  // navigate_back (echoing the back-nav system message), which would jump one phase too far
+  // (e.g. P5→P4 then straight to P3). Set by every back fn below; cleared on the next real user
+  // action (startPTT). The navigate_back handler ignores calls while this is set.
+  const suppressNavBackRef = useRef(false);
+
+  // ── Back navigation (one phase per tap; data preserved) ───────────
+  // See private-documents/back-navigation/PHASE_BACK_NAVIGATION_PLAN.md.
+  // Three shapes: (A) voice→voice — flip phase + re-greet; (B) voice→silent — privacy pause +
+  // disconnect; (C) silent→voice — reconnect and let session.created/updated re-greet.
+
+  /** P3 → P2 back (shape C). Personal Info is silent (voice disconnected), so returning to the
+   *  product screen must reconnect. wsMessageHandler's session.created (buildSystemPrompt with
+   *  resumeIdx = question count) and session.updated (voicePhase===2 branch) re-inject product
+   *  context and re-greet — the same path a cold resume into Phase 2 takes. product refs are never
+   *  cleared on the P2→P3 forward step, so the P2 screen renders immediately. Button-only: no live
+   *  voice tool can fire from the silent Personal Info screen. The caller must invoke
+   *  primeReconnectAudio() synchronously in the tap handler first (unlock AudioContext). */
+  const backToProduct = useCallback(async () => {
+    suppressNavBackRef.current = true;
+    voicePhaseRef.current = 2;
+    setVoicePhase(2);
+    setProductSuggestion(productRef.current); // ensure the Phase 2 screen renders
+    saveVoiceState(questionsRef.current.length).catch(() => {});
+    fetch("/api/phase", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, phase: "SUGGESTIONS" }),
+    }).catch(() => {});
+    await reconnectVoice();
+  }, [sessionId, saveVoiceState, reconnectVoice]);
+
+  /** P4 → P3 back (shape B). Investment form is a voice phase; Personal Info is silent. Mirror of
+   *  advanceToPersonalInfo: announce a short privacy pause, then disconnect voice and flip to
+   *  Phase 3 once the announcement audio ends (pendingPhaseTransitionRef, fired by scheduleAIDone).
+   *  The personal-info form re-prefills from /api/user/info/[sessionId] on mount, so data is kept. */
+  const backToPersonalInfo = useCallback(() => {
+    suppressNavBackRef.current = true;
+    setIsTransitioningToPersonalInfo(true); // switch to the plain orb screen immediately
+    pendingPhaseTransitionRef.current = () => {
+      disconnectVoice();
+      voicePhaseRef.current = 3;
+      setVoicePhase(3);
+      setIsTransitioningToPersonalInfo(false);
+      saveVoiceState(questionsRef.current.length).catch(() => {});
+      fetch("/api/phase", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ sessionId, phase: "PERSONAL_INFO" }),
+      }).catch(() => {});
+    };
+    // Explicit system message before the override response.create — same rationale as
+    // advanceToPersonalInfo: the strong Phase 4 conversation-history pull can otherwise outweigh
+    // the per-response instructions override.
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: "[SYSTEM: The customer wants to go BACK to their personal details. Do NOT continue discussing the investment costs. Announce the privacy pause now — you'll step away while they review their information.]",
+      }]},
+    });
+    send({
+      type: "response.create",
+      response: { instructions: PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS(langRef.current) },
+    });
+  }, [sessionId, send, saveVoiceState, disconnectVoice]);
+
+  /** P5 → P4 back (shape A). Both are voice phases — no reconnect, no privacy pause. Flip phase and
+   *  re-greet the investment form. Reverse of confirmInvestment. productSuggestion stays set, so
+   *  VoiceInvestmentForm renders immediately. */
+  const backToInvestment = useCallback(() => {
+    suppressNavBackRef.current = true;
+    voicePhaseRef.current = 4;
+    setVoicePhase(4);
+    saveVoiceState(questionsRef.current.length).catch(() => {});
+    fetch("/api/phase", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, phase: "INVESTMENT_FORM" }),
+    }).catch(() => {});
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: "[SYSTEM: The screen has switched back to the investment form (costs & fees). Do NOT call navigate_back or any navigation tool. Do NOT continue discussing the contract documents — briefly re-introduce this screen so the customer can review it.]",
+      }]},
+    });
+    send({
+      type: "response.create",
+      response: { instructions: PHASE4_REENTRY_SYSTEM_PROMPT(langRef.current) },
+    });
+  }, [sessionId, send, saveVoiceState]);
+
+  /** P6 → P5 back (shape A). Both voice phases. Reverse of confirmContracts. */
+  const backToContracts = useCallback(() => {
+    suppressNavBackRef.current = true;
+    voicePhaseRef.current = 5;
+    setVoicePhase(5);
+    saveVoiceState(questionsRef.current.length).catch(() => {});
+    fetch("/api/phase", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, phase: "CONTRACT_DOCUMENT" }),
+    }).catch(() => {});
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: "[SYSTEM: The screen has switched back to the contract documents. Do NOT call navigate_back or any navigation tool. Do NOT continue the final Q&A — briefly re-introduce the contract documents for review.]",
+      }]},
+    });
+    send({
+      type: "response.create",
+      response: { instructions: CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS(langRef.current) },
+    });
+  }, [sessionId, send, saveVoiceState]);
+
+  /** P7 → P6 back (shape C). Signing is silent (voice disconnected). Reconnect into Final Q&A —
+   *  session.created/updated's voicePhase===6 branch (FINAL_QA_INTRO_INSTRUCTIONS + bare
+   *  response.create) re-greets, the same path a cold resume into Phase 6 takes. Button-only, and
+   *  only offered BEFORE the signing document is submitted (the P7 screen hides the button once
+   *  signing starts). Caller must invoke primeReconnectAudio() synchronously in the tap handler. */
+  const backToFinalQA = useCallback(async () => {
+    suppressNavBackRef.current = true;
+    voicePhaseRef.current = 6;
+    setVoicePhase(6);
+    saveVoiceState(questionsRef.current.length).catch(() => {});
+    fetch("/api/phase", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, phase: "CHAT" }),
+    }).catch(() => {});
+    await reconnectVoice();
+  }, [sessionId, saveVoiceState, reconnectVoice]);
+
   Object.assign(ctxRef.current, {
     // config
     sessionId, termsVectorId, router,
@@ -961,6 +1093,7 @@ export function useVoiceSession({
     saveAnswer, saveVoiceState, advancePhase,
     scheduleAIDone, scheduleChunk, handleFunctionCall,
     disconnectVoice, reconnectVoice, advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign,
+    backToPersonalInfo, backToInvestment, backToContracts, suppressNavBackRef,
     // state setters
     setIsAISpeaking, setBargeInActive, setSavedAnswers, setChatMessages,
     setIsChatAITyping, setPendingVoiceAnswer, setExplainOverlayData,
@@ -1224,6 +1357,7 @@ export function useVoiceSession({
 
   const startPTT = useCallback(() => {
     pttActiveRef.current = true;
+    suppressNavBackRef.current = false; // real user action — allow voice-triggered navigate_back again
     stopAudio();
 
     // Defensive — clears any residual buffered audio before this press starts. With the
@@ -1417,6 +1551,11 @@ export function useVoiceSession({
     confirmInvestment,
     confirmContracts,
     confirmReadyToSign,
+    backToProduct,
+    backToPersonalInfo,
+    backToInvestment,
+    backToContracts,
+    backToFinalQA,
     isTransitioningToSigning,
     primeReconnectAudio,
     isRevisiting,
