@@ -33,6 +33,10 @@ interface PhaseOneNeuralModelProps {
   frameRectStart?: FrameRect | null;
   containerWidth: number;
   containerHeight: number;
+  /** Fast Mode / reduced motion: snap the orb⇄cardFrame morph to its target instantly instead of
+   *  the ~1.15s consume tween (boss 2026-07-23: the slow animation "doesn't make sense" when the
+   *  customer is answering fast). */
+  snap?: boolean;
 }
 
 const N = SPHERE_NODE_COUNT;
@@ -86,6 +90,7 @@ export function PhaseOneNeuralModel({
   frameRectStart,
   containerWidth: cw,
   containerHeight: ch,
+  snap,
 }: PhaseOneNeuralModelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -105,6 +110,9 @@ export function PhaseOneNeuralModel({
   useEffect(() => { isListeningRef.current = isListening; }, [isListening]);
   useEffect(() => { analyserRef.current = analyserNode ?? null; }, [analyserNode]);
   useEffect(() => { micAnalyserRef.current = micAnalyserNode ?? null; }, [micAnalyserNode]);
+
+  const snapRef = useRef(!!snap);
+  useEffect(() => { snapRef.current = !!snap; }, [snap]);
 
   // sphereCenter can update per frame while the phase-1 layout slides in
   // (the shell live-tracks the wrapper's rect), so the draw loop reads it
@@ -195,7 +203,9 @@ export function PhaseOneNeuralModel({
     if (posRef.current.length === 0) return; // mount effect above handles the first paint
     fromRef.current = posRef.current.map(p => ({ ...p }));
     toRef.current = targetsFor(shape, frameRect);
-    morphStartRef.current = performance.now();
+    // Fast Mode / reduced motion: start the morph clock a full duration in the past so the very
+    // next frame renders at t=1 — the frame snaps to its target instead of the slow consume tween.
+    morphStartRef.current = snapRef.current ? performance.now() - MORPH_MS : performance.now();
     mixFromRef.current = mixRef.current;
     mixToRef.current = shape === "cardFrame" ? 1 : 0;
     if (frameRect) lastFrameRectRef.current = frameRect;

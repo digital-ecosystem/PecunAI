@@ -566,7 +566,7 @@ export default function VoiceSessionShell({
 
   const inPlaceRect = useMemo(
     () => (modalCardQ && compactRect
-      ? computeInPlaceRect(compactRect, modalCardQ, {
+      ? computeInPlaceRect(compactRect, typeof window !== "undefined" ? window.innerHeight : 800, modalCardQ, {
           hasContext:  !!cardContextMessage,
           hasProposed: cardPreSelected !== undefined,
         })
@@ -1585,6 +1585,7 @@ export default function VoiceSessionShell({
           micAnalyserNode={micAnalyserNode}
           containerWidth={typeof window !== "undefined" ? window.innerWidth : 0}
           containerHeight={typeof window !== "undefined" ? window.innerHeight : 0}
+          snap={fastMode || reduceMotion}
         />
       )}
 
@@ -1620,6 +1621,7 @@ export default function VoiceSessionShell({
             question={modalCardQ}
             preSelectedValue={cardPreSelected}
             contextMessage={cardContextMessage}
+            snap={fastMode || reduceMotion}
             onClose={() => {
               suppressAutoModalRef.current = true;
               setModalOpen(false);

@@ -33,6 +33,11 @@ interface ExpandedQuestionCardProps {
   onNext: (value: string) => void;
   preSelectedValue?: string;
   contextMessage?: string;
+  /** Fast Mode / reduced motion: skip the grow-from-compact morph and staggered reveal — the card
+   *  just appears at its expanded rect with a quick fade (boss 2026-07-23: the animation "doesn't
+   *  make sense when you're doing the questions fast"). The sphere-consume morph is snapped too
+   *  (see PhaseOneNeuralModel's `snap`). */
+  snap?: boolean;
 }
 
 // The band the CENTERED card floats in: below the header zone, above the
@@ -77,6 +82,7 @@ export function computeExpandedRect(vw: number, vh: number): FrameRect {
 // has no carousel card and keeps growing from the orb.)
 export function computeInPlaceRect(
   startRect: FrameRect,
+  vh: number,
   question: ModalQuestion,
   opts?: { hasContext?: boolean; hasProposed?: boolean }
 ): FrameRect {
@@ -103,15 +109,19 @@ export function computeInPlaceRect(
     h += 76; // breathing room
   }
   h += 18;
-  // Settle vertically centered in the band between the top header zone and
-  // the compact card's bottom edge (user feedback 2026-07-22: bottom-anchored
-  // sat "too much in the bottom") — the card still grows FROM the compact
-  // card, but drifts up to read as the middle of the screen, while its lower
-  // bound keeps it clear of the ControlBar below the carousel.
-  const bottom = startRect.y + startRect.h;
-  const bandH  = bottom - TOP_MARGIN;
-  h = Math.max(startRect.h + 60, Math.min(h, bandH - 20));
-  const y = TOP_MARGIN + Math.max(10, (bandH - h) / 2);
+  // "Grows from its own centre" (boss, 2026-07-23): keep the compact card's CENTRE
+  // fixed and grow taller symmetrically — up a bit and down a bit — instead of
+  // drifting up to the band centre (which read as a floating modal). The sphere
+  // above consumes the rising top edge via PhaseOneNeuralModel. Clamp the height
+  // and position so the card never slides under the header (TOP_MARGIN) or the
+  // ControlBar (BAR_CLEARANCE); when it must clamp, it stays as close to
+  // centred-on-its-spot as the viewport allows.
+  const maxBottom = vh - BAR_CLEARANCE;
+  h = Math.max(startRect.h + 60, Math.min(h, maxBottom - TOP_MARGIN));
+  const compactCenter = startRect.y + startRect.h / 2;
+  let y = compactCenter - h / 2;
+  if (y < TOP_MARGIN)    y = TOP_MARGIN;
+  if (y + h > maxBottom) y = maxBottom - h;
   return { x: startRect.x, y, w: startRect.w, h };
 }
 
@@ -138,6 +148,7 @@ export function ExpandedQuestionCard({
   onNext,
   preSelectedValue,
   contextMessage,
+  snap,
 }: ExpandedQuestionCardProps) {
   const isChoice = !question.questionType || question.questionType === "choice";
   const isNumber = question.questionType === "number";
@@ -217,7 +228,7 @@ export function ExpandedQuestionCard({
   // staggers in DURING the grow (reference behavior) and fades out first on
   // close, so both directions read as the same card resizing.
   // No startRect → plain fade at the fixed rect (fallback / harness edge).
-  const grow      = !!startRect;
+  const grow      = !!startRect && !snap;
   const GROW_S    = 0.6;
   const SHRINK_S  = 0.45;
   const GROW_EASE = [0.22, 1, 0.36, 1] as const;
@@ -232,7 +243,12 @@ export function ExpandedQuestionCard({
         ? { left: rect.x, top: rect.y, width: rect.w, height: rect.h, opacity: 1,
             transition: { duration: GROW_S, ease: GROW_EASE } }
         : { left: rect.x, top: rect.y, width: rect.w, height: rect.h, opacity: 1, scale: 1,
-            transition: { duration: 0.3, delay: 0.15 } }}
+            // Snap mode: position/size jump instantly (duration 0) so a card that mounts a frame
+            // before the carousel reports the new question's rect never slides left→right to catch
+            // up — only opacity fades. Normal mode keeps the gentle settle.
+            transition: snap
+              ? { duration: 0.14, left: { duration: 0 }, top: { duration: 0 }, width: { duration: 0 }, height: { duration: 0 }, scale: { duration: 0 } }
+              : { duration: 0.3, delay: 0.15 } }}
       // Exit (grow mode): Zone B fades out fast, then the card visibly shrinks
       // back INTO the compact carousel card (header intact) while the canvas
       // frame collapses to the orb behind it; the outer opacity drops only at
@@ -275,7 +291,7 @@ export function ExpandedQuestionCard({
             className="absolute flex items-center justify-center rounded-full"
             style={{ top: 12, right: 12, width: 28, height: 28, background: "rgba(241,245,249,1)", border: "1px solid rgba(226,232,240,0.8)" }}
             initial={{ opacity: grow ? 0 : 1 }}
-            animate={{ opacity: 1, transition: { delay: 0.2, duration: 0.25 } }}
+            animate={{ opacity: 1, transition: { delay: snap ? 0 : 0.2, duration: 0.25 } }}
             exit={{ opacity: 0, transition: { duration: 0.1 } }}
             whileTap={{ scale: 0.9 }}
             onClick={onClose}
@@ -313,7 +329,7 @@ export function ExpandedQuestionCard({
           {/* Zone B (header part) — slim progress + context banner. */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: { delay: grow ? 0.12 : 0.15, duration: 0.3 } }}
+            animate={{ opacity: 1, transition: { delay: snap ? 0 : grow ? 0.12 : 0.15, duration: snap ? 0.12 : 0.3 } }}
             exit={{ opacity: 0, transition: { duration: 0.12 } }}
           >
             <div className="flex items-center gap-2 mt-3">
@@ -348,7 +364,7 @@ export function ExpandedQuestionCard({
         <motion.div
           className="flex-1 min-h-0 flex flex-col"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { delay: grow ? 0.08 : 0.15, duration: 0.25 } }}
+          animate={{ opacity: 1, transition: { delay: snap ? 0 : grow ? 0.08 : 0.15, duration: snap ? 0.12 : 0.25 } }}
           exit={{ opacity: 0, transition: { duration: 0.12 } }}
         >
           <div className="flex-1 px-6 pt-3 overflow-y-auto flex flex-col">
@@ -366,8 +382,8 @@ export function ExpandedQuestionCard({
                   return (
                     <motion.button
                       key={opt.id}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0, transition: { delay: (grow ? 0.1 : 0.2) + optIdx * 0.05, duration: 0.25 } }}
+                      initial={{ opacity: 0, y: snap ? 0 : 6 }}
+                      animate={{ opacity: 1, y: 0, transition: { delay: snap ? 0 : (grow ? 0.1 : 0.2) + optIdx * 0.05, duration: snap ? 0.12 : 0.25 } }}
                       className="w-full text-left rounded-2xl transition-all"
                       style={{
                         background: isAmber ? "rgba(254,243,199,0.8)" : isBlue ? "rgba(219,234,254,0.7)" : "rgba(255,255,255,0.7)",
