@@ -130,11 +130,19 @@ export function handleSkipQuestion(question: CarouselQuestion, ctx: VoiceContext
 }
 
 export function handleRequestExplanation(ctx: VoiceContext): void {
-  const { questionsRef, activeCardIdRef, stateRef, send } = ctx;
+  const { questionsRef, activeCardIdRef, stateRef, setExplainOverlayData, send } = ctx;
 
   const currentQ = questionsRef.current.find(q => q.id === activeCardIdRef.current)
     ?? questionsRef.current[stateRef.current.currentQuestionIndex];
   if (!currentQ) return;
+
+  // Open the overlay IMMEDIATELY with a placeholder (boss 2026-07-24: the info tap must respond at
+  // once, not after the AI finishes talking). The overlay's own entrance animation plays right away
+  // and masks the model's latency; explain_topic then replaces this with the real title + bullets a
+  // beat later (VoiceExplainOverlay reads the data live, so no remount). VoiceSessionShell's
+  // onInfoClick stopAudio()s first, so the model isn't mid-response and picks this up immediately.
+  setExplainOverlayData({ title: currentQ.category ?? "", keyPoints: [], stats: [] });
+
   send({
     type: "conversation.item.create",
     item: {

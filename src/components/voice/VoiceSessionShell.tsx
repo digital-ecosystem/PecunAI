@@ -1403,7 +1403,7 @@ export default function VoiceSessionShell({
                 onPrev();
               }}
               onActiveCardExpand={() => setModalOpen(true)}
-              onInfoClick={requestExplanation}
+              onInfoClick={() => { stopAudio(); requestExplanation(); }}
               onActiveCardRectChange={setCompactRect}
               expandedQuestionId={
                 modalOpen ? modalQ?.id ?? null : sustainabilityVisible ? activeQ?.id ?? null : null
