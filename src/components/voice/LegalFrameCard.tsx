@@ -33,7 +33,7 @@ export function LegalFrameCard({
         {confirmed
           ? <Check className="h-3.5 w-3.5" />
           : <FileText className="h-3.5 w-3.5" />}
-        {pageIndex + 1} / {totalPages}
+        <span>{pageIndex + 1} / {totalPages}</span>
       </div>
 
       {/* Title */}
@@ -67,10 +67,10 @@ export function LegalFrameCard({
         {confirmed ? (
           <>
             <Check size={15} />
-            Bestätigt
+            <span>Bestätigt</span>
           </>
         ) : (
-          "Ich bestätige"
+          <span>Ich bestätige</span>
         )}
       </motion.button>
     </div>
