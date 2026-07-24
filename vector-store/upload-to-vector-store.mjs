@@ -1,5 +1,5 @@
 /**
- * upload-new-vector-store.mjs
+ * upload-to-vector-store.mjs
  *
  * TWO MODES, decided automatically:
  *
@@ -17,7 +17,7 @@
  * before running:
  *
  *   $env:OPENAI_API_KEY_NEW="sk-..."
- *   node upload-new-vector-store.mjs
+ *   node upload-to-vector-store.mjs
  *
  * Requires: npm install openai (already a dependency in this project)
  */
@@ -32,7 +32,7 @@ if (!apiKey) {
   console.error(
     "Missing env var. Run as:\n" +
     '  $env:OPENAI_API_KEY_NEW="sk-..."\n' +
-    "  node upload-new-vector-store.mjs"
+    "  node upload-to-vector-store.mjs"
   );
   process.exit(1);
 }
@@ -141,7 +141,7 @@ async function main() {
       console.log(
         `\n  To replace these, re-run with:\n` +
         `    $env:REPLACE_CHANGED="true"\n` +
-        `    node upload-new-vector-store.mjs`
+        `    node upload-to-vector-store.mjs`
       );
     }
 
