@@ -38,7 +38,7 @@ if (!apiKey) {
 }
 
 const client = new OpenAI({ apiKey });
-const SOURCE_DIR = "./vector-store";
+const SOURCE_DIR = ".";
 const VECTOR_STORE_NAME = "Digital Onboarding Guide - Knowledge Base";
 
 async function findExistingStoreByName(name) {
