@@ -70,6 +70,18 @@ export function computeExpandedRect(vw: number, vh: number): FrameRect {
   return { x: (vw - width) / 2, y, w: width, h: height };
 }
 
+// The sustainability disclosure is a long legal document, not a compact answer card — so it fills
+// the whole band between the Phase 1 header and the ControlBar (boss 2026-07-24: "cover all the
+// screen, just not the bottom buttons and the header"), instead of the capped/centered CARD_MAX_H
+// box the question cards use. Content scrolls inside (SustainabilityTermsCard is h-full + internal
+// overflow), so a tall rect just reveals more of the document at once.
+export function computeSustainabilityRect(vw: number, vh: number): FrameRect {
+  const width  = vw >= 1024 ? 480 : vw >= 640 ? 440 : Math.min(Math.round(vw * 0.9), 380);
+  const top    = TOP_MARGIN + BAND_PAD;                    // just below the header
+  const height = Math.max(320, vh - BAR_CLEARANCE - top);  // down to just above the ControlBar
+  return { x: (vw - width) / 2, y: top, w: width, h: height };
+}
+
 // Uniform question-card geometry (boss, 2026-07-23). EVERY question card — choice OR number/text —
 // expands to ONE fixed height (CARD_MAX_H = Q20's, "it's perfect") so cards never change size
 // between questions. Content taller than the card scrolls inside the answer area; shorter content

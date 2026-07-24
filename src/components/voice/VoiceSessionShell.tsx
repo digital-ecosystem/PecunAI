@@ -6,7 +6,7 @@ import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Menu, User, Mic, VolumeX, Hand, Check, ChevronRight } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
 import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
-import { ExpandedQuestionCard, computeExpandedRect, computeInPlaceRect } from "./ExpandedQuestionCard";
+import { ExpandedQuestionCard, computeExpandedRect, computeInPlaceRect, computeSustainabilityRect } from "./ExpandedQuestionCard";
 import { SustainabilityTermsCard } from "./SustainabilityTermsCard";
 import { PhaseOneNeuralModel } from "./PhaseOneNeuralModel";
 import { SphereToFrameTransition } from "./SphereToFrameTransition";
@@ -155,6 +155,7 @@ export default function VoiceSessionShell({
   // re-measured per expand/collapse.
   const [orbOrigin, setOrbOrigin] = useState<{ x: number; y: number } | null>(null);
   const [expandedRect, setExpandedRect] = useState<FrameRect | null>(null);
+  const [sustainabilityRect, setSustainabilityRect] = useState<FrameRect | null>(null);
   // Round 21: live rect of the active carousel card — the expanded card and the
   // neural frame grow FROM it ("same card grows"). Reported by VoiceCarousel.
   const [compactRect, setCompactRect] = useState<FrameRect | null>(null);
@@ -314,7 +315,10 @@ export default function VoiceSessionShell({
 
   // expandedRect only depends on viewport size — mount + resize is enough.
   useEffect(() => {
-    const measure = () => setExpandedRect(computeExpandedRect(window.innerWidth, window.innerHeight));
+    const measure = () => {
+      setExpandedRect(computeExpandedRect(window.innerWidth, window.innerHeight));
+      setSustainabilityRect(computeSustainabilityRect(window.innerWidth, window.innerHeight));
+    };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
@@ -1519,10 +1523,10 @@ export default function VoiceSessionShell({
           PTT for ask-about-terms lives in the ControlBar (routed to
           submitPTTQuestion while this is open). */}
       <AnimatePresence>
-        {sustainabilityVisible && started && expandedRect && (
+        {sustainabilityVisible && started && sustainabilityRect && (
           <SustainabilityTermsCard
             key="sustainability-card"
-            rect={expandedRect}
+            rect={sustainabilityRect}
             onConfirm={() => { stopAudio(); return confirmSustainabilityTerms(); }}
           />
         )}
@@ -1569,7 +1573,7 @@ export default function VoiceSessionShell({
       {voicePhase === 1 && started && orbOrigin && (
         <PhaseOneNeuralModel
           shape={modalOpen || sustainabilityVisible ? "cardFrame" : "orb"}
-          frameRect={modalOpen ? cardRect : sustainabilityVisible ? expandedRect : null}
+          frameRect={modalOpen ? cardRect : sustainabilityVisible ? sustainabilityRect : null}
           // Grow the frame from the tapped card only for a question card — the
           // disclosure has no carousel card, so it keeps growing from the orb.
           frameRectStart={modalOpen ? compactRect : null}
