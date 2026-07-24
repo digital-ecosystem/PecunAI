@@ -566,12 +566,9 @@ export default function VoiceSessionShell({
 
   const inPlaceRect = useMemo(
     () => (modalCardQ && compactRect
-      ? computeInPlaceRect(compactRect, typeof window !== "undefined" ? window.innerHeight : 800, modalCardQ, {
-          hasContext:  !!cardContextMessage,
-          hasProposed: cardPreSelected !== undefined,
-        })
+      ? computeInPlaceRect(compactRect, typeof window !== "undefined" ? window.innerHeight : 800)
       : null),
-    [modalCardQ, compactRect, cardContextMessage, cardPreSelected]
+    [modalCardQ, compactRect]
   );
   const cardRect = inPlaceRect ?? expandedRect;
 

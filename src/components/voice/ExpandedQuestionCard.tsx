@@ -70,54 +70,16 @@ export function computeExpandedRect(vw: number, vh: number): FrameRect {
   return { x: (vw - width) / 2, y, w: width, h: height };
 }
 
-// Round 22 "expand in place": the question card no longer flies to the centered
-// band above — it keeps the compact card's x/width, anchors its bottom edge at
-// the compact card's bottom, and grows UPWARD by a content-estimated height
-// (the vox2_ai_morph_handoff reference's HDR + options*OPT + BTN formula). The
-// header base is startRect.h — the compact card's REAL rendered height for the
-// same category + question at the same width — so only the answer rows are
-// estimated. Errors degrade gracefully: the answer area is flex-1 /
-// overflow-y-auto, so too-short scrolls and too-tall just leaves air.
-// (computeExpandedRect above still serves the sustainability disclosure, which
-// has no carousel card and keeps growing from the orb.)
-export function computeInPlaceRect(
-  startRect: FrameRect,
-  vh: number,
-  question: ModalQuestion,
-  opts?: { hasContext?: boolean; hasProposed?: boolean }
-): FrameRect {
-  const isChoice = !question.questionType || question.questionType === "choice";
-  let h = startRect.h + 30; // header base + progress row
-  if (opts?.hasContext)  h += 56; // Fast Mode / re-ask banner
-  if (opts?.hasProposed) h += 26; // amber "ist das korrekt?" hint line
-  if (isChoice) {
-    for (const o of question.options) {
-      const lines = Math.max(1, Math.ceil(o.label.length / 28));
-      h += 28 + lines * 20;
-    }
-    h += Math.max(0, question.options.length - 1) * 10 + 14;
-  } else {
-    // Number/text: hero input, helper hints, Weiter directly below — plus a
-    // breathing-room allowance (user feedback 2026-07-22: pure content-hug
-    // felt too short). The input group is vertically CENTERED in the answer
-    // area (my-auto), so this air splits evenly above/below the group instead
-    // of pooling as one dead gap like the original bottom-pinned layout.
-    h += 66; // hero input
-    if (question.minValue !== undefined) h += 20;
-    if (question.maxValue !== undefined) h += 20;
-    h += 62; // Weiter in-flow (mt-4 + smaller button)
-    h += 76; // breathing room
-  }
-  h += 18;
-  // "Grows from its own centre" (boss, 2026-07-23): keep the compact card's CENTRE
-  // fixed and grow taller symmetrically — up a bit and down a bit — instead of
-  // drifting up to the band centre (which read as a floating modal). The sphere
-  // above consumes the rising top edge via PhaseOneNeuralModel. Clamp the height
-  // and position so the card never slides under the header (TOP_MARGIN) or the
-  // ControlBar (BAR_CLEARANCE); when it must clamp, it stays as close to
-  // centred-on-its-spot as the viewport allows.
+// Uniform question-card geometry (boss, 2026-07-23). EVERY question card — choice OR number/text —
+// expands to ONE fixed height (CARD_MAX_H = Q20's, "it's perfect") so cards never change size
+// between questions. Content taller than the card scrolls inside the answer area; shorter content
+// (a single input, or a short option list) is top-aligned with air below. Keeps the compact card's
+// x/width and stays centred on the compact card's own centre, clamped only on very short viewports.
+// (computeExpandedRect above still serves the sustainability disclosure, which has no carousel card
+// and keeps growing from the orb.)
+export function computeInPlaceRect(startRect: FrameRect, vh: number): FrameRect {
   const maxBottom = vh - BAR_CLEARANCE;
-  h = Math.max(startRect.h + 60, Math.min(h, maxBottom - TOP_MARGIN));
+  const h = Math.min(CARD_MAX_H, maxBottom - TOP_MARGIN);
   const compactCenter = startRect.y + startRect.h / 2;
   let y = compactCenter - h / 2;
   if (y < TOP_MARGIN)    y = TOP_MARGIN;
@@ -367,7 +329,7 @@ export function ExpandedQuestionCard({
           animate={{ opacity: 1, transition: { delay: snap ? 0 : grow ? 0.08 : 0.15, duration: snap ? 0.12 : 0.25 } }}
           exit={{ opacity: 0, transition: { duration: 0.12 } }}
         >
-          <div className="flex-1 px-6 pt-3 overflow-y-auto flex flex-col">
+          <div className="flex-1 px-6 pt-3 pb-5 overflow-y-auto flex flex-col">
             {isChoice && (
               <div className="space-y-2.5 pb-2">
                 {aiProposed && selected && (
@@ -426,9 +388,9 @@ export function ExpandedQuestionCard({
             )}
 
             {(isNumber || isText) && (
-              /* my-auto: centers the input group in the answer area's surplus
-                 height; collapses to normal flow if content ever overflows. */
-              <div className="space-y-3 pb-2 my-auto w-full">
+              <>
+              {/* Input group, top-aligned right under the progress row. */}
+              <div className="space-y-3 pb-2 w-full">
                 {aiProposed && inputValue !== "" && (
                   <p className="text-xs font-medium text-center pb-1" style={{ color: "rgba(217,119,6,0.8)" }}>
                     Ich habe diese Antwort gehört – ist das korrekt?
@@ -472,7 +434,7 @@ export function ExpandedQuestionCard({
                     }}
                     onWheel={e => isNumber && e.currentTarget.blur()}
                     // Placeholder at base size; typed value in large semibold.
-                    className={`hero-number-input w-full px-4 py-3.5 rounded-2xl text-center ${inputValue ? "text-lg font-semibold" : "text-base"}`}
+                    className={`hero-number-input w-full px-4 py-3.5 rounded-2xl text-left ${inputValue ? "text-lg font-semibold" : "text-base"}`}
                     style={{
                       background: "transparent",
                       border:     "none",
@@ -512,26 +474,26 @@ export function ExpandedQuestionCard({
                       : `Höchstwert ist ${question.maxValue?.toLocaleString("de-AT")}`}
                   </p>
                 )}
-                {/* Weiter flows directly under the input — not pinned to the
-                    card bottom, so a tight card has no stretched dead space.
-                    Choice questions still submit on the option tap itself
-                    (boss request 2026-07-20) and render no button. */}
-                <motion.button
-                  className="w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
-                  style={{
-                    marginTop: 16,
-                    background: canSubmit ? "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)" : "rgba(148,163,184,0.3)",
-                    color: canSubmit ? "white" : "rgba(100,116,139,0.5)",
-                    boxShadow: canSubmit ? "0 4px 16px rgba(59,130,246,0.3)" : "none",
-                  }}
-                  whileTap={canSubmit ? { scale: 0.98 } : {}}
-                  onClick={handleSubmit}
-                  disabled={!canSubmit}
-                >
-                  Weiter
-                  <ArrowRight size={16} />
-                </motion.button>
               </div>
+              {/* Weiter pinned to the card bottom (boss 2026-07-23): input at the top, button all
+                  the way down. mt-auto pushes it to the bottom of the answer area; on a long
+                  question the auto margin collapses and the area scrolls instead. Choice questions
+                  still submit on the option tap itself and render no button. */}
+              <motion.button
+                className="w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 mt-auto"
+                style={{
+                  background: canSubmit ? "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)" : "rgba(148,163,184,0.3)",
+                  color: canSubmit ? "white" : "rgba(100,116,139,0.5)",
+                  boxShadow: canSubmit ? "0 4px 16px rgba(59,130,246,0.3)" : "none",
+                }}
+                whileTap={canSubmit ? { scale: 0.98 } : {}}
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+              >
+                Weiter
+                <ArrowRight size={16} />
+              </motion.button>
+              </>
             )}
           </div>
         </motion.div>
