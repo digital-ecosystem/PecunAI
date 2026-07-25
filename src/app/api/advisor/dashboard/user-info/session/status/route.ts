@@ -47,7 +47,15 @@ export async function PATCH(req: Request) {
       },
     });
 
-    if (!ownedSession || ownedSession.partnerId !== session.userId) {
+    // Super advisors may approve/reject ANY session; every other advisor
+    // (isSuperAdvisor = false, the default) may only act on their own sessions.
+    const partner = await prisma.partner.findUnique({
+      where: { id: session.userId },
+      select: { isSuperAdvisor: true },
+    });
+    const isSuperAdvisor = partner?.isSuperAdvisor ?? false;
+
+    if (!ownedSession || (!isSuperAdvisor && ownedSession.partnerId !== session.userId)) {
       return NextResponse.json({ success: false, message: 'Nicht berechtigt' }, { status: 403 });
     }
 

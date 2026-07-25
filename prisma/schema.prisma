@@ -93,6 +93,7 @@ model Partner {
   password     String
   referralCode String      @unique // Unique code like "PARTNER123"
   isActive     Boolean     @default(true)
+  isSuperAdvisor Boolean   @default(false) // Elevated advisor: can see/approve ALL sessions, not just their own
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   teamId            String?
