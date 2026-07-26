@@ -8,6 +8,10 @@ import { PersonalInfoFormData } from "@/types";
 type PersonalInfoFormProps = {
   formik: ReturnType<typeof useFormik<PersonalInfoFormData>>;
   highRiskCountries?: string[];
+  /** Called when Enter is pressed in the last text field of the form — mirrors the "Weiter"
+   *  button's own click handler (primes audio, then submits). See
+   *  private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md. */
+  onEnterSubmit?: () => void;
 };
 
 // German country list for nationality and address
@@ -59,8 +63,30 @@ const PHONE_CODES = [
 ];
 
 const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
-  { formik, highRiskCountries = [] }
+  { formik, highRiskCountries = [], onEnterSubmit }
 ) => {
+  // Enter moves focus to the next field (matching how Tab already works on this long form),
+  // and submits on the last one — client feedback (3rd-feedback.txt): "it would be nice if i
+  // click on enter when i enter data, that i come to the next page." Scoped to text/email/date
+  // inputs (not the select/radio controls) per that literal ask. Finds the next field via the
+  // native `.form` reference rather than a hardcoded field order, so it stays correct if fields
+  // are ever reordered.
+  const handleEnterKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const form = e.currentTarget.form;
+    if (!form) return;
+    const focusable = Array.from(
+      form.querySelectorAll<HTMLElement>("input, select, textarea")
+    ).filter(el => !el.hasAttribute("disabled") && el.tabIndex !== -1 && el.offsetParent !== null);
+    const next = focusable[focusable.indexOf(e.currentTarget) + 1];
+    if (next) {
+      next.focus();
+    } else {
+      onEnterSubmit?.();
+    }
+  };
+
   // Combine and sort countries
   const allCountries = React.useMemo(() => {
     const combined = Array.from(new Set([...GERMAN_COUNTRIES, ...highRiskCountries]));
@@ -90,6 +116,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
         type={type}
         onChange={customOnChange || formik.handleChange}
         onBlur={formik.handleBlur}
+        onKeyDown={handleEnterKeyDown}
         value={
           typeof formik.values[name as keyof typeof formik.values] === "boolean"
             ? "" :
@@ -166,6 +193,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                 max={maxBirthDateFor18}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
+                onKeyDown={handleEnterKeyDown}
                 value={
                   formik.values.birthDate
                     ? new Date(formik.values.birthDate as string).toISOString().substring(0, 10)
@@ -360,6 +388,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = (
                 type="email"
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
+                onKeyDown={handleEnterKeyDown}
                 value={formik.values.email}
                 className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm 
                            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500

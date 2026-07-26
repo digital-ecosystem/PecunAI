@@ -445,6 +445,14 @@ export function ExpandedQuestionCard({
                       setInputValue(e.target.value);
                     }}
                     onWheel={e => isNumber && e.currentTarget.blur()}
+                    // Enter submits, same as tapping "Weiter" — client feedback (3rd-feedback.txt):
+                    // "it would be nice if i click on enter when i enter data, that i come to the
+                    // next page." See private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+                    onKeyDown={e => {
+                      if (e.key !== "Enter") return;
+                      e.preventDefault();
+                      handleSubmit();
+                    }}
                     // Placeholder at base size; typed value in large semibold.
                     className={`hero-number-input w-full px-4 py-3.5 rounded-2xl text-left ${inputValue ? "text-lg font-semibold" : "text-base"}`}
                     style={{
