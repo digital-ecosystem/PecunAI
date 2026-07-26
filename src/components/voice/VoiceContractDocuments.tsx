@@ -21,9 +21,9 @@ const PDFViewerClient = dynamic(() => import("./PDFViewerClient"), {
 // ── Frame sizing — same portrait "document card" proportions used by every other
 // voice-frame phase (Phase 2's getPdfSize(), Phase 4's getInvestmentFrameSize()). Each phase
 // keeps its own local copy rather than sharing one — established pattern, not an oversight. ──
-function getContractFrameSize() {
+function getContractFrameSize(footerHeight = 0) {
   const vw = typeof window !== "undefined" ? window.innerWidth  : 640;
-  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+  const vh = typeof window !== "undefined" ? window.innerHeight - footerHeight : 800;
   if (vw >= 1024) {
     const maxH = Math.round(vh * 0.68);
     const w    = Math.min(Math.round(maxH / 1.414), 500);
@@ -117,6 +117,10 @@ interface VoiceContractDocumentsProps {
    *  latest value so the Phase 5 → 6 handoff can collapse this frame into
    *  Phase 6's sphere. */
   onFrameRect?:    (rect: FrameRect) => void;
+  /** Actual rendered height of the persistent disclaimer footer (page.tsx, measured live) —
+   *  subtracted from window.innerHeight-based sizing here. Defaults to 0. See
+   *  private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md. */
+  footerHeight?:   number;
 }
 
 export default function VoiceContractDocuments({
@@ -132,6 +136,7 @@ export default function VoiceContractDocuments({
   entryFrameRect,
   entryOrbOrigin,
   onFrameRect,
+  footerHeight = 0,
 }: VoiceContractDocumentsProps) {
   const router = useRouter();
   const reduceMotion = !!useReducedMotion();
@@ -149,11 +154,11 @@ export default function VoiceContractDocuments({
   const [pdfFullscreen, setPdfFullscreen] = useState(false);
 
   useEffect(() => {
-    setFrameSize(getContractFrameSize());
-    const onResize = () => setFrameSize(getContractFrameSize());
+    setFrameSize(getContractFrameSize(footerHeight));
+    const onResize = () => setFrameSize(getContractFrameSize(footerHeight));
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, []);
+  }, [footerHeight]);
 
   // ── Entry handoff (Phase 4's frame → sphere → this frame) — three beats:
   // "collapse" flies the investment frame's nodes into the sphere at the
@@ -167,7 +172,7 @@ export default function VoiceContractDocuments({
   const [entryOrigin]   = useState(entryOrbOrigin ?? null); // orb→frame origin (back P6→P5)
   const [entryCenter]   = useState(() =>
     entryFrameRect && typeof window !== "undefined"
-      ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 }
+      ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - footerHeight - 84) / 2 }
       : null
   );
   const [entryStage,    setEntryStage]    = useState<EntryStage>(entryFrameRect && !reduceMotion ? "collapse" : "done");
@@ -429,7 +434,7 @@ export default function VoiceContractDocuments({
 
   return (
     <div
-      className="min-h-screen flex flex-col relative overflow-x-hidden"
+      className="h-full flex flex-col relative overflow-x-hidden"
       style={{ background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)" }}
     >
       {/* ── Header — identical structure to VoiceProductPhase / VoiceInvestmentForm ─── */}

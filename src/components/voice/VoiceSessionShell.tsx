@@ -807,6 +807,7 @@ export default function VoiceSessionShell({
     return (
       <>
         <motion.div
+          className="h-full"
           initial={enteredFromPause ? { opacity: 0, y: 14 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.3 }}
@@ -927,6 +928,7 @@ export default function VoiceSessionShell({
           }
           entryDelayMs={PHASE4_GROW_MS}
           onFrameRect={reportFrameRect}
+          footerHeight={footerHeight}
         />
         {/* The AI "steps back in": sphere grows at the same centre the Phase 3
             exit shrank from, then the form's morph takes over at full size. */}
@@ -976,6 +978,7 @@ export default function VoiceSessionShell({
           // BACK 6 → 5: the Final-Q&A sphere blooms into this frame (orb→frame).
           entryOrbOrigin={phase5FromFinalQARef.current && typeof window !== "undefined" ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - footerHeight - 84) / 2 } : null}
           onFrameRect={reportFrameRect}
+          footerHeight={footerHeight}
         />
         {resumeTapOverlay}
       </>
@@ -1008,6 +1011,7 @@ export default function VoiceSessionShell({
           // signing phase immediately instead of a stranded pause screen.
           onSphereTap={isTransitioningToSigning ? skipPendingTransition : stopAudio}
           entryGrow={phase6FromSigningRef.current && !reduceMotion}
+          footerHeight={footerHeight}
         />
         {/* BACK P7→P6 — sphere blooms back into the Final-Q&A screen (mirror of the P6→P7 "AI
             steps out" shrink). VoiceSessionReview holds its real sphere hidden until this lands. */}
@@ -1270,6 +1274,7 @@ export default function VoiceSessionShell({
                 entryOrbOrigin={phase2FromPersonalInfoRef.current && typeof window !== "undefined" ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - footerHeight - 84) / 2 } : orbOrigin}
                 entryDelayMs={phase2FromPersonalInfoRef.current ? PHASE4_GROW_MS : undefined}
                 onFrameRect={reportFrameRect}
+                footerHeight={footerHeight}
               />
               {/* BACK P3→P2 — sphere grows in (AI steps back in), then VoiceProductPhase's
                   orb→frame morph consumes it. Mirror of the P3→P4 grow phantom. */}
@@ -1334,20 +1339,55 @@ export default function VoiceSessionShell({
               Vox.2
             </motion.h1>
 
-            <motion.button
-              className="flex items-center justify-center rounded-full"
-              style={{
-                width:          44,
-                height:         44,
-                background:     "rgba(255,255,255,0.6)",
-                backdropFilter: "blur(10px)",
-                border:         "1px solid rgba(255,255,255,0.5)",
-                boxShadow:      "0 2px 8px rgba(0,0,0,0.04)",
-              }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <User size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
-            </motion.button>
+            {/* Revisit mode: "done, show me the recommendation" replaces the (otherwise
+                unused) User icon slot — moved here from a dedicated row above ControlBar so it
+                never competes with the disclaimer footer / ControlBar for the same cramped
+                vertical space at the bottom. See
+                private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md. */}
+            {isRevisiting ? (
+              <motion.button
+                className="flex items-center gap-1.5 rounded-full"
+                style={{
+                  paddingLeft:  14,
+                  paddingRight: 16,
+                  height:       44,
+                  background:   "linear-gradient(135deg, rgba(59,130,246,0.9) 0%, rgba(37,99,235,0.9) 100%)",
+                  boxShadow:    "0 4px 16px rgba(59,130,246,0.3)",
+                }}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (sustainabilityOpen) return;
+                  // Close any open card before leaving Phase 1 — the card
+                  // overlay isn't phase-gated, so stale modalOpen state would
+                  // render it on top of Phase 2.
+                  suppressAutoModalRef.current = true;
+                  setModalOpen(false);
+                  clearPendingVoiceAnswer();
+                  stopAudio();
+                  advancePhase();
+                }}
+              >
+                <Check size={16} style={{ color: "white" }} />
+                <span className="text-sm font-medium text-white">Fertig</span>
+              </motion.button>
+            ) : (
+              <motion.button
+                className="flex items-center justify-center rounded-full"
+                style={{
+                  width:          44,
+                  height:         44,
+                  background:     "rgba(255,255,255,0.6)",
+                  backdropFilter: "blur(10px)",
+                  border:         "1px solid rgba(255,255,255,0.5)",
+                  boxShadow:      "0 2px 8px rgba(0,0,0,0.04)",
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <User size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
+              </motion.button>
+            )}
           </div>
         </div>
 
@@ -1456,38 +1496,6 @@ export default function VoiceSessionShell({
           </motion.div>
         )}
 
-        {/* ── Revisit: tap alternative to voice for "I'm done, back to Phase 2" ────── */}
-        {isRevisiting && (
-          <motion.div
-            className="relative z-20 mb-6 flex justify-center"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
-          >
-            <motion.button
-              className="flex items-center gap-2 rounded-full px-6 py-3"
-              style={{
-                background: "linear-gradient(135deg, rgba(59,130,246,0.9) 0%, rgba(37,99,235,0.9) 100%)",
-                boxShadow:  "0 4px 16px rgba(59,130,246,0.3)",
-              }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => {
-                if (sustainabilityOpen) return;
-                // Close any open card before leaving Phase 1 — the card
-                // overlay isn't phase-gated, so stale modalOpen state would
-                // render it on top of Phase 2.
-                suppressAutoModalRef.current = true;
-                setModalOpen(false);
-                clearPendingVoiceAnswer();
-                stopAudio();
-                advancePhase();
-              }}
-            >
-              <Check size={18} style={{ color: "white" }} />
-              <span className="text-sm font-medium text-white">Fertig – Empfehlung ansehen</span>
-            </motion.button>
-          </motion.div>
-        )}
         </div>
 
         {/* ── Control Bar ──────────────────────────────────────────── */}

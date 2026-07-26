@@ -28,9 +28,9 @@ const STATUS_LABEL: Record<SessionState, string> = {
   error:       "Verbindungsfehler – Tippen Sie weiter",
 };
 
-function getPdfSize() {
+function getPdfSize(footerHeight = 0) {
   const vw = typeof window !== "undefined" ? window.innerWidth  : 640;
-  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+  const vh = typeof window !== "undefined" ? window.innerHeight - footerHeight : 800;
   if (vw >= 1024) {
     const maxH = Math.round(vh * 0.60);
     const w    = Math.min(Math.round(maxH / 1.414), 500);
@@ -67,6 +67,11 @@ interface VoiceProductPhaseProps {
    *  latest value so a revisit back to Phase 1 can collapse this frame into
    *  the orb (the same initialFrameRect handoff terms2 → Phase 1 uses). */
   onFrameRect?:     (rect: FrameRect) => void;
+  /** Actual rendered height of the persistent disclaimer footer (page.tsx, measured live) —
+   *  subtracted from window.innerHeight-based sizing here so the PDF preview and layout
+   *  respect the space the footer actually occupies. Defaults to 0. See
+   *  private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md. */
+  footerHeight?:    number;
 }
 
 export default function VoiceProductPhase({
@@ -83,6 +88,7 @@ export default function VoiceProductPhase({
   entryOrbOrigin,
   entryDelayMs,
   onFrameRect,
+  footerHeight = 0,
 }: VoiceProductPhaseProps) {
   const reduceMotion = !!useReducedMotion();
   const [pdfSize,       setPdfSize]       = useState<{ width: number; height: number } | null>(null);
@@ -175,18 +181,18 @@ export default function VoiceProductPhase({
   const isNarrow = typeof window === 'undefined' || window.innerWidth < 768;
 
   useEffect(() => {
-    setPdfSize(getPdfSize());
-    const onResize = () => setPdfSize(getPdfSize());
+    setPdfSize(getPdfSize(footerHeight));
+    const onResize = () => setPdfSize(getPdfSize(footerHeight));
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, []);
+  }, [footerHeight]);
 
   const pdfUrl = `/api/products/file/${product.fileName.replace(/^\/products\//, "")}`;
   const statusLabel = STATUS_LABEL[sessionState] ?? "";
 
   return (
     <div
-      className="min-h-screen flex flex-col relative overflow-x-hidden"
+      className="h-full flex flex-col relative overflow-x-hidden"
       style={{
         background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)",
       }}

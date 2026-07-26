@@ -184,9 +184,9 @@ const INITIAL_CHECKBOX_STATE: InvestmentFormData = {
 // PHASE_4_FEE_TABLE_RESPONSIVE_PLAN.md). The 7-column fee table therefore scrolls
 // horizontally inside its own overflow-x-auto wrapper on desktop, accepted for now;
 // below 1024px it's replaced by stacked fee cards (GebuehrenCards) instead.
-function getInvestmentFrameSize() {
+function getInvestmentFrameSize(footerHeight = 0) {
   const vw = typeof window !== "undefined" ? window.innerWidth  : 640;
-  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+  const vh = typeof window !== "undefined" ? window.innerHeight - footerHeight : 800;
   if (vw >= 1024) {
     const maxH = Math.round(vh * 0.68);
     const w    = Math.min(Math.round(maxH / 1.414), 500);
@@ -243,6 +243,10 @@ interface VoiceInvestmentFormProps {
    *  latest value so the Phase 4 → 5 handoff can glide this frame onto the
    *  contract documents screen. */
   onFrameRect?:    (rect: FrameRect) => void;
+  /** Actual rendered height of the persistent disclaimer footer (page.tsx, measured live) —
+   *  subtracted from window.innerHeight-based sizing here. Defaults to 0. See
+   *  private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md. */
+  footerHeight?:   number;
 }
 
 export default function VoiceInvestmentForm({
@@ -259,6 +263,7 @@ export default function VoiceInvestmentForm({
   entryFrameRect,
   entryDelayMs,
   onFrameRect,
+  footerHeight = 0,
 }: VoiceInvestmentFormProps) {
   const router = useRouter();
   const reduceMotion = !!useReducedMotion();
@@ -271,13 +276,13 @@ export default function VoiceInvestmentForm({
 
   useEffect(() => {
     const apply = () => {
-      setFrameSize(getInvestmentFrameSize());
+      setFrameSize(getInvestmentFrameSize(footerHeight));
       setIsCardLayout(window.innerWidth < 1024);
     };
     apply();
     window.addEventListener("resize", apply);
     return () => window.removeEventListener("resize", apply);
-  }, []);
+  }, [footerHeight]);
 
   // ── Entry morph. Two mirror-image modes, never both at once:
   //   • FORWARD P3→P4: orb → form frame (the VoiceProductPhase pattern), optionally delayed by
@@ -290,7 +295,7 @@ export default function VoiceInvestmentForm({
   const [entryStart]    = useState(entryFrameRect ?? null); // 3-beat from-rect (back)
   const [entryCenter]   = useState(() =>
     entryFrameRect && typeof window !== "undefined"
-      ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 }
+      ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - footerHeight - 84) / 2 }
       : null
   );
   type EntryStage = "collapse" | "sphere" | "consume" | "done";
@@ -441,7 +446,7 @@ export default function VoiceInvestmentForm({
 
   return (
     <div
-      className="min-h-screen flex flex-col relative overflow-x-hidden"
+      className="h-full flex flex-col relative overflow-x-hidden"
       style={{ background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)" }}
     >
       {/* ── Header — identical structure to VoiceProductPhase ─────── */}

@@ -45,6 +45,10 @@ interface VoiceSessionReviewProps {
   /** BACK from Phase 7: the sphere blooms back in (a shell grow phantom). Keeps the real sphere +
    *  buttons hidden until the phantom lands, so they don't double up. Mirror of the P6→P7 shrink. */
   entryGrow?:      boolean;
+  /** Actual rendered height of the persistent disclaimer footer (page.tsx, measured live) —
+   *  subtracted from window.innerHeight-based sizing here. Defaults to 0. See
+   *  private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md. */
+  footerHeight?:   number;
 }
 
 // Phase 6 — Final Q&A: the last AI-guided moment before signing. Visually the same orb
@@ -65,6 +69,7 @@ export default function VoiceSessionReview({
   entryFrameRect,
   onSphereTap,
   entryGrow,
+  footerHeight = 0,
 }: VoiceSessionReviewProps) {
   const [isPTTActive, setIsPTTActive] = useState(false);
 
@@ -75,7 +80,7 @@ export default function VoiceSessionReview({
   const [entryStart]  = useState(entryFrameRect ?? null); // snapshot at mount
   const [entryCenter] = useState(() =>
     entryFrameRect && typeof window !== "undefined"
-      ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 }
+      ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - footerHeight - 84) / 2 }
       : null
   );
   const [collapsing, setCollapsing] = useState(!!entryFrameRect);
@@ -105,7 +110,7 @@ export default function VoiceSessionReview({
 
   return (
     <div
-      className="min-h-screen flex flex-col relative overflow-hidden"
+      className="h-full flex flex-col relative overflow-y-auto overflow-x-hidden"
       style={{ background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)" }}
     >
       {/* Header — Vox.2 title, plus a one-step-back button on the left (Phase 6 → 5). */}
