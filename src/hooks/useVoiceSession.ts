@@ -169,9 +169,25 @@ export function useVoiceSession({
   const assetKnowledgeShownRef = useRef<Set<string>>(new Set());
   // True when the customer has toggled Fast Mode on for Phase 1 — the AI stops auto-narrating
   // questions (still available on demand via PTT/info icon). Not persisted — always resets to
-  // off, matching the default. See private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
-  const fastModeRef = useRef(false);
-  const [fastMode, setFastMode] = useState(false);
+  // on, matching the default per client feedback (3rd-feedback.txt, 2026-07-25). See
+  // private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md and PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+  const fastModeRef = useRef(true);
+  const [fastMode, setFastMode] = useState(true);
+  // True for exactly the one-time Fast-Mode-intro announcement spoken right as Phase 1 begins
+  // (handleConfirmTerms2) — makes the auto-open effect wait for that speech to finish (instead
+  // of the usual instant Fast Mode open) and makes the first card use the full grow animation
+  // instead of the usual snap. Cleared once the customer moves past the first question. See
+  // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+  const [fastModeIntroActive, setFastModeIntroActive] = useState(false);
+  // Set true (by wsMessageHandler.ts, on a silent Fast Mode resume) to make the very next card
+  // that becomes the modal's target use the full grow animation instead of the usual instant
+  // snap — consistent UX with the Phase 0→1 intro card. A plain ref, not state: it's consumed
+  // exactly once via a useMemo keyed on modalQ?.id in VoiceSessionShell.tsx (read-then-clear),
+  // which sidesteps the render-batching race a useState version would hit when the resume path
+  // ALSO calls setCard() in the same tick (circle-back resume) — that setCard would otherwise
+  // race the flag's own reset effect and clear it before the card ever gets to read it. See
+  // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+  const growNextCardRef = useRef(false);
   // Set when an explain overlay closes in Fast Mode and the same question needs a silent re-ask
   // — holds that question's id so VoiceSessionShell can show an in-modal hint instead of the AI
   // speaking. Cleared once the customer leaves that modal (answers or closes it). See
@@ -1099,7 +1115,7 @@ export function useVoiceSession({
     setIsChatAITyping, setPendingVoiceAnswer, setExplainOverlayData,
     setExplainTriggerClose, setTermsSubStep, setVoicePhase,
     setProductSuggestion, setVoiceAnswerCount, setIsRevisiting_internal,
-    setMicAnalyserNode, setPostExplainReaskId,
+    setMicAnalyserNode, setPostExplainReaskId, setFastModeIntroActive,
     // refs (all stable — same object reference every render)
     wsRef, audioCtxRef, gainRef, analyserRef, nextPlayTimeRef, audioEndTimer,
     pendingCall, aiTextBufferRef, aiAudioTranscriptRef, lastAITranscriptRef,
@@ -1116,7 +1132,7 @@ export function useVoiceSession({
     termsSubStepRef, langRef, isRevisitingRef, sustainabilityConfirmedRef,
     isAISpeakingRef, bargeInActiveRef, sessionConfiguredRef, initialIndexRef,
     circleBackActiveRef, skipInProgressRef, prevInProgressRef, scrollDebounceTimerRef,
-    assetKnowledgeShownRef, fastModeRef,
+    assetKnowledgeShownRef, fastModeRef, growNextCardRef,
   } satisfies VoiceContext);
 
   // ── WebSocket lifecycle ────────────────────────────────────────
@@ -1586,6 +1602,9 @@ export function useVoiceSession({
     isChatAITyping,
     fastMode,
     toggleFastMode,
+    fastModeIntroActive,
+    setFastModeIntroActive,
+    growNextCardRef,
     postExplainReaskId,
     clearPostExplainReask,
   };

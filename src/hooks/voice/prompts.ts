@@ -247,6 +247,16 @@ export const SUSTAINABILITY_EXPLAIN_INSTRUCTIONS = (lang: "de" | "en" = "de") =>
   ? `${ADVISOR_PERSONA("de")} Sagen Sie genau 1–2 Sätze: Erklären Sie, dass jetzt ein gesetzlich vorgeschriebenes EU-Dokument über Nachhaltigkeitsrisiken auf dem Bildschirm zu sehen ist, dass der Kunde es in seinem eigenen Tempo lesen und auf die Bestätigungsschaltfläche tippen soll, wenn er fertig ist, und dass er jederzeit die Mikrofontaste gedrückt halten kann, um Fragen dazu zu stellen. Sagen Sie danach NICHTS mehr — stellen Sie KEINE Phase-1-Fragen, navigieren Sie NICHT. Warten Sie einfach darauf, dass der Kunde die Bestätigung antippt.`
   : `${ADVISOR_PERSONA("en")} Say exactly 1–2 sentences: explain that a legally required EU document about sustainability risks is now shown on screen, that the customer should read it at their own pace and tap the confirm button when done, and that they can hold the microphone button at any time to ask questions about it. Then say NOTHING else — ask NO Phase 1 questions, do NOT navigate. Just wait for the customer to tap confirm.`;
 
+// Sent exactly once, right as Phase 1 begins, when Fast Mode is already on (it defaults on —
+// see PHASE_1_FAST_MODE_PLAN.md / PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md). Unlike every other
+// Fast-Mode-skipped narration point, this ONE transition still speaks — a short heads-up so the
+// customer isn't left wondering why the AI suddenly goes quiet. The first question's card only
+// auto-opens (with the full grow animation, not the usual instant snap) once this finishes
+// speaking — see fastModeIntroActive in useVoiceSession.ts / VoiceSessionShell.tsx.
+export const FAST_MODE_INTRO_INSTRUCTIONS = (lang: "de" | "en" = "de") => lang === "de"
+  ? `${ADVISOR_PERSONA("de")} Sagen Sie genau 1–2 kurze Sätze: Fast Mode ist aktiviert, daher werden Sie diesen Teil nicht per Sprache begleiten. Wenn der Kunde möchte, dass Sie ihn durch die Fragen führen, kann er Fast Mode über den Button unten deaktivieren. Sagen Sie danach NICHTS mehr — stellen Sie KEINE Frage, warten Sie einfach.`
+  : `${ADVISOR_PERSONA("en")} Say exactly 1–2 short sentences: Fast Mode is enabled, so you will not be guiding this part by voice. If the customer wants you to guide them through the questions, they can disable Fast Mode using the button below. Then say NOTHING else — ask NO question, just wait.`;
+
 // Sent right before disconnecting into Phase 3 (Personal Info — silent, no AI guidance).
 // Draft copy — not yet signed off, see private-documents/remaining-phases/PHASE_3_PERSONAL_INFO_PLAN.md.
 export const PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS = (lang: "de" | "en" = "de") => lang === "de"

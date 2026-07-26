@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import VoiceSessionShell from "@/components/voice/VoiceSessionShell";
+import VoiceDisclaimerFooter from "@/components/voice/VoiceDisclaimerFooter";
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 
 export default function VoiceSessionPage() {
@@ -25,6 +26,23 @@ export default function VoiceSessionPage() {
   const [initialSavedAnswers, setInitialSavedAnswers] = useState<Record<string, string>>({});
   const [initialVoicePhase,   setInitialVoicePhase]   = useState<0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | undefined>(undefined);
   const [initialIsRevisiting, setInitialIsRevisiting] = useState(false);
+
+  // Real, measured height of the disclaimer footer (varies with viewport width — the copy wraps
+  // to more/fewer lines) — passed down so VoiceSessionShell's sphere/card layout math (which
+  // reads window.innerHeight) subtracts the space the footer actually occupies instead of
+  // assuming the full viewport is available. See
+  // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+  const footerRef = useRef<HTMLDivElement>(null);
+  const [footerHeight, setFooterHeight] = useState(0);
+  useEffect(() => {
+    const el = footerRef.current;
+    if (!el) return;
+    const measure = () => setFooterHeight(el.getBoundingClientRect().height);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ready]);
 
   useEffect(() => {
     const init = async () => {
@@ -205,25 +223,43 @@ export default function VoiceSessionPage() {
 
   if (!ready) {
     return (
-      <div className="h-screen flex items-center justify-center"
-        style={{ background: "linear-gradient(155deg, #dce8fb 0%, #edf4ff 28%, #f6faff 55%, #fdfeff 100%)" }}>
-        <div className="w-8 h-8 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
+      <div className="h-[100dvh] flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 flex items-center justify-center"
+          style={{ background: "linear-gradient(155deg, #dce8fb 0%, #edf4ff 28%, #f6faff 55%, #fdfeff 100%)" }}>
+          <div className="w-8 h-8 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
+        </div>
+        <div ref={footerRef}>
+          <VoiceDisclaimerFooter />
+        </div>
       </div>
     );
   }
 
   return (
-    <VoiceSessionShell
-      sessionId={sessionId}
-      questions={questions}
-      initialQuestionIndex={initialQuestionIndex}
-      initialTermsPhase={initialTermsPhase}
-      termsVectorId={termsVectorId}
-      initialAnsweredIds={initialAnsweredIds}
-      initialSkippedIds={initialSkippedIds}
-      initialSavedAnswers={initialSavedAnswers}
-      initialVoicePhase={initialVoicePhase}
-      initialIsRevisiting={initialIsRevisiting}
-    />
+    <div className="h-[100dvh] flex flex-col overflow-hidden">
+      {/* transform establishes a containing block for every `position: fixed` descendant inside
+          VoiceSessionShell (tap-to-start/resume overlays, transition sphere overlays, the gate
+          modals) — without it, `fixed` always binds to the true browser viewport and would cover
+          the footer below, no matter how this wrapper is sized. See
+          private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md. */}
+      <div className="flex-1 min-h-0 relative" style={{ transform: "translateZ(0)" }}>
+        <VoiceSessionShell
+          sessionId={sessionId}
+          questions={questions}
+          initialQuestionIndex={initialQuestionIndex}
+          initialTermsPhase={initialTermsPhase}
+          termsVectorId={termsVectorId}
+          initialAnsweredIds={initialAnsweredIds}
+          initialSkippedIds={initialSkippedIds}
+          initialSavedAnswers={initialSavedAnswers}
+          initialVoicePhase={initialVoicePhase}
+          initialIsRevisiting={initialIsRevisiting}
+          footerHeight={footerHeight}
+        />
+      </div>
+      <div ref={footerRef}>
+        <VoiceDisclaimerFooter />
+      </div>
+    </div>
   );
 }

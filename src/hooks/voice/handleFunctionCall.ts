@@ -588,6 +588,20 @@ export async function handleFunctionCall(
           termsSubStepRef.current = 'sustainabilityTerms';
           saveVoiceState(questionsRef.current.findIndex(q => q.id === currentQ?.id)).catch(() => {});
           sendResult({ success: true });
+          // Fast Mode: same gate as the direct-answer path above — neutral context only, no
+          // intro narration, AI_DONE correction. This branch (reached via a voice-driven
+          // navigate("next") skip of Q2) was missed when Fast Mode was first built. See
+          // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+          if (fastModeRef.current && !chatOpenRef.current) {
+            send({
+              type: "conversation.item.create",
+              item: { type: "message", role: "user", content: [{ type: "input_text",
+                text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is now displayed on screen. Fast Mode is ON — do NOT speak. The customer reads and confirms it on screen; they can hold the microphone button to ask questions about it.]",
+              }]},
+            });
+            if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+            return;
+          }
           send({
             type: "conversation.item.create",
             item: { type: "message", role: "user", content: [{ type: "input_text",
@@ -633,6 +647,15 @@ export async function handleFunctionCall(
           },
         });
 
+        // Fast Mode: context above stays updated so an on-demand PTT question still has it, but
+        // skip the auto-narration itself — mirrors handleNavigation.ts's handleSkipQuestion (the
+        // tap-button equivalent), which was already gated. This voice-driven general skip case
+        // (customer says "skip"/"next" — not the Q2-specific branch above) was missed when Fast
+        // Mode was first built. See private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+        if (fastModeRef.current && !chatOpenRef.current) {
+          if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+          return;
+        }
         send({
           type: "response.create",
           response: {
@@ -692,6 +715,15 @@ export async function handleFunctionCall(
           type: "conversation.item.create",
           item: { type: "message", role: "user", content: [{ type: "input_text", text: msg }] },
         });
+        // Fast Mode: context above stays updated so an on-demand PTT question still has it, but
+        // skip the auto-narration itself — mirrors handleNavigation.ts's handlePrev (the
+        // tap-button equivalent), which was already gated. This voice-driven "go back" case
+        // (customer says "go back" — not a button tap) was missed when Fast Mode was first
+        // built. See private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+        if (fastModeRef.current && !chatOpenRef.current) {
+          if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+          return;
+        }
         send({
           type: "response.create",
           response: {

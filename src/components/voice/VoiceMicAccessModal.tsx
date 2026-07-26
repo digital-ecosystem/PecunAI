@@ -14,7 +14,7 @@ interface VoiceMicAccessModalProps {
 export default function VoiceMicAccessModal({ onRetry }: VoiceMicAccessModalProps) {
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
+      className="absolute inset-0 z-50 flex flex-col items-center justify-center px-6"
       style={{ background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)" }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}

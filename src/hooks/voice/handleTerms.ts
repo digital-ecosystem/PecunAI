@@ -1,4 +1,4 @@
-import { TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA } from "./prompts";
+import { TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, FAST_MODE_INTRO_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
 /** Called both from VoiceSessionShell's auto-advance effect (isAISpeaking goes false in Phase 0
@@ -75,7 +75,7 @@ export async function handleConfirmTerms1(ctx: VoiceContext): Promise<void> {
 
 /** Customer tapped "Ich bestätige" on the froots (terms2) document — transitions to Phase 1 */
 export async function handleConfirmTerms2(ctx: VoiceContext): Promise<void> {
-  const { sessionId, voicePhaseRef, termsSubStepRef, setTermsSubStep, setVoicePhase, saveVoiceState, send } = ctx;
+  const { sessionId, voicePhaseRef, termsSubStepRef, fastModeRef, langRef, setTermsSubStep, setVoicePhase, setFastModeIntroActive, saveVoiceState, send } = ctx;
 
   await fetch("/api/phase", {
     method:  "POST",
@@ -99,6 +99,17 @@ export async function handleConfirmTerms2(ctx: VoiceContext): Promise<void> {
       content: [{ type: "input_text", text: "[SYSTEM: Terms confirmed. Starting Phase 1 — risk profile questions. Begin with the first topic.]" }],
     },
   });
+  // Fast Mode: unlike every other Fast-Mode-skipped narration point, this ONE transition still
+  // speaks — a one-time heads-up so the customer isn't left wondering why the AI suddenly goes
+  // quiet. fastModeIntroActive makes the first question's card wait for this speech to finish
+  // and use the full grow animation (instead of the usual instant snap) — see
+  // VoiceSessionShell.tsx's auto-open effect. See
+  // private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md and PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+  if (fastModeRef.current) {
+    setFastModeIntroActive(true);
+    send({ type: "response.create", response: { instructions: FAST_MODE_INTRO_INSTRUCTIONS(langRef.current) } });
+    return;
+  }
   send({ type: "response.create" });
 }
 

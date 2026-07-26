@@ -24,7 +24,7 @@ export async function handleWsMessage(
     latencyStartRef, pttSearchPendingRef, pttSpeculativeSearchRef, pttPartialTranscriptRef,
     pttVectorStoreRef, pttDocLabelRef, activeSourcesRef, nextPlayTimeRef, wsRef,
     skippedIdsRef, isRevisitingRef, langRef, micSourceRef, workletNodeRef, micAnalyserRef,
-    resetExplainIdleRef, savedAnswersRef, questionsRef,
+    resetExplainIdleRef, savedAnswersRef, questionsRef, fastModeRef, growNextCardRef,
     send, dispatch, scheduleChunk, scheduleAIDone, handleFunctionCall, setCard,
     setIsAISpeaking, setBargeInActive, setMicAnalyserNode, setIsChatAITyping, setChatMessages,
     appendChatMessage, appendPhase6ChatMessage, voiceThreadIdRef,
@@ -233,7 +233,15 @@ export async function handleWsMessage(
             text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is displayed on screen. The customer returned to the session. Greet them back warmly in 1 sentence, mention they can continue reading the sustainability document and tap confirm when ready, and that they can hold the mic button to ask questions. Do NOT ask any Phase 1 questions. Wait for them to confirm.]",
           }]},
         });
-        send({ type: "response.create", response: { instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde ist zurückgekehrt und sieht das Nachhaltigkeitsdokument. Begrüßen Sie ihn kurz in 1 Satz, erinnern Sie ihn daran, dass er das Dokument in seinem eigenen Tempo lesen und auf „Ich bestätige" tippen kann, und dass er die Mikrofontaste halten kann, um Fragen zu stellen. Stellen Sie KEINE Phase-1-Fragen. Warten Sie.` } });
+        // Fast Mode: keep the context update (grounds on-demand PTT) but skip the spoken
+        // greeting — resume greetings weren't gated when Fast Mode was first built, since Fast
+        // Mode didn't yet exist on this path. See
+        // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+        if (fastModeRef.current) {
+          if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+        } else {
+          send({ type: "response.create", response: { instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde ist zurückgekehrt und sieht das Nachhaltigkeitsdokument. Begrüßen Sie ihn kurz in 1 Satz, erinnern Sie ihn daran, dass er das Dokument in seinem eigenen Tempo lesen und auf „Ich bestätige" tippen kann, und dass er die Mikrofontaste halten kann, um Fragen zu stellen. Stellen Sie KEINE Phase-1-Fragen. Warten Sie.` } });
+        }
       } else if (
         voicePhaseRef.current === 1 && !isRevisitingRef.current &&
         skippedIdsRef.current.size > 0 &&
@@ -265,12 +273,35 @@ export async function handleWsMessage(
             text: `[SYSTEM: Session resumed. All main topics are answered. Now circle back through ${allSkipped.length} skipped topic(s). Your ONLY next topic is "${firstSkipped.category}" (ID: ${firstSkipped.id}). Ask about this now. Remaining skipped after this: ${allSkipped.slice(1).map(q => q.id).join(", ") || "none"}.]`,
           }]},
         });
-        send({
-          type: "response.create",
-          response: {
-            instructions: `${ADVISOR_PERSONA(langRef.current)} Willkommen zurück. Alle Hauptthemen sind beantwortet. Sagen Sie in 1 Satz sachlich, dass Sie noch auf die zurückgestellten Themen zurückkommen, und stellen Sie dann die Frage zum Thema ${firstSkipped.category} (ID: ${firstSkipped.id}). ${qText(firstSkipped.text)} Maximal 2 Sätze. Fragen Sie NUR nach ${firstSkipped.category} (ID: ${firstSkipped.id}). Warten Sie auf die Antwort.`,
-          },
-        });
+        // Fast Mode: keep the context update (grounds on-demand PTT) but skip the spoken
+        // greeting — resume greetings weren't gated when Fast Mode was first built, since Fast
+        // Mode didn't yet exist on this path. See
+        // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+        if (fastModeRef.current) {
+          // Grow-animation on resume (boss request 2026-07-26): the card the customer lands on
+          // should expand with the same morph used everywhere else, not the usual instant Fast
+          // Mode snap — same UX as the Phase 0→1 intro card. Consumed once by VoiceSessionShell's
+          // useMemo keyed on modalQ?.id. See private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+          growNextCardRef.current = true;
+          if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+        } else {
+          send({
+            type: "response.create",
+            response: {
+              instructions: `${ADVISOR_PERSONA(langRef.current)} Willkommen zurück. Alle Hauptthemen sind beantwortet. Sagen Sie in 1 Satz sachlich, dass Sie noch auf die zurückgestellten Themen zurückkommen, und stellen Sie dann die Frage zum Thema ${firstSkipped.category} (ID: ${firstSkipped.id}). ${qText(firstSkipped.text)} Maximal 2 Sätze. Fragen Sie NUR nach ${firstSkipped.category} (ID: ${firstSkipped.id}). Warten Sie auf die Antwort.`,
+            },
+          });
+        }
+      } else if (voicePhaseRef.current === 1 && fastModeRef.current) {
+        // Fast Mode: normal Phase 1 resume (skip mode or after confirmTerms2) — the session
+        // prompt (buildSystemPrompt, sent in session.created) already has full resume context,
+        // so no extra message is needed here, just skip the greeting and correct state (would
+        // otherwise stay stuck on "greeting"/"connecting" with no audio ever coming to fix it
+        // via the normal scheduleAIDone path). See
+        // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+        // Grow-animation on resume (boss request 2026-07-26) — see the circle-back branch above.
+        growNextCardRef.current = true;
+        if (!mutedRef.current) dispatch({ type: "AI_DONE" });
       } else {
         // Phase 1 (skip mode or after confirmTerms2) — normal greeting
         send({ type: "response.create" });

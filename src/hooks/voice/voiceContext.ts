@@ -52,6 +52,7 @@ export interface VoiceContext {
   setIsRevisiting_internal: (v: boolean) => void;
   setMicAnalyserNode:       (v: AnalyserNode | null) => void;
   setPostExplainReaskId:    (id: string | null) => void;
+  setFastModeIntroActive:   (v: boolean) => void;
 
   // Refs
   wsRef:                     MutableRefObject<WebSocket | null>;
@@ -121,4 +122,5 @@ export interface VoiceContext {
   scrollDebounceTimerRef:    MutableRefObject<ReturnType<typeof setTimeout> | null>;
   assetKnowledgeShownRef:    MutableRefObject<Set<string>>;
   fastModeRef:               MutableRefObject<boolean>;
+  growNextCardRef:           MutableRefObject<boolean>;
 }

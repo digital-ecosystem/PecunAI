@@ -63,6 +63,12 @@ interface VoiceSessionShellProps {
   initialSavedAnswers?: Record<string, string>;
   initialVoicePhase?:   0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
   initialIsRevisiting?: boolean;
+  // Actual rendered height of the persistent disclaimer footer (page.tsx, measured live) — every
+  // sphere/card layout calculation below that reads window.innerHeight subtracts this, since the
+  // footer now eats into what used to be the full viewport. Defaults to 0 (no footer) so the
+  // component still works if ever rendered without one. See
+  // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+  footerHeight?: number;
 }
 
 // ── Revisit chevron navigation ──────────────────────────────────────
@@ -107,6 +113,7 @@ export default function VoiceSessionShell({
   initialSavedAnswers,
   initialVoicePhase,
   initialIsRevisiting,
+  footerHeight = 0,
 }: VoiceSessionShellProps) {
   const router = useRouter();
 
@@ -125,7 +132,7 @@ export default function VoiceSessionShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, languageSelected, selectLanguage, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, skipPendingTransition, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, isTransitioningToSigning, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, backToProduct, backToPersonalInfo, backToInvestment, backToContracts, backToFinalQA, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, postExplainReaskId, clearPostExplainReask } =
+  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, languageSelected, selectLanguage, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, skipPendingTransition, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, isTransitioningToSigning, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, backToProduct, backToPersonalInfo, backToInvestment, backToContracts, backToFinalQA, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, fastModeIntroActive, setFastModeIntroActive, growNextCardRef, postExplainReaskId, clearPostExplainReask } =
     useVoiceSession({
       sessionId,
       questions,
@@ -202,11 +209,11 @@ export default function VoiceSessionShell({
     // (same approximation VoiceTermsPhase uses for the intro orb).
     setPauseCollapse({
       rect,
-      sphereCenter: { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 },
+      sphereCenter: { x: window.innerWidth / 2, y: 84 + (window.innerHeight - footerHeight - 84) / 2 },
     });
     const t = window.setTimeout(() => setPauseOrbRevealed(true), 1500); // safety net
     return () => window.clearTimeout(t);
-  }, [isTransitioningToPersonalInfo]);
+  }, [isTransitioningToPersonalInfo, footerHeight]);
 
   // Seam B: when the pause ends (voicePhase flips to 3), a phantom sphere
   // shrinks away over the mounting form — the AI visibly "steps out" for the
@@ -313,16 +320,16 @@ export default function VoiceSessionShell({
     return () => window.clearTimeout(t);
   }, [voicePhase]);
 
-  // expandedRect only depends on viewport size — mount + resize is enough.
+  // expandedRect only depends on viewport size (and the footer's height) — mount + resize is enough.
   useEffect(() => {
     const measure = () => {
-      setExpandedRect(computeExpandedRect(window.innerWidth, window.innerHeight));
-      setSustainabilityRect(computeSustainabilityRect(window.innerWidth, window.innerHeight));
+      setExpandedRect(computeExpandedRect(window.innerWidth, window.innerHeight - footerHeight));
+      setSustainabilityRect(computeSustainabilityRect(window.innerWidth, window.innerHeight - footerHeight));
     };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, []);
+  }, [footerHeight]);
 
   // orbOrigin CANNOT be measured once at mount: the wrapper div only exists
   // while the phase-1 layout is rendered, and at shell-mount time one of the
@@ -431,6 +438,10 @@ export default function VoiceSessionShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     hasSpokenForCardRef.current  = isAISpeaking;
     setModalOpen(false);
+    // Once the customer moves past the first question, the Fast-Mode-intro wait/grow-animation
+    // is done its job — every later card goes back to the normal instant Fast Mode open. See
+    // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+    setFastModeIntroActive(false);
   }, [activeCardId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset state when entering the questions phase.
@@ -474,8 +485,11 @@ export default function VoiceSessionShell({
     if (bargeInActive) return;                                 // barge-in in flight — wrong card's modal would open
     // Fast Mode: the AI never speaks the question, so hasSpokenForCardRef/isAISpeaking would
     // never satisfy the normal gates below — bypass them and open as soon as the card is active.
-    // See private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
-    if (!fastMode) {
+    // Exception: fastModeIntroActive (the one-time "Fast Mode is on" heads-up spoken right as
+    // Phase 1 begins) — there the AI IS speaking, and the first question should wait for that to
+    // finish, same as the non-Fast-Mode gates below. See
+    // private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md and PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+    if (!fastMode || fastModeIntroActive) {
       if (!hasSpokenForCardRef.current) return;                // AI hasn't spoken for this card yet
       if (isAISpeaking) return;                                // AI still playing audio
     }
@@ -499,7 +513,7 @@ export default function VoiceSessionShell({
     // without this dep nothing re-evaluates the effect and the options modal
     // never comes back after the explanation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCardId, isAISpeaking, state.session, voicePhase, termsSubStep, bargeInActive, isRevisiting, fastMode, explainOpen]);
+  }, [activeCardId, isAISpeaking, state.session, voicePhase, termsSubStep, bargeInActive, isRevisiting, fastMode, fastModeIntroActive, explainOpen]);
 
   useEffect(() => {
     notifyChatOpen(chatOpen);
@@ -539,6 +553,20 @@ export default function VoiceSessionShell({
     ? questions.findIndex(q => q.id === pendingVoiceAnswer.questionId)
     : viewIndex;
 
+  // growNextCardRef is read LIVE (directly in the snap props below, not memoized) — by the time
+  // the resumed card's modal actually mounts, wsMessageHandler.ts has already mutated this ref
+  // synchronously, so a live read always sees the current value regardless of React's render
+  // batching. Cleared only once the modal fully CLOSES again (not when it opens, and not via the
+  // activeCardId-keyed reset effect used elsewhere) — the circle-back resume path calls setCard()
+  // in the very same tick it sets this ref true, which would race an activeCardId-keyed clear and
+  // wipe it before the card ever gets to read it. Clearing on close instead means the flag safely
+  // survives the resumed card's entire display (including its ~600ms grow animation) and only
+  // resets once the customer has genuinely moved past it. See
+  // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+  useEffect(() => {
+    if (!modalOpen) growNextCardRef.current = false;
+  }, [modalOpen, growNextCardRef]);
+
   // Round 22 "expand in place": the expanded card's target rect is computed
   // from the compact card's live rect + the question's own content (bottom-
   // anchored, grows upward), not from the viewport. modalCardQ is the exact
@@ -570,9 +598,9 @@ export default function VoiceSessionShell({
 
   const inPlaceRect = useMemo(
     () => (modalCardQ && compactRect
-      ? computeInPlaceRect(compactRect, typeof window !== "undefined" ? window.innerHeight : 800)
+      ? computeInPlaceRect(compactRect, typeof window !== "undefined" ? window.innerHeight - footerHeight : 800)
       : null),
-    [modalCardQ, compactRect]
+    [modalCardQ, compactRect, footerHeight]
   );
   const cardRect = inPlaceRect ?? expandedRect;
 
@@ -894,7 +922,7 @@ export default function VoiceSessionShell({
           entryFrameRect={phase4FromContractsRef.current ? phaseEntryFrameRectRef.current : null}
           entryOrbOrigin={
             phase4Entry && typeof window !== "undefined"
-              ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 }
+              ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - footerHeight - 84) / 2 }
               : null
           }
           entryDelayMs={PHASE4_GROW_MS}
@@ -946,7 +974,7 @@ export default function VoiceSessionShell({
           // frame glides onto this screen. Cold resume: null (no poll ran).
           entryFrameRect={phaseEntryFrameRectRef.current}
           // BACK 6 → 5: the Final-Q&A sphere blooms into this frame (orb→frame).
-          entryOrbOrigin={phase5FromFinalQARef.current && typeof window !== "undefined" ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 } : null}
+          entryOrbOrigin={phase5FromFinalQARef.current && typeof window !== "undefined" ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - footerHeight - 84) / 2 } : null}
           onFrameRect={reportFrameRect}
         />
         {resumeTapOverlay}
@@ -1025,7 +1053,7 @@ export default function VoiceSessionShell({
     return (
       <>
         <div
-          className="min-h-screen flex flex-col relative overflow-hidden"
+          className="h-full flex flex-col relative overflow-hidden"
           style={{
             background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)",
           }}
@@ -1217,7 +1245,7 @@ export default function VoiceSessionShell({
       {/* ── Phase 1 / 2 container — crossfade, not a slide: the sphere morphs
           carry the motion (orb → product frame on entry, product frame → orb
           on revisit), matching the app's transition language everywhere else. */}
-      <div style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
+      <div style={{ position: "relative", height: "100%", overflow: "hidden" }}>
         <AnimatePresence initial={false} mode="sync">
           {voicePhase === 2 && productSuggestion ? (
             <motion.div
@@ -1226,7 +1254,7 @@ export default function VoiceSessionShell({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              style={{ position: "absolute", top: 0, left: 0, right: 0, minHeight: "100vh" }}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
             >
               <VoiceProductPhase
                 product={productSuggestion}
@@ -1239,7 +1267,7 @@ export default function VoiceSessionShell({
                 onPTTRelease={() => submitPTTQuestion('phase2')}
                 onConfirm={() => { stopAudio(); return advanceToPersonalInfo(); }}
                 onRevisit={() => { stopAudio(); revisitQuestions(); }}
-                entryOrbOrigin={phase2FromPersonalInfoRef.current && typeof window !== "undefined" ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - 84) / 2 } : orbOrigin}
+                entryOrbOrigin={phase2FromPersonalInfoRef.current && typeof window !== "undefined" ? { x: window.innerWidth / 2, y: 84 + (window.innerHeight - footerHeight - 84) / 2 } : orbOrigin}
                 entryDelayMs={phase2FromPersonalInfoRef.current ? PHASE4_GROW_MS : undefined}
                 onFrameRect={reportFrameRect}
               />
@@ -1264,10 +1292,10 @@ export default function VoiceSessionShell({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              style={{ position: "absolute", top: 0, left: 0, right: 0, minHeight: "100vh" }}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
             >
       <div
-        className="min-h-screen flex flex-col relative overflow-hidden"
+        className="h-full flex flex-col relative overflow-hidden"
         style={{
           background: "linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 50%, rgba(249,250,251,1) 100%)",
         }}
@@ -1323,6 +1351,12 @@ export default function VoiceSessionShell({
           </div>
         </div>
 
+        {/* ── Scrollable middle: orb + carousel + revisit button ─────
+            ControlBar (below, outside this wrapper) must always render at full size, never
+            clipped — this wrapper is the only part that shrinks/scrolls if the disclaimer
+            footer's reserved space doesn't leave enough room for everything. See
+            private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md. */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
         {/* ── Main — orb ──────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col items-center justify-center relative">
           {/* Background energy pulse */}
@@ -1390,6 +1424,9 @@ export default function VoiceSessionShell({
                   return;
                 }
                 if (viewIndex >= n - 1) return;
+                // See the ControlBar onNext comment for why this must be explicit and
+                // synchronous here, not left to the activeCardId reset effect.
+                setModalOpen(false);
                 stopAudio();
                 skipQuestion(questions[viewIndex]);
               }}
@@ -1403,6 +1440,9 @@ export default function VoiceSessionShell({
                   return;
                 }
                 if (viewIndex === 0) return;
+                // See the ControlBar onPrevious comment for why this must be explicit and
+                // synchronous here, not left to the activeCardId reset effect.
+                setModalOpen(false);
                 stopAudio();
                 onPrev();
               }}
@@ -1448,6 +1488,7 @@ export default function VoiceSessionShell({
             </motion.button>
           </motion.div>
         )}
+        </div>
 
         {/* ── Control Bar ──────────────────────────────────────────── */}
         <ControlBar
@@ -1471,6 +1512,16 @@ export default function VoiceSessionShell({
               return;
             }
             if (viewIndex === 0) return;
+            // Explicitly close the open card here, synchronously, in the same batch as the
+            // upcoming activeCardId change (onPrev() → setCard() below). Without this, Fast
+            // Mode's auto-open effect (keyed on activeCardId) fires in the SAME render as this
+            // click and reads modalOpen's stale (still-true) value from before the click —
+            // the effect only gets one shot per activeCardId change, so it silently stays
+            // closed for the new question. Answering a question doesn't hit this because its
+            // own onNext already closes the modal, and the real `await saveAnswer(...)` gap
+            // before setCard() lets React commit "closed" as an earlier, separate render. See
+            // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+            setModalOpen(false);
             stopAudio();
             onPrev();
           }}
@@ -1484,6 +1535,8 @@ export default function VoiceSessionShell({
               return;
             }
             if (viewIndex >= n - 1) return;
+            // See the matching comment in onPrevious above — same fix, same reason.
+            setModalOpen(false);
             stopAudio();
             skipQuestion(questions[viewIndex]);
           }}
@@ -1585,8 +1638,8 @@ export default function VoiceSessionShell({
           analyserNode={isMuted ? null : analyserNode}
           micAnalyserNode={micAnalyserNode}
           containerWidth={typeof window !== "undefined" ? window.innerWidth : 0}
-          containerHeight={typeof window !== "undefined" ? window.innerHeight : 0}
-          snap={fastMode || reduceMotion}
+          containerHeight={typeof window !== "undefined" ? window.innerHeight - footerHeight : 0}
+          snap={(fastMode && !fastModeIntroActive && !growNextCardRef.current) || reduceMotion}
         />
       )}
 
@@ -1622,7 +1675,7 @@ export default function VoiceSessionShell({
             question={modalCardQ}
             preSelectedValue={cardPreSelected}
             contextMessage={cardContextMessage}
-            snap={fastMode || reduceMotion}
+            snap={(fastMode && !fastModeIntroActive && !growNextCardRef.current) || reduceMotion}
             onClose={() => {
               suppressAutoModalRef.current = true;
               setModalOpen(false);

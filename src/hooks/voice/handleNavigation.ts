@@ -60,7 +60,7 @@ export function handlePrev(ctx: VoiceContext): void {
 export function handleSkipQuestion(question: CarouselQuestion, ctx: VoiceContext): void {
   const {
     skipInProgressRef, questionsRef, answeredIdsRef, skippedIdsRef, activeCardIdRef,
-    sustainabilityConfirmedRef, termsSubStepRef, chatOpenRef, langRef, fastModeRef,
+    sustainabilityConfirmedRef, termsSubStepRef, chatOpenRef, langRef, fastModeRef, mutedRef,
     savedAnswersRef, dispatch, setCard, saveVoiceState, send, setTermsSubStep,
   } = ctx;
 
@@ -79,6 +79,20 @@ export function handleSkipQuestion(question: CarouselQuestion, ctx: VoiceContext
     setTermsSubStep('sustainabilityTerms');
     termsSubStepRef.current = 'sustainabilityTerms';
     saveVoiceState(questionsRef.current.findIndex(q => q.id === question.id)).catch(() => {});
+    // Fast Mode: same gate as the direct-answer path (handleAnswerConfirmed) — neutral context
+    // only, no intro narration, AI_DONE correction. This branch (reached via tapping the
+    // skip/next button on Q2) was missed when Fast Mode was first built. See
+    // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+    if (fastModeRef.current && !chatOpenRef.current) {
+      send({
+        type: "conversation.item.create",
+        item: { type: "message", role: "user", content: [{ type: "input_text",
+          text: "[SYSTEM: PHASE 1 PAUSED. The sustainability disclosure document is now displayed on screen. Fast Mode is ON — do NOT speak. The customer reads and confirms it on screen; they can hold the microphone button to ask questions about it.]",
+        }]},
+      });
+      if (!mutedRef.current) dispatch({ type: "AI_DONE" });
+      return;
+    }
     send({
       type: "conversation.item.create",
       item: { type: "message", role: "user", content: [{ type: "input_text",
