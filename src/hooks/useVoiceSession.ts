@@ -1145,7 +1145,9 @@ export function useVoiceSession({
     audioCtxRef.current?.resume();
 
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
-    const wsUrl = `${proto}://${window.location.host}/api/realtime/proxy`;
+    // sessionId lets the server verify the caller owns this session, not just that they're
+    // logged in somewhere — see private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+    const wsUrl = `${proto}://${window.location.host}/api/realtime/proxy?sessionId=${encodeURIComponent(sessionId)}`;
 
     dispatch({ type: "CONNECT" });
     const ws = new WebSocket(wsUrl);

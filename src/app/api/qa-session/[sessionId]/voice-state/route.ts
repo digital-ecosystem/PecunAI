@@ -17,16 +17,23 @@ export async function GET(
     if (!user) return NextResponse.json({ message: "Ungültiges Token" }, { status: 401 });
 
     const { sessionId } = await params;
-    const [ws, sessionRecord] = await Promise.all([
-      prisma.sessionWorkflowState.findUnique({
-        where:  { qaSessionId: sessionId },
-        select: { stepData: true },
-      }),
-      prisma.qASession.findUnique({
-        where:  { id: sessionId },
-        select: { phase: true },
-      }),
-    ]);
+
+    // Ownership check — without this, any authenticated customer who knows/guesses another
+    // customer's session_id could read that customer's voicePhase/skippedIds/Phase 6 chat log.
+    // Mirrors the check the PATCH handler below already has. See
+    // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+    const session = await prisma.qASession.findFirst({
+      where:  { id: sessionId, userId: user.id },
+      select: { phase: true },
+    });
+    if (!session) {
+      return NextResponse.json({ message: "Sitzung nicht gefunden" }, { status: 404 });
+    }
+
+    const ws = await prisma.sessionWorkflowState.findUnique({
+      where:  { qaSessionId: sessionId },
+      select: { stepData: true },
+    });
 
     const stepData  = (ws?.stepData ?? {}) as Record<string, unknown>;
     const voice     = (stepData.voice ?? {}) as Record<string, unknown>;
@@ -48,7 +55,7 @@ export async function GET(
       voicePhase,
       termsSubStep,
       isRevisiting,
-      currentPhase:      sessionRecord?.phase ?? null,
+      currentPhase:      session?.phase ?? null,
       phase6Chat,
     });
   } catch (error) {

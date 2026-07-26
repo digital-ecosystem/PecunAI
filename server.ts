@@ -1,6 +1,9 @@
 import { createServer } from "http";
 import next from "next";
 import { WebSocketServer, WebSocket } from "ws";
+import { parse as parseCookie } from "cookie";
+import { AuthService } from "./src/lib/auth";
+import { prisma } from "./src/lib/prisma";
 
 const dev  = process.env.NODE_ENV !== "production";
 const port = parseInt(process.env.PORT ?? "4001", 10);
@@ -37,7 +40,28 @@ app.prepare().then(() => {
     }
   });
 
-  wss.on("connection", (client) => {
+  wss.on("connection", async (client, req) => {
+    // Auth + ownership check — without this, any WebSocket connection to this endpoint opens a
+    // live, billed OpenAI Realtime session with no PecunAI login at all. See
+    // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
+    const { searchParams } = new URL(req.url ?? "/", `http://localhost:${port}`);
+    const sessionId = searchParams.get("sessionId");
+    const cookies   = parseCookie(req.headers.cookie ?? "");
+    const token     = cookies["auth-token"];
+
+    const user = token ? await AuthService.getUserFromToken(token) : null;
+    if (!user || !sessionId) {
+      console.error("[proxy] Rejected — no valid auth-token or sessionId");
+      client.close(4401, "Unauthorized");
+      return;
+    }
+    const owns = await prisma.qASession.findFirst({ where: { id: sessionId, userId: user.id }, select: { id: true } });
+    if (!owns) {
+      console.error("[proxy] Rejected — session does not belong to this user");
+      client.close(4403, "Forbidden");
+      return;
+    }
+
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       console.error("[proxy] OPENAI_API_KEY is not set");
