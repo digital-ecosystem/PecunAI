@@ -132,7 +132,7 @@ export default function VoiceSessionShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, languageSelected, selectLanguage, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, skipPendingTransition, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, submitAssetKnowledgeQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, isTransitioningToSigning, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, backToProduct, backToPersonalInfo, backToInvestment, backToContracts, backToFinalQA, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, fastModeIntroActive, setFastModeIntroActive, growNextCardRef, postExplainReaskId, clearPostExplainReask } =
+  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, languageSelected, selectLanguage, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, skipPendingTransition, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, submitAssetKnowledgeQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, backToProduct, backToPersonalInfo, backToInvestment, backToContracts, backToFinalQA, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, fastModeIntroActive, setFastModeIntroActive, growNextCardRef, postExplainReaskId, clearPostExplainReask } =
     useVoiceSession({
       sessionId,
       questions,
@@ -235,26 +235,25 @@ export default function VoiceSessionShell({
     }
   }, [isTransitioningToPersonalInfo, voicePhase]);
 
-  // ── Phase 6 → 7 signing-pause choreography ────────────────────────────
-  // Same shape as Seam B above: Phase 6's own sphere pulses through the AI's
-  // signing-pause announcement (isTransitioningToSigning — voicePhase stays 6,
-  // so no extra visual is needed there); when the speech ends and voicePhase
-  // flips to 7, a phantom sphere shrinks away over the mounting signing
-  // screen — the AI stepping out for the silent, disconnected final phase.
+  // ── Phase 6 → 7 signing hand-off choreography ─────────────────────────
+  // A phantom sphere shrinks away over the mounting signing screen — the AI stepping out for the
+  // silent, disconnected final phase. This used to key off isTransitioningToSigning (true while
+  // the AI spoke the signing announcement, then false once voicePhase flipped). That announcement
+  // was removed on client request — it repeated what Phase 6's opening already said — so the
+  // hand-off is instantaneous and there is no intermediate state left to observe. The animation
+  // keys off the 6 → 7 phase change itself instead.
+  // See private-documents/after-demo/SIGNING_HANDOFF_SILENT_PLAN.md.
   const [signingExitOrb, setSigningExitOrb] = useState(false);
-  const wasSigningPauseRef = useRef(false);
+  const prevVoicePhaseRef = useRef(voicePhase);
   useEffect(() => {
-    if (isTransitioningToSigning) {
-      wasSigningPauseRef.current = true;
-      return;
-    }
-    if (voicePhase === 7 && wasSigningPauseRef.current) {
-      wasSigningPauseRef.current = false;
+    const prev = prevVoicePhaseRef.current;
+    prevVoicePhaseRef.current = voicePhase;
+    if (prev === 6 && voicePhase === 7) {
       setSigningExitOrb(true);
       const t = window.setTimeout(() => setSigningExitOrb(false), 1000);
       return () => window.clearTimeout(t);
     }
-  }, [isTransitioningToSigning, voicePhase]);
+  }, [voicePhase]);
 
   // ── Phase 3 → 4 handoff choreography ──────────────────────────────────
   // The mirror of Seam B above: after the silent form is submitted and voice
@@ -856,7 +855,11 @@ export default function VoiceSessionShell({
   // a WebSocket either. Covers both the live transition (confirmReadyToSign already
   // disconnected voice before flipping the phase) and a fresh page load resuming into Phase 7.
   if (voicePhase === 7) {
-    const enteredFromQA = signingExitOrb || wasSigningPauseRef.current;
+    // True only when we arrived here live from Phase 6 — a fresh page load resuming into Phase 7
+    // must not play the hand-off animation. prevVoicePhaseRef still reads 6 on the first render
+    // after the flip (the effect above updates it afterwards), covering the beat before
+    // signingExitOrb is set; on a cold load it was initialised to 7, so this is false.
+    const enteredFromQA = signingExitOrb || prevVoicePhaseRef.current === 6;
     return (
       <>
         <motion.div
@@ -1013,7 +1016,7 @@ export default function VoiceSessionShell({
           // Tap-to-stop; during the 6→7 signing-pause announcement the tap
           // also runs the parked transition so the customer lands in the
           // signing phase immediately instead of a stranded pause screen.
-          onSphereTap={isTransitioningToSigning ? skipPendingTransition : stopAudio}
+          onSphereTap={stopAudio}
           entryGrow={phase6FromSigningRef.current && !reduceMotion}
           footerHeight={footerHeight}
         />

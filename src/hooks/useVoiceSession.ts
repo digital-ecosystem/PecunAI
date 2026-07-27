@@ -13,7 +13,7 @@ import { handleAnswerConfirmed as _handleAnswerConfirmed } from "./voice/handleA
 import { handlePrev, handleSkipQuestion, handleRequestExplanation, handleCloseExplainOverlay, handleScrollCarousel, handleRevisitQuestions } from "./voice/handleNavigation";
 import { handleMoveToTerms1, handleConfirmTerms1, handleConfirmTerms2, handleConfirmSustainabilityTerms } from "./voice/handleTerms";
 import { handleNotifyChatOpen } from "./voice/handleChat";
-import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, ASSET_KNOWLEDGE_QA_INSTRUCTIONS, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./voice/prompts";
+import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, ASSET_KNOWLEDGE_QA_INSTRUCTIONS, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./voice/prompts";
 import type { VoiceContext } from "./voice/voiceContext";
 
 // re-export types consumed by VoiceSessionShell and other components
@@ -84,9 +84,10 @@ export function useVoiceSession({
   // announcement finishes and voicePhase actually flips to 3 — shows the plain orb screen
   // (same as session start) instead of leaving the Phase 2 product screen up mid-speech.
   const [isTransitioningToPersonalInfo, setIsTransitioningToPersonalInfo] = useState(false);
-  // Same idea, for the Phase 6→7 privacy pause (Signing) — shows the plain orb screen from
-  // the moment the customer is ready to sign until the pause announcement finishes.
-  const [isTransitioningToSigning, setIsTransitioningToSigning] = useState(false);
+  // NB: there is deliberately no equivalent for Phase 6→7 any more. That transition had the same
+  // announce-then-advance shape until the client asked for the signing hand-off to be silent
+  // (2026-07-27) — with nothing spoken there is no interval to hold a screen for, so
+  // confirmReadyToSign flips straight to Phase 7. See SIGNING_HANDOFF_SILENT_PLAN.md.
 
   // Phase 0 sub-step: which screen within the intro/terms gate
   const [termsSubStep, setTermsSubStep] = useState<'intro' | 'terms1' | 'terms2' | 'sustainabilityTerms' | null>(
@@ -954,40 +955,27 @@ export function useVoiceSession({
   }, [sessionId, send, saveVoiceState]);
 
   /** Single entry point for both the Phase 6 tap-confirm button ("Weiter zur Unterschrift")
-   *  AND the AI's own confirm_ready_to_sign tool call — see handleFunctionCall.ts. DOES need
-   *  a privacy pause: Phase 7 (Signing) is silent, same treatment as the Phase 2→3 transition
-   *  (see advanceToPersonalInfo above). This is what confirmContracts() used to do directly,
-   *  before Phase 6 (Final Q&A) was inserted between Contract Document and Signing. */
+   *  AND the AI's own confirm_ready_to_sign tool call — see handleFunctionCall.ts.
+   *
+   *  Goes STRAIGHT to Phase 7, saying nothing (client request 2026-07-27). It used to mirror the
+   *  Phase 2→3 privacy pause: announce that signing is next and that voice steps out, park the
+   *  transition on pendingPhaseTransitionRef, let scheduleAIDone fire it when the speech ended.
+   *  That announcement duplicated Phase 6's own opening, which already tells the customer the
+   *  signature step runs without voice guidance — so the customer heard the same point twice,
+   *  seconds apart. With no speech there is no audio-end event to hang the transition on, so it
+   *  runs inline; the 6 → 7 orb choreography in VoiceSessionShell keys off the phase flip.
+   *  See private-documents/after-demo/SIGNING_HANDOFF_SILENT_PLAN.md. */
   const confirmReadyToSign = useCallback(() => {
-    setIsTransitioningToSigning(true); // switch to the plain orb screen immediately
-    pendingPhaseTransitionRef.current = () => {
-      disconnectVoice();
-      voicePhaseRef.current = 7;
-      setVoicePhase(7);
-      setIsTransitioningToSigning(false);
-      saveVoiceState(questionsRef.current.length).catch(() => {});
-      fetch("/api/phase", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ sessionId, phase: "RESULT_PDF" }),
-      }).catch(() => {});
-    };
-    // Explicit system message before the override response.create — required, see the
-    // Phase 3 "bug 4" postmortem (PHASE_3_PERSONAL_INFO_PLAN.md). Without it, extended
-    // Phase 6 conversation history (PTT questions across the whole session) can outweigh the
-    // per-response instructions override, and the AI keeps answering questions instead of
-    // announcing the privacy pause.
-    send({
-      type: "conversation.item.create",
-      item: { type: "message", role: "user", content: [{ type: "input_text",
-        text: "[SYSTEM: The final Q&A is now complete. Do NOT continue answering questions. The customer is ready to sign — announce the privacy pause now.]",
-      }]},
-    });
-    send({
-      type: "response.create",
-      response: { instructions: PRIVACY_PAUSE_SIGNING_INSTRUCTIONS(langRef.current) },
-    });
-  }, [sessionId, send, saveVoiceState, disconnectVoice]);
+    disconnectVoice();
+    voicePhaseRef.current = 7;
+    setVoicePhase(7);
+    saveVoiceState(questionsRef.current.length).catch(() => {});
+    fetch("/api/phase", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, phase: "RESULT_PDF" }),
+    }).catch(() => {});
+  }, [sessionId, saveVoiceState, disconnectVoice]);
 
   // Guards the "AI echo" over-shoot: after a programmatic back step the AI can reflexively call
   // navigate_back (echoing the back-nav system message), which would jump one phase too far
@@ -1618,7 +1606,6 @@ export function useVoiceSession({
     backToInvestment,
     backToContracts,
     backToFinalQA,
-    isTransitioningToSigning,
     primeReconnectAudio,
     isRevisiting,
     scrollCarousel,

@@ -298,11 +298,12 @@ export const FINAL_QA_INTRO_INSTRUCTIONS = (lang: "de" | "en" = "de") => lang ==
   ? `${ADVISOR_PERSONA("de")} Sagen Sie 3–4 ruhige, einladende Sätze: Die Beratung ist fast abgeschlossen — bevor es zur Unterschrift geht, nehmen Sie sich gerne noch Zeit für offene Fragen, ganz ohne Eile. Der Kunde kann alles ansprechen — das Produkt, die Kosten, die Vertragsdokumente. Erwähnen Sie beiläufig und freundlich, dass die anschließende digitale Unterschrift aus Datenschutzgründen ohne Sprachbegleitung abläuft — deshalb ist jetzt ein guter Moment, Unklarheiten zu klären. Er kann dafür die Sprechen-Taste gedrückt halten oder über die Chat-Taste tippen. WICHTIG: Kein Druck und keine Dramatik — formulieren Sie es NIEMALS als „letzte Chance", „letzte Gelegenheit" oder Warnung. Es ist ein entspanntes Angebot, keine Frist.`
   : `${ADVISOR_PERSONA("en")} Say 3–4 calm, inviting sentences: the advisory session is almost complete — before moving on to the signature, the customer is welcome to take their time with any remaining questions, no rush at all. They can ask about anything — the product, the costs, the contract documents. Mention casually and kindly that the digital signature step afterwards runs without voice guidance for privacy reasons — which makes now a good moment to clear anything up. They can hold the speak button, or type via the chat button. IMPORTANT: no pressure and no drama — NEVER phrase it as a "last chance", "final opportunity", or warning of any kind. It is a relaxed offer, not a deadline.`;
 
-// Sent right before disconnecting into Phase 7 (Signing — silent, no AI guidance).
-// Draft copy — not yet signed off, see private-documents/phase-7-signing/PHASE_7_SIGNING_PLAN.md.
-export const PRIVACY_PAUSE_SIGNING_INSTRUCTIONS = (lang: "de" | "en" = "de") => lang === "de"
-  ? `${ADVISOR_PERSONA("de")} Sagen Sie genau 2–3 klare Sätze: Jetzt kommt die digitale Unterschrift der Vertragsdokumente. Erklären Sie, dass Sie diesen Teil aus Datenschutzgründen nicht per Sprache begleiten, da hier eine rechtsverbindliche Signatur erfasst wird. Der Kunde schließt den Signaturprozess eigenständig ab. Sagen Sie danach NICHTS mehr.`
-  : `${ADVISOR_PERSONA("en")} Say exactly 2–3 clear sentences: now comes the digital signature of the contract documents. Explain that you won't be guiding this part by voice for privacy reasons, since a legally binding signature is captured here. The customer completes the signing process on their own. Then say NOTHING else.`;
+// NB: PRIVACY_PAUSE_SIGNING_INSTRUCTIONS used to live here — the spoken hand-off into Phase 7
+// (Signing), fired when the customer tapped "Weiter zur Unterschrift". Removed on client request
+// 2026-07-27: it repeated what FINAL_QA_INTRO_INSTRUCTIONS above already says when Phase 6 opens
+// ("die anschließende digitale Unterschrift läuft aus Datenschutzgründen ohne Sprachbegleitung
+// ab"), so the customer heard the same point twice within a couple of minutes. The button now
+// goes straight to signing. Recoverable from git; see SIGNING_HANDOFF_SILENT_PLAN.md.
 
 // ── Knowledge blocker overlay data (Q12/13/14 "none" answer) ─────
 // German content shown when a customer has no experience with an asset class. `bodyText` holds
