@@ -19,7 +19,30 @@ const VEKTORDATENBANK_DIR = path.join(process.cwd(), "Vektordatenbank");
 const EMBEDDING_MODEL      = "text-embedding-3-small";
 const CHUNK_MAX_CHARS      = 1500;
 const TOP_K                = 3;
-const MIN_SCORE            = 0.3;
+// TOP_K already picks the best 3 chunks whatever this is set to, so MIN_SCORE's only real job is
+// deciding when to return NOTHING — i.e. when to let the AI say "that isn't in these documents"
+// instead of answering from the closest available passage. At the original 0.3 it almost never
+// fired (40–93 of 98 chunks cleared it on a typical query), which is how off-topic questions got
+// confident answers built on unrelated contract text.
+//
+// Measured over this corpus (98 chunks, text-embedding-3-small), top-1 score by question type:
+//                          German query      English query
+//   in scope               0.515 – 0.751     0.382 – 0.622
+//   out of scope           0.207 – 0.486     0.079 – 0.319   (+ one outlier at 0.611 / 0.463)
+//
+// The documents are German, and cross-language similarity runs ~0.13 lower, so the threshold has
+// to clear the ENGLISH in-scope floor (0.382), not the German one — the session language is
+// customer-selectable. 0.45 looked right on German questions alone and would have wrongly
+// rejected 6 of 12 real English ones.
+//
+// At 0.35: zero false negatives in either language, and 7/10 (German) / 9/10 (English) of the
+// out-of-scope questions correctly rejected — against 5/10 and 7/10 at the original 0.3.
+// Anything higher trades English recall for one extra German rejection. Not worth it.
+//
+// The outlier ("Wie alt ist der Vorstand von 4money?") is unreachable by any threshold that keeps
+// the real questions — it is genuinely close to the corpus. The answer instructions already tell
+// the model to say when the retrieved text doesn't cover the question.
+const MIN_SCORE            = 0.35;
 
 interface Chunk {
   file:      string;
@@ -94,7 +117,15 @@ function cosineSimilarity(a: number[], b: number[]): number {
 }
 
 export async function searchPhase5Local(query: string): Promise<string> {
-  if (!chunksPromise) chunksPromise = buildChunks();
+  // Cache the built chunks, but never cache a FAILURE: a single transient embeddings error would
+  // otherwise leave a rejected promise in module scope and break contract search for the entire
+  // life of the server process. Dropping the reference lets the next request rebuild.
+  if (!chunksPromise) {
+    chunksPromise = buildChunks().catch(err => {
+      chunksPromise = null;
+      throw err;
+    });
+  }
   const chunks = await chunksPromise;
 
   const [queryEmbedding] = await embed([query]);

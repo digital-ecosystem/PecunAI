@@ -103,6 +103,9 @@ export interface VoiceContext {
   productVectorIdRef:        MutableRefObject<string | null>;
   productRef:                MutableRefObject<ProductData | null>;
   pttVectorStoreRef:         MutableRefObject<string>;
+  /** Phase 5 only: the shared FAQ store, searched alongside the local contract docs. Null
+   *  elsewhere — every other phase already points pttVectorStoreRef at a real store. */
+  pttSecondaryStoreRef:      MutableRefObject<string | null>;
   pttActiveRef:              MutableRefObject<boolean>;
   pttContextRef:             MutableRefObject<PttContext>;
   pttSearchPendingRef:       MutableRefObject<boolean>;

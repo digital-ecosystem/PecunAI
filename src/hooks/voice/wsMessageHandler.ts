@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { ChatMessage } from "./types";
-import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, ADVISOR_PERSONA, buildPhase4PresentationContext, PHASE4_COST_ANSWER_RULES, GERMAN_SPEECH_DIRECTIVE, isAskableNow } from "./prompts";
+import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, ADVISOR_PERSONA, buildPhase4PresentationContext, PHASE4_COST_ANSWER_RULES, PHASE5_SCREEN_CONTEXT, GERMAN_SPEECH_DIRECTIVE, isAskableNow } from "./prompts";
 import { TOOLS } from "./tools";
 import { base64ToPCM16AudioBuffer } from "./audio";
 import type { VoiceContext } from "./voiceContext";
@@ -543,7 +543,7 @@ export async function handleWsMessage(
           pttSpeculativeSearchRef.current = fetch("/api/documents/search", {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify({ query: querySnapshot, vectorStoreId }),
+            body:    JSON.stringify({ query: querySnapshot, vectorStoreId, secondaryVectorStoreId: vc.pttSecondaryStoreRef.current }),
           })
             .then(r => r.json() as Promise<{ results?: string }>)
             .then(d => d.results ?? "")
@@ -582,7 +582,7 @@ export async function handleWsMessage(
         const fullTranscriptSearch = () => fetch("/api/documents/search", {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ query: transcript, vectorStoreId }),
+          body:    JSON.stringify({ query: transcript, vectorStoreId, secondaryVectorStoreId: vc.pttSecondaryStoreRef.current }),
         })
           .then(r => r.json() as Promise<{ results?: string }>)
           .then(d => d.results ?? "")
@@ -603,24 +603,30 @@ export async function handleWsMessage(
             )
           : fullTranscriptSearch();
 
-        // Phase 4: the shared store only holds GENERIC fee FAQ content — questions about
-        // the customer's OWN presentation (their amounts, their computed fees, their
-        // product) need the on-screen data injected alongside the search results, and the
-        // "use ONLY the search results" wording relaxed to cover both sources. See
-        // private-documents/PHASE_4_PTT_PRESENTATION_CONTEXT_PLAN.md.
-        const phase4Context = vc.pttContextRef.current === 'phase4'
+        // What the customer can SEE but no searchable document contains — injected alongside the
+        // search results, with the "use ONLY the search results" wording relaxed to cover both.
+        // Phase 4: their own amounts, computed fees and product (the shared store only holds
+        //   generic fee FAQ content) — see PHASE_4_PTT_PRESENTATION_CONTEXT_PLAN.md.
+        // Phase 5: the ten consent declarations under the document accordion, which live only in
+        //   VoiceContractDocuments.tsx — see PHASE_5_CONSENT_KNOWLEDGE_PLAN.md.
+        const phase4Data = vc.pttContextRef.current === 'phase4'
           ? buildPhase4PresentationContext(questionsRef.current, savedAnswersRef.current, vc.productRef.current)
+          : null;
+        const screenContext = phase4Data
+          ? `${phase4Data}\n${PHASE4_COST_ANSWER_RULES}`
+          : vc.pttContextRef.current === 'phase5'
+          ? PHASE5_SCREEN_CONTEXT
           : null;
 
         searchPromise.then(results => {
           if (!results || results.trim() === "" || results === "No relevant content found.") {
-            if (phase4Context) {
-              send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Suche in ${docLabel} hat für diese Frage nichts geliefert. Ihnen liegen aber die folgenden konkreten Daten der Veranlagung dieses Kunden vor:\n\n${phase4Context}\n${PHASE4_COST_ANSWER_RULES}\n\nWenn die Frage des Kunden damit beantwortet werden kann, beantworten Sie sie in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Daten. Andernfalls teilen Sie dem Kunden freundlich mit, dass diese spezifische Information hier nicht verfügbar ist. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
+            if (screenContext) {
+              send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Suche in ${docLabel} hat für diese Frage nichts geliefert. Ihnen liegen aber die folgenden Informationen zu dem vor, was der Kunde gerade auf dem Bildschirm sieht:\n\n${screenContext}\n\nWenn die Frage des Kunden damit beantwortet werden kann, beantworten Sie sie in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Andernfalls teilen Sie dem Kunden freundlich mit, dass diese spezifische Information hier nicht verfügbar ist. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
             } else {
               send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Suche in ${docLabel} hat für diese Frage keine passende Antwort gefunden. Teilen Sie dem Kunden freundlich mit, dass diese spezifische Information nicht im Dokument verfügbar ist, und laden Sie ihn ein, eine andere Frage zu stellen.` } });
             }
-          } else if (phase4Context) {
-            send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Dokumentensuche hat folgende allgemeine Informationen geliefert:\n\n${results}\n\nZusätzlich liegen Ihnen die folgenden konkreten Daten der Veranlagung dieses Kunden vor:\n\n${phase4Context}\n${PHASE4_COST_ANSWER_RULES}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser beiden Quellen. Bei Fragen zu den konkreten Zahlen oder Details der Veranlagung des Kunden nutzen Sie dessen Daten. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
+          } else if (screenContext) {
+            send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Dokumentensuche hat folgende allgemeine Informationen geliefert:\n\n${results}\n\nZusätzlich liegen Ihnen die folgenden Informationen zu dem vor, was der Kunde gerade auf dem Bildschirm sieht:\n\n${screenContext}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser beiden Quellen. Bezieht sich die Frage auf etwas, das der Kunde auf dem Bildschirm sieht, nutzen Sie vorrangig die Bildschirm-Informationen. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
           } else {
             send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Dokumentensuche hat folgende Informationen geliefert:\n\n${results}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
           }

@@ -478,6 +478,31 @@ export function buildPhase4PresentationContext(
   ].filter(Boolean).join("\n");
 }
 
+// ── Phase 5 PTT grounding — the consent declarations on the customer's screen ──
+// The 8 contract knowledge docs mirror the 8 contract PDFs. The ten confirmation checkboxes below
+// them are UI copy that exists in no document at all, so a question about one ("muss ich wirklich
+// alle Häkchen setzen?") retrieves a plausible-but-wrong contract chunk — measured: the PDF's
+// signature-field section — which the model then answers from confidently. Likely cause of the
+// client's "it didn't understand the last question". See PHASE_5_CONSENT_KNOWLEDGE_PLAN.md.
+//
+// Wording copied VERBATIM from VoiceContractDocuments.tsx, which marks it "compliance-approved
+// wording, do not reword" — if the checkboxes there change, change these too.
+export const PHASE5_SCREEN_CONTEXT = `BESTÄTIGUNGEN AUF DEM BILDSCHIRM DES KUNDEN (unterhalb der Vertragsdokumente; alle müssen angehakt werden, bevor es weitergeht — die Schaltfläche "Alles akzeptieren" setzt alle auf einmal):
+1. Datenverarbeitung: "Ich erkläre, dass ich mit der gesetzeskonformen Datenverarbeitung gemäß Datenschutz-Grundverordnung und den Vertragsbedingungen von froots (Asset Management by froots GmbH), 4money (4money Financial Services GmbH) und der Partnerbank Die Plattform (Schelhammer Capital Bank AG) einverstanden bin."
+2. Vermögensverwaltung: "Ich beauftrage froots (Asset Management by froots GmbH) hiermit mit der Vermögensverwaltung und erteile dieser gegenüber der Partnerbank Die Plattform (Schelhammer Capital Bank AG) eine Verwaltungsvollmacht."
+3. Bankgeheimnis: "Ich entbinde darüber hinaus die Partnerbank Die Plattform (Schelhammer Capital Bank AG) vom Bankengeheimnis gemäß §38 Abs. 2 Z5 BWG."
+4. Datenweitergabe an die Partnerbank: "Ich erteile meine widerrufliche Zustimmung, dass sämtliche mich betreffenden Daten, die mit dieser Geschäftsverbindung in Zusammenhang stehen, auch mit der Partnerbank Die Plattform (Schelhammer Capital Bank AG) geteilt werden können."
+5. Rücktrittsrecht: "Ich erteile gemäß §8 Abs. 5 FernFinG ausdrücklich meine Zustimmung, dass mit der Erfüllung der Verträge bereits vor Ablauf der 14-tägigen Rücktrittsfrist begonnen wird."
+6. Elektronische Zustellung: "Ich bin einverstanden, dass ich in Zukunft alle Informationen von froots, 4money und persönlich an mich gerichtete Informationen nach WAG und Mitteilungen der Partnerbank Die Plattform auf elektronischem Weg oder per Onlinezugang erhalte und verstehe, dass ich die Dienstleistung sonst nicht in Anspruch nehmen kann."
+7. Einlagensicherung: "Ich hab die Informationen zum Einlagensicherungs- und Anlegerentschädigungsgesetz (ESAEG) der Partnerbank Die Plattform (Schelhammer Capital Bank AG) erhalten."
+8. Dokumente erhalten: "Ich habe alle relevanten Dokumente von froots, 4money und der Partnerbank Die Plattform inklusive dem gültigen Konditionsblatt erhalten, vollständig gelesen und erkläre mich hiermit ausdrücklich damit einverstanden."
+9. Offenlegung gegenüber 4money: "Ich stimme hiermit zu, dass Asset Management by froots GmbH alle betreffenden Daten aus der Geschäftsverbindung, die im Zusammenhang mit der Portfolioverwaltung stehen, wie etwa Informationen zur Veranlagung (Performance, Asset-Allocation), gegenüber der 4money zum Zweck der Erbringung von eigenen Wertpapierdienstleistungen (Anlageberatung) durch 4money offenlegt und entbinde Asset Management by froots GmbH insoweit von der Verschwiegenheitspflicht nach § 8 Abs 1 WAG 2018."
+
+REGELN FÜR ANTWORTEN AUF DIESEM BILDSCHIRM:
+- Fragen zu den Bestätigungen bzw. Häkchen beantworten Sie anhand des Wortlauts oben — nicht anhand der Vertragsdokumente. Übersetzen Sie den juristischen Wortlaut in verständliche Alltagssprache, ohne den Inhalt zu verändern.
+- Fragt der Kunde, ob er wirklich alle Häkchen setzen muss: ja, alle Bestätigungen sind erforderlich, um fortzufahren; mit "Alles akzeptieren" lassen sich alle auf einmal setzen.
+- Erfinden Sie keine weiteren Bestätigungen und keine Rechtsfolgen, die oben nicht stehen. Geben Sie keine Rechtsberatung.`;
+
 // Appended to every Phase 4 PTT answer instruction. Both rules are client feedback from
 // from-client/3rd-feedback.txt — see PHASE_4_COST_ANSWER_FIX_PLAN.md.
 export const PHASE4_COST_ANSWER_RULES = `

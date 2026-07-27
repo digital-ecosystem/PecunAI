@@ -267,6 +267,11 @@ export function useVoiceSession({
   const productVectorIdRef     = useRef<string | null>(null); // vector store ID for the recommended product (set in advancePhase)
   const productRef             = useRef<ProductData | null>(null); // stable product data ref for session.updated Phase 2 branch
   const pttVectorStoreRef      = useRef<string>(termsVectorId ?? ""); // active vector store for current PTT context
+  // Phase 5 only: the shared FAQ store, searched IN ADDITION to the local contract docs. Routing
+  // Phase 5 to the local sentinel replaced the shared store rather than supplementing it, leaving
+  // it the one phase with no access to the FAQ documents that answer exactly the questions asked
+  // at the consent checkboxes. See private-documents/after-demo/PHASE_5_CONSENT_KNOWLEDGE_PLAN.md.
+  const pttSecondaryStoreRef   = useRef<string | null>(null);
   const pttActiveRef           = useRef(false); // true while PTT button is held — bypasses sustainability mic guard
   const pttContextRef          = useRef<'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase1' | 'phase2' | 'phase4' | 'phase5' | 'phase6' | null>(null); // set while PTT response is in flight — cleared on response.done to restore VAD
   const pttSearchPendingRef    = useRef(false);  // true after commit — waiting for transcription to run search server-side
@@ -1141,7 +1146,7 @@ export function useVoiceSession({
     kbExplanationStartedRef, kbExplanationResponseIdRef, explainAwaitConfirmRef, explainAssetOrderRef, pendingPhaseTransitionRef,
     chatOpenRef, chatAnsweredRef,
     voiceThreadIdRef, explainIdleTimerRef, resetExplainIdleRef, productVectorIdRef,
-    productRef, pttVectorStoreRef, pttActiveRef, pttContextRef, pttSearchPendingRef,
+    productRef, pttVectorStoreRef, pttSecondaryStoreRef, pttActiveRef, pttContextRef, pttSearchPendingRef,
     pttDocLabelRef, pttPartialTranscriptRef, pttSpeculativeSearchRef, savedAnswersRef,
     answeredIdsRef, skippedIdsRef, explainedQuestionsRef, activeCardIdRef, voicePhaseRef,
     termsSubStepRef, langRef, isRevisitingRef, sustainabilityConfirmedRef,
@@ -1437,6 +1442,9 @@ export function useVoiceSession({
       : context === 'phase5'
       ? "local:phase5-contracts"
       : (termsVectorId ?? "");
+    // Phase 5 searches the shared FAQ store alongside its local contract docs — see the ref's
+    // declaration above. Every other phase already searches the shared store directly.
+    pttSecondaryStoreRef.current = context === 'phase5' ? (termsVectorId ?? null) : null;
 
     if (!pttVectorStoreRef.current) {
       // No vector store configured — tell the AI to apologise rather than searching
