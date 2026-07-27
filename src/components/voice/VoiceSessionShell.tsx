@@ -132,7 +132,7 @@ export default function VoiceSessionShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, languageSelected, selectLanguage, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, skipPendingTransition, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, isTransitioningToSigning, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, backToProduct, backToPersonalInfo, backToInvestment, backToContracts, backToFinalQA, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, fastModeIntroActive, setFastModeIntroActive, growNextCardRef, postExplainReaskId, clearPostExplainReask } =
+  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, languageSelected, selectLanguage, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, skipPendingTransition, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, submitAssetKnowledgeQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, isTransitioningToSigning, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, backToProduct, backToPersonalInfo, backToInvestment, backToContracts, backToFinalQA, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, fastModeIntroActive, setFastModeIntroActive, growNextCardRef, postExplainReaskId, clearPostExplainReask } =
     useVoiceSession({
       sessionId,
       questions,
@@ -366,6 +366,10 @@ export default function VoiceSessionShell({
   // this can't just reuse the generic `isListening` (state.session === "listening") once Phase
   // 1 is PTT-only. See private-documents/after-demo/PHASE_1_PTT_PLAN.md.
   const [isPhase1PTTActive, setIsPhase1PTTActive] = useState(false);
+  // Separate from the above: the asset-knowledge overlay has its own PTT button (the ControlBar is
+  // unreachable under it) and its releases go to submitAssetKnowledgeQuestion, not to the Phase 1
+  // answer path. See private-documents/after-demo/ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md.
+  const [isExplainPTTActive, setIsExplainPTTActive] = useState(false);
 
   // Derived from hook state — overlay is open whenever the AI has set explain data
   const explainOpen = explainOverlayData !== null;
@@ -1610,7 +1614,7 @@ export default function VoiceSessionShell({
           footnote={{
             title:     explainOverlayData.title,
             keyPoints: explainOverlayData.keyPoints,
-            stats:     explainOverlayData.stats,
+            bodyText:  explainOverlayData.bodyText,
           }}
           questionCategory={activeQ.category}
           questionText={activeQ.text}
@@ -1623,6 +1627,16 @@ export default function VoiceSessionShell({
           onCloseStart={stopAudio}
           onClose={() => { suppressAutoModalRef.current = false; closeExplainOverlay(); }}
           onFollowUp={() => { suppressAutoModalRef.current = false; closeExplainOverlay(); }}
+          // bodyText is only ever set by the Q12/13/14 asset-knowledge overlays, which the
+          // customer reads and dismisses themselves. The AI-driven info-icon overlay has no
+          // bodyText and keeps its auto-close, so it gets no action bar.
+          showConfirm={!!explainOverlayData.bodyText}
+          isPTTActive={isExplainPTTActive}
+          onPTTStart={() => { startPTT(); setIsExplainPTTActive(true); }}
+          onPTTRelease={() => {
+            submitAssetKnowledgeQuestion();
+            setIsExplainPTTActive(false);
+          }}
         />
       )}
 

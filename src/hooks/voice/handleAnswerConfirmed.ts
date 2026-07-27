@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
-import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA } from "./prompts";
+import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_CONTEXT_MSG, ASSET_KNOWLEDGE_INTRO_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
 export async function handleAnswerConfirmed(
@@ -13,6 +13,7 @@ export async function handleAnswerConfirmed(
     isRevisitingRef, circleBackActiveRef, sustainabilityConfirmedRef, termsSubStepRef,
     chatOpenRef, chatAnsweredRef, knowledgeBlockerNextQRef, kbExplanationStartedRef,
     assetKnowledgeShownRef, pendingPhaseTransitionRef, fastModeRef, mutedRef,
+    explainAwaitConfirmRef, explainAssetOrderRef,
     audioEndTimer, stateRef, langRef,
     dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase, send, router,
     setSavedAnswers, setTermsSubStep, setExplainOverlayData,
@@ -33,18 +34,25 @@ export async function handleAnswerConfirmed(
     assetKnowledgeShownRef.current.add(question.id);
     knowledgeBlockerNextQRef.current = question; // re-ask the SAME question once the overlay closes
     kbExplanationStartedRef.current  = false;
+    // Read-and-confirm mode: the customer reads the text and closes the overlay themselves, so
+    // it must NOT auto-close when the AI's short intro ends. See
+    // private-documents/after-demo/ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md.
+    explainAwaitConfirmRef.current = true;
+    explainAssetOrderRef.current   = question.questionOrder!;
     if (audioEndTimer.current) { clearTimeout(audioEndTimer.current); audioEndTimer.current = null; }
     dispatch({ type: "ANSWER_SAVED" });
     setExplainOverlayData(overlayEntry.data);
+    // Full text as a persistent context item — the customer can ask several questions while the
+    // overlay is open, and per-response instructions would only cover the first one.
     send({
       type: "conversation.item.create",
       item: { type: "message", role: "user", content: [{ type: "input_text",
-        text: `[SYSTEM: Explanation overlay for "${overlayEntry.data.title}" is open. The customer said they don't know this topic. Give a thorough spoken explanation grounded in the source material in your instructions — cover the definition, the yield/return, and every risk mentioned. Do NOT say "take a look" or reference the screen — explain verbally. The overlay closes automatically when you finish speaking, and the customer will then be asked this question again.]`,
+        text: ASSET_KNOWLEDGE_CONTEXT_MSG(question.questionOrder!),
       }]},
     });
     send({
       type: "response.create",
-      response: { instructions: ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS(langRef.current, question.questionOrder!) },
+      response: { instructions: ASSET_KNOWLEDGE_INTRO_INSTRUCTIONS(langRef.current, question.questionOrder!) },
     });
     return;
   }

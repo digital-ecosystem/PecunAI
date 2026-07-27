@@ -86,6 +86,13 @@ export interface VoiceContext {
   knowledgeBlockerNextQRef:  MutableRefObject<CarouselQuestion | null>;
   kbExplanationStartedRef:   MutableRefObject<boolean>;
   kbExplanationResponseIdRef:MutableRefObject<string | null>;
+  /** True while an asset-knowledge overlay (Q12/13/14) is open: the customer reads the text and
+   *  closes it with the confirm button, so it must not auto-close when the AI stops speaking and
+   *  the 30s idle check-in must not fire. See ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md. */
+  explainAwaitConfirmRef:    MutableRefObject<boolean>;
+  /** Which asset class (questionOrder 12/13/14) the open overlay is about — grounds the PTT
+   *  questions the customer can ask while reading. Null when no such overlay is open. */
+  explainAssetOrderRef:      MutableRefObject<number | null>;
   pendingPhaseTransitionRef: MutableRefObject<(() => void) | null>;
   suppressNavBackRef:        MutableRefObject<boolean>;
   chatOpenRef:               MutableRefObject<boolean>;

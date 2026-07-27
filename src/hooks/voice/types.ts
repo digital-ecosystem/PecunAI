@@ -56,16 +56,16 @@ export interface ProductData {
   };
 }
 
-export interface ExplainOverlayStat {
-  label: string;
-  value: number;
-  color: string;
-}
-
 export interface ExplainOverlayData {
   title:     string;
+  /** Short bullet highlights — what the AI-driven `explain_topic` overlay shows while it
+   *  speaks the full explanation. Empty for the Q12/13/14 asset-knowledge overlays, which
+   *  render `bodyText` instead. */
   keyPoints: string[];
-  stats:     ExplainOverlayStat[];
+  /** Long-form regulatory text rendered as headed sections in place of the bullets. Set only
+   *  by ASSET_CLASS_OVERLAY (Q12/13/14), where the client requires their complete text on
+   *  screen — see private-documents/after-demo/ASSET_EXPLAIN_FULL_TEXT_PLAN.md. */
+  bodyText?: string;
 }
 
 export interface ChatMessage {

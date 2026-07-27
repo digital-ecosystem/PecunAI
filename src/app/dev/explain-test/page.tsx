@@ -9,9 +9,11 @@
 import { useState } from "react";
 import VoiceExplainOverlay from "@/components/voice/VoiceExplainOverlay";
 import VoiceSphere from "@/components/voice/VoiceSphere";
+import { ASSET_CLASS_OVERLAY } from "@/hooks/voice/prompts";
 
 export default function ExplainTestPage() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen]           = useState(true);
+  const [pttActive, setPttActive] = useState(false);
 
   return (
     <div
@@ -44,16 +46,10 @@ export default function ExplainTestPage() {
       {open && (
         <VoiceExplainOverlay
           footnote={{
-            title: "Aktien verstehen",
-            keyPoints: [
-              "Aktien sind Anteile an einem Unternehmen.",
-              "Kurse schwanken — höhere Renditechancen, höheres Risiko.",
-              "Langfristige Anlage glättet Schwankungen.",
-            ],
-            stats: [
-              { label: "Renditechance", value: 75, color: "rgba(34,197,94,1)" },
-              { label: "Risiko", value: 65, color: "rgba(239,68,68,1)" },
-            ],
+            title: "Aktien & Aktienfonds",
+            // Empty, like the real Q12/13/14 overlays — bodyText replaces the bullets there.
+            keyPoints: [],
+            bodyText: ASSET_CLASS_OVERLAY[12].data.bodyText,
           }}
           questionCategory="Frage"
           questionText="Aktien – Wie schätzen Sie Ihre Kenntnisse über Aktien ein?"
@@ -62,6 +58,11 @@ export default function ExplainTestPage() {
           onCloseStart={() => {}}
           onClose={() => setOpen(false)}
           onFollowUp={() => setOpen(false)}
+          // Read-and-confirm mode, as the real Q12/13/14 overlays run it.
+          showConfirm
+          isPTTActive={pttActive}
+          onPTTStart={() => setPttActive(true)}
+          onPTTRelease={() => setPttActive(false)}
         />
       )}
     </div>

@@ -666,7 +666,10 @@ export async function handleWsMessage(
       pendingVoiceTranscriptRef.current = null;
       applyPendingTranscriptRef.current = null;
       needsTranscriptBubbleRef.current = false;
-      if (explainOpenRef.current) resetExplainIdleRef.current();
+      // …but never start it for the read-and-confirm asset overlay, which deliberately has no
+      // idle check-in (see ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md) — resetting an unstarted timer
+      // would switch the nag on.
+      if (explainOpenRef.current && !vc.explainAwaitConfirmRef.current) resetExplainIdleRef.current();
       // If AI was actively speaking, suppress the auto-modal until the new AI response
       // starts sending audio — prevents the previous card's modal from incorrectly opening
       // during the 1–2s gap between barge-in and the navigate/submit function call.

@@ -1,7 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
-import type { ExplainOverlayStat } from "./types";
-import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./prompts";
+import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_CONTEXT_MSG, ASSET_KNOWLEDGE_INTRO_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
 export async function handleFunctionCall(
@@ -17,6 +16,7 @@ export async function handleFunctionCall(
     termsSubStepRef, explainedQuestionsRef, chatOpenRef, pttVectorStoreRef,
     sustainabilityConfirmedRef, pendingVoiceTranscriptRef, applyPendingTranscriptRef,
     skipInProgressRef, prevInProgressRef, assetKnowledgeShownRef, pendingPhaseTransitionRef, fastModeRef, mutedRef,
+    explainAwaitConfirmRef, explainAssetOrderRef,
     send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase,
     advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign,
     backToPersonalInfo, backToInvestment, backToContracts, setIsRevisiting_internal, router, sessionId,
@@ -133,18 +133,22 @@ export async function handleFunctionCall(
         assetKnowledgeShownRef.current.add(questionId);
         knowledgeBlockerNextQRef.current = validatingQ!; // re-ask the SAME question once the overlay closes
         kbExplanationStartedRef.current  = false;
+        // Read-and-confirm mode — see the identical branch in handleAnswerConfirmed.ts and
+        // private-documents/after-demo/ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md.
+        explainAwaitConfirmRef.current = true;
+        explainAssetOrderRef.current   = validatingQ!.questionOrder!;
         if (audioEndTimer.current) { clearTimeout(audioEndTimer.current); audioEndTimer.current = null; }
         dispatch({ type: "ANSWER_SAVED" });
         setExplainOverlayData(overlayEntry.data);
         send({
           type: "conversation.item.create",
           item: { type: "message", role: "user", content: [{ type: "input_text",
-            text: `[SYSTEM: Explanation overlay for "${overlayEntry.data.title}" is open. The customer said they don't know this topic. Give a thorough spoken explanation grounded in the source material in your instructions — cover the definition, the yield/return, and every risk mentioned. Do NOT say "take a look" or reference the screen — explain verbally. The overlay closes automatically when you finish speaking, and the customer will then be asked this question again.]`,
+            text: ASSET_KNOWLEDGE_CONTEXT_MSG(validatingQ!.questionOrder!),
           }]},
         });
         send({
           type: "response.create",
-          response: { instructions: ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS(langRef.current, validatingQ!.questionOrder!) },
+          response: { instructions: ASSET_KNOWLEDGE_INTRO_INSTRUCTIONS(langRef.current, validatingQ!.questionOrder!) },
         });
         return;
       }
@@ -492,15 +496,13 @@ export async function handleFunctionCall(
         send({ type: "response.create", response: { output_modalities: ["text"] } });
         return;
       }
-      const { title, keyPoints, stats } = JSON.parse(argsJson) as {
+      const { title, keyPoints } = JSON.parse(argsJson) as {
         title:      string;
         keyPoints?: string[];
-        stats?:     ExplainOverlayStat[];
       };
       setExplainOverlayData({
         title:     title ?? "",
         keyPoints: Array.isArray(keyPoints) ? keyPoints : [],
-        stats:     Array.isArray(stats)     ? stats     : [],
       });
       // Track which question triggered this explanation so we know to re-ask with context on return
       if (activeCardIdRef.current) explainedQuestionsRef.current.add(activeCardIdRef.current);

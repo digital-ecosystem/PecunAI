@@ -203,10 +203,9 @@ After navigate() fires and you receive the [SYSTEM] reply with the next topic: t
 
 ## How to explain
 
-1. Call explain_topic(title, keyPoints, stats) before speaking.
+1. Call explain_topic(title, keyPoints) before speaking.
    - title: short topic label (e.g. "Sustainability Criteria")
    - keyPoints: 3–5 short bullet highlights — visual only, speak the full explanation verbally
-   - stats: optional, only for concrete percentages
 2. Speak the full explanation verbally, once, in full — do NOT ask "does that make sense" or
    "shall we go back", and do NOT call close_explanation(). The overlay closes automatically the
    moment you finish speaking, and the customer is returned straight to the question.
@@ -306,33 +305,26 @@ export const PRIVACY_PAUSE_SIGNING_INSTRUCTIONS = (lang: "de" | "en" = "de") => 
   : `${ADVISOR_PERSONA("en")} Say exactly 2–3 clear sentences: now comes the digital signature of the contract documents. Explain that you won't be guiding this part by voice for privacy reasons, since a legally binding signature is captured here. The customer completes the signing process on their own. Then say NOTHING else.`;
 
 // ── Knowledge blocker overlay data (Q12/13/14 "none" answer) ─────
-// German content shown when a customer has no experience with an asset class. `keyPoints` are
-// condensed bullets for the on-screen overlay; `explainText` is the fuller client-provided
-// source material fed to the AI so its spoken explanation is grounded in the actual regulatory
-// content rather than a generic paraphrase. See
-// private-documents/after-demo/ASSET_KNOWLEDGE_EXPLAIN_PLAN.md and the client's original text at
+// German content shown when a customer has no experience with an asset class. `bodyText` holds
+// the client's own regulatory text and is BOTH what the overlay renders on screen and what the
+// AI's spoken explanation is grounded in — one string, so the two can never drift apart. It used
+// to be a condensed bullet summary on screen and the full text only in the AI's ear; the client
+// asked for the complete text to be visible too (2026-07-27). See
+// private-documents/after-demo/ASSET_EXPLAIN_FULL_TEXT_PLAN.md,
+// private-documents/after-demo/ASSET_KNOWLEDGE_EXPLAIN_PLAN.md, and the client's original text at
 // private-documents/after-demo/from-client/12.1-13.1-14.1-explain-overlay-data-from-client.txt.
 
-export const ASSET_CLASS_OVERLAY: Record<number, { data: ExplainOverlayData; nameEn: string; explainText: string }> = {
+export const ASSET_CLASS_OVERLAY: Record<number, { data: ExplainOverlayData & { bodyText: string }; nameEn: string }> = {
   12: {
     data: {
       title:     "Aktien & Aktienfonds",
-      keyPoints: [
-        "Aktien sind Wertpapiere, die eine Beteiligung an einem Unternehmen mit allen Chancen und Risiken darstellen.",
-        "Der Ertrag setzt sich aus Dividenden und Kursgewinnen bzw. Kursverlusten zusammen.",
-        "Kursrisiko: Der Kurs richtet sich nach Angebot und Nachfrage und kann auch durch irrationale Faktoren oder Krisen stark schwanken.",
-        "Bonitätsrisiko: Bei Insolvenz des Unternehmens kann die Beteiligung wertlos werden.",
-        "Liquiditätsrisiko: Bei geringer Handelbarkeit lässt sich eine Aktie u. U. nicht verkaufen.",
-      ],
-      stats: [
-        { label: "Wachstumspotenzial", value: 78, color: "#6366f1" },
-        { label: "Risikoniveau",       value: 65, color: "#f59e0b" },
-      ],
-    },
-    nameEn: "stocks, stock funds, and equity ETFs",
-    // Verbatim from the client's file (only an obvious OCR-style typo fixed) — do not condense,
-    // the AI is instructed to explain this full content, not a summary of it.
-    explainText: `Definition: Aktien sind Wertpapiere, welche eine Beteiligung an einem Unternehmen (Aktiengesellschaft) mit allen Chancen und Risiken verbriefen. Aktien werden über eine Börse, fallweise auch außerbörslich gehandelt, wobei die jeweiligen Börsenusancen (Schlusseinheiten, Orderarten, Valutaregelungen etc.) beachtet werden müssen.
+      // No bullets — the full text below replaces them on screen (client request 2026-07-27).
+      keyPoints: [],
+      // Verbatim from the client's file (only an obvious OCR-style typo fixed) — do not condense,
+      // it is rendered in full and the AI is instructed to explain all of it, not a summary.
+      // Sections are separated by a blank line and open with a "Heading: " prefix, which
+      // VoiceExplainOverlay renders as a bold section heading.
+      bodyText: `Definition: Aktien sind Wertpapiere, welche eine Beteiligung an einem Unternehmen (Aktiengesellschaft) mit allen Chancen und Risiken verbriefen. Aktien werden über eine Börse, fallweise auch außerbörslich gehandelt, wobei die jeweiligen Börsenusancen (Schlusseinheiten, Orderarten, Valutaregelungen etc.) beachtet werden müssen.
 
 Ertrag: Der Ertrag einer Aktienveranlagung, der selbstverständlich auch negativ sein kann, setzt sich aus Dividendenzahlungen und Kursgewinnen/Kursverlusten zusammen. Als Dividende bezeichnet man den ausgeschütteten Gewinn des Unternehmens. Die wesentlichere Komponente des Ertrages ist hingegen der Verlauf der Kursentwicklung.
 
@@ -341,27 +333,17 @@ Kursrisiko: Aktien werden zumeist an einer Börse gehandelt. Der Kurs orientiert
 Bonitätsrisiko: Die Beteiligung an einem Unternehmen kann durch dessen Insolvenz wertlos werden.
 
 Liquiditätsrisiko: Die Handelbarkeit von bestimmten Aktien kann durch fehlende Liquidität u. U. nicht durchgeführt werden.`,
+    },
+    nameEn: "stocks, stock funds, and equity ETFs",
   },
   13: {
     data: {
       title:     "Anleihen & Anleihenfonds",
-      keyPoints: [
-        "Anleihen sind Wertpapiere, bei denen der Schuldner dem Anleger eine Verzinsung und Rückzahlung des Kapitals zusagt.",
-        "Der Ertrag ergibt sich aus der Verzinsung und einer möglichen Differenz zwischen Kauf- und Verkaufspreis.",
-        "Bonitätsrisiko: Kommt der Schuldner seinen Zahlungsverpflichtungen nicht nach, drohen Verluste — ein schlechteres Rating bedeutet höheres Risiko.",
-        "Kursrisiko: Steigende Marktzinsen lassen den Kurs bestehender Anleihen fallen, sinkende Zinsen lassen ihn steigen.",
-        "Liquiditätsrisiko: Ein Verkauf vor Laufzeitende ist nicht immer oder nur erschwert möglich.",
-        "Nachrangkapitalanleihen werden im Insolvenzfall erst nach allen anderen Gläubigern bedient.",
-      ],
-      stats: [
-        { label: "Wachstumspotenzial", value: 42, color: "#6366f1" },
-        { label: "Risikoniveau",       value: 32, color: "#f59e0b" },
-      ],
-    },
-    nameEn: "bonds and bond funds",
-    // Verbatim from the client's file (only an obvious OCR-style typo fixed) — do not condense,
-    // the AI is instructed to explain this full content, not a summary of it.
-    explainText: `Definition: Anleihen sind Wertpapiere, bei denen der Emittent (Aussteller, Schuldner) dem Inhaber (Käufer, Investor, Gläubiger) für das zur Verfügung gestellte Kapital eine Verzinsung gewährt und eine Rückzahlung gemäß Anleihebedingungen vornimmt.
+      // No bullets — the full text below replaces them on screen (client request 2026-07-27).
+      keyPoints: [],
+      // Verbatim from the client's file (only an obvious OCR-style typo fixed) — do not condense,
+      // it is rendered in full and the AI is instructed to explain all of it, not a summary.
+      bodyText: `Definition: Anleihen sind Wertpapiere, bei denen der Emittent (Aussteller, Schuldner) dem Inhaber (Käufer, Investor, Gläubiger) für das zur Verfügung gestellte Kapital eine Verzinsung gewährt und eine Rückzahlung gemäß Anleihebedingungen vornimmt.
 
 Ertrag: Der Ertrag einer Anleihe setzt sich aus der Verzinsung des Kapitals und einer allfälligen Differenz zwischen Kauf- und Verkaufspreis zusammen. Nur bei einer fixverzinsten Anleihe, die bis zur Tilgung gehalten wird, kann der Ertrag angegeben werden. Als Vergleichs-/Maßzahl für den Ertrag wird die Rendite (auf Endfälligkeit) verwendet, die nach international üblichen Maßstäben berechnet wird. Bei einem Verkauf vor Tilgung ist der erzielbare Ertrag ungewiss, da der entsprechende Kurs über oder unter dem Kaufkurs liegen kann. Bei der Berechnung des Ertrages ist auch die Spesenbelastung relevant.
 
@@ -372,29 +354,18 @@ Kursrisiko: Wird eine Anleihe bis zum Laufzeitende gehalten, erhalten Investoren
 Liquiditätsrisiko: Die Handelbarkeit von Anleihen kann von verschiedenen Faktoren abhängen und in bestimmten Marktsituationen nicht oder nur erschwert erfolgen, was ein Halten bis zur Tilgung erforderlich macht.
 
 Spezialfälle von Anleihen: Nachrangkapitalanleihen sind Anleihen, bei denen an den/die Anleger:in im Falle der Liquidation des Schuldners erst dann Zahlungen geleistet werden, nachdem alle anderen Verbindlichkeiten des Anleiheschuldners bezahlt werden.`,
+    },
+    nameEn: "bonds and bond funds",
   },
   14: {
     data: {
       title:     "Edelmetalle (z. B. Gold)",
-      keyPoints: [
-        "Edelmetalle wie Gold, Silber, Platin und Palladium können physisch oder über Finanzinstrumente (ETCs, Zertifikate, Fonds) gehalten werden.",
-        "Der Ertrag ergibt sich ausschließlich aus der Kursdifferenz — es gibt keine laufenden Zinsen oder Dividenden.",
-        "Kursrisiko: Der Preis wird von Angebot, Nachfrage und teils irrationalen Faktoren bestimmt und kann stark schwanken.",
-        "Währungsrisiko: Der Handel erfolgt meist in US-Dollar, Wechselkursschwankungen wirken sich zusätzlich auf den Ertrag aus.",
-        "Bonitäts-/Emittentenrisiko: Bei ETCs oder Zertifikaten besteht ein Ausfallrisiko des Emittenten ohne ausreichende Besicherung.",
-        "Liquiditätsrisiko: Der Handel kann in bestimmten Marktphasen erschwert oder nur mit Preisabschlägen möglich sein.",
-        "Bei physischer Verwahrung bestehen zusätzliche Risiken (Verlust, Diebstahl, Beschädigung) sowie laufende Lager-/Versicherungskosten.",
-      ],
-      stats: [
-        { label: "Wachstumspotenzial", value: 50, color: "#6366f1" },
-        { label: "Risikoniveau",       value: 44, color: "#f59e0b" },
-      ],
-    },
-    nameEn: "precious metals (e.g. gold)",
-    // Verbatim from the client's file (only an obvious OCR-style typo fixed, and the final
-    // sentence completed — it was cut off mid-word in the source file) — do not condense, the
-    // AI is instructed to explain this full content, not a summary of it.
-    explainText: `Definition: Unter Edelmetallen versteht man insbesondere Gold, Silber, Platin und Palladium. Eine Veranlagung kann in physischer Form (Barren, Münzen) oder in verbriefter bzw. derivativer Form über Finanzinstrumente erfolgen, etwa über Exchange Traded Commodities (ETCs), Zertifikate, Edelmetall- bzw. Rohstofffonds oder Derivate. Edelmetalle werden über internationale Märkte gehandelt; die Preisbildung erfolgt zumeist in einer Fremdwährung (in der Regel US-Dollar). Physische Edelmetalle sind selbst keine Finanzinstrumente im Sinne der WAG 2018 / MiFID II; eine verbriefte oder derivative Veranlagung in Edelmetalle erfolgt hingegen über Finanzinstrumente, für die die einschlägigen aufsichtsrechtlichen Wohlverhaltens-, Informations- und Geeignetheits-/Angemessenheitspflichten gelten.
+      // No bullets — the full text below replaces them on screen (client request 2026-07-27).
+      keyPoints: [],
+      // Verbatim from the client's file (only an obvious OCR-style typo fixed, and the final
+      // sentence completed — it was cut off mid-word in the source file) — do not condense, it is
+      // rendered in full and the AI is instructed to explain all of it, not a summary.
+      bodyText: `Definition: Unter Edelmetallen versteht man insbesondere Gold, Silber, Platin und Palladium. Eine Veranlagung kann in physischer Form (Barren, Münzen) oder in verbriefter bzw. derivativer Form über Finanzinstrumente erfolgen, etwa über Exchange Traded Commodities (ETCs), Zertifikate, Edelmetall- bzw. Rohstofffonds oder Derivate. Edelmetalle werden über internationale Märkte gehandelt; die Preisbildung erfolgt zumeist in einer Fremdwährung (in der Regel US-Dollar). Physische Edelmetalle sind selbst keine Finanzinstrumente im Sinne der WAG 2018 / MiFID II; eine verbriefte oder derivative Veranlagung in Edelmetalle erfolgt hingegen über Finanzinstrumente, für die die einschlägigen aufsichtsrechtlichen Wohlverhaltens-, Informations- und Geeignetheits-/Angemessenheitspflichten gelten.
 
 Ertrag: Der Ertrag einer Edelmetallveranlagung, der selbstverständlich auch negativ sein kann, ergibt sich – anders als bei Aktien (Dividenden) oder Anleihen (Zinsen) – ausschließlich aus der Differenz zwischen Kauf- und Verkaufspreis. Edelmetalle werfen keine laufenden Erträge (weder Zinsen noch Dividenden) ab. Ein verlässlicher Ertrag kann daher im Vorhinein nicht angegeben werden; die Wertentwicklung ist allein von der Preisentwicklung des jeweiligen Edelmetalls abhängig. Bei der Ertragsbetrachtung sind zudem Spesen sowie – insbesondere bei physischen Edelmetallen – die teils erheblichen Geld-/Brief-Spannen (Spreads) zwischen An- und Verkaufspreis zu berücksichtigen.
 
@@ -407,18 +378,48 @@ Bonitäts-/Emittentenrisiko: Bei einer Veranlagung über Finanzinstrumente (insb
 Liquiditätsrisiko: Die Handelbarkeit von Edelmetallen bzw. der darauf bezogenen Finanzinstrumente kann von verschiedenen Faktoren abhängen und in bestimmten Marktsituationen nicht oder nur erschwert bzw. nur mit Preisabschlägen erfolgen.
 
 Verwahrungs- und Lagerrisiko (bei physischen Edelmetallen): Bei physischer Verwahrung bestehen zusätzliche Risiken wie Verlust, Diebstahl oder Beschädigung sowie laufende Kosten für Lagerung und Versicherung. Diese Kosten mindern den Ertrag.`,
+    },
+    nameEn: "precious metals (e.g. gold)",
   },
 };
 
-// AI instructions for the (new, detailed) knowledge-blocker explanation — grounded in
-// ASSET_CLASS_OVERLAY's full, verbatim explainText (every section: Definition, Ertrag, and each
-// named risk), not a summary of it. Deliberately not capped at a short sentence count like the
-// old flow — the customer needs the complete regulatory content, every section below, covered.
-export const ASSET_KNOWLEDGE_EXPLAIN_INSTRUCTIONS = (lang: "de" | "en" = "de", questionOrder: number) => {
+// The customer READS the text — the AI does not read it to them (client request 2026-07-27, see
+// private-documents/after-demo/ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md). So the full text goes into
+// the conversation as a persistent context item rather than into per-response `instructions`,
+// which only survive a single response: the customer can ask several questions while the overlay
+// is open, and every one of them needs this in context.
+export const ASSET_KNOWLEDGE_CONTEXT_MSG = (questionOrder: number) => {
+  const entry = ASSET_CLASS_OVERLAY[questionOrder];
+  return `[SYSTEM: The customer said they don't know "${entry.data.title}". An information screen is now open in front of them showing the FULL text below, which they are reading themselves. Do NOT read it out and do NOT summarise it — they can see it. Use it as your source material if they ask you a question about it. They close the screen themselves by tapping a "Verstanden" button, after which you will ask them the question again.
+
+TEXT CURRENTLY ON THEIR SCREEN:
+${entry.data.bodyText}]`;
+};
+
+// Spoken when the overlay opens: announce the screen and offer to answer questions. Two sentences,
+// nothing more — the content itself is on screen and is explicitly not to be narrated.
+export const ASSET_KNOWLEDGE_INTRO_INSTRUCTIONS = (lang: "de" | "en" = "de", questionOrder: number) => {
   const entry = ASSET_CLASS_OVERLAY[questionOrder];
   return lang === "de"
-    ? `${ADVISOR_PERSONA("de")} Der Kunde hat angegeben, "${entry.data.title}" nicht zu kennen. Erklären Sie ihm jetzt den VOLLSTÄNDIGEN folgenden Inhalt — jeden einzelnen Abschnitt (Definition, Ertrag, und JEDES genannte Risiko), ohne einen davon auszulassen oder zusammenzufassen. Formulieren Sie es in Ihren eigenen, natürlichen Worten wie in einem Beratungsgespräch, nicht wie ein vorgelesenes Dokument — aber lassen Sie inhaltlich nichts weg und erfinden Sie nichts hinzu. Das wird länger als eine normale Antwort sein, das ist hier ausdrücklich erwünscht. Vollständiger Inhalt, den Sie erklären müssen: ${entry.explainText}`
-    : `${ADVISOR_PERSONA("en")} The customer said they don't know "${entry.data.title}". Explain the FULL content below to them now — every single section (definition, yield/return, and EVERY risk mentioned), without skipping or summarizing any of it. Phrase it in your own natural words like an advisory conversation, not like reading a document aloud — but don't omit any content and don't invent anything new. This will be longer than a typical answer, and that's expected here. Full content you must explain: ${entry.explainText}`;
+    ? `${ADVISOR_PERSONA("de")} Sagen Sie GENAU ZWEI kurze Sätze und danach nichts mehr: (1) Auf dem Bildschirm stehen jetzt die wichtigsten Informationen zum Thema "${entry.data.title}" — der Kunde kann sie in Ruhe durchlesen. (2) Wenn er dazu eine Frage hat, kann er die Mikrofontaste gedrückt halten und einfach fragen; wenn er fertig ist, tippt er auf "Verstanden". WICHTIG: Lesen Sie den Text auf keinen Fall vor, fassen Sie ihn nicht zusammen und nennen Sie keine einzelnen Inhalte daraus.`
+    : `${ADVISOR_PERSONA("en")} Say EXACTLY TWO short sentences and nothing else: (1) the key information about "${entry.data.title}" is now on their screen and they can take their time reading it. (2) If they have a question about it they can hold the microphone button and just ask; when they're done they tap "Verstanden". IMPORTANT: do not read the text aloud, do not summarise it, and do not mention any of its individual contents.`;
+};
+
+// Answer to a PTT question asked from inside the overlay. Re-embeds the text because
+// `gpt-realtime-2` treats per-response `instructions` as a full override of the session prompt
+// (see PER_RESPONSE_INSTRUCTION_ALGORITHM.md) — the context item above keeps the model oriented,
+// this keeps the answer itself grounded.
+export const ASSET_KNOWLEDGE_QA_INSTRUCTIONS = (lang: "de" | "en" = "de", questionOrder: number) => {
+  const entry = ASSET_CLASS_OVERLAY[questionOrder];
+  return lang === "de"
+    ? `${ADVISOR_PERSONA("de")} Der Kunde liest gerade den Informationstext zu "${entry.data.title}" auf seinem Bildschirm und hat soeben eine Frage dazu gestellt. Beantworten Sie NUR diese Frage: kurz, höchstens drei Sätze, ausschließlich auf Basis des Textes unten. Steht die Antwort nicht darin, sagen Sie das offen — erfinden Sie nichts dazu. Lesen Sie den Text nicht vor. Fragen Sie am Ende NICHT, ob es weitergehen soll: der Kunde tippt selbst auf "Verstanden", wenn er so weit ist.
+
+TEXT:
+${entry.data.bodyText}`
+    : `${ADVISOR_PERSONA("en")} The customer is reading the information text about "${entry.data.title}" on their screen and has just asked a question about it. Answer ONLY that question: short, three sentences at most, based solely on the text below. If the answer isn't in it, say so plainly — don't invent anything. Don't read the text aloud. Do NOT end by asking whether to move on: the customer taps "Verstanden" themselves when they're ready.
+
+TEXT:
+${entry.data.bodyText}`;
 };
 
 // ── Phase 4 PTT grounding — the customer's own investment presentation ──

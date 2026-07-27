@@ -155,7 +155,7 @@ export function handleRequestExplanation(ctx: VoiceContext): void {
   // and masks the model's latency; explain_topic then replaces this with the real title + bullets a
   // beat later (VoiceExplainOverlay reads the data live, so no remount). VoiceSessionShell's
   // onInfoClick stopAudio()s first, so the model isn't mid-response and picks this up immediately.
-  setExplainOverlayData({ title: currentQ.category ?? "", keyPoints: [], stats: [] });
+  setExplainOverlayData({ title: currentQ.category ?? "", keyPoints: [] });
 
   send({
     type: "conversation.item.create",
@@ -172,6 +172,7 @@ export function handleCloseExplainOverlay(ctx: VoiceContext): void {
   const {
     mutedRef, knowledgeBlockerNextQRef, kbExplanationResponseIdRef, questionsRef,
     activeCardIdRef, explainedQuestionsRef, answeredIdsRef, langRef, fastModeRef,
+    explainAwaitConfirmRef, explainAssetOrderRef,
     dispatch, send, setCard, setExplainTriggerClose, setExplainOverlayData, setPostExplainReaskId,
   } = ctx;
 
@@ -181,6 +182,10 @@ export function handleCloseExplainOverlay(ctx: VoiceContext): void {
 
   setExplainTriggerClose(false);
   setExplainOverlayData(null);
+  // Read-and-confirm mode ends with the overlay — restores auto-close and the idle check-in for
+  // whatever explanation opens next. See ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md.
+  explainAwaitConfirmRef.current = false;
+  explainAssetOrderRef.current   = null;
   if (!mutedRef.current) dispatch({ type: "AI_SPEAKING" });
 
   // ── Knowledge-blocker path: advance carousel and ask the stored next question ──

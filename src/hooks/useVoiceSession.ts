@@ -4,7 +4,7 @@ import { useReducer, useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
-import { SessionState, Action, VoiceSessionState, ProductData, ExplainOverlayStat, ExplainOverlayData, ChatMessage } from "./voice/types";
+import { SessionState, Action, VoiceSessionState, ProductData, ExplainOverlayData, ChatMessage } from "./voice/types";
 import { makeInitial, reducer } from "./voice/reducer";
 import { base64ToPCM16AudioBuffer, SAMPLE_RATE } from "./voice/audio";
 import { handleFunctionCall as _handleFunctionCall } from "./voice/handleFunctionCall";
@@ -13,11 +13,11 @@ import { handleAnswerConfirmed as _handleAnswerConfirmed } from "./voice/handleA
 import { handlePrev, handleSkipQuestion, handleRequestExplanation, handleCloseExplainOverlay, handleScrollCarousel, handleRevisitQuestions } from "./voice/handleNavigation";
 import { handleMoveToTerms1, handleConfirmTerms1, handleConfirmTerms2, handleConfirmSustainabilityTerms } from "./voice/handleTerms";
 import { handleNotifyChatOpen } from "./voice/handleChat";
-import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./voice/prompts";
+import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, PRIVACY_PAUSE_SIGNING_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, ASSET_KNOWLEDGE_QA_INSTRUCTIONS, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./voice/prompts";
 import type { VoiceContext } from "./voice/voiceContext";
 
 // re-export types consumed by VoiceSessionShell and other components
-export type { SessionState, VoiceSessionState, ProductData, ExplainOverlayStat, ExplainOverlayData, ChatMessage };
+export type { SessionState, VoiceSessionState, ProductData, ExplainOverlayData, ChatMessage };
 
 // ── Hook ──────────────────────────────────────────────────────────
 
@@ -250,6 +250,12 @@ export function useVoiceSession({
   const knowledgeBlockerNextQRef   = useRef<CarouselQuestion | null>(null); // next question to ask after a knowledge-blocker overlay closes
   const kbExplanationStartedRef    = useRef(false); // true once the first explanation audio delta arrives — guards against stale cancelled-response audio.done closing the overlay early
   const kbExplanationResponseIdRef = useRef<string | null>(null); // response ID of the KB explanation response — stale cancelled-response events have a different ID and are ignored
+  // Asset-knowledge overlay (Q12/13/14): the customer reads the full text themselves and closes it
+  // with the "Verstanden" button, so no auto-close and no idle nagging while it's up. The order ref
+  // grounds the PTT questions they can ask while reading.
+  // See private-documents/after-demo/ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md.
+  const explainAwaitConfirmRef = useRef(false);
+  const explainAssetOrderRef   = useRef<number | null>(null);
   // Callback to run once the CURRENT AI response's audio finishes playing — checked in scheduleAIDone.
   // Used to sequence phase transitions (e.g. privacy-pause announcements) after the line is fully spoken.
   const pendingPhaseTransitionRef  = useRef<(() => void) | null>(null);
@@ -515,6 +521,11 @@ export function useVoiceSession({
       if (explainIdleTimerRef.current) { clearTimeout(explainIdleTimerRef.current); explainIdleTimerRef.current = null; }
       return;
     }
+    // The asset-knowledge overlay is a long read, not a short spoken explanation — a check-in
+    // every 30 seconds of silence would interrupt the customer mid-paragraph, and it asks
+    // whether they're ready to go back, which the confirm button now answers. The ref is set
+    // before setExplainOverlayData in both KB branches, so it is already correct here.
+    if (explainAwaitConfirmRef.current) return;
     resetExplainIdleTimer();
     return () => {
       if (explainIdleTimerRef.current) { clearTimeout(explainIdleTimerRef.current); explainIdleTimerRef.current = null; }
@@ -700,8 +711,10 @@ export function useVoiceSession({
       setIsAISpeaking(false);
       if (!mutedRef.current) dispatch({ type: "AI_DONE" });
       // Auto-close any open explanation (general or KB) once its audio finishes — see
-      // private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
-      if (explainOpenRef.current && kbExplanationStartedRef.current) {
+      // private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md. Excluded: the
+      // asset-knowledge overlay, where the AI only introduces a text the customer still has to
+      // read, and closing is their own "Verstanden" tap — see ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md.
+      if (explainOpenRef.current && kbExplanationStartedRef.current && !explainAwaitConfirmRef.current) {
         kbExplanationStartedRef.current = false;
         setExplainTriggerClose(true);
       }
@@ -718,8 +731,10 @@ export function useVoiceSession({
       setIsAISpeaking(false);
       if (!pendingCall.current && !mutedRef.current) dispatch({ type: "AI_DONE" });
       // Auto-close any open explanation (general or KB) once its audio finishes — see
-      // private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
-      if (explainOpenRef.current && kbExplanationStartedRef.current) {
+      // private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md. Excluded: the
+      // asset-knowledge overlay, where the AI only introduces a text the customer still has to
+      // read, and closing is their own "Verstanden" tap — see ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md.
+      if (explainOpenRef.current && kbExplanationStartedRef.current && !explainAwaitConfirmRef.current) {
         kbExplanationStartedRef.current = false;
         setExplainTriggerClose(true);
       }
@@ -1123,7 +1138,7 @@ export function useVoiceSession({
     needsTranscriptBubbleRef, questionsRef, stateRef, micStreamRef, micSourceRef,
     workletNodeRef, micAnalyserRef, mutedRef, explainOpenRef, latencyStartRef,
     activeSourcesRef, serverResponseActiveRef, activeResponseIdRef, awaitingResponseCreatedRef, pendingResponseAfterCancelRef, knowledgeBlockerNextQRef,
-    kbExplanationStartedRef, kbExplanationResponseIdRef, pendingPhaseTransitionRef,
+    kbExplanationStartedRef, kbExplanationResponseIdRef, explainAwaitConfirmRef, explainAssetOrderRef, pendingPhaseTransitionRef,
     chatOpenRef, chatAnsweredRef,
     voiceThreadIdRef, explainIdleTimerRef, resetExplainIdleRef, productVectorIdRef,
     productRef, pttVectorStoreRef, pttActiveRef, pttContextRef, pttSearchPendingRef,
@@ -1475,6 +1490,27 @@ export function useVoiceSession({
     send({ type: "response.create" });
   }, [send]);
 
+  // PTT release inside the asset-knowledge overlay (Q12/13/14). Deliberately simpler than
+  // submitPTTQuestion: there is no document to search — the source material is the text already on
+  // the customer's screen and already in the conversation, so the answer instructions carry it
+  // directly. pttContextRef 'phase1' is correct here rather than a new context: Phase 1 is
+  // PTT-only so response.done skips the VAD restore, and the transcription handler's isPhase1PTT
+  // bypass keeps the transcript bubble working with VAD off.
+  // See private-documents/after-demo/ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md.
+  const submitAssetKnowledgeQuestion = useCallback(() => {
+    pttActiveRef.current        = false;
+    pttSearchPendingRef.current = false;
+    pttContextRef.current       = 'phase1';
+    const order = explainAssetOrderRef.current;
+    send({ type: "input_audio_buffer.commit" });
+    send({
+      type: "response.create",
+      ...(order !== null
+        ? { response: { instructions: ASSET_KNOWLEDGE_QA_INSTRUCTIONS(langRef.current, order) } }
+        : {}),
+    });
+  }, [send]);
+
   const sendChatMessage = useCallback((text: string) => {
     appendChatMessage(text, "user");
     setIsChatAITyping(true);
@@ -1601,6 +1637,7 @@ export function useVoiceSession({
     startPTT,
     submitPTTQuestion,
     submitPhase1Answer,
+    submitAssetKnowledgeQuestion,
     isChatAITyping,
     fastMode,
     toggleFastMode,

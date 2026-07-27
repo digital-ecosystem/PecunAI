@@ -31,19 +31,6 @@ export const TOOLS = [
           items: { type: "string" },
           description: "3–5 short bullet-point highlights. Visual prompts only — do NOT put the full explanation here; speak it verbally.",
         },
-        stats: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              label: { type: "string" },
-              value: { type: "number", description: "Percentage 0–100" },
-              color: { type: "string", description: "CSS color string (e.g. 'rgba(59,130,246,0.8)')" },
-            },
-            required: ["label", "value", "color"],
-          },
-          description: "Optional data bars — include only when concrete percentages add value (e.g. asset allocation).",
-        },
       },
       required: ["title", "keyPoints"],
     },

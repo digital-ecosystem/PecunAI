@@ -2,20 +2,16 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, TrendingUp, DollarSign, PieChart } from "lucide-react";
+import { ArrowLeft, TrendingUp, DollarSign, PieChart, Mic } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
-
-interface Stat {
-  label: string;
-  value: number;
-  color: string;
-}
 
 interface VoiceExplainOverlayProps {
   footnote: {
     title:     string;
     keyPoints: string[];
-    stats:     Stat[];
+    /** Long-form text (Q12/13/14 asset knowledge) shown in place of the bullets — sections
+     *  separated by a blank line, each opening with a "Heading: " prefix. */
+    bodyText?: string;
   };
   questionCategory: string;
   questionText:     string;
@@ -29,6 +25,16 @@ interface VoiceExplainOverlayProps {
   onCloseStart?:    () => void;
   onClose:          () => void;
   onFollowUp:       () => void;
+  /** Read-and-confirm mode (Q12/13/14 asset knowledge): the AI only introduces the text, the
+   *  customer reads it and closes the overlay themselves via the action bar. Without this the
+   *  overlay auto-closes when the AI stops speaking and shows no bar at all.
+   *  See private-documents/after-demo/ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md. */
+  showConfirm?:     boolean;
+  /** Hold-to-ask, only rendered in confirm mode — the ControlBar's own PTT button is
+   *  unreachable under this full-screen overlay. */
+  onPTTStart?:      () => void;
+  onPTTRelease?:    () => void;
+  isPTTActive?:     boolean;
 }
 
 const BAR_COUNT = 40;
@@ -99,6 +105,40 @@ function WaveformBars({ analyserNode }: { analyserNode: AnalyserNode | null }) {
   );
 }
 
+/** Renders the client's long-form asset-knowledge text (Q12/13/14): blocks separated by a blank
+ *  line, each opening with a "Heading: " prefix that becomes a bold section heading. A block
+ *  without a plausible prefix falls back to a plain paragraph. See
+ *  private-documents/after-demo/ASSET_EXPLAIN_FULL_TEXT_PLAN.md. */
+function BodySections({ text }: { text: string }) {
+  const sections = useMemo(
+    () => text.split(/\n\s*\n/).map(block => {
+      const raw = block.trim();
+      const sep = raw.indexOf(": ");
+      return sep > 0 && sep <= 70
+        ? { heading: raw.slice(0, sep), body: raw.slice(sep + 2) }
+        : { heading: null,              body: raw };
+    }),
+    [text],
+  );
+
+  return (
+    <div className="space-y-4">
+      {sections.map(({ heading, body }, i) => (
+        <div key={i}>
+          {heading && (
+            <h4 className="text-sm font-semibold mb-1" style={{ color: "rgba(15,23,42,0.85)" }}>
+              {heading}
+            </h4>
+          )}
+          <p className="text-sm leading-relaxed" style={{ color: "rgba(71,85,105,0.85)" }}>
+            {body}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function VoiceExplainOverlay({
   footnote,
   questionCategory,
@@ -108,6 +148,10 @@ export default function VoiceExplainOverlay({
   onCloseStart,
   onClose,
   onFollowUp,
+  showConfirm,
+  onPTTStart,
+  onPTTRelease,
+  isPTTActive,
 }: VoiceExplainOverlayProps) {
   const [showTransition, setShowTransition] = useState(true);
   const [closing,        setClosing]        = useState(false);
@@ -428,55 +472,28 @@ export default function VoiceExplainOverlay({
               </h3>
 
               {/* Key points — bullet highlights only, full explanation is spoken verbally */}
-              <ul className="space-y-2 mb-4">
-                {footnote.keyPoints.map((point, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "rgba(71,85,105,0.8)" }}>
-                    <span
-                      className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: "rgba(59,130,246,0.6)" }}
-                    />
-                    {point}
-                  </li>
-                ))}
-              </ul>
-
-              {/* Data bars */}
-              <div className="space-y-3">
-                {footnote.stats.map((stat, i) => (
-                  <div key={i}>
-                    <div className="flex items-center justify-between mb-1">
+              {footnote.keyPoints.length > 0 && (
+                <ul className="space-y-2">
+                  {footnote.keyPoints.map((point, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "rgba(71,85,105,0.8)" }}>
                       <span
-                        className="text-xs font-medium"
-                        style={{ color: "rgba(71,85,105,0.7)" }}
-                      >
-                        {stat.label}
-                      </span>
-                      <span
-                        className="text-xs font-semibold"
-                        style={{ color: stat.color }}
-                      >
-                        {stat.value}%
-                      </span>
-                    </div>
-                    <div
-                      className="w-full h-2 rounded-full overflow-hidden"
-                      style={{ background: "rgba(226,232,240,0.5)" }}
-                    >
-                      <motion.div
-                        className="h-full rounded-full"
-                        style={{ background: stat.color }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${stat.value}%` }}
-                        transition={{
-                          duration: 1,
-                          delay:    0.3 + i * 0.1,
-                          ease:     "easeOut",
-                        }}
+                        className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ background: "rgba(59,130,246,0.6)" }}
                       />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      {point}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Full text — Q12/13/14 asset knowledge. The client requires their complete
+                  regulatory text on screen, not a summary of it, so it replaces the bullets
+                  rather than sitting alongside them. */}
+              {footnote.bodyText && (
+                <div className={footnote.keyPoints.length > 0 ? "mt-4" : undefined}>
+                  <BodySections text={footnote.bodyText} />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -526,14 +543,87 @@ export default function VoiceExplainOverlay({
 
       </motion.div>
 
-      {/* Bottom gradient fade */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
-        style={{
-          background:
-            "linear-gradient(to top, rgba(249,250,251,1) 0%, transparent 100%)",
-        }}
-      />
+      {/* ── Action bar — read-and-confirm mode only ─────────────────── */}
+      {/* Hold the mic to ask about the text; tap Verstanden to go back to the question. The
+          confirm button reuses handleClose, so it cuts off any AI speech and runs the exact
+          same exit choreography and re-ask path as the header's back arrow. */}
+      {showConfirm && (
+        <motion.div
+          className="relative z-10 w-full px-6 pt-4 pb-6 flex-shrink-0"
+          style={{
+            background:     "linear-gradient(180deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.97) 45%)",
+            backdropFilter: "blur(20px)",
+            borderTop:      "1px solid rgba(255,255,255,0.6)",
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: closing || showTransition ? 0 : 1 }}
+          transition={closing ? { duration: 0.2 } : { duration: 0.5, delay: showTransition ? 0 : 0.6 }}
+        >
+          <div className="flex items-center gap-3 max-w-sm mx-auto">
+            {onPTTStart && (
+              <motion.button
+                className="flex items-center justify-center rounded-full flex-shrink-0 ptt-button"
+                style={{
+                  width:      56,
+                  height:     56,
+                  background: isPTTActive
+                    ? "linear-gradient(135deg, rgba(37,99,235,0.25) 0%, rgba(29,78,216,0.15) 100%)"
+                    : "linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.1) 100%)",
+                  border: isPTTActive
+                    ? "1px solid rgba(29,78,216,0.3)"
+                    : "1px solid rgba(59,130,246,0.2)",
+                }}
+                animate={isPTTActive ? { scale: [0.93, 0.96, 0.93] } : { scale: 1 }}
+                transition={isPTTActive ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" } : {}}
+                onMouseDown={onPTTStart}
+                onMouseUp={onPTTRelease}
+                onMouseLeave={isPTTActive ? onPTTRelease : undefined}
+                onTouchStart={onPTTStart}
+                onTouchEnd={onPTTRelease}
+                onTouchCancel={onPTTRelease}
+              >
+                <Mic size={24} style={{ color: isPTTActive ? "rgba(29,78,216,0.9)" : "rgba(59,130,246,0.8)" }} />
+              </motion.button>
+            )}
+
+            <motion.button
+              className="flex-1 flex items-center justify-center rounded-2xl py-3.5 px-4"
+              style={{
+                background: "linear-gradient(135deg, rgba(59,130,246,0.9) 0%, rgba(37,99,235,0.9) 100%)",
+                boxShadow:  "0 4px 16px rgba(59,130,246,0.3)",
+              }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleClose}
+              aria-disabled={closing}
+            >
+              <span className="text-sm font-medium text-white">Verstanden – zurück zur Frage</span>
+            </motion.button>
+          </div>
+
+          {onPTTStart && (
+            <p
+              className="text-center text-xs mt-3"
+              style={{ color: "rgba(100,116,139,0.7)" }}
+            >
+              {isPTTActive
+                ? "Ich höre zu – loslassen zum Absenden"
+                : "Mikrofon gedrückt halten, um eine Frage zum Text zu stellen"}
+            </p>
+          )}
+        </motion.div>
+      )}
+
+      {/* Bottom gradient fade — omitted in confirm mode, where the action bar's own
+          background provides the visual stop for the scrolling text. */}
+      {!showConfirm && (
+        <div
+          className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to top, rgba(249,250,251,1) 0%, transparent 100%)",
+          }}
+        />
+      )}
     </motion.div>
   );
 }
