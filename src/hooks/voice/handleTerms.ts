@@ -58,59 +58,120 @@ export async function handleMoveToTerms1(ctx: VoiceContext): Promise<void> {
   send(terms1Create);
 }
 
-/** Customer tapped "Ich bestätige" on the 4money (terms1) document */
+/** Customer tapped "Ich bestätige" on the 4money (terms1) document.
+ *
+ *  Confirm is reachable at ANY point, including one sentence into the narration. The shell calls
+ *  stopAudio() first, which handles the local half (buffered audio dropped, activeResponseIdRef
+ *  nulled so late deltas are rejected) — everything below handles the server half, mirroring
+ *  handleMoveToTerms1. See private-documents/after-demo/TERMS_EARLY_CONFIRM_FIX_PLAN.md. */
 export async function handleConfirmTerms1(ctx: VoiceContext): Promise<void> {
-  const { sessionId, termsSubStepRef, langRef, setTermsSubStep, saveVoiceState, send } = ctx;
+  const {
+    sessionId, termsSubStepRef, langRef, serverResponseActiveRef, awaitingResponseCreatedRef,
+    pendingResponseAfterCancelRef, setTermsSubStep, saveVoiceState, send,
+  } = ctx;
+  // Guard + flip synchronously, before any await — a double-tap must not run this twice, and the
+  // checks below have to read the response state as it is NOW, not after a network round trip.
+  if (termsSubStepRef.current !== 'terms1') return;
+  termsSubStepRef.current = 'terms2';
+  setTermsSubStep('terms2');
 
-  await fetch("/api/phase", {
+  // Deliberately NOT awaited: nothing below depends on it, and awaiting it made the collision
+  // check below a coin flip on however long the round trip happened to take.
+  fetch("/api/phase", {
     method:  "POST",
     headers: { "Content-Type": "application/json" },
     body:    JSON.stringify({ sessionId, phase: "TERMS_FROOTS" }),
-  });
-  termsSubStepRef.current = 'terms2';
-  setTermsSubStep('terms2');
+  }).catch(() => {});
   saveVoiceState(0).catch(() => {});
-  send({ type: "response.create", response: { instructions: TERMS2_EXPLAIN_INSTRUCTIONS(langRef.current) } });
+
+  // stopAudio() cut the narration mid-sentence, so a half-spoken description of the FIRST document
+  // is the last assistant turn. Without this the model finishes or repeats it on the second
+  // document's screen, even though the instructions below name the second document — the same
+  // behaviour the intro skip hit. Harmless when the narration had already finished cleanly.
+  const interruptedMarker = {
+    type: "conversation.item.create",
+    item: { type: "message", role: "user", content: [{ type: "input_text",
+      text: '[SYSTEM: The customer tapped confirm on the FIRST document, possibly while you were still describing it. Do NOT continue or repeat that description. Speak ONLY about the second document now.]',
+    }] },
+  };
+  const terms2Create = { type: "response.create", response: { instructions: TERMS2_EXPLAIN_INSTRUCTIONS(langRef.current) } };
+
+  // response.cancel is asynchronous — serverResponseActiveRef only clears on response.done. Sending
+  // the create now would collide ("conversation_already_has_active_response") and be dropped,
+  // leaving the second document narrated by nobody. Park it; wsMessageHandler cancels a late-born
+  // response on response.created and fires the parked array, in order, on response.done.
+  if (serverResponseActiveRef.current || awaitingResponseCreatedRef.current) {
+    pendingResponseAfterCancelRef.current = [interruptedMarker, terms2Create];
+    return;
+  }
+  send(interruptedMarker);
+  send(terms2Create);
 }
 
-/** Customer tapped "Ich bestätige" on the froots (terms2) document — transitions to Phase 1 */
+/** Customer tapped "Ich bestätige" on the froots (terms2) document — transitions to Phase 1.
+ *
+ *  Same early-confirm handling as handleConfirmTerms1 above — it is literally the same button (the
+ *  shell picks the handler off termsSubStep), and the payoff for getting it wrong here is worse: a
+ *  dropped create means Phase 1 never starts speaking. */
 export async function handleConfirmTerms2(ctx: VoiceContext): Promise<void> {
-  const { sessionId, voicePhaseRef, termsSubStepRef, fastModeRef, langRef, setTermsSubStep, setVoicePhase, setFastModeIntroActive, saveVoiceState, send } = ctx;
-
-  await fetch("/api/phase", {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ sessionId, phase: "QUESTIONS1" }),
-  });
+  const {
+    sessionId, voicePhaseRef, termsSubStepRef, fastModeRef, langRef,
+    serverResponseActiveRef, awaitingResponseCreatedRef, pendingResponseAfterCancelRef,
+    setTermsSubStep, setVoicePhase, setFastModeIntroActive, saveVoiceState, send,
+  } = ctx;
+  if (termsSubStepRef.current !== 'terms2') return;
   voicePhaseRef.current   = 1;
   termsSubStepRef.current = null;
   setTermsSubStep(null);
   setVoicePhase(1);
+
+  fetch("/api/phase", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ sessionId, phase: "QUESTIONS1" }),
+  }).catch(() => {});
   // Phase 1 is push-to-talk only — disable VAD explicitly rather than inheriting whatever state
   // Phase 0's terms screens happened to leave it in. See
   // private-documents/after-demo/PHASE_1_PTT_PLAN.md.
+  // A session.update is not a response — safe to send immediately either way.
   send({ type: "session.update", session: { type: "realtime", audio: { input: { turn_detection: null } } } });
   saveVoiceState(0).catch(() => {});
-  send({
+
+  // Same cut-off-turn problem as terms1: without this the model carries on describing the SECOND
+  // document instead of opening Phase 1.
+  const interruptedMarker = {
+    type: "conversation.item.create",
+    item: { type: "message", role: "user", content: [{ type: "input_text",
+      text: '[SYSTEM: The customer tapped confirm on the second document, possibly while you were still describing it. Do NOT continue or repeat that description.]',
+    }] },
+  };
+  const phase1Start = {
     type: "conversation.item.create",
     item: {
       type:    "message",
       role:    "user",
       content: [{ type: "input_text", text: "[SYSTEM: Terms confirmed. Starting Phase 1 — risk profile questions. Begin with the first topic.]" }],
     },
-  });
+  };
   // Fast Mode: unlike every other Fast-Mode-skipped narration point, this ONE transition still
   // speaks — a one-time heads-up so the customer isn't left wondering why the AI suddenly goes
   // quiet. fastModeIntroActive makes the first question's card wait for this speech to finish
   // and use the full grow animation (instead of the usual instant snap) — see
   // VoiceSessionShell.tsx's auto-open effect. See
   // private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md and PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
-  if (fastModeRef.current) {
-    setFastModeIntroActive(true);
-    send({ type: "response.create", response: { instructions: FAST_MODE_INTRO_INSTRUCTIONS(langRef.current) } });
+  if (fastModeRef.current) setFastModeIntroActive(true);
+  const phase1Create = fastModeRef.current
+    ? { type: "response.create", response: { instructions: FAST_MODE_INTRO_INSTRUCTIONS(langRef.current) } }
+    : { type: "response.create" };
+
+  // Park as one ordered unit if the terms2 narration is still alive — see handleConfirmTerms1.
+  if (serverResponseActiveRef.current || awaitingResponseCreatedRef.current) {
+    pendingResponseAfterCancelRef.current = [interruptedMarker, phase1Start, phase1Create];
     return;
   }
-  send({ type: "response.create" });
+  send(interruptedMarker);
+  send(phase1Start);
+  send(phase1Create);
 }
 
 /** Customer tapped "Verstanden" on the sustainability disclosure — dismisses modal and advances. */
