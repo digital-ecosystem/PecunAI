@@ -448,10 +448,18 @@ export function buildPhase4PresentationContext(
 
   const gebuehrenVolume  = oneTime > 0 ? oneTime : 10000;
   const gebuehrenMonthly = monthly > 0 ? monthly : 0;
-  const { rows, jahr1, jahr2, jahr10, durchschnitt } = computeGebuehren(gebuehrenVolume, gebuehrenMonthly);
+  const {
+    rows, jahr1, jahr2, jahr10, durchschnitt,
+    pctSum, fixedEur, effPct1, effPct2, effPct10, effPctDurchschnitt,
+  } = computeGebuehren(gebuehrenVolume, gebuehrenMonthly);
 
+  const pct = (v: number) => `${v.toFixed(2).replace(".", ",")} %`;
+
+  // Each fee's "Wofür" is the plain-German purpose the screen shows in its ⓘ tooltip. Without it
+  // a "warum zahle ich das?" question reaches a model holding nothing but numbers — the cause of
+  // the odd answers the client reported. See PHASE_4_COST_ANSWER_FIX_PLAN.md.
   const feeLines = rows.map(r =>
-    `- ${r.label}${r.pct !== null ? ` (${r.pct.toFixed(2)}%)` : ""}: Jahr 1 ${formatEuro(r.eur1)}, Jahr 2 ${formatEuro(r.eur2)}, Jahr 10 ${formatEuro(r.eur10)}, Durchschnitt ${formatEuro(r.avg)}`
+    `- ${r.label} — ${r.pct !== null ? `${pct(r.pct)} p.a.` : "fixe Gebühr"}: Jahr 1 ${formatEuro(r.eur1)}, Jahr 2 ${formatEuro(r.eur2)}, Jahr 10 ${formatEuro(r.eur10)}, Durchschnitt ${formatEuro(r.avg)}\n  Wofür: ${r.description}`
   ).join("\n");
 
   return [
@@ -460,13 +468,23 @@ export function buildPhase4PresentationContext(
     Number.isFinite(durationYears) && durationYears > 0 ? `Anlagehorizont: ${durationYears} Jahre` : null,
     `Einmalige Einzahlung: ${formatEuro(oneTime)}`,
     `Monatliche Zahlung: ${formatEuro(monthly)}`,
-    `Einmalige Kosten: Kosten Einmalerlag (5%): ${formatEuro(oneTime * 0.05)}; Sparplan Set-up Fee: ${formatEuro(monthly * 3)}`,
+    `Einmalige Kosten — Vermittlungskosten bzw. Eröffnungsgebühr (4money), einmalig beim Start und NICHT jährlich: Kosten Einmalerlag (5 % der Einmalzahlung): ${formatEuro(oneTime * 0.05)}; Sparplan Set-up Fee (entspricht drei Monatsraten): ${formatEuro(monthly * 3)}`,
     `Laufende Kosten p.a.${oneTime > 0 ? "" : " (berechnet auf Basis eines Beispielvolumens von 10.000 €)"}:`,
     feeLines,
-    `Kosten laufend gesamt: Jahr 1 ${formatEuro(jahr1)}, Jahr 2 ${formatEuro(jahr2)}, Jahr 10 ${formatEuro(jahr10)}, Durchschnitt ${formatEuro(durchschnitt)}`,
+    `Laufende Kosten gesamt in PROZENT — DIES IST DIE ANTWORT AUF FRAGEN NACH DEN LAUFENDEN KOSTEN: effektiv ${pct(effPctDurchschnitt)} pro Jahr im Durchschnitt (Jahr 1 ${pct(effPct1)}, Jahr 2 ${pct(effPct2)}, Jahr 10 ${pct(effPct10)}). Diese Prozentsätze beziehen sich auf das jeweilige Anlagevolumen und enthalten bereits alle Gebühren.`,
+    `Zur Herleitung (nur nennen, wenn der Kunde nach der Zusammensetzung fragt): ${pct(pctSum)} p.a. prozentuale Gebühren zuzüglich ${formatEuro(fixedEur)} p.a. fixe Gebühren. Der effektive Prozentsatz liegt darüber, weil die fixen Gebühren und die Mindestgebühr von 24 € bei kleineren Anlagevolumina stärker ins Gewicht fallen.`,
+    `Kosten laufend gesamt in Euro (nur auf ausdrückliche Nachfrage nach einem Euro-Betrag nennen): Jahr 1 ${formatEuro(jahr1)}, Jahr 2 ${formatEuro(jahr2)}, Jahr 10 ${formatEuro(jahr10)}, Durchschnitt ${formatEuro(durchschnitt)}`,
     product ? `Empfohlenes Produkt: ${product.fullName}, SRI ${product.sri} von 7, Anlagezeitraum ${product.from}–${product.to} Jahre` : null,
   ].filter(Boolean).join("\n");
 }
+
+// Appended to every Phase 4 PTT answer instruction. Both rules are client feedback from
+// from-client/3rd-feedback.txt — see PHASE_4_COST_ANSWER_FIX_PLAN.md.
+export const PHASE4_COST_ANSWER_RULES = `
+REGELN FÜR ANTWORTEN ZU KOSTEN:
+- Fragen nach den laufenden bzw. jährlichen Kosten beantworten Sie IMMER in Prozent pro Jahr, nicht in Euro, und zwar mit dem EFFEKTIVEN Prozentsatz aus den Daten oben — nicht mit der Summe der einzelnen Gebührensätze, die die fixen Gebühren und die Mindestgebühr nicht enthält. Einen Euro-Betrag nennen Sie nur dann, wenn der Kunde ausdrücklich nach einem Betrag in Euro fragt.
+- Fragen nach dem Grund oder Zweck einer Gebühr ("Warum zahle ich das?", "Wofür ist das?") beantworten Sie mit der "Wofür"-Beschreibung der betreffenden Gebühr — erklären Sie die Leistung, die dahintersteht. Zählen Sie dabei keine Zahlen auf, außer der Kunde fragt danach.
+- Einmalige Kosten und laufende Kosten sind zweierlei. Vermischen Sie sie nicht und antworten Sie nur zu dem, wonach gefragt wurde.`;
 
 // ── Helpers ───────────────────────────────────────────────────────
 

@@ -97,11 +97,31 @@ export function computeGebuehren(oneTimeInvestment: number, monthlyInvestment: n
 
   const yearlyTotals = volumes.map(vol => GEBUEHREN_DATA.reduce((sum, row) => sum + getRowEur(row, vol), 0));
 
+  // ── Percentage view of the same numbers ──────────────────────────────────
+  // The table's "%" column only covers individual percentage-based rows; its totals row shows "—"
+  // because no total percentage existed. Phase 4's AI must answer recurring-cost questions in %
+  // first (client feedback 2026-07-25, see PHASE_4_COST_ANSWER_FIX_PLAN.md), so the totals are
+  // derived here alongside the euro maths rather than in the prompt — one source for both.
+  //
+  // pctSum alone would understate the real cost: the 0.14% row is clamped to €24–€360 and the
+  // Verrechnungskonto fee is flat, so on a small portfolio the effective percentage sits well
+  // above the sum of the rates. effPct* divides the actual euro total by that year's average
+  // volume and is the honest figure to quote.
+  const pctSum   = GEBUEHREN_DATA.reduce((sum, row) => sum + ("fixed" in row && row.fixed ? 0 : "pct" in row ? row.pct : 0), 0);
+  const fixedEur = GEBUEHREN_DATA.reduce((sum, row) => sum + ("fixed" in row && row.fixed ? row.fixed : 0), 0);
+  const effPct   = yearlyTotals.map((total, i) => (volumes[i] > 0 ? (total / volumes[i]) * 100 : 0));
+
   return {
     rows,
     jahr1:        yearlyTotals[0],
     jahr2:        yearlyTotals[1],
     jahr10:       yearlyTotals[9],
     durchschnitt: yearlyTotals.reduce((a, b) => a + b, 0) / 10,
+    pctSum,
+    fixedEur,
+    effPct1:            effPct[0],
+    effPct2:            effPct[1],
+    effPct10:           effPct[9],
+    effPctDurchschnitt: effPct.reduce((a, b) => a + b, 0) / 10,
   };
 }

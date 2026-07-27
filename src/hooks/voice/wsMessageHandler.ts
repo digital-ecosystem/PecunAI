@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { ChatMessage } from "./types";
-import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, ADVISOR_PERSONA, buildPhase4PresentationContext, GERMAN_SPEECH_DIRECTIVE, isAskableNow } from "./prompts";
+import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, ADVISOR_PERSONA, buildPhase4PresentationContext, PHASE4_COST_ANSWER_RULES, GERMAN_SPEECH_DIRECTIVE, isAskableNow } from "./prompts";
 import { TOOLS } from "./tools";
 import { base64ToPCM16AudioBuffer } from "./audio";
 import type { VoiceContext } from "./voiceContext";
@@ -615,12 +615,12 @@ export async function handleWsMessage(
         searchPromise.then(results => {
           if (!results || results.trim() === "" || results === "No relevant content found.") {
             if (phase4Context) {
-              send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Suche in ${docLabel} hat für diese Frage nichts geliefert. Ihnen liegen aber die folgenden konkreten Daten der Veranlagung dieses Kunden vor:\n\n${phase4Context}\n\nWenn die Frage des Kunden damit beantwortet werden kann, beantworten Sie sie in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Daten. Andernfalls teilen Sie dem Kunden freundlich mit, dass diese spezifische Information hier nicht verfügbar ist. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
+              send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Suche in ${docLabel} hat für diese Frage nichts geliefert. Ihnen liegen aber die folgenden konkreten Daten der Veranlagung dieses Kunden vor:\n\n${phase4Context}\n${PHASE4_COST_ANSWER_RULES}\n\nWenn die Frage des Kunden damit beantwortet werden kann, beantworten Sie sie in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Daten. Andernfalls teilen Sie dem Kunden freundlich mit, dass diese spezifische Information hier nicht verfügbar ist. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
             } else {
               send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Suche in ${docLabel} hat für diese Frage keine passende Antwort gefunden. Teilen Sie dem Kunden freundlich mit, dass diese spezifische Information nicht im Dokument verfügbar ist, und laden Sie ihn ein, eine andere Frage zu stellen.` } });
             }
           } else if (phase4Context) {
-            send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Dokumentensuche hat folgende allgemeine Informationen geliefert:\n\n${results}\n\nZusätzlich liegen Ihnen die folgenden konkreten Daten der Veranlagung dieses Kunden vor:\n\n${phase4Context}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser beiden Quellen. Bei Fragen zu den konkreten Zahlen oder Details der Veranlagung des Kunden nutzen Sie dessen Daten. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
+            send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Dokumentensuche hat folgende allgemeine Informationen geliefert:\n\n${results}\n\nZusätzlich liegen Ihnen die folgenden konkreten Daten der Veranlagung dieses Kunden vor:\n\n${phase4Context}\n${PHASE4_COST_ANSWER_RULES}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser beiden Quellen. Bei Fragen zu den konkreten Zahlen oder Details der Veranlagung des Kunden nutzen Sie dessen Daten. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
           } else {
             send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Dokumentensuche hat folgende Informationen geliefert:\n\n${results}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
           }
