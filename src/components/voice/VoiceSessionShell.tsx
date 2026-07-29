@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import { Menu, User, Mic, VolumeX, Hand, Check, ChevronRight } from "lucide-react";
+import { Menu, Mic, VolumeX, Hand, Check, ChevronRight } from "lucide-react";
 import VoiceSphere from "./VoiceSphere";
 import VoiceCarousel, { CarouselQuestion } from "./VoiceCarousel";
 import { ExpandedQuestionCard, computeExpandedRect, computeInPlaceRect, computeSustainabilityRect } from "./ExpandedQuestionCard";
@@ -12,6 +12,7 @@ import { PhaseOneNeuralModel } from "./PhaseOneNeuralModel";
 import { SphereToFrameTransition } from "./SphereToFrameTransition";
 import type { FrameRect } from "./frameMath";
 import VoiceExplainOverlay from "./VoiceExplainOverlay";
+import VoiceProfileMenu from "./VoiceProfileMenu";
 import VoiceChatModal from "./VoiceChatModal";
 import ControlBar from "./ControlBar";
 import VoiceProductPhase from "./VoiceProductPhase";
@@ -1380,20 +1381,7 @@ export default function VoiceSessionShell({
                 <span className="text-sm font-medium text-white">Fertig</span>
               </motion.button>
             ) : (
-              <motion.button
-                className="flex items-center justify-center rounded-full"
-                style={{
-                  width:          44,
-                  height:         44,
-                  background:     "rgba(255,255,255,0.6)",
-                  backdropFilter: "blur(10px)",
-                  border:         "1px solid rgba(255,255,255,0.5)",
-                  boxShadow:      "0 2px 8px rgba(0,0,0,0.04)",
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <User size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
-              </motion.button>
+              <VoiceProfileMenu />
             )}
           </div>
         </div>

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Menu, User, Mic, ArrowLeft } from "lucide-react";
+import { Menu, Mic, ArrowLeft } from "lucide-react";
+import VoiceProfileMenu from "./VoiceProfileMenu";
 import { useRouter } from "next/navigation";
 import * as Popover from "@radix-ui/react-popover";
 import { HelpCircle } from "lucide-react";
@@ -484,13 +485,7 @@ export default function VoiceInvestmentForm({
             >
               <Menu size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
             </motion.button>
-            <motion.button
-              className="flex items-center justify-center rounded-full"
-              style={{ width: 44, height: 44, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.5)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <User size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
-            </motion.button>
+            <VoiceProfileMenu />
           </div>
         </div>
       </div>
