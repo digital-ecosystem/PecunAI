@@ -574,6 +574,19 @@ export function useVoiceSession({
     });
   }, [sessionId]);
 
+  /** Records a Phase 1 compliance stop so the session can never be resumed. Fire-and-forget: the
+   *  goodbye is already playing and the dashboard redirect is parked, and a failed write must not
+   *  stall either — a session left resumable is a bug, but a hung goodbye is worse. The reason is
+   *  stored for the advisor's follow-up, never shown to the customer.
+   *  See private-documents/after-demo/SESSION_BLOCKED_STEPDATA_PLAN.md. */
+  const blockSession = useCallback((reason: string) => {
+    fetch(`/api/qa-session/${sessionId}/block`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ reason }),
+    }).catch(err => console.warn("[voice] blockSession failed:", err));
+  }, [sessionId]);
+
   const saveVoiceState = useCallback(async (index: number) => {
     try {
       const res = await fetch(`/api/qa-session/${sessionId}/voice-state`, {
@@ -1128,7 +1141,7 @@ export function useVoiceSession({
     sessionId, termsVectorId, router,
     // callbacks
     send, dispatch, setCard, appendChatMessage, appendPhase6ChatMessage, persistTranscript,
-    saveAnswer, saveVoiceState, advancePhase,
+    saveAnswer, saveVoiceState, blockSession, advancePhase,
     scheduleAIDone, scheduleChunk, handleFunctionCall,
     disconnectVoice, reconnectVoice, advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign,
     backToPersonalInfo, backToInvestment, backToContracts, suppressNavBackRef,

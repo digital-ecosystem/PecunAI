@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import { Agent, Session, SessionStatus, User } from '@/types';
+import SessionBlockedModal from '@/components/customer/SessionBlockedModal';
 import { Ban, CheckCircle, Clock, FileText, Hourglass, LogOut } from 'lucide-react';
 import {
     Drawer,
@@ -20,6 +21,9 @@ const Dashboard = () => {
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [user, setUser] = useState<User | null>(null);
     const [sessions, setSessions] = useState<Session[]>([]);
+    // Set when the customer taps a session ended by a Phase 1 compliance blocker — all three
+    // navigation paths below open this instead of routing into an unresumable session.
+    const [showBlockedModal, setShowBlockedModal] = useState(false);
     const router = useRouter();
     const [loading, setLoading] = useState<boolean>(false);
     const [isStartDrawerOpen, setIsStartDrawerOpen] = useState(false);
@@ -404,7 +408,10 @@ const Dashboard = () => {
                                                         Sie haben bereits eine offene Beratung. Bitte zuerst abschließen.
                                                     </p>
                                                     <button
-                                                        onClick={() => router.push('/customer/voice-session/' + openSession.id)}
+                                                        onClick={() => {
+                                                            if (openSession.isBlocked) { setShowBlockedModal(true); return; }
+                                                            router.push('/customer/voice-session/' + openSession.id);
+                                                        }}
                                                         className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                                                     >
                                                         Fortsetzen
@@ -661,6 +668,7 @@ const Dashboard = () => {
                                                     <tbody className="bg-white divide-y divide-gray-200">
                                                         {sessions.map((session) => (
                                                             <tr key={session.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
+                                                                if (session.isBlocked) { setShowBlockedModal(true); return; }
                                                                 if (session.status === SessionStatus.DRAFT) {
                                                                     router.push('/customer/voice-session/' + session.id);
                                                                 }
@@ -841,7 +849,12 @@ const Dashboard = () => {
                             {/* Floating Action Button */}
                             <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
                                 <button
-                                    onClick={openSession?.id ? () => router.push('/customer/voice-session/' + openSession.id) : handleStartNow}
+                                    onClick={openSession?.id
+                                        ? () => {
+                                            if (openSession.isBlocked) { setShowBlockedModal(true); return; }
+                                            router.push('/customer/voice-session/' + openSession.id);
+                                        }
+                                        : handleStartNow}
                                     className={
                                         'px-4 py-3 sm:px-6 sm:py-3 rounded-full shadow-lg transition-all duration-200 text-sm sm:text-base font-medium ' +
                                         (!openSession?.id
@@ -864,6 +877,7 @@ const Dashboard = () => {
                 )
             }
 
+            {showBlockedModal && <SessionBlockedModal onClose={() => setShowBlockedModal(false)} />}
         </>
     );
 };

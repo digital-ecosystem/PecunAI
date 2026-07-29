@@ -65,13 +65,28 @@ export async function GET(request: Request) {
     const totalPages = Math.ceil(totalCount / limit);
 
     // Fetch paginated sessions
-    const sessions = await prisma.qASession.findMany({
+    const rawSessions = await prisma.qASession.findMany({
       where,
-      include: { user: true, personalInfo: true, agent: { select: { id: true, firstName: true, lastName: true, agentCode: true } } },
+      include: {
+        user: true,
+        personalInfo: true,
+        agent: { select: { id: true, firstName: true, lastName: true, agentCode: true } },
+        // Only needed to derive isBlocked below — stripped before responding.
+        workflowState: { select: { stepData: true } },
+      },
       orderBy: { createdAt: "desc" },
       skip,
       take: limit
     });
+
+    // Flatten stepData.sessionBlocked to a plain boolean and drop the blob. Shipping raw stepData
+    // would send the voice resume state and Phase 6 chat transcripts to the browser for up to 1000
+    // sessions per request — far more than the client needs to decide whether to open the
+    // "session blocked" modal. See private-documents/after-demo/SESSION_BLOCKED_STEPDATA_PLAN.md.
+    const sessions = rawSessions.map(({ workflowState, ...session }) => ({
+      ...session,
+      isBlocked: !!(workflowState?.stepData as Record<string, unknown> | null)?.sessionBlocked,
+    }));
 
     // console.log("🚀 ~ GET ~ sessions:", sessions)
 

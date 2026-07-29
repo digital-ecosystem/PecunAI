@@ -17,7 +17,7 @@ export async function handleFunctionCall(
     sustainabilityConfirmedRef, pendingVoiceTranscriptRef, applyPendingTranscriptRef,
     skipInProgressRef, prevInProgressRef, assetKnowledgeShownRef, pendingPhaseTransitionRef, fastModeRef, mutedRef,
     explainAwaitConfirmRef, explainAssetOrderRef,
-    send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase,
+    send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, blockSession, advancePhase,
     advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign,
     backToPersonalInfo, backToInvestment, backToContracts, setIsRevisiting_internal, router, sessionId,
     setPendingVoiceAnswer, setExplainOverlayData, setTermsSubStep,
@@ -182,6 +182,7 @@ export async function handleFunctionCall(
 
       // ── BLOCKER: Q3 sustainability info not received → session ends ──
       if (validatingQ?.questionOrder === 3 && value === "no") {
+        blockSession("q3_sustainability_info_not_received");
         pendingVoiceTranscriptRef.current = null;
         sendResult({ success: true });
         pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
@@ -198,6 +199,7 @@ export async function handleFunctionCall(
       // "yes" (must have sustainable) or "no" (refuses all sustainable) → session ends.
       // "neutral" → continue normally.
       if (validatingQ?.questionOrder === 4 && (value === "yes" || value === "no")) {
+        blockSession("q4_sustainability_preference_unsupported");
         pendingVoiceTranscriptRef.current = null;
         sendResult({ success: true });
         pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
@@ -218,6 +220,7 @@ export async function handleFunctionCall(
         const income     = parseFloat(incomeStr ?? "0");
         const expenses   = parseFloat(value);
         if (!isNaN(income) && !isNaN(expenses) && (income - expenses) <= 150) {
+          blockSession("q7_insufficient_disposable_income");
           pendingVoiceTranscriptRef.current = null;
           sendResult({ success: true });
           pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
@@ -238,6 +241,7 @@ export async function handleFunctionCall(
       // so this can't be bypassed by advancePhase() if it happens to be the last remaining question.
       if (isAssetKnowledgeQ && value === "none") {
         const overlayEntry = ASSET_CLASS_OVERLAY[validatingQ!.questionOrder!];
+        blockSession(`q${validatingQ!.questionOrder}_asset_knowledge_insufficient`);
         pendingVoiceTranscriptRef.current = null;
         sendResult({ success: true });
         pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");

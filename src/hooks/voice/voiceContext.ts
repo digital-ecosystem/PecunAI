@@ -22,6 +22,9 @@ export interface VoiceContext {
   appendPhase6ChatMessage: (text: string, sender: "ai" | "user") => void;
   saveAnswer:         (questionId: string, value: string) => Promise<void>;
   saveVoiceState:     (questionIndex: number) => Promise<void>;
+  /** Marks the session blocked in stepData (unresumable, advisor follow-up owed) — called by
+   *  the Phase 1 compliance blockers. See SESSION_BLOCKED_STEPDATA_PLAN.md. */
+  blockSession:       (reason: string) => void;
   advancePhase:       () => Promise<void>;
   scheduleAIDone:     () => void;
   scheduleChunk:      (base64: string) => void;

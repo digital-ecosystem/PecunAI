@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import VoiceSessionShell from "@/components/voice/VoiceSessionShell";
+import SessionBlockedModal from "@/components/customer/SessionBlockedModal";
 import VoiceDisclaimerFooter from "@/components/voice/VoiceDisclaimerFooter";
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 
@@ -15,6 +16,10 @@ export default function VoiceSessionPage() {
   type InitialTermsPhase = 'terms2' | 'skip' | 'sustainabilityTerms' | null;
 
   const [ready,                setReady]                = useState(false);
+  // Phase 1 compliance stop — unresumable. Gated here as well as on the dashboard so a
+  // bookmarked or pasted session URL can't walk back in. See
+  // private-documents/after-demo/SESSION_BLOCKED_STEPDATA_PLAN.md.
+  const [isBlocked,            setIsBlocked]            = useState(false);
   const [questions,            setQuestions]            = useState<CarouselQuestion[]>([]);
   const [initialQuestionIndex, setInitialQuestionIndex] = useState(0);
   const [initialTermsPhase,    setInitialTermsPhase]    = useState<InitialTermsPhase>(null);
@@ -178,6 +183,13 @@ export default function VoiceSessionPage() {
       setInitialSkippedIds(resolvedSkippedIds);
       setInitialSavedAnswers(dbAnswers);
 
+      // Blocked sessions never resume — flag it and let the render gate below take over.
+      if (vsData?.isBlocked) {
+        setIsBlocked(true);
+        setReady(true);
+        return;
+      }
+
       // ── Derive termsPhase and voicePhase from voice-state ───────────────────────
       const dbVoicePhase: number | null = vsData?.voicePhase ?? null;
       const currentPhase = vsData?.currentPhase as string | null | undefined;
@@ -227,6 +239,20 @@ export default function VoiceSessionPage() {
         <div className="flex-1 min-h-0 flex items-center justify-center"
           style={{ background: "linear-gradient(155deg, #dce8fb 0%, #edf4ff 28%, #f6faff 55%, #fdfeff 100%)" }}>
           <div className="w-8 h-8 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
+        </div>
+        <div ref={footerRef}>
+          <VoiceDisclaimerFooter />
+        </div>
+      </div>
+    );
+  }
+
+  if (isBlocked) {
+    return (
+      <div className="h-[100dvh] flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 flex items-center justify-center"
+          style={{ background: "linear-gradient(155deg, #dce8fb 0%, #edf4ff 28%, #f6faff 55%, #fdfeff 100%)" }}>
+          <SessionBlockedModal onClose={() => router.push("/customer/dashboard")} />
         </div>
         <div ref={footerRef}>
           <VoiceDisclaimerFooter />

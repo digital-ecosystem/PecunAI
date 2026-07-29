@@ -15,7 +15,7 @@ export async function handleAnswerConfirmed(
     assetKnowledgeShownRef, pendingPhaseTransitionRef, fastModeRef, mutedRef,
     explainAwaitConfirmRef, explainAssetOrderRef,
     audioEndTimer, stateRef, langRef,
-    dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase, send, router,
+    dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, blockSession, advancePhase, send, router,
     setSavedAnswers, setTermsSubStep, setExplainOverlayData,
   } = ctx;
 
@@ -121,6 +121,7 @@ export async function handleAnswerConfirmed(
 
   // ── BLOCKER: Q3 sustainability info not received → session ends ──
   if (question.questionOrder === 3 && value === "no") {
+    blockSession("q3_sustainability_info_not_received");
     pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
     send({
       type: "response.create",
@@ -133,6 +134,7 @@ export async function handleAnswerConfirmed(
 
   // ── BLOCKER: Q4 sustainability preference ────────────────────────
   if (question.questionOrder === 4 && (value === "yes" || value === "no")) {
+    blockSession("q4_sustainability_preference_unsupported");
     pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
     send({
       type: "response.create",
@@ -150,6 +152,7 @@ export async function handleAnswerConfirmed(
     const income    = parseFloat(incomeStr ?? "0");
     const expenses  = parseFloat(value);
     if (!isNaN(income) && !isNaN(expenses) && (income - expenses) <= 150) {
+      blockSession("q7_insufficient_disposable_income");
       pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
       send({
         type: "response.create",
@@ -168,6 +171,7 @@ export async function handleAnswerConfirmed(
   // bypassed by advancePhase() if it happens to be the last remaining question.
   if (isAssetKnowledgeQ && value === "none") {
     const overlayEntry = ASSET_CLASS_OVERLAY[question.questionOrder!];
+    blockSession(`q${question.questionOrder}_asset_knowledge_insufficient`);
     pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
     send({
       type: "response.create",
