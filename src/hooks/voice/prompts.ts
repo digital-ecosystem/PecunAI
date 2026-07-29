@@ -423,6 +423,41 @@ TEXT:
 ${entry.data.bodyText}`;
 };
 
+// ── Phase 1 compliance blockers — the closing message ─────────────
+// Spoken when an answer means the consultation cannot continue (Q3 sustainability information, Q4
+// sustainability preference, Q7 disposable income, Q12/13/14 asset knowledge on the second "none").
+//
+// These were German-only inline strings in both answer handlers, with only ADVISOR_PERSONA switched
+// by language — so an English session got "Speak English only" followed by a German task
+// description, and the model fell back on the conversation history instead ("please answer the
+// question"). Both languages are spelled out now, and the English is a faithful translation: this
+// is regulatory copy, not marketing.
+// See private-documents/after-demo/BLOCKER_GOODBYE_FIX_PLAN.md.
+
+/** Sent as a conversation item immediately BEFORE each blocker's response.create. Required, not
+ *  belt-and-braces: per-response instructions override the session prompt, but by Q3 the history is
+ *  a dozen rounds of "ask the next question" and can outweigh them — the Phase 3 "bug 4" postmortem
+ *  (PHASE_3_PERSONAL_INFO_PLAN.md) is the same failure. confirmContracts/confirmReadyToSign already
+ *  do this for their transitions. */
+export const BLOCKER_SYSTEM_MSG =
+  "[SYSTEM: Phase 1 is now OVER. The customer's last answer means this consultation cannot continue. Do NOT ask any further questions, do NOT call any tools, and do NOT invite the customer to answer anything. Speak ONLY the closing explanation given in your instructions, then stop.]";
+
+export const BLOCKER_Q3_INSTRUCTIONS = (lang: "de" | "en" = "de") => lang === "de"
+  ? `${ADVISOR_PERSONA("de")} Der Kunde hat angegeben, die Nachhaltigkeitsinformationen nicht erhalten zu haben. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist es erforderlich, dass Sie die Nachhaltigkeitsinformationen zur Kenntnis genommen haben, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`
+  : `${ADVISOR_PERSONA("en")} The customer has stated that they did not receive the sustainability information. Explain in 2–3 sentences, warmly but clearly: regulatory requirements mean the sustainability information must have been acknowledged before the consultation can continue. Recommend that they get in touch with a personal advisor. Say a warm goodbye.`;
+
+export const BLOCKER_Q4_INSTRUCTIONS = (lang: "de" | "en" = "de") => lang === "de"
+  ? `${ADVISOR_PERSONA("de")} Der Kunde hat eine Nachhaltigkeitspräferenz angegeben, die mit dem aktuellen Produktangebot nicht abgedeckt werden kann. Erklären Sie in 2–3 Sätzen freundlich aber klar: Aufgrund der angegebenen Nachhaltigkeitspräferenzen ist eine persönliche Beratung erforderlich — das aktuelle Produktangebot deckt diese Präferenz nicht vollständig ab. Ein Berater wird sich in Kürze bei Ihnen melden. Verabschieden Sie sich herzlich.`
+  : `${ADVISOR_PERSONA("en")} The customer has stated a sustainability preference that the current product range cannot cover. Explain in 2–3 sentences, warmly but clearly: because of the sustainability preference they gave, a personal consultation is required — the current product range does not fully cover that preference. An advisor will be in touch with them shortly. Say a warm goodbye.`;
+
+export const BLOCKER_Q7_INSTRUCTIONS = (lang: "de" | "en" = "de") => lang === "de"
+  ? `${ADVISOR_PERSONA("de")} Das verfügbare monatliche Einkommen des Kunden beträgt nach Abzug der Ausgaben weniger als 150 Euro. Erklären Sie in 2–3 Sätzen verständnisvoll: Aufgrund der angegebenen finanziellen Verhältnisse ist eine Investition zum aktuellen Zeitpunkt leider nicht empfehlenswert — das verfügbare monatliche Budget reicht für eine sinnvolle Anlage nicht aus. Eine persönliche Beratung wird empfohlen. Verabschieden Sie sich herzlich.`
+  : `${ADVISOR_PERSONA("en")} After expenses, the customer's available monthly income is less than 150 euros. Explain in 2–3 sentences, with understanding: given the financial circumstances they described, an investment is unfortunately not advisable at this time — the available monthly budget is not sufficient for a sensible investment. A personal consultation is recommended. Say a warm goodbye.`;
+
+export const BLOCKER_ASSET_KNOWLEDGE_INSTRUCTIONS = (lang: "de" | "en" = "de", title: string) => lang === "de"
+  ? `${ADVISOR_PERSONA("de")} Der Kunde hat angegeben, "${title}" auch nach der Erklärung nicht zu verstehen. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist ein ausreichendes Verständnis dieser Anlageklasse erforderlich, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`
+  : `${ADVISOR_PERSONA("en")} The customer has stated that they still do not understand "${title}" even after the explanation. Explain in 2–3 sentences, warmly but clearly: regulatory requirements mean a sufficient understanding of this asset class is necessary before the consultation can continue. Recommend that they get in touch with a personal advisor. Say a warm goodbye.`;
+
 // ── Phase 4 PTT grounding — the customer's own investment presentation ──
 // The Phase 4 screen (VoiceInvestmentForm) derives everything it shows from
 // questions + answers + product; the shared vector store only holds GENERIC
