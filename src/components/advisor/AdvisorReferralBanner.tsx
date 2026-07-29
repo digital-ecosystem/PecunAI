@@ -30,60 +30,67 @@ export default function AdvisorReferralBanner({
   const previewLink = `${origin}/?ref=${referralCode ?? ''}${agentParam}`;
 
   return (
-    <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl p-6 mb-6 text-white">
-      <div className="flex flex-col gap-4">
-        {/* Header row */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Link2 className="w-5 h-5" />
-              Ihr Berater Link
-            </h2>
-            <p className="text-emerald-100 text-sm mt-1">
-              Teilen Sie diesen Link mit Ihren Kunden, um eine Sitzung zu verfolgen
-            </p>
-          </div>
-
-          {/* Referral code copy */}
-          <div className="flex items-center gap-2 bg-white/20 backdrop-blur rounded-lg px-4 py-2">
-            <code className="text-sm font-mono truncate max-w-xs">{referralCode}</code>
-            <button
-              onClick={onCopyCode}
-              className="p-2 bg-white/20 hover:bg-white/30 rounded transition-colors flex-shrink-0"
-            >
-              {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            </button>
-          </div>
+    <div className="mb-8 w-full rounded-2xl border border-accent-primary bg-surface-card p-4 shadow-soft sm:px-5">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text-primary">
+            <Link2 className="h-4 w-4 flex-shrink-0 text-accent-primary" strokeWidth={1.75} />
+            Ihr Berater Link
+          </h2>
+          <p className="mt-1 text-xs text-text-muted">
+            Teilen Sie diesen Link mit Ihren Kunden, um eine Sitzung zu verfolgen
+          </p>
         </div>
 
-        {/* Agent selector + link row */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Agent dropdown */}
-          {agents.length > 0 && (
-            <select
-              value={selectedAgentCode}
-              onChange={(e) => onAgentChange(e.target.value)}
-              className="rounded-lg bg-white/20 backdrop-blur border border-white/30 text-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/50 sm:w-56 [&>option]:text-gray-800"
-            >
-              <option value="">Kein Agent</option>
-              {agents.map((a) => (
-                <option key={a.id} value={a.agentCode}>
-                  {a.firstName} {a.lastName} ({a.agentCode})
-                </option>
-              ))}
-            </select>
+        {/* Referral code copy */}
+        <button
+          type="button"
+          onClick={onCopyCode}
+          aria-label="Berater-Code kopieren"
+          className="flex min-w-0 items-center gap-2 rounded-[10px] bg-surface-selected px-3 py-1.5 text-accent-primary transition-colors hover:bg-surface-raised"
+        >
+          <code className="truncate font-mono text-xs">{referralCode}</code>
+          {copiedCode ? (
+            <Check className="h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
+          ) : (
+            <Copy className="h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
           )}
+        </button>
+      </div>
 
-          {/* Link preview + copy */}
-          <div className="flex flex-1 items-center gap-2 bg-white/20 backdrop-blur rounded-lg px-4 py-2 min-w-0">
-            <code className="text-sm font-mono truncate flex-1">{previewLink}</code>
-            <button
-              onClick={onCopyLink}
-              className="p-2 bg-white/20 hover:bg-white/30 rounded transition-colors flex-shrink-0"
-            >
-              {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            </button>
-          </div>
+      {/* Agent selector + link row */}
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+        {/* Agent dropdown */}
+        {agents.length > 0 && (
+          <select
+            value={selectedAgentCode}
+            onChange={(e) => onAgentChange(e.target.value)}
+            className="rounded-[10px] border border-line-strong bg-surface-card px-3 py-2 text-text-primary focus:outline-none focus:shadow-focus-ring sm:w-56"
+          >
+            <option value="">Kein Agent</option>
+            {agents.map((a) => (
+              <option key={a.id} value={a.agentCode}>
+                {a.firstName} {a.lastName} ({a.agentCode})
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* Link preview + copy */}
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-2.5 rounded-[10px] bg-surface-selected px-3.5 py-2.5">
+          <code className="truncate font-mono text-xs text-accent-primary">{previewLink}</code>
+          <button
+            type="button"
+            onClick={onCopyLink}
+            aria-label="Berater-Link kopieren"
+            className="flex-shrink-0 text-accent-primary transition-colors hover:text-accent-primary-hov"
+          >
+            {copiedLink ? (
+              <Check className="h-4 w-4" strokeWidth={1.75} />
+            ) : (
+              <Copy className="h-4 w-4" strokeWidth={1.75} />
+            )}
+          </button>
         </div>
       </div>
     </div>

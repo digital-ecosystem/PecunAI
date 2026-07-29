@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { BarChart3, LogOut } from 'lucide-react';
 import { Agent, DashboardQuestions, Session, SessionStatus } from '@/types';
 import { useParams, useRouter } from 'next/navigation';
-import AdvisorDashboardHeader from '@/components/advisor/AdvisorDashboardHeader';
+import DashboardShell, { DashboardProfilePill } from '@/components/ui/DashboardShell';
 import AdvisorReferralBanner from '@/components/advisor/AdvisorReferralBanner';
 import DashboardStats from '@/components/advisor/DashboardStats';
 import SessionsTable from '@/components/advisor/SessionsTable';
@@ -98,36 +98,6 @@ export default function AdvisorDashboardLayout({ children }: { children: React.R
   const pendingSessions = sessions.filter((s) => s.status === 'PENDING').length;
   const rejectedSessions = sessions.filter((s) => s.status === 'REJECTED').length;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case SessionStatus.DRAFT:
-        return 'bg-gray-100 text-gray-800';
-      case SessionStatus.PENDING:
-        return 'bg-yellow-100 text-yellow-800';
-      case SessionStatus.APPROVED:
-        return 'bg-green-100 text-green-800';
-      case SessionStatus.REJECTED:
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case SessionStatus.DRAFT:
-        return 'Entwurf';
-      case SessionStatus.PENDING:
-        return 'Anfrage';
-      case SessionStatus.APPROVED:
-        return 'Genehmigt';
-      case SessionStatus.REJECTED:
-        return 'Abgelehnt';
-      default:
-        return status;
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('de-DE', {
       year: 'numeric',
@@ -151,6 +121,20 @@ export default function AdvisorDashboardLayout({ children }: { children: React.R
     navigator.clipboard.writeText(advisor.referralCode);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  // Relocated verbatim from AdvisorDashboardHeader, whose chrome is now DashboardShell.
+  // Same endpoint, same method, same redirect.
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/advisor/logout', {
+        method: 'POST',
+      });
+      await response.json();
+      router.push('/advisor/signin');
+    } catch (error) {
+      console.log('error:', error);
+    }
   };
 
   const closeDrawer = () => {
@@ -286,78 +270,128 @@ export default function AdvisorDashboardLayout({ children }: { children: React.R
 
   const isDrawerOpen = Boolean(sessionIdFromPath && selectedSession);
 
+  // Lifted verbatim from AdvisorDashboardHeader's `navigationItems`.
+  const navItems = [{ name: 'Dashboard', href: '/advisor/dashboard', icon: BarChart3 }];
+  const footerItems = [
+    { name: 'Abmelden', icon: LogOut, tone: 'danger' as const, onClick: handleLogout },
+  ];
+
+  const advisorName = advisor ? `${advisor.firstName} ${advisor.lastName}` : undefined;
+  const advisorEmail = advisor?.email;
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-      </div>
+      <DashboardShell title="Berater Dashboard" navItems={navItems} footerItems={footerItems}>
+        <div className="skeleton-pulse mb-8 h-[108px] w-full rounded-2xl bg-surface-card shadow-soft" />
+
+        <div className="mb-8 flex w-full flex-wrap items-stretch gap-3">
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5 max-sm:basis-full">
+            <SkeletonKpiCard />
+            <SkeletonKpiCard />
+          </div>
+          <div className="flex flex-1 items-center justify-center rounded-2xl bg-surface-card p-3.5 shadow-soft max-sm:order-first max-sm:basis-full">
+            <div className="skeleton-pulse h-[100px] w-[100px] rounded-full bg-surface-raised" />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5 max-sm:basis-full">
+            <SkeletonKpiCard />
+            <SkeletonKpiCard />
+          </div>
+        </div>
+
+        <div className="mb-3 text-[15px] font-semibold text-text-primary">Ihre Kunden</div>
+        <div className="flex flex-col gap-2">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="flex items-center gap-2.5 rounded-2xl bg-surface-card p-3.5 shadow-soft"
+            >
+              <div className="skeleton-pulse h-[26px] w-[26px] rounded-[9px] bg-surface-raised" />
+              <div className="skeleton-pulse h-2.5 w-[140px] rounded bg-surface-raised" />
+              <div className="flex-1" />
+              <div className="skeleton-pulse h-4 w-[60px] rounded-lg bg-surface-raised" />
+            </div>
+          ))}
+        </div>
+      </DashboardShell>
     );
   }
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50">
-        <AdvisorDashboardHeader
-          advisorName={advisor ? `${advisor.firstName} ${advisor.lastName}` : undefined}
-          advisorEmail={advisor?.email}
+      <DashboardShell
+        title="Berater Dashboard"
+        subtitle={`Willkommen zurück, ${advisorName || 'Berater'}!`}
+        navItems={navItems}
+        footerItems={footerItems}
+        headerRight={
+          <DashboardProfilePill
+            name={advisorName || ''}
+            email={advisorEmail || 'advisor@example.com'}
+            role="Berater"
+            initial={advisorName ? advisorName[0].toUpperCase() : 'A'}
+            className="max-sm:w-full"
+          />
+        }
+      >
+        <AdvisorReferralBanner
           referralCode={advisor?.referralCode}
+          copiedCode={copiedCode}
+          copiedLink={copied}
+          onCopyCode={copyReferralCode}
+          onCopyLink={copyReferralLink}
+          agents={agents}
+          selectedAgentCode={selectedAgentCode}
+          onAgentChange={setSelectedAgentCode}
         />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          <AdvisorReferralBanner
-            referralCode={advisor?.referralCode}
-            copiedCode={copiedCode}
-            copiedLink={copied}
-            onCopyCode={copyReferralCode}
-            onCopyLink={copyReferralLink}
-            agents={agents}
-            selectedAgentCode={selectedAgentCode}
-            onAgentChange={setSelectedAgentCode}
-          />
+        <DashboardStats
+          totalSessions={totalSessions}
+          approvedSessions={approvedSessions}
+          draftSessions={draftSessions}
+          pendingSessions={pendingSessions}
+          rejectedSessions={rejectedSessions}
+        />
 
-          <DashboardStats
-            totalSessions={totalSessions}
-            approvedSessions={approvedSessions}
-            draftSessions={draftSessions}
-            pendingSessions={pendingSessions}
-            rejectedSessions={rejectedSessions}
-          />
-
-          <SessionsTable
-            searchTerm={searchTerm}
-            onSearchTermChange={setSearchTerm}
-            statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
-            filteredSessions={filteredSessions}
-            totalSessions={totalSessions}
-            formatDate={formatDate}
-            getStatusColor={getStatusColor}
-            getStatusLabel={getStatusLabel}
-            onRowClick={(sessionId) => router.push(`/advisor/dashboard/${sessionId}`)}
-          />
-        </div>
-
-        <AdvisorSessionDrawer
-          isOpen={isDrawerOpen}
-          isStatusUpdating={isStatusUpdating}
-          isChatOpen={isChatOpen}
-          isChatLoading={isChatLoading}
-          selectedSession={selectedSession}
-          chatMessages={chatMessages}
-          questionAnswer={questionAnswer}
-          onCloseDrawer={closeDrawer}
-          onCloseChat={closeChatView}
-          onOpenChat={openChatView}
-          onStatusChange={handleStatusChange}
-          onResendAdvisorLink={handleResendAdvisorLink}
-          isResendingAdvisorLink={isResendingAdvisorLink}
+        <SessionsTable
+          searchTerm={searchTerm}
+          onSearchTermChange={setSearchTerm}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          filteredSessions={filteredSessions}
+          totalSessions={totalSessions}
           formatDate={formatDate}
-          getStatusColor={getStatusColor}
-          getStatusLabel={getStatusLabel}
+          onRowClick={(sessionId) => router.push(`/advisor/dashboard/${sessionId}`)}
         />
-      </div>
+      </DashboardShell>
+
+      <AdvisorSessionDrawer
+        isOpen={isDrawerOpen}
+        isStatusUpdating={isStatusUpdating}
+        isChatOpen={isChatOpen}
+        isChatLoading={isChatLoading}
+        selectedSession={selectedSession}
+        chatMessages={chatMessages}
+        questionAnswer={questionAnswer}
+        onCloseDrawer={closeDrawer}
+        onCloseChat={closeChatView}
+        onOpenChat={openChatView}
+        onStatusChange={handleStatusChange}
+        onResendAdvisorLink={handleResendAdvisorLink}
+        isResendingAdvisorLink={isResendingAdvisorLink}
+        formatDate={formatDate}
+      />
 
       <div className="hidden">{children}</div>
     </>
   );
 }
+
+const SkeletonKpiCard = () => (
+  <div className="flex flex-1 items-center gap-3 rounded-2xl bg-surface-card px-4 py-3.5 shadow-soft">
+    <div className="skeleton-pulse h-[18px] w-[18px] rounded bg-surface-raised" />
+    <div className="flex-1">
+      <div className="skeleton-pulse mb-1 h-3.5 w-[30px] rounded bg-surface-raised" />
+      <div className="skeleton-pulse h-2 w-[50px] rounded bg-surface-raised" />
+    </div>
+  </div>
+);
