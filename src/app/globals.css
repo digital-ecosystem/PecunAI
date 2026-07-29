@@ -76,11 +76,18 @@
   --color-line: rgba(175, 183, 195, 0.35);
   --color-line-strong: rgba(175, 183, 195, 0.55);
 
-  /* Semantic status triplets — deliberately duller than accent-primary so a
-     table full of pills never competes with the single blue CTA. */
-  --color-status-pending: #FBF2E0;
-  --color-status-pending-fg: #8A6314;
-  --color-status-pending-border: #EEDCB4;
+  /* Semantic status triplets — approved/flagged/neutral are deliberately duller
+     than accent-primary so a table full of pills never competes with the single
+     blue CTA.
+
+     PENDING IS A DELIBERATE EXCEPTION: "Anfrage"/pending is the intentional
+     "needs attention" signal across every approved prototype in this project, so
+     it uses accent-primary blue on purpose — same eye-draw as the KPI card and
+     table-row emphasis elsewhere. This is not a violation of the restraint rule
+     above; do not "correct" it back to a muted tone. */
+  --color-status-pending: var(--color-surface-selected); /* #EBF2FE */
+  --color-status-pending-fg: var(--color-accent-primary); /* #377CF4 */
+  --color-status-pending-border: #D3E2FC; /* accent-primary @ 22% over white */
 
   --color-status-approved: #E3F3EE;
   --color-status-approved-fg: #1F6B57;

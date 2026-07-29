@@ -348,10 +348,17 @@ const Dashboard = () => {
         }
     };
 
+    // Renders the agent already included in the /api/dashboard payload. No extra fetch.
+    const formatAgentName = (session: Session) => {
+        const name = `${session.agent?.firstName ?? ''} ${session.agent?.lastName ?? ''}`.trim();
+        return name || '—';
+    };
+
     const columnHeaders = (
         <div className="mb-1.5 hidden px-3.5 sm:flex">
-            <div className="flex-[2] text-[9px] tracking-wider text-text-muted">SITZUNG</div>
-            <div className="flex-[0.9] text-[9px] tracking-wider text-text-muted">STATUS</div>
+            <div className="flex-[1.8] text-[9px] tracking-wider text-text-muted">SITZUNG</div>
+            <div className="flex-[1.1] text-[9px] tracking-wider text-text-muted">AGENT</div>
+            <div className="flex-[0.8] text-[9px] tracking-wider text-text-muted">STATUS</div>
             <div className="flex-[0.9] text-right text-[9px] tracking-wider text-text-muted">ERSTELLT</div>
         </div>
     );
@@ -666,7 +673,7 @@ const Dashboard = () => {
                                                 onClick={() => openSessionRoute(session)}
                                                 className="flex cursor-pointer items-center gap-x-2.5 gap-y-1.5 rounded-2xl bg-surface-card p-3.5 shadow-soft transition-shadow hover:shadow-raised max-sm:flex-wrap"
                                             >
-                                                <div className="flex min-w-0 flex-[2] items-center gap-2.5 max-sm:basis-full">
+                                                <div className="flex min-w-0 flex-[1.8] items-center gap-2.5 max-sm:basis-full">
                                                     <div className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[9px] bg-surface-subtle text-accent-primary">
                                                         <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
                                                     </div>
@@ -679,7 +686,13 @@ const Dashboard = () => {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="flex-[0.9] max-sm:order-5 max-sm:flex-none">
+                                                <div
+                                                    className="min-w-0 flex-[1.1] truncate pr-2 text-xs text-text-primary max-sm:order-4 max-sm:flex-auto max-sm:text-[10px] max-sm:text-text-muted"
+                                                    title={formatAgentName(session)}
+                                                >
+                                                    {formatAgentName(session)}
+                                                </div>
+                                                <div className="flex-[0.8] max-sm:order-5 max-sm:flex-none">
                                                     <StatusBadge status={session.status} />
                                                 </div>
                                                 <div className="flex-[0.9] text-right text-[10px] text-text-muted max-sm:order-6 max-sm:flex-1">
