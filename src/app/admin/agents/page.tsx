@@ -1,9 +1,21 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Search, Plus, X, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  Loader2,
+  Users,
+  UserCheck,
+  UserMinus,
+} from 'lucide-react';
 import { exportAgentsToExcel } from '@/utils/agentExport';
 import AdminDashboardShell from '@/components/admin/AdminDashboardShell';
+import StatusBadge from '@/components/ui/StatusBadge';
+import Modal from '@/components/ui/Modal';
 
 interface Partner {
   id: string;
@@ -31,6 +43,21 @@ interface DrawerState {
 }
 
 const EMPTY_FORM = { firstName: '', lastName: '', partnerId: '' };
+
+/** The three status filters, lifted verbatim from the former segmented control. */
+const STATUS_FILTERS = ['all', 'active', 'inactive'] as const;
+
+const COL_HEADER_CLASS = 'text-[9px] uppercase tracking-wider text-text-muted';
+
+/** The prototype's `.action-btn` — shared geometry, tone applied per action. */
+const ACTION_BTN_CLASS =
+  'whitespace-nowrap rounded-lg px-3 py-1.5 text-center text-[11px] font-medium transition-colors focus:outline-none focus:shadow-focus-ring';
+
+/** Shared label + field styling for the modal's fields (the 5b/Phase 6 form treatment). */
+const MODAL_LABEL_CLASS = 'mb-1.5 block text-xs font-semibold text-text-primary';
+const MODAL_INPUT_CLASS =
+  'w-full rounded-[10px] border border-surface-raised bg-surface-card px-3 py-2.5 text-xs text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent-primary focus:shadow-focus-ring';
+const MODAL_BTN_CLASS = 'rounded-[10px] px-[18px] py-2.5 text-xs font-semibold transition-colors max-sm:w-full';
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState<AgentRow[]>([]);
@@ -141,267 +168,362 @@ export default function AgentsPage() {
     }
   };
 
+  const hasActiveFilters = search.trim() !== '' || activeFilter !== 'all';
+
   return (
-    <AdminDashboardShell contentClassName="max-w-none">
+    <AdminDashboardShell contentClassName="max-w-[1180px]">
+      {/* KPI row — three flat, equal cards. Three metrics, so this reuses 5a's
+          flat-row convention rather than the four-metric hard 2×2 of Phase 6:
+          the prototype's own `.kpi-row-3` is `display:flex; flex-wrap:wrap` with
+          `flex:1; min-width:180px`, and its 760px media query relaxes each card
+          to `flex:1 1 100%` — a wrap-based composition, not a fixed grid. */}
+      <div className="mb-8 flex flex-wrap gap-3">
+        <StatCard
+          label="Gesamt-Agenten"
+          value={agents.length}
+          icon={<Users className="h-4 w-4" strokeWidth={1.75} />}
+          iconClassName="bg-surface-subtle text-accent-primary"
+        />
+        <StatCard
+          label="Aktiv"
+          value={agents.filter((a) => a.isActive).length}
+          icon={<UserCheck className="h-4 w-4" strokeWidth={1.75} />}
+          iconClassName="bg-status-approved text-status-approved-fg"
+        />
+        <StatCard
+          label="Inaktiv"
+          value={agents.filter((a) => !a.isActive).length}
+          icon={<UserMinus className="h-4 w-4" strokeWidth={1.75} />}
+          iconClassName="bg-status-neutral text-status-neutral-fg"
+        />
+      </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-
-        {/* Toolbar */}
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 gap-2">
-            <div className="relative flex-1 sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Name oder Code suchen…"
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div className="flex rounded-lg border border-gray-300 overflow-hidden text-sm">
-              {(['all', 'active', 'inactive'] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setActiveFilter(f)}
-                  className={`px-3 py-2 transition-colors ${activeFilter === f ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-                >
-                  {f === 'all' ? 'Alle' : f === 'active' ? 'Aktiv' : 'Inaktiv'}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => exportAgentsToExcel(agents)}
-              disabled={agents.filter((agent) => agent.isActive).length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Download className="h-4 w-4" />
-              Exportieren
-            </button>
-            <button
-              onClick={openCreate}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Agent hinzufügen
-            </button>
-          </div>
+      {/* Search · status filter · export · add agent */}
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="relative flex-[2] min-w-[220px] max-lg:basis-full">
+          <Search
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
+            strokeWidth={1.75}
+          />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Name oder Code suchen…"
+            className="w-full rounded-[14px] bg-surface-card py-2.5 pl-10 pr-3.5 text-xs text-text-primary shadow-soft outline-none placeholder:text-text-muted focus:shadow-focus-ring"
+          />
         </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          {isLoading ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin h-8 w-8 border-t-2 border-blue-500 rounded-full mx-auto" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <p className="p-8 text-center text-sm text-gray-400">Keine Agenten gefunden</p>
-          ) : (
-            <>
-              <div className="hidden sm:block max-h-[560px] overflow-auto">
-                <table className="min-w-full border-separate border-spacing-0">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      {['Name', 'Code', 'Berater', 'Status', 'Erstellt', ''].map((h) => (
-                        <th
-                          key={h || 'actions'}
-                          className="sticky top-0 z-10 bg-gray-50 px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 shadow-[inset_0_-1px_0_0_rgb(229_231_235)]"
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {filtered.map((agent) => (
-                      <tr key={agent.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-4 text-sm font-medium text-gray-900">
-                          {agent.firstName} {agent.lastName}
-                        </td>
-                        <td className="px-5 py-4">
-                          <code className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{agent.agentCode}</code>
-                        </td>
-                        <td className="px-5 py-4 text-sm text-gray-600">
-                          {agent.partner.firstName} {agent.partner.lastName}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${agent.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                            {agent.isActive ? 'Aktiv' : 'Inaktiv'}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-sm text-gray-500">
-                          {new Date(agent.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2 justify-end">
-                            {agent.isActive && (
-                              <button
-                                onClick={() => copyLink(agent)}
-                                className={`w-24 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors text-center ${copiedId === agent.id ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
-                              >
-                                {copiedId === agent.id ? 'Kopiert!' : 'Link'}
-                              </button>
-                            )}
-                            <button
-                              onClick={() => openEdit(agent)}
-                              className="w-24 text-xs px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors text-center"
-                            >
-                              Bearbeiten
-                            </button>
-                            <button
-                              onClick={() => toggleActive(agent)}
-                              className={`w-24 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors text-center ${agent.isActive ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
-                            >
-                              {agent.isActive ? 'Deaktivieren' : 'Aktivieren'}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+        <div className="flex flex-wrap gap-1.5 max-lg:basis-full">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f}
+              onClick={() => setActiveFilter(f)}
+              aria-pressed={activeFilter === f}
+              className={`rounded-xl px-3.5 py-2 text-[11px] transition-shadow max-lg:flex-1 max-lg:text-center ${activeFilter === f
+                ? 'bg-accent-primary text-text-on-accent'
+                : 'bg-surface-card text-text-primary shadow-soft hover:shadow-raised'
+                }`}
+            >
+              {f === 'all' ? 'Alle' : f === 'active' ? 'Aktiv' : 'Inaktiv'}
+            </button>
+          ))}
+        </div>
 
-              {/* Mobile */}
-              <div className="sm:hidden max-h-[580px] divide-y divide-gray-200 overflow-y-auto">
-                {filtered.map((agent) => (
-                  <div key={agent.id} className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{agent.firstName} {agent.lastName}</p>
-                        <code className="text-xs font-mono text-gray-500">{agent.agentCode}</code>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${agent.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {agent.isActive ? 'Aktiv' : 'Inaktiv'}
-                        </span>
-                        <button onClick={() => setExpandedId(expandedId === agent.id ? null : agent.id)}>
-                          {expandedId === agent.id ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+        <div className="flex gap-2.5 lg:ml-auto max-lg:basis-full">
+          <button
+            onClick={() => exportAgentsToExcel(agents)}
+            disabled={agents.filter((agent) => agent.isActive).length === 0}
+            className="flex items-center gap-2 whitespace-nowrap rounded-xl bg-surface-card px-4 py-2.5 text-xs font-semibold text-text-primary shadow-soft transition-shadow hover:shadow-raised disabled:cursor-not-allowed disabled:opacity-40 max-lg:flex-1 max-lg:justify-center"
+          >
+            <Download className="h-4 w-4" strokeWidth={1.75} />
+            Exportieren
+          </button>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 whitespace-nowrap rounded-xl bg-accent-primary px-4 py-2.5 text-xs font-semibold text-text-on-accent shadow-soft transition-colors hover:bg-accent-primary-hov max-lg:flex-1 max-lg:justify-center"
+          >
+            <Plus className="h-4 w-4" strokeWidth={1.75} />
+            Agent hinzufügen
+          </button>
+        </div>
+      </div>
+
+      {/* Agent list */}
+      {isLoading ? (
+        <div className="flex items-center justify-center rounded-[14px] bg-surface-card px-5 py-12 shadow-soft">
+          <Loader2 className="h-7 w-7 animate-spin text-accent-primary" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center rounded-[14px] bg-surface-card px-5 py-8 text-center shadow-soft">
+          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-surface-subtle text-accent-primary">
+            <Users className="h-[18px] w-[18px]" strokeWidth={1.75} />
+          </div>
+          <div className="text-[13px] font-semibold text-text-primary">Keine Agenten gefunden</div>
+          {hasActiveFilters && (
+            <div className="mt-1 max-w-[280px] text-[11px] text-text-muted">
+              Versuchen Sie, Ihre Such- oder Filterkriterien anzupassen.
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Column headers — the prototype's six labelled columns, hidden below
+              lg where the rows reflow into its two-column card. */}
+          <div className="mb-0.5 hidden items-center gap-4 px-[18px] lg:flex">
+            <div className={`flex-[1.4] ${COL_HEADER_CLASS}`}>Name</div>
+            <div className={`flex-[1.2] ${COL_HEADER_CLASS}`}>Code</div>
+            <div className={`flex-[1.1] ${COL_HEADER_CLASS}`}>Berater</div>
+            <div className={`flex-[0.7] ${COL_HEADER_CLASS}`}>Status</div>
+            <div className={`flex-[0.9] ${COL_HEADER_CLASS}`}>Erstellt</div>
+            <div className={`flex-[1.6] text-right ${COL_HEADER_CLASS}`} />
+          </div>
+
+          <div className="overflow-hidden rounded-[14px] bg-surface-card shadow-soft">
+            {/* sm and up — the prototype's row list */}
+            <div className="hidden max-h-[480px] flex-col overflow-y-auto sm:flex">
+              {filtered.map((agent) => (
+                <div
+                  key={agent.id}
+                  className="grid grid-cols-2 items-start gap-x-3.5 gap-y-2.5 border-b border-line-soft p-[18px] transition-colors last:border-b-0 hover:bg-surface-subtle lg:flex lg:items-center lg:gap-4"
+                >
+                  <div className="col-span-2 min-w-0 text-[13px] font-semibold text-text-primary max-lg:order-1 lg:flex-[1.4]">
+                    {agent.firstName} {agent.lastName}
+                  </div>
+
+                  <div className="min-w-0 max-lg:order-2 lg:flex-[1.2]">
+                    <code className="inline-block max-w-full truncate rounded-md bg-surface-raised px-2 py-1 font-mono text-[11px] text-text-primary">
+                      {agent.agentCode}
+                    </code>
+                  </div>
+
+                  <div className="min-w-0 truncate text-xs text-text-primary max-lg:order-4 lg:flex-[1.1]">
+                    {agent.partner.firstName} {agent.partner.lastName}
+                  </div>
+
+                  <div className="max-lg:order-3 max-lg:text-right lg:flex-[0.7]">
+                    <StatusBadge
+                      tone={agent.isActive ? 'approved' : 'neutral'}
+                      label={agent.isActive ? 'Aktiv' : 'Inaktiv'}
+                    />
+                  </div>
+
+                  <div className="text-xs tabular-nums text-text-muted max-lg:order-5 max-lg:text-right lg:flex-[0.9]">
+                    {new Date(agent.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </div>
+
+                  <div className="col-span-2 flex flex-wrap items-center gap-1.5 max-lg:order-6 max-lg:border-t max-lg:border-line-soft max-lg:pt-2.5 lg:flex-[1.6] lg:justify-end">
+                    {agent.isActive && (
+                      <button
+                        onClick={() => copyLink(agent)}
+                        className={`${ACTION_BTN_CLASS} min-w-[84px] ${copiedId === agent.id ? 'bg-status-approved text-status-approved-fg' : 'bg-surface-selected text-accent-primary hover:bg-surface-raised'}`}
+                      >
+                        {copiedId === agent.id ? 'Kopiert!' : 'Link'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => openEdit(agent)}
+                      className={`${ACTION_BTN_CLASS} border border-surface-raised bg-surface-subtle text-text-primary hover:bg-surface-raised`}
+                    >
+                      Bearbeiten
+                    </button>
+                    <button
+                      onClick={() => toggleActive(agent)}
+                      className={`${ACTION_BTN_CLASS} ${agent.isActive ? 'bg-status-flagged text-status-flagged-fg hover:bg-status-flagged-border' : 'bg-status-approved text-status-approved-fg hover:bg-status-approved-border'}`}
+                    >
+                      {agent.isActive ? 'Deaktivieren' : 'Aktivieren'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Mobile — the existing expand/collapse card list, restyled. The
+                chevron and its `expandedId` state are preserved deliberately:
+                they are a real interaction, and the prototype's always-visible
+                mobile reflow would have removed one (see the report). */}
+            <div className="max-h-[580px] overflow-y-auto sm:hidden">
+              {filtered.map((agent) => (
+                <div key={agent.id} className="border-b border-line-soft p-4 last:border-b-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-semibold text-text-primary">
+                        {agent.firstName} {agent.lastName}
+                      </p>
+                      <code className="font-mono text-[11px] text-text-muted">{agent.agentCode}</code>
+                    </div>
+                    <div className="flex flex-shrink-0 items-center gap-2">
+                      <StatusBadge
+                        tone={agent.isActive ? 'approved' : 'neutral'}
+                        label={agent.isActive ? 'Aktiv' : 'Inaktiv'}
+                      />
+                      <button
+                        onClick={() => setExpandedId(expandedId === agent.id ? null : agent.id)}
+                        aria-expanded={expandedId === agent.id}
+                        aria-label={expandedId === agent.id ? 'Details ausblenden' : 'Details anzeigen'}
+                        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-text-primary transition-colors hover:bg-surface-raised focus:outline-none focus:shadow-focus-ring"
+                      >
+                        {expandedId === agent.id
+                          ? <ChevronUp className="h-3.5 w-3.5" strokeWidth={1.75} />
+                          : <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                      </button>
+                    </div>
+                  </div>
+                  {expandedId === agent.id && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-[11px] text-text-muted">
+                        Berater: <span className="text-text-primary">{agent.partner.firstName} {agent.partner.lastName}</span>
+                      </p>
+                      <p className="text-[11px] text-text-muted">
+                        Erstellt: <span className="tabular-nums text-text-primary">{new Date(agent.createdAt).toLocaleDateString('de-DE')}</span>
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 border-t border-line-soft pt-2.5">
+                        {agent.isActive && (
+                          <button
+                            onClick={() => copyLink(agent)}
+                            className={`${ACTION_BTN_CLASS} flex-1 ${copiedId === agent.id ? 'bg-status-approved text-status-approved-fg' : 'bg-surface-selected text-accent-primary'}`}
+                          >
+                            {copiedId === agent.id ? 'Kopiert!' : 'Link'}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => openEdit(agent)}
+                          className={`${ACTION_BTN_CLASS} flex-1 border border-surface-raised bg-surface-subtle text-text-primary`}
+                        >
+                          Bearbeiten
+                        </button>
+                        <button
+                          onClick={() => toggleActive(agent)}
+                          className={`${ACTION_BTN_CLASS} flex-1 ${agent.isActive ? 'bg-status-flagged text-status-flagged-fg' : 'bg-status-approved text-status-approved-fg'}`}
+                        >
+                          {agent.isActive ? 'Deaktivieren' : 'Aktivieren'}
                         </button>
                       </div>
                     </div>
-                    {expandedId === agent.id && (
-                      <div className="mt-3 space-y-2">
-                        <p className="text-xs text-gray-500">Berater: {agent.partner.firstName} {agent.partner.lastName}</p>
-                        <p className="text-xs text-gray-500">Erstellt: {new Date(agent.createdAt).toLocaleDateString('de-DE')}</p>
-                        <div className="flex gap-2 pt-1">
-                          {agent.isActive && (
-                            <button
-                              onClick={() => copyLink(agent)}
-                              className={`flex-1 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${copiedId === agent.id ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-600'}`}
-                            >
-                              {copiedId === agent.id ? 'Kopiert!' : 'Link'}
-                            </button>
-                          )}
-                          <button onClick={() => openEdit(agent)} className="flex-1 text-xs px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600">
-                            Bearbeiten
-                          </button>
-                          <button
-                            onClick={() => toggleActive(agent)}
-                            className={`flex-1 text-xs px-3 py-1.5 rounded-lg font-medium ${agent.isActive ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}
-                          >
-                            {agent.isActive ? 'Deaktivieren' : 'Aktivieren'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Count */}
-        {!isLoading && (
-          <p className="mt-3 text-xs text-gray-400 text-right">
-            {filtered.length} von {agents.length} Agenten
-          </p>
-        )}
-      </div>
-
-      {/* Drawer */}
-      {drawer.open && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={closeDrawer} />
-          <div className="relative z-10 flex h-full w-full max-w-md flex-col bg-white shadow-xl">
-            {/* Drawer header */}
-            <div className="flex items-center justify-between border-b px-6 py-4">
-              <h2 className="text-base font-semibold text-gray-900">
-                {drawer.mode === 'create' ? 'Neuer Agent' : 'Agent bearbeiten'}
-              </h2>
-              <button onClick={closeDrawer} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
-                <X className="h-5 w-5 text-gray-500" />
-              </button>
-            </div>
-
-            {/* Drawer body */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Vorname</label>
-                <input
-                  value={form.firstName}
-                  onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
-                  placeholder="Vorname"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Nachname</label>
-                <input
-                  value={form.lastName}
-                  onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
-                  placeholder="Nachname"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Berater</label>
-                <select
-                  value={form.partnerId}
-                  onChange={(e) => setForm((f) => ({ ...f, partnerId: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  <option value="">Berater auswählen…</option>
-                  {partners.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.firstName} {p.lastName} ({p.referralCode})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {drawer.mode === 'create' && (
-                <p className="text-xs text-gray-400">Der Agenten-Code wird automatisch generiert.</p>
-              )}
-              {drawer.mode === 'edit' && drawer.agent && (
-                <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-3">
-                  <p className="text-xs text-gray-500 mb-1">Agenten-Code</p>
-                  <code className="text-sm font-mono font-medium text-gray-800">{drawer.agent.agentCode}</code>
+                  )}
                 </div>
-              )}
-              {formError && <p className="text-xs text-red-600">{formError}</p>}
+              ))}
             </div>
+          </div>
+        </>
+      )}
 
-            {/* Drawer footer */}
-            <div className="border-t px-6 py-4 flex gap-3">
+      {/* Count — the prototype keeps this `.list-footer` line, so it is kept */}
+      {!isLoading && (
+        <p className="px-[18px] pt-3 text-right text-[11px] tabular-nums text-text-muted">
+          {filtered.length} von {agents.length} Agenten
+        </p>
+      )}
+
+      {/* Create / edit dialog — the same dual-mode `drawer` state as before, now
+          rendered through the shared `ui/Modal.tsx` shell instead of this page's
+          own hand-rolled overlay. `closeOnBackdropClick` preserves the scrim
+          click-to-close the hand-rolled version already had. */}
+      {drawer.open && (
+        <Modal
+          title={drawer.mode === 'create' ? 'Neuer Agent' : 'Agent bearbeiten'}
+          onClose={closeDrawer}
+          closeOnBackdropClick
+          maxWidthClassName="max-w-[460px]"
+          footer={
+            <>
               <button
+                type="button"
                 onClick={closeDrawer}
-                className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+                className={`${MODAL_BTN_CLASS} bg-surface-subtle text-text-primary hover:bg-surface-raised`}
               >
                 Abbrechen
               </button>
               <button
+                type="button"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex-1 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className={`${MODAL_BTN_CLASS} bg-accent-primary text-text-on-accent hover:bg-accent-primary-hov disabled:cursor-not-allowed disabled:opacity-50`}
               >
                 {isSaving ? 'Speichern…' : 'Speichern'}
               </button>
+            </>
+          }
+        >
+          <div className="mb-[18px]">
+            <label className={MODAL_LABEL_CLASS}>Vorname</label>
+            <input
+              value={form.firstName}
+              onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+              placeholder="Vorname"
+              className={MODAL_INPUT_CLASS}
+            />
+          </div>
+
+          <div className="mb-[18px]">
+            <label className={MODAL_LABEL_CLASS}>Nachname</label>
+            <input
+              value={form.lastName}
+              onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+              placeholder="Nachname"
+              className={MODAL_INPUT_CLASS}
+            />
+          </div>
+
+          <div className="mb-[18px]">
+            <label className={MODAL_LABEL_CLASS}>Berater</label>
+            <div className="relative">
+              <select
+                value={form.partnerId}
+                onChange={(e) => setForm((f) => ({ ...f, partnerId: e.target.value }))}
+                className={`${MODAL_INPUT_CLASS} appearance-none pr-8`}
+              >
+                <option value="">Berater auswählen…</option>
+                {partners.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.firstName} {p.lastName} ({p.referralCode})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
+                strokeWidth={1.75}
+              />
             </div>
           </div>
-        </div>
+
+          {drawer.mode === 'create' && (
+            <p className="mb-[18px] text-[11px] text-text-muted">Der Agenten-Code wird automatisch generiert.</p>
+          )}
+          {drawer.mode === 'edit' && drawer.agent && (
+            <div className="mb-[18px] rounded-[10px] border border-line-soft bg-surface-subtle px-4 py-3">
+              <p className="mb-1 text-[11px] text-text-muted">Agenten-Code</p>
+              <code className="font-mono text-[13px] font-medium text-text-primary">{drawer.agent.agentCode}</code>
+            </div>
+          )}
+          {formError && (
+            <p className="rounded-[10px] border border-status-flagged-border bg-status-flagged px-3 py-2 text-[11px] text-status-flagged-fg">
+              {formError}
+            </p>
+          )}
+        </Modal>
       )}
     </AdminDashboardShell>
   );
 }
+
+const StatCard = ({
+  label,
+  value,
+  icon,
+  iconClassName,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  iconClassName: string;
+}) => (
+  <div className="flex min-w-[180px] flex-1 items-center gap-3.5 rounded-[14px] bg-surface-card px-[18px] py-4 shadow-soft transition-shadow hover:shadow-raised max-sm:basis-full">
+    <div className={`flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-xl ${iconClassName}`}>
+      {icon}
+    </div>
+    <div className="min-w-0">
+      <div className="mb-[3px] truncate text-xs text-text-muted">{label}</div>
+      <div className="text-[22px] font-semibold leading-none tabular-nums text-text-primary">{value}</div>
+    </div>
+  </div>
+);

@@ -12,9 +12,15 @@ import { cn } from '@/lib/utils';
  * **Presentational only, deliberately.** It is the same conditionally-rendered
  * overlay the admin pages already hand-rolled (no portal, no library), and it
  * adds no interaction of its own: no focus trap, no Escape handler, no scroll
- * lock, no click-outside-to-close. The caller owns openness (render it, or
- * don't) and `onClose`. Adding any of those behaviours is a feature decision,
- * not a styling one — so it is not made here.
+ * lock. The caller owns openness (render it, or don't) and `onClose`. Adding any
+ * of those behaviours is a feature decision, not a styling one — so it is not
+ * made here.
+ *
+ * The one interaction it can carry is `closeOnBackdropClick`, and it is **opt-in
+ * and off by default** for exactly that reason: it exists so a page whose
+ * hand-rolled overlay *already* closed on backdrop click keeps doing so after
+ * migrating here (the agents dialog, Phase 7). Pages that never had it — the
+ * main-prompts dialogs, Phase 6 — simply omit the prop and are unaffected.
  *
  *   {isOpen && (
  *     <Modal title="Titel" onClose={close} onSubmit={handleSubmit} footer={buttons}>
@@ -33,6 +39,7 @@ export default function Modal({
   children,
   footer,
   onSubmit,
+  closeOnBackdropClick = false,
   closeLabel = 'Schließen',
   maxWidthClassName = 'max-w-[560px]',
 }: {
@@ -46,6 +53,12 @@ export default function Modal({
   footer?: React.ReactNode;
   /** When provided, body + footer are wrapped in a `<form onSubmit={...}>`. */
   onSubmit?: (event: React.FormEvent) => void;
+  /**
+   * Opt-in: clicking the scrim (and only the scrim, never the box) calls
+   * `onClose`. Off by default — pass it only to preserve an overlay that already
+   * behaved this way before it was migrated here.
+   */
+  closeOnBackdropClick?: boolean;
   /** Accessible name for the close button. */
   closeLabel?: string;
   /** Overrides the box's width cap (the prototypes' 560px by default). */
@@ -65,7 +78,14 @@ export default function Modal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-text-primary/35 p-5 max-sm:p-3">
+    <div
+      onClick={
+        closeOnBackdropClick
+          ? (event) => { if (event.target === event.currentTarget) onClose(); }
+          : undefined
+      }
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-text-primary/35 p-5 max-sm:p-3"
+    >
       <div
         role="dialog"
         aria-modal="true"
