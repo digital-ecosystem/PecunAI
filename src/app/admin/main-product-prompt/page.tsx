@@ -241,10 +241,12 @@ const MainProductPromptPage = () => {
 
   return (
     <AdminDashboardShell contentClassName="max-w-[1180px]">
-      {/* KPI row — four flat, equal cards. Four metrics, so no focal hero (that
-          composition only reads as intentional with five); the cards wrap into
-          the prototype's 2x2 grid below ~800px. */}
-      <div className="mb-8 flex flex-wrap gap-3">
+      {/* KPI row — a hard 2x2 grid at every width, matching the prototype's own
+          `grid-template-columns: 1fr 1fr` exactly (client-confirmed, not a
+          breakpoint-derived layout — see Phase 6 follow-up report). Only
+          relaxes to one column below `sm`, where two 180px-min cards no
+          longer fit the content width. */}
+      <div className="mb-8 grid grid-cols-2 gap-3 max-sm:grid-cols-1">
         <StatCard
           label="Gesamt-Prompts"
           value={totalCount}
