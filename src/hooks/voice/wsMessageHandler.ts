@@ -27,7 +27,7 @@ export async function handleWsMessage(
     resetExplainIdleRef, savedAnswersRef, questionsRef, fastModeRef, growNextCardRef,
     send, dispatch, scheduleChunk, scheduleAIDone, handleFunctionCall, setCard,
     setIsAISpeaking, setBargeInActive, setMicAnalyserNode, setIsChatAITyping, setChatMessages,
-    appendChatMessage, appendPhase6ChatMessage, voiceThreadIdRef,
+    appendChatMessage, appendPhase6ChatMessage,
   } = vc;
 
   const langTag = () => langRef.current === "de"
@@ -412,13 +412,6 @@ export async function handleWsMessage(
           appendPhase6ChatMessage(textContent, "ai");
         } else {
           appendChatMessage(textContent, "ai");
-          if (voiceThreadIdRef.current) {
-            fetch("/api/phase/chat/message", {
-              method:  "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ threadId: voiceThreadIdRef.current, role: "assistant", content: textContent }),
-            }).catch(() => {});
-          }
         }
       }
       aiTextBufferRef.current = "";
@@ -434,13 +427,6 @@ export async function handleWsMessage(
       if (audioTranscript) {
         lastAITranscriptRef.current = audioTranscript;
         appendChatMessage(audioTranscript, "ai");
-        if (voiceThreadIdRef.current) {
-          fetch("/api/phase/chat/message", {
-            method:  "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ threadId: voiceThreadIdRef.current, role: "assistant", content: audioTranscript }),
-          }).catch(() => {});
-        }
       }
       aiAudioTranscriptRef.current = "";
       break;
@@ -659,6 +645,10 @@ export async function handleWsMessage(
         });
         needsTranscriptBubbleRef.current = false;
         pendingVoiceTranscriptRef.current = null;
+        // Not routed through appendChatMessage (the insert-before-last-AI-bubble ordering above
+        // needs setChatMessages directly), so this is the one place persistence stays explicit.
+        // This is the customer's spoken question — the thing the client reported missing.
+        vc.persistTranscript(transcript, "user");
       } else {
         // submit_answer hasn't run yet — store for it to pick up
         pendingVoiceTranscriptRef.current = transcript;

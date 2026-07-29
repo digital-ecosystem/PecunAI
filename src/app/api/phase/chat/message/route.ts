@@ -12,10 +12,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'content, role, and sessionId or threadId are required' }, { status: 400 });
     }
 
-    const resolvedThreadId = threadId ?? (await prisma.thread.findUnique({
+    // Resolve-or-CREATE. The voice session starts recording its transcript in Phase 1, long before
+    // /api/phase/chat/init runs at the Phase 1→2 advance — so requiring a pre-existing thread meant
+    // the whole of Phase 1 was silently dropped. Upserting here removes that ordering dependency:
+    // whichever message comes first creates the thread.
+    // See private-documents/after-demo/TRANSCRIPT_PERSISTENCE_PLAN.md.
+    const resolvedThreadId = threadId ?? (await prisma.thread.upsert({
       where:  { qaSessionId: sessionId },
+      update: {},
+      create: { qaSessionId: sessionId },
       select: { id: true },
-    }))?.id;
+    })).id;
 
     if (!resolvedThreadId) {
       return NextResponse.json({ message: 'Thread not found' }, { status: 404 });

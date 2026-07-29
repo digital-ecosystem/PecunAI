@@ -16,6 +16,9 @@ export interface VoiceContext {
   dispatch:           Dispatch<Action>;
   setCard:            (id: string | null) => void;
   appendChatMessage:  (text: string, sender: "ai" | "user", questionId?: string) => void;
+  /** Persist one transcript line without appending a bubble — for the PTT question path,
+   *  which inserts its own bubble positionally. See TRANSCRIPT_PERSISTENCE_PLAN.md. */
+  persistTranscript:  (text: string, sender: "ai" | "user") => void;
   appendPhase6ChatMessage: (text: string, sender: "ai" | "user") => void;
   saveAnswer:         (questionId: string, value: string) => Promise<void>;
   saveVoiceState:     (questionIndex: number) => Promise<void>;
@@ -97,7 +100,6 @@ export interface VoiceContext {
   suppressNavBackRef:        MutableRefObject<boolean>;
   chatOpenRef:               MutableRefObject<boolean>;
   chatAnsweredRef:           MutableRefObject<number>;
-  voiceThreadIdRef:          MutableRefObject<string | null>;
   explainIdleTimerRef:       MutableRefObject<ReturnType<typeof setTimeout> | null>;
   resetExplainIdleRef:       MutableRefObject<() => void>;
   productVectorIdRef:        MutableRefObject<string | null>;
