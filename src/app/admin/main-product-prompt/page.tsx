@@ -17,7 +17,7 @@ import {
   Link
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import AdminHeader from '@/components/AdminHeader';
+import AdminDashboardShell from '@/components/admin/AdminDashboardShell';
 
 interface MainProductPrompt {
   id: string;
@@ -230,8 +230,7 @@ const MainProductPromptPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <AdminHeader />
+    <AdminDashboardShell contentClassName="max-w-none">
       <div className="p-3 sm:p-4 lg:p-6">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
@@ -682,7 +681,7 @@ const MainProductPromptPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </AdminDashboardShell>
   );
 };
 

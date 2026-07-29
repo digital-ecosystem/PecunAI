@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { Search, CheckCircle, Clock, FileText, ChevronRight, X, Loader2, Hourglass, Ban, MessageSquare, ArrowLeft, Bot, User } from 'lucide-react';
 import { DashboardQuestions, Session, SessionStatus } from '@/types';
 import { useRouter } from 'next/navigation';
-import AdminHeader from '@/components/AdminHeader';
+import AdminDashboardShell from '@/components/admin/AdminDashboardShell';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 interface ChatMessage {
     id: string;
@@ -12,6 +13,14 @@ interface ChatMessage {
     content: string;
     createdAt: string;
 }
+
+const STATUS_FILTERS = [
+    { value: 'all', label: 'Alle' },
+    { value: 'DRAFT', label: 'Entwurf' },
+    { value: 'PENDING', label: 'Ausstehend' },
+    { value: 'REJECTED', label: 'Abgelehnt' },
+    { value: 'APPROVED', label: 'Genehmigt' },
+];
 
 const Dashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -91,23 +100,6 @@ const Dashboard = () => {
     const draftSessions = sessions.filter(s => s.status === 'DRAFT').length;
     const pendingSessions = sessions.filter(s => s.status === 'PENDING').length;
     const rejectedSessions = sessions.filter(s => s.status === 'REJECTED').length;
-
-
-    // Helper function to get status color
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case SessionStatus.DRAFT:
-                return 'bg-gray-100 text-gray-800';
-            case SessionStatus.PENDING:
-                return 'bg-yellow-100 text-yellow-800';
-            case SessionStatus.APPROVED:
-                return 'bg-green-100 text-green-800';
-            case SessionStatus.REJECTED:
-                return 'bg-red-100 text-red-800';
-            default:
-                return 'bg-gray-100 text-gray-800';
-        }
-    };
 
     const handleSessionClick = (session: Session) => {
         console.log("🚀 ~ handleSessionClick ~ session:", session)
@@ -210,245 +202,194 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <AdminHeader />
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
-                        <div className="flex items-center">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-                                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs sm:text-sm text-gray-600 truncate">Gesamtsitzungen</p>
-                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{totalSessions}</p>
-                            </div>
-                        </div>
+        <>
+            <AdminDashboardShell contentClassName="max-w-[1180px]">
+                {/* KPI row — two stacked cards · focal total · two stacked cards */}
+                <div className="mb-8 flex w-full flex-wrap items-stretch gap-3">
+                    <div className="flex min-w-0 flex-1 flex-col gap-2.5 max-sm:basis-full max-sm:flex-row max-sm:flex-wrap">
+                        <StatCard
+                            icon={<Hourglass className="h-[18px] w-[18px] text-accent-primary" strokeWidth={1.75} />}
+                            value={pendingSessions}
+                            label="Ausstehend"
+                        />
+                        <StatCard
+                            icon={<Clock className="h-[18px] w-[18px] text-status-neutral-fg" strokeWidth={1.75} />}
+                            value={draftSessions}
+                            label="Entwurf"
+                        />
                     </div>
 
-                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
-                        <div className="flex items-center">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-                                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs sm:text-sm text-gray-600 truncate">Genehmigt</p>
-                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{approvedSessions}</p>
-                            </div>
+                    <div className="flex flex-1 flex-col items-center justify-center gap-1.5 rounded-2xl bg-surface-card p-4 text-center shadow-soft transition-shadow hover:shadow-raised max-sm:order-first max-sm:basis-full">
+                        <div className="mb-1 flex h-[34px] w-[34px] items-center justify-center rounded-xl bg-surface-subtle text-accent-primary">
+                            <FileText className="h-4 w-4" strokeWidth={1.75} />
                         </div>
+                        <div className="text-[28px] font-semibold leading-none tabular-nums text-text-primary">
+                            {totalSessions}
+                        </div>
+                        <div className="mt-1 text-[11px] text-text-muted">Gesamtsitzungen</div>
                     </div>
 
-
-
-                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
-                        <div className="flex items-center">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-                                <Ban className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs sm:text-sm text-gray-600 truncate">Abgelehnt</p>
-                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{rejectedSessions}</p>
-                            </div>
-                        </div>
+                    <div className="flex min-w-0 flex-1 flex-col gap-2.5 max-sm:basis-full max-sm:flex-row max-sm:flex-wrap">
+                        <StatCard
+                            icon={<CheckCircle className="h-[18px] w-[18px] text-status-approved-fg" strokeWidth={1.75} />}
+                            value={approvedSessions}
+                            label="Genehmigt"
+                        />
+                        <StatCard
+                            icon={<Ban className="h-[18px] w-[18px] text-status-flagged-fg" strokeWidth={1.75} />}
+                            value={rejectedSessions}
+                            label="Abgelehnt"
+                        />
                     </div>
-
-                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
-                        <div className="flex items-center">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-                                <Hourglass className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs sm:text-sm text-gray-600 truncate">Ausstehend</p>
-                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{pendingSessions}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
-                        <div className="flex items-center">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-                                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs sm:text-sm text-gray-600 truncate">Entwurf</p>
-                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{draftSessions}</p>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
 
-                {/* Sessions Table */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                    {/* Search and Filter */}
-                    <div className="p-4 sm:p-6 border-b border-gray-200">
-                        <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:space-x-4">
-                            <div className="relative flex-1 max-w-md">
-                                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Sitzungen suchen..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
-                                />
-                            </div>
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                                <select
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
+                {/* Search + status filter */}
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 max-sm:flex-col max-sm:items-stretch">
+                    <div className="relative min-w-[200px] max-sm:w-full max-sm:min-w-0">
+                        <Search
+                            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
+                            strokeWidth={1.75}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Sitzungen suchen..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full rounded-2xl bg-surface-card py-2.5 pl-10 pr-3.5 text-xs text-text-primary shadow-soft placeholder:text-text-muted focus:outline-none focus:shadow-focus-ring"
+                        />
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 max-sm:w-full">
+                        {STATUS_FILTERS.map((option) => (
+                            <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => setStatusFilter(option.value)}
+                                aria-pressed={statusFilter === option.value}
+                                className={`rounded-xl px-3 py-1.5 text-[10px] transition-shadow max-sm:flex-1 max-sm:text-center ${statusFilter === option.value
+                                    ? 'bg-accent-primary text-text-on-accent'
+                                    : 'bg-surface-card text-text-primary shadow-soft hover:shadow-raised'
+                                    }`}
+                            >
+                                {option.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Sessions list */}
+                {filteredSessions.length === 0 ? (
+                    <StatePanel
+                        icon={<FileText className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+                        iconClassName="bg-surface-subtle text-accent-primary"
+                        title={totalSessions === 0 ? 'Noch keine Sitzungen' : 'Keine Sitzungen gefunden'}
+                        description={
+                            totalSessions === 0
+                                ? 'Sitzungen erscheinen hier, sobald sie erstellt wurden.'
+                                : 'Keine Sitzungen gefunden, die Ihren Kriterien entsprechen.'
+                        }
+                    />
+                ) : (
+                    <div>
+                        <div className="mb-1.5 hidden px-3.5 sm:flex">
+                            <div className="flex-[1.8] text-[9px] tracking-wider text-text-muted">SITZUNG</div>
+                            <div className="flex-[0.8] text-[9px] tracking-wider text-text-muted">STATUS</div>
+                            <div className="flex-[0.9] text-[9px] tracking-wider text-text-muted">ERSTELLT</div>
+                            <div className="flex-[0.7] text-right text-[9px] tracking-wider text-text-muted">IN BERICHT</div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            {filteredSessions.map((session) => (
+                                <div
+                                    key={session.id}
+                                    onClick={() => handleSessionClick(session)}
+                                    className="flex cursor-pointer items-center gap-x-2.5 gap-y-1.5 rounded-2xl bg-surface-card p-3.5 shadow-soft transition-shadow hover:shadow-raised max-sm:flex-wrap"
                                 >
-                                    <option value="all">Alle Status</option>
-                                    <option value="DRAFT">Entwurf</option>
-                                    <option value="PENDING">Ausstehend</option>
-                                    <option value="REJECTED">Abgelehnt</option>
-                                    <option value="APPROVED">Genehmigt</option>
-                                </select>
-                                <span className="text-xs sm:text-sm text-gray-500 whitespace-nowrap">
-                                    {filteredSessions.length} von {totalSessions} Sitzungen
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Table */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        SITZUNG
-                                    </th>
-                                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        STATUS
-                                    </th>
-                                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                                        ERSTELLT
-                                    </th>
-                                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                                        IN BERICHT
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredSessions.map((session) => (
-                                    <tr key={session.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleSessionClick(session)}>
-                                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
-                                                    <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
-                                                </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="text-sm font-medium text-gray-900 truncate">
-                                                        {session?.personalInfo?.firstName} {session?.personalInfo?.lastName}
-                                                    </div>
-                                                    <div className="text-xs sm:text-sm text-gray-500 truncate">
-                                                        {session.user.email}
-                                                    </div>
-                                                    <div className="text-xs text-gray-400 sm:hidden mt-1">
-                                                        {formatDate(session.createdAt)}
-                                                    </div>
-                                                </div>
+                                    <div className="flex min-w-0 flex-[1.8] items-center gap-2.5 max-sm:basis-full">
+                                        <div className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[9px] bg-surface-subtle text-accent-primary">
+                                            <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="truncate text-xs font-medium text-text-primary">
+                                                {session?.personalInfo?.firstName} {session?.personalInfo?.lastName}
                                             </div>
-                                        </td>
-                                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(session.status)}`}>
-                                                {/* {session.status} */}
-                                                {session.status === SessionStatus.DRAFT && (
-                                                    <span className="text-xs text-gray-500">Entwurf</span>
-                                                )}
-                                                {session.status === SessionStatus.PENDING && (
-                                                    <span className="text-xs text-gray-500">Anfrage</span>
-                                                )}
-                                                {session.status === SessionStatus.REJECTED && (
-                                                    <span className="text-xs text-gray-500">Abgelehnt</span>
-                                                )}
-                                                {session.status === SessionStatus.APPROVED && (
-                                                    <span className="text-xs text-gray-500">Genehmigt</span>
-                                                )}
-                                            </span>
-                                        </td>
-                                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
-                                            {formatDate(session.createdAt)}
-                                        </td>
-                                        <td
-                                            className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            {togglingId === session.id ? (
-                                                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                                            ) : (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleToggleExclude(session.id); }}
-                                                    title={session.excludedFromReport ? 'Von Statistiken ausgeschlossen' : 'In Statistiken eingeschlossen'}
-                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                                                        session.excludedFromReport ? 'bg-gray-300' : 'bg-emerald-500'
+                                            <div className="truncate text-[11px] text-text-muted" title={session.user.email}>
+                                                {session.user.email}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex-[0.8] max-sm:order-5 max-sm:flex-none">
+                                        <StatusBadge status={session.status} />
+                                    </div>
+                                    <div className="flex-[0.9] text-[10px] text-text-muted max-sm:order-6 max-sm:flex-1">
+                                        {formatDate(session.createdAt)}
+                                    </div>
+                                    <div
+                                        className="flex flex-[0.7] justify-end max-sm:order-7 max-sm:flex-none"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        {togglingId === session.id ? (
+                                            <Loader2 className="h-4 w-4 animate-spin text-text-muted" />
+                                        ) : (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleToggleExclude(session.id); }}
+                                                title={session.excludedFromReport ? 'Von Statistiken ausgeschlossen' : 'In Statistiken eingeschlossen'}
+                                                className={`relative inline-flex h-[22px] w-[38px] flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:shadow-focus-ring ${session.excludedFromReport ? 'bg-surface-raised' : 'bg-status-approved-fg'
                                                     }`}
-                                                >
-                                                    <span
-                                                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                                                            session.excludedFromReport ? 'translate-x-1' : 'translate-x-6'
+                                            >
+                                                <span
+                                                    className={`inline-block h-[18px] w-[18px] transform rounded-full bg-surface-card shadow-soft transition-transform ${session.excludedFromReport ? 'translate-x-0.5' : 'translate-x-[18px]'
                                                         }`}
-                                                    />
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {filteredSessions.length === 0 && (
-                        <div className="text-center py-8 sm:py-12 px-4">
-                            <p className="text-sm sm:text-base text-gray-500">Keine Sitzungen gefunden, die Ihren Kriterien entsprechen.</p>
+                                                />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    )}
-                </div>
-            </div>
+                    </div>
+                )}
+            </AdminDashboardShell>
 
             {/* Session Details Drawer */}
             {isDrawerOpen && selectedSession && (
                 isLoading ? (
-                    <div className="fixed inset-0 z-50 flex justify-center items-center bg-black/20 backdrop-blur-sm">
-                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-text-primary/40 backdrop-blur-sm">
+                        <Loader2 className="h-8 w-8 animate-spin text-accent-primary" />
                     </div>
                 ) : (
                     <>
                         {/* Backdrop */}
                         <div
-                            className="fixed inset-0 z-50 bg-opacity-60 flex justify-end backdrop-blur-sm"
+                            className="fixed inset-0 z-50 flex justify-end bg-text-primary/40 backdrop-blur-sm"
                             onClick={closeDrawer}
                         />
                         {/* Drawer */}
-                        <div className="fixed inset-y-0 right-0 w-full sm:max-w-md md:max-w-2xl lg:max-w-4xl bg-white shadow-xl z-50 transform transition-transform overflow-y-auto">
+                        <div className="fixed inset-y-0 right-0 z-50 w-full transform overflow-y-auto bg-surface-subtle shadow-overlay transition-transform sm:max-w-md md:max-w-2xl lg:max-w-4xl">
                             {/* Drawer Header */}
-                            <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+                            <div className="sticky top-0 z-10 border-b border-line bg-surface-card px-4 py-4 sm:px-6">
                                 <div className="flex items-center justify-between">
-                                    <div className="min-w-0 flex-1 mr-4">
-                                        <h2 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
+                                    <div className="mr-4 min-w-0 flex-1">
+                                        <h2 className="truncate text-lg font-bold text-text-primary sm:text-xl">
                                             {isChatOpen ? 'KI Unterhaltung' : 'Sitzungsdetails'}
                                         </h2>
-                                        <p className="text-xs sm:text-sm text-gray-600 truncate">Sitzungs-ID: #{selectedSession?.personalInfo?.qaSessionId}</p>
+                                        <p className="truncate text-xs text-text-muted sm:text-sm">Sitzungs-ID: #{selectedSession?.personalInfo?.qaSessionId}</p>
                                     </div>
                                     <button
                                         onClick={isChatOpen ? closeChatView : closeDrawer}
-                                        className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors flex-shrink-0"
+                                        aria-label={isChatOpen ? 'Zurück zu den Sitzungsdetails' : 'Sitzungsdetails schließen'}
+                                        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-text-primary transition-colors hover:bg-surface-selected"
                                     >
-                                        {isChatOpen ? <ArrowLeft className="w-4 h-4 text-gray-600" /> : <X className="w-4 h-4 text-gray-600" />}
+                                        {isChatOpen ? <ArrowLeft className="h-4 w-4" strokeWidth={1.75} /> : <X className="h-4 w-4" strokeWidth={1.75} />}
                                     </button>
                                 </div>
                             </div>
 
                             {/* Chat View */}
                             {isChatOpen ? (
-                                <div className="flex flex-col h-[calc(100vh-80px)]">
-                                    <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
+                                <div className="flex h-[calc(100vh-80px)] flex-col">
+                                    <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
                                         {chatMessages.length === 0 ? (
-                                            <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                                                <MessageSquare className="w-12 h-12 mb-4 text-gray-300" />
+                                            <div className="flex h-full flex-col items-center justify-center text-text-muted">
+                                                <MessageSquare className="mb-4 h-12 w-12" strokeWidth={1.75} />
                                                 <p className="text-sm">Keine Nachrichten in dieser Unterhaltung</p>
                                             </div>
                                         ) : (
@@ -457,22 +398,22 @@ const Dashboard = () => {
                                                     key={message.id}
                                                     className={`flex ${message.role === 'customer' ? 'justify-end' : 'justify-start'}`}
                                                 >
-                                                    <div className={`flex items-start gap-2 max-w-[85%] ${message.role === 'customer' ? 'flex-row-reverse' : ''}`}>
-                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === 'customer'
-                                                                ? 'bg-blue-100'
-                                                                : 'bg-purple-100'
+                                                    <div className={`flex max-w-[85%] items-start gap-2 ${message.role === 'customer' ? 'flex-row-reverse' : ''}`}>
+                                                        <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${message.role === 'customer'
+                                                            ? 'bg-surface-selected text-accent-primary'
+                                                            : 'bg-surface-card text-text-primary shadow-soft'
                                                             }`}>
                                                             {message.role === 'customer'
-                                                                ? <User className="w-4 h-4 text-blue-600" />
-                                                                : <Bot className="w-4 h-4 text-purple-600" />
+                                                                ? <User className="h-4 w-4" strokeWidth={1.75} />
+                                                                : <Bot className="h-4 w-4" strokeWidth={1.75} />
                                                             }
                                                         </div>
                                                         <div className={`rounded-2xl px-4 py-2 ${message.role === 'customer'
-                                                                ? 'bg-blue-600 text-white'
-                                                                : 'bg-gray-100 text-gray-900'
+                                                            ? 'bg-accent-primary text-text-on-accent'
+                                                            : 'bg-surface-card text-text-primary shadow-soft'
                                                             }`}>
-                                                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                                                            <p className={`text-xs mt-1 ${message.role === 'customer' ? 'text-blue-200' : 'text-gray-400'
+                                                            <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                                                            <p className={`mt-1 text-xs ${message.role === 'customer' ? 'text-surface-selected/85' : 'text-text-muted'
                                                                 }`}>
                                                                 {new Date(message.createdAt).toLocaleTimeString('de-DE', {
                                                                     hour: '2-digit',
@@ -488,62 +429,48 @@ const Dashboard = () => {
                                 </div>
                             ) : (
                                 /* Drawer Content */
-                                <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+                                <div className="space-y-4 px-4 py-4 sm:space-y-6 sm:px-6 sm:py-6">
                                     {/* User Information */}
-                                    <div className="bg-gray-50 rounded-lg p-4">
-                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Benutzerinformationen</h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                    <div className="rounded-2xl bg-surface-card p-4 shadow-soft">
+                                        <h3 className="mb-3 text-base font-semibold text-text-primary sm:text-lg">Benutzerinformationen</h3>
+                                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                                             <div>
-                                                <label className="block text-xs sm:text-sm font-medium text-gray-600">Name</label>
-                                                <p className="text-sm text-gray-900">{selectedSession?.personalInfo?.firstName && selectedSession?.personalInfo?.lastName ? selectedSession?.personalInfo?.firstName + ' ' + selectedSession?.personalInfo?.lastName : ''}</p>
+                                                <label className="block text-xs font-medium text-text-muted sm:text-sm">Name</label>
+                                                <p className="text-sm text-text-primary">{selectedSession?.personalInfo?.firstName && selectedSession?.personalInfo?.lastName ? selectedSession?.personalInfo?.firstName + ' ' + selectedSession?.personalInfo?.lastName : ''}</p>
                                             </div>
                                             <div>
-                                                <label className="block text-xs sm:text-sm font-medium text-gray-600">E-Mail</label>
-                                                <p className="text-sm text-gray-900 break-all">{selectedSession.user.email || ''}</p>
+                                                <label className="block text-xs font-medium text-text-muted sm:text-sm">E-Mail</label>
+                                                <p className="break-all text-sm text-text-primary">{selectedSession.user.email || ''}</p>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Session Status */}
-                                    <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Sitzungsstatus</h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                    <div className="rounded-2xl bg-surface-card p-4 shadow-soft">
+                                        <h3 className="mb-3 text-base font-semibold text-text-primary sm:text-lg">Sitzungsstatus</h3>
+                                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                                             <div>
-                                                <label className="block text-xs sm:text-sm font-medium text-gray-600">Aktueller Status</label>
-                                                <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(selectedSession.status)}`}>
-                                                    {/* {selectedSession.status} */}
-                                                    {selectedSession.status === SessionStatus.DRAFT && (
-                                                        <span className="text-xs text-gray-500">Entwurf</span>
-                                                    )}
-                                                    {selectedSession.status === SessionStatus.PENDING && (
-                                                        <span className="text-xs text-gray-500">Anfrage</span>
-                                                    )}
-                                                    {selectedSession.status === SessionStatus.REJECTED && (
-                                                        <span className="text-xs text-gray-500">Abgelehnt</span>
-                                                    )}
-                                                    {selectedSession.status === SessionStatus.APPROVED && (
-                                                        <span className="text-xs text-gray-500">Genehmigt</span>
-                                                    )}
-                                                </span>
+                                                <label className="mb-1 block text-xs font-medium text-text-muted sm:text-sm">Aktueller Status</label>
+                                                <StatusBadge status={selectedSession.status} size="md" />
                                             </div>
                                             <div>
-                                                <label className="block text-xs sm:text-sm font-medium text-gray-600">Erstellungsdatum</label>
-                                                <p className="text-sm text-gray-900">{formatDate(selectedSession.createdAt)}</p>
+                                                <label className="block text-xs font-medium text-text-muted sm:text-sm">Erstellungsdatum</label>
+                                                <p className="text-sm text-text-primary">{formatDate(selectedSession.createdAt)}</p>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* KI Unterhaltung Button */}
-                                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                                    <div className="rounded-2xl bg-surface-card p-4 shadow-soft">
                                         <button
                                             onClick={openChatView}
                                             disabled={isChatLoading}
-                                            className="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent-primary px-4 py-3 text-text-on-accent transition-colors hover:bg-accent-primary-hov disabled:opacity-50"
                                         >
                                             {isChatLoading ? (
-                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                <Loader2 className="h-5 w-5 animate-spin" />
                                             ) : (
-                                                <MessageSquare className="w-5 h-5" />
+                                                <MessageSquare className="h-5 w-5" strokeWidth={1.75} />
                                             )}
                                             <span className="font-medium">KI Unterhaltung</span>
                                         </button>
@@ -552,30 +479,30 @@ const Dashboard = () => {
                                     {/* Download the session PDF */}
                                     {
                                         selectedSession.status != SessionStatus.DRAFT && (
-                                            <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Sitzungs-PDF herunterladen</h3>
+                                            <div className="rounded-2xl bg-surface-card p-4 shadow-soft">
+                                                <h3 className="mb-3 text-base font-semibold text-text-primary sm:text-lg">Sitzungs-PDF herunterladen</h3>
                                                 {selectedSession?.workflowState?.stepData?.signteq?.status === "DOCUMENT_COMPLETED" ? (
-                                                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
-                                                        <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-2">
+                                                        <button className="flex-1 rounded-xl bg-accent-primary px-4 py-2 text-sm text-text-on-accent transition-colors hover:bg-accent-primary-hov">
                                                             <a href={`/api/documents/${selectedSession.id}/signed/signature.pdf`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
-                                                                <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                                <FileText className="mr-2 h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
                                                                 <span className="truncate">Unterschriebenes PDF herunterladen</span>
                                                             </a>
                                                         </button>
-                                                        <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                                        <button className="flex-1 rounded-xl border border-line-strong bg-surface-card px-4 py-2 text-sm text-text-primary transition-colors hover:bg-surface-selected">
                                                             <a
                                                                 href={`/api/documents/${selectedSession.id}/signed/legitimation.pdf`}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="flex items-center justify-center"
                                                             >
-                                                                <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                                <FileText className="mr-2 h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
                                                                 <span className="truncate">Legetimitation herunterladen</span>
                                                             </a>
                                                         </button>
                                                     </div>) : (
-                                                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
-                                                        <p className="text-sm text-gray-500">
+                                                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-2">
+                                                        <p className="text-sm text-text-muted">
                                                             {(() => {
                                                                 const recipient1Name = getRecipientName(1);
                                                                 return recipient1Name
@@ -591,27 +518,27 @@ const Dashboard = () => {
 
                                     {/* Action Buttons */}
                                     {selectedSession.status === SessionStatus.PENDING &&
-                                        <div className="bg-gray-50 rounded-lg p-4">
-                                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Aktionen</h3>
-                                            <div className="flex flex-col sm:flex-row gap-3">
+                                        <div className="rounded-2xl bg-surface-card p-4 shadow-soft">
+                                            <h3 className="mb-3 text-base font-semibold text-text-primary sm:text-lg">Aktionen</h3>
+                                            <div className="flex flex-col gap-3 sm:flex-row">
                                                 {selectedSession.status === SessionStatus.PENDING && (
                                                     <>
                                                         <button
                                                             onClick={() => {
                                                                 handleStatusChange(selectedSession.id, SessionStatus.APPROVED);
                                                             }}
-                                                            className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+                                                            className="flex flex-1 items-center justify-center rounded-xl bg-status-approved-fg px-4 py-2 text-sm font-medium text-text-on-accent transition-opacity hover:opacity-90"
                                                         >
-                                                            <CheckCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                            <CheckCircle className="mr-2 h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
                                                             <span>Sitzung genehmigen</span>
                                                         </button>
                                                         <button
                                                             onClick={() => {
                                                                 handleStatusChange(selectedSession.id, SessionStatus.REJECTED);
                                                             }}
-                                                            className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
+                                                            className="flex flex-1 items-center justify-center rounded-xl bg-status-flagged-fg px-4 py-2 text-sm font-medium text-text-on-accent transition-opacity hover:opacity-90"
                                                         >
-                                                            <X className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                            <X className="mr-2 h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
                                                             <span>Sitzung ablehnen</span>
                                                         </button>
                                                     </>
@@ -621,8 +548,8 @@ const Dashboard = () => {
                                     }
 
                                     {/* Question and Options */}
-                                    <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Frage & Antwort</h3>
+                                    <div className="rounded-2xl bg-surface-card p-4 shadow-soft">
+                                        <h3 className="mb-3 text-base font-semibold text-text-primary sm:text-lg">Frage & Antwort</h3>
 
                                         {questionAnswer?.length > 0 &&
                                             questionAnswer.map((item, index) => {
@@ -630,36 +557,36 @@ const Dashboard = () => {
                                                     <React.Fragment key={index}>
                                                         {/* Question */}
                                                         <div className="mb-4">
-                                                            <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Frage</label>
-                                                            <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
-                                                                <p className="text-sm sm:text-base text-gray-900">{item.text}</p>
+                                                            <label className="mb-2 block text-xs font-medium text-text-muted sm:text-sm">Frage</label>
+                                                            <div className="rounded-xl border-l-4 border-accent-primary bg-surface-subtle p-3">
+                                                                <p className="text-sm text-text-primary sm:text-base">{item.text}</p>
                                                             </div>
                                                         </div>
 
                                                         {/* Available Options - only show if there are options */}
                                                         {item.options && item.options.length > 0 && (
                                                             <div className="mb-4">
-                                                                <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-2">Verfügbare Optionen</label>
+                                                                <label className="mb-2 block text-xs font-medium text-text-muted sm:text-sm">Verfügbare Optionen</label>
                                                                 <div className="space-y-2">
                                                                     {item.options.map((option, optIndex) => {
                                                                         const isSelected = option.value === item.selectedValue
                                                                         return (
                                                                             <div
                                                                                 key={optIndex}
-                                                                                className={`flex items-center p-3 rounded-lg border ${isSelected ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
+                                                                                className={`flex items-center rounded-xl border p-3 ${isSelected ? 'border-status-approved-border bg-status-approved' : 'border-line bg-surface-subtle'
                                                                                     }`}
                                                                             >
                                                                                 <div
-                                                                                    className={`w-2 h-2 rounded-full mr-3 flex-shrink-0 ${isSelected ? 'bg-green-500' : 'bg-gray-300'
+                                                                                    className={`mr-3 h-2 w-2 flex-shrink-0 rounded-full ${isSelected ? 'bg-status-approved-fg' : 'bg-line-strong'
                                                                                         }`}
                                                                                 />
                                                                                 <span
-                                                                                    className={`text-xs sm:text-sm flex-1 ${isSelected ? 'text-green-900 font-medium' : 'text-gray-700'
+                                                                                    className={`flex-1 text-xs sm:text-sm ${isSelected ? 'font-medium text-status-approved-fg' : 'text-text-primary'
                                                                                         }`}
                                                                                 >
                                                                                     {option.label}
                                                                                 </span>
-                                                                                {isSelected && <ChevronRight className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                                                                                {isSelected && <ChevronRight className="h-4 w-4 flex-shrink-0 text-status-approved-fg" strokeWidth={1.75} />}
                                                                             </div>
                                                                         )
                                                                     })}
@@ -668,9 +595,9 @@ const Dashboard = () => {
                                                         )}
 
                                                         {/* Selected Answer Highlight */}
-                                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
-                                                            <label className="block text-xs sm:text-sm font-medium text-green-800 mb-1">Ausgewählte Antwort</label>
-                                                            <p className="text-sm sm:text-base text-green-900 font-semibold">
+                                                        <div className="mb-6 rounded-xl border border-status-approved-border bg-status-approved p-3">
+                                                            <label className="mb-1 block text-xs font-medium text-status-approved-fg sm:text-sm">Ausgewählte Antwort</label>
+                                                            <p className="text-sm font-semibold text-status-approved-fg sm:text-base">
                                                                 {item.options && item.options.length > 0
                                                                     ? item.options.find(option => option.value === item.selectedValue)?.label || item.selectedValue || 'N/V'
                                                                     : item.selectedValue || 'N/V'
@@ -687,8 +614,44 @@ const Dashboard = () => {
                     </>
                 )
             )}
-        </div>
+        </>
     );
 }
+
+const StatCard = ({
+    icon,
+    value,
+    label,
+}: {
+    icon: React.ReactNode;
+    value: number;
+    label: string;
+}) => (
+    <div className="flex flex-1 items-center gap-3 rounded-2xl bg-surface-card px-4 py-3.5 shadow-soft transition-shadow hover:shadow-raised max-sm:basis-full max-sm:flex-col max-sm:gap-1.5 max-sm:text-center">
+        <span className="flex-shrink-0">{icon}</span>
+        <div className="max-sm:flex max-sm:flex-col max-sm:items-center">
+            <div className="text-lg font-semibold leading-none tabular-nums text-text-primary">{value}</div>
+            <div className="mt-1 text-[10px] text-text-muted">{label}</div>
+        </div>
+    </div>
+);
+
+const StatePanel = ({
+    icon,
+    iconClassName,
+    title,
+    description,
+}: {
+    icon: React.ReactNode;
+    iconClassName: string;
+    title: string;
+    description: string;
+}) => (
+    <div className="flex flex-col items-center rounded-2xl bg-surface-card px-5 py-8 text-center shadow-soft">
+        <div className={`mb-3 flex h-11 w-11 items-center justify-center rounded-xl ${iconClassName}`}>{icon}</div>
+        <div className="mb-1 text-[13px] font-semibold text-text-primary">{title}</div>
+        <div className="max-w-[280px] text-[11px] text-text-muted">{description}</div>
+    </div>
+);
 
 export default Dashboard;

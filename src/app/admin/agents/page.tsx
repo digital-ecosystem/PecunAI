@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Search, Plus, X, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { exportAgentsToExcel } from '@/utils/agentExport';
-import AdminHeader from '@/components/AdminHeader';
+import AdminDashboardShell from '@/components/admin/AdminDashboardShell';
 
 interface Partner {
   id: string;
@@ -142,8 +142,7 @@ export default function AgentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminHeader />
+    <AdminDashboardShell contentClassName="max-w-none">
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
 
@@ -403,6 +402,6 @@ export default function AgentsPage() {
           </div>
         </div>
       )}
-    </div>
+    </AdminDashboardShell>
   );
 }

@@ -9,7 +9,7 @@ import {
   Loader2,
   ArrowLeft
 } from 'lucide-react';
-import AdminHeader from '@/components/AdminHeader';
+import AdminDashboardShell from '@/components/admin/AdminDashboardShell';
 
 interface ProductFormData {
   name: string;
@@ -165,18 +165,16 @@ const EditProductPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <AdminHeader />
+      <AdminDashboardShell contentClassName="max-w-none">
         <div className="flex items-center justify-center p-12">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
-      </div>
+      </AdminDashboardShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <AdminHeader />
+    <AdminDashboardShell contentClassName="max-w-none">
       <div className="p-3 sm:p-4 lg:p-6">
         {/* Header */}
         <div className="mb-6">
@@ -446,7 +444,7 @@ const EditProductPage = () => {
           </form>
         </div>
       </div>
-    </div>
+    </AdminDashboardShell>
   );
 };
 

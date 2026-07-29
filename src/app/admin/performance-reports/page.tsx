@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { TrendingUp, CheckCircle, ShoppingBag, Wallet, Users } from 'lucide-react';
-import AdminHeader from '@/components/AdminHeader';
+import AdminDashboardShell from '@/components/admin/AdminDashboardShell';
 import KPICard from '@/components/admin/performance-reports/KPICard';
 import PerformanceFilters, { FilterState, FilterOptions } from '@/components/admin/performance-reports/PerformanceFilters';
 import TrendChart from '@/components/admin/performance-reports/TrendChart';
@@ -133,8 +133,7 @@ export default function CompanyPerformancePage() {
     : [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminHeader />
+    <AdminDashboardShell contentClassName="max-w-none">
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 space-y-6">
 
@@ -227,6 +226,6 @@ export default function CompanyPerformancePage() {
         />
 
       </div>
-    </div>
+    </AdminDashboardShell>
   );
 }

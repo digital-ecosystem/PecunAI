@@ -10,7 +10,7 @@ import {
   Calendar,
   TrendingUp
 } from 'lucide-react';
-import AdminHeader from '@/components/AdminHeader';
+import AdminDashboardShell from '@/components/admin/AdminDashboardShell';
 
 interface Product {
   id: string;
@@ -100,33 +100,30 @@ const ViewProductPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <AdminHeader />
+      <AdminDashboardShell contentClassName="max-w-none">
         <div className="flex items-center justify-center p-12">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
-      </div>
+      </AdminDashboardShell>
     );
   }
 
   if (error || !product) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <AdminHeader />
+      <AdminDashboardShell contentClassName="max-w-none">
         <div className="p-6">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-2xl mx-auto">
             <div className="text-red-800">{error || 'Produkt nicht gefunden'}</div>
           </div>
         </div>
-      </div>
+      </AdminDashboardShell>
     );
   }
 
   const activeAiSetting = product.aiSettings.find(ai => ai.isActive) || product.aiSettings[0];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <AdminHeader />
+    <AdminDashboardShell contentClassName="max-w-none">
       <div className="p-3 sm:p-4 lg:p-6">
         {/* Header */}
         <div className="mb-6">
@@ -328,7 +325,7 @@ const ViewProductPage = () => {
           </div>
         </div>
       </div>
-    </div>
+    </AdminDashboardShell>
   );
 };
 

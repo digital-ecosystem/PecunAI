@@ -16,7 +16,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import AdminHeader from '@/components/AdminHeader';
+import AdminDashboardShell from '@/components/admin/AdminDashboardShell';
 
 interface Product {
   id: string;
@@ -148,8 +148,7 @@ const ProductsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <AdminHeader />
+    <AdminDashboardShell contentClassName="max-w-none">
       <div className="p-3 sm:p-4 lg:p-6">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
@@ -436,7 +435,7 @@ const ProductsPage = () => {
           )}
         </div>
       </div>
-    </div>
+    </AdminDashboardShell>
   );
 };
 
