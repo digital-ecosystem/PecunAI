@@ -62,6 +62,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/dashboard': 'Dashboard',
   '/admin/performance-reports': 'Performance Report',
   '/admin/products': 'Products Management',
+  '/admin/products/add': 'Neues Produkt hinzufügen',
   '/admin/main-product-prompt': 'Main Product Prompts',
   '/admin/agents': 'Agents',
 };
@@ -70,6 +71,7 @@ const PAGE_SUBTITLES: Record<string, string> = {
   '/admin/dashboard': 'Welcome back!',
   '/admin/performance-reports': 'Unternehmensweite Leistungsübersicht',
   '/admin/products': 'Manage your product catalog',
+  '/admin/products/add': 'Erstellen Sie ein neues Produkt mit KI-Konfiguration',
   '/admin/main-product-prompt': 'Manage your AI model configurations',
   '/admin/agents': 'Agenten verwalten und zuweisen',
 };
