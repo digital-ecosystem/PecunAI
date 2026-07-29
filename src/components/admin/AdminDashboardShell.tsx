@@ -79,10 +79,22 @@ const PAGE_SUBTITLES: Record<string, string> = {
 export default function AdminDashboardShell({
   children,
   contentClassName,
+  title,
+  subtitle,
 }: {
   children: React.ReactNode;
   /** Passed through to `DashboardShell`'s centred content column. */
   contentClassName?: string;
+  /**
+   * Per-page override for the header title. Takes precedence over the
+   * `PAGE_TITLES` lookup; omit it (the default) and the pathname map wins, so
+   * every static admin route is unaffected. Exists for **dynamic** routes whose
+   * title depends on fetched data — e.g. `/admin/products/[id]` shows the
+   * product's own name — which a pathname-keyed map cannot express.
+   */
+  title?: React.ReactNode;
+  /** Per-page override for the header subtitle. Same precedence as `title`. */
+  subtitle?: React.ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -124,8 +136,8 @@ export default function AdminDashboardShell({
 
   return (
     <DashboardShell
-      title={PAGE_TITLES[currentPath] ?? ''}
-      subtitle={PAGE_SUBTITLES[currentPath]}
+      title={title ?? PAGE_TITLES[currentPath] ?? ''}
+      subtitle={subtitle ?? PAGE_SUBTITLES[currentPath]}
       navItems={ADMIN_NAV_ITEMS}
       footerItems={footerItems}
       contentClassName={contentClassName}
