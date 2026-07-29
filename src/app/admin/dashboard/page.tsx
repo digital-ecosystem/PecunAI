@@ -332,7 +332,7 @@ const Dashboard = () => {
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleToggleExclude(session.id); }}
                                                 title={session.excludedFromReport ? 'Von Statistiken ausgeschlossen' : 'In Statistiken eingeschlossen'}
-                                                className={`relative inline-flex h-[22px] w-[38px] flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:shadow-focus-ring ${session.excludedFromReport ? 'bg-surface-raised' : 'bg-status-approved-fg'
+                                                className={`relative inline-flex h-[22px] w-[38px] flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:shadow-focus-ring ${session.excludedFromReport ? 'bg-surface-raised' : 'bg-toggle-on'
                                                     }`}
                                             >
                                                 <span
