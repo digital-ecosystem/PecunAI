@@ -147,90 +147,88 @@ export default function PerformanceFilters({ filterOptions, onFilterChange }: Pe
       : [];
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between xl:gap-3">
+    /* Two distinct filter cards rather than one continuous bar (the prototype's
+       `.filter-row` → two `.filter-section`s): quick ranges on the left, the
+       explicit range + dimension drill-down on the right. */
+    <div className="flex flex-wrap gap-3.5">
 
-        {/* Time presets */}
-        <div className="flex flex-wrap gap-1.5">
+      {/* Time presets */}
+      <div className="flex flex-1 basis-[260px] items-center rounded-2xl bg-surface-card px-4 py-3.5 shadow-soft">
+        <div className="flex flex-1 flex-wrap gap-1.5">
           {TIME_PRESETS.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => handlePeriodClick(key)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${
+              aria-pressed={activePeriod === key}
+              className={`flex-1 whitespace-nowrap rounded-[9px] px-3 py-1.5 text-[11px] transition-colors ${
                 activePeriod === key
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+                  ? 'bg-accent-primary text-text-on-accent'
+                  : 'bg-surface-subtle text-text-primary hover:bg-surface-selected'
               }`}
             >
               {label}
             </button>
           ))}
         </div>
+      </div>
 
-        {/* Divider — desktop only */}
-        <div className="hidden xl:block h-5 w-px shrink-0 bg-gray-200" />
+      {/* Explicit date range + dimension drill-down */}
+      <div className="flex flex-1 basis-[420px] flex-wrap items-center gap-2.5 rounded-2xl bg-surface-card px-4 py-3.5 shadow-soft">
 
-        {/* Bottom controls: date + dimension, 2-col on md, stacked on mobile */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:flex xl:items-center xl:gap-3">
-
-          {/* Date range */}
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => handleFromChange(e.target.value)}
-              className="h-9 flex-1 min-w-0 rounded-md border border-gray-300 px-2.5 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-400 shrink-0">→</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => handleToChange(e.target.value)}
-              className="h-9 flex-1 min-w-0 rounded-md border border-gray-300 px-2.5 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Divider — desktop only */}
-          <div className="hidden xl:block h-5 w-px shrink-0 bg-gray-200" />
-
-          {/* Dimension filter */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 min-w-0">
-              <select
-                value={dimension}
-                onChange={(e) => handleDimensionChange(e.target.value as Dimension)}
-                className="h-9 w-full appearance-none rounded-md border border-gray-300 bg-white pl-3 pr-8 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {DIMENSION_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            </div>
-
-            <span className="text-sm text-gray-400 shrink-0">→</span>
-
-            <div className="relative flex-1 min-w-0">
-              <select
-                value={dimensionValue}
-                disabled={dimension === 'all'}
-                onChange={(e) => handleDimensionValueChange(e.target.value)}
-                className={`h-9 w-full appearance-none rounded-md border pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  dimension === 'all'
-                    ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                    : 'border-gray-300 bg-white text-gray-700 focus:border-blue-500'
-                }`}
-              >
-                <option value="">{dimension === 'all' ? '—' : 'Alle auswählen…'}</option>
-                {dimensionValueOptions.map((opt) => (
-                  <option key={opt.id} value={opt.id}>{opt.label}</option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-
+        {/* Date range */}
+        <div className="flex min-w-[200px] flex-1 items-center gap-2">
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => handleFromChange(e.target.value)}
+            className="h-9 min-w-0 flex-1 rounded-[9px] border border-surface-raised bg-surface-card px-2.5 text-text-primary focus:outline-none focus:shadow-focus-ring"
+          />
+          <span className="shrink-0 text-xs text-text-muted">→</span>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => handleToChange(e.target.value)}
+            className="h-9 min-w-0 flex-1 rounded-[9px] border border-surface-raised bg-surface-card px-2.5 text-text-primary focus:outline-none focus:shadow-focus-ring"
+          />
         </div>
+
+        {/* Dimension filter */}
+        <div className="flex min-w-[200px] flex-1 items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <select
+              value={dimension}
+              onChange={(e) => handleDimensionChange(e.target.value as Dimension)}
+              className="h-9 w-full appearance-none rounded-[9px] border border-surface-raised bg-surface-card pl-3 pr-8 text-text-primary focus:outline-none focus:shadow-focus-ring"
+            >
+              {DIMENSION_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" strokeWidth={1.75} />
+          </div>
+
+          <span className="shrink-0 text-xs text-text-muted">→</span>
+
+          <div className="relative min-w-0 flex-1">
+            <select
+              value={dimensionValue}
+              disabled={dimension === 'all'}
+              onChange={(e) => handleDimensionValueChange(e.target.value)}
+              className={`h-9 w-full appearance-none rounded-[9px] border pl-3 pr-8 focus:outline-none focus:shadow-focus-ring ${
+                dimension === 'all'
+                  ? 'cursor-not-allowed border-surface-raised bg-surface-subtle text-text-muted'
+                  : 'border-surface-raised bg-surface-card text-text-primary'
+              }`}
+            >
+              <option value="">{dimension === 'all' ? '—' : 'Alle auswählen…'}</option>
+              {dimensionValueOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" strokeWidth={1.75} />
+          </div>
+        </div>
+
       </div>
     </div>
   );
