@@ -109,6 +109,32 @@
      surface-raised. Do not substitute status-approved-fg here. */
   --color-toggle-on: #34C77B;
 
+  /* Risk-type badges (admin products catalogue). A SECOND SEMANTIC AXIS, not a
+     status: "Konservativ / Ausgewogen / Gewinnorientiert" describes a product's
+     risk profile, it does not report a review outcome. The two axes must stay
+     visually separable, so risk gets its own warm ladder that runs
+     green → sand → amber as risk rises.
+
+     Konservativ deliberately REUSES status-approved (#E3F3EE / #1F6B57) — the
+     low-risk end and the "all good" end read the same green, and a third new
+     token there would have been a duplicate. Only the middle and high steps are
+     new. Confirmed by the client in Phase 5a (2026-07-29); do not re-derive
+     these, do not add a third risk token, and do not put status-approved-fg on
+     anything that is not actually a status. */
+  --color-risk-balanced: #FBF2E0;
+  --color-risk-balanced-fg: #8A6314;
+
+  --color-risk-growth: #FDE9D2;
+  --color-risk-growth-fg: #B15B12;
+
+  /* Decorative violet accent. Purely an icon-chip tone, on no semantic axis at
+     all: it marks the KI-Konfigurationen / "Diesen Monat" icon contexts in the
+     approved designs. NOT amber/status-neutral — the original design is
+     explicit about the violet here. Confirmed by the client in Phase 5a
+     (2026-07-29). Never use it to carry state. */
+  --color-violet: #F0E9FB;
+  --color-violet-fg: #7C4DBF;
+
   /* Elevation — soft, large-radius, low-opacity, tinted with accent-primary
      rather than black (a dark drop shadow reads as dirt on this palette). */
   --shadow-soft: 0 1px 2px rgba(75, 81, 95, 0.04), 0 8px 24px rgba(55, 124, 244, 0.06);

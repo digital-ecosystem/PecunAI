@@ -6,7 +6,6 @@ import {
   Plus,
   Edit,
   Trash2,
-  Filter,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -42,6 +41,19 @@ interface Product {
     isActive: boolean;
   };
 }
+
+/** The four risk filters, lifted verbatim from the former `<select>`'s options. */
+const RISK_FILTERS: { value: string; label: string }[] = [
+  { value: 'all', label: 'Alle Risikotypen' },
+  { value: 'KONSERVATIV', label: 'Konservativ' },
+  { value: 'AUSGEWOGEN', label: 'Ausgewogen' },
+  { value: 'GEWINNORIENTIERT', label: 'Gewinnorientiert' },
+];
+
+const ICON_BTN_CLASS =
+  'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-text-primary transition-colors hover:bg-surface-raised focus:outline-none focus:shadow-focus-ring disabled:opacity-50 disabled:cursor-not-allowed';
+
+const COL_HEADER_CLASS = 'text-[9px] uppercase tracking-wider text-text-muted';
 
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -133,13 +145,15 @@ const ProductsPage = () => {
     GEWINNORIENTIERT: 'Gewinnorientiert',
   };
 
-  // Risk type color helper
+  // Risk type color helper — the risk axis is not the review-status axis:
+  // Konservativ shares the approved green, the two higher steps use the
+  // dedicated risk tokens, and an unset type falls back to neutral.
   const getRiskTypeColor = (riskType: string | null) => {
     switch (riskType) {
-      case 'KONSERVATIV': return 'bg-green-100 text-green-800';
-      case 'AUSGEWOGEN': return 'bg-yellow-100 text-yellow-800';
-      case 'GEWINNORIENTIERT': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'KONSERVATIV': return 'bg-status-approved text-status-approved-fg';
+      case 'AUSGEWOGEN': return 'bg-risk-balanced text-risk-balanced-fg';
+      case 'GEWINNORIENTIERT': return 'bg-risk-growth text-risk-growth-fg';
+      default: return 'bg-status-neutral text-status-neutral-fg';
     }
   };
 
@@ -147,296 +161,267 @@ const ProductsPage = () => {
     return riskType ? riskMap[riskType] || 'Nicht festgelegt' : 'Nicht festgelegt';
   };
 
+  const hasActiveFilters = searchTerm.trim() !== '' || riskFilter !== 'all';
+
   return (
-    <AdminDashboardShell contentClassName="max-w-none">
-      <div className="p-3 sm:p-4 lg:p-6">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Produktübersicht</h1>
-          <p className="text-sm sm:text-base text-gray-600">Verwalten Sie Ihren Produktkatalog und Konfigurationen</p>
+    <AdminDashboardShell contentClassName="max-w-[1180px]">
+      {/* KPI row — three flat, equal cards. This page carries three metrics, so it
+          deliberately does not use the five-metric hero composition of the other
+          admin surfaces. */}
+      <div className="mb-8 flex flex-wrap gap-3">
+        <StatCard
+          label="Gesamtprodukte"
+          value={totalCount}
+          icon={<FileText className="h-4 w-4" strokeWidth={1.75} />}
+          iconClassName="bg-surface-subtle text-accent-primary"
+        />
+        <StatCard
+          label="Gewinnorientiert"
+          value={products.filter(p => p.riskType === 'GEWINNORIENTIERT').length}
+          icon={<ShieldAlert className="h-4 w-4" strokeWidth={1.75} />}
+          iconClassName="bg-risk-growth text-risk-growth-fg"
+        />
+        <StatCard
+          label="Diesen Monat"
+          value={products.filter(p => {
+            const productDate = new Date(p.createdAt);
+            const now = new Date();
+            return productDate.getMonth() === now.getMonth() &&
+              productDate.getFullYear() === now.getFullYear();
+          }).length}
+          icon={<Calendar className="h-4 w-4" strokeWidth={1.75} />}
+          iconClassName="bg-violet text-violet-fg"
+        />
+      </div>
+
+      {/* Search · risk filter · add product */}
+      <div className="mb-[18px] flex flex-wrap items-center gap-2.5">
+        <div className="relative flex-[2] min-w-[220px] max-lg:basis-full">
+          <Search
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
+            strokeWidth={1.75}
+          />
+          <input
+            type="text"
+            placeholder="Produkte suchen..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full rounded-[14px] bg-surface-card py-2.5 pl-10 pr-3.5 text-xs text-text-primary shadow-soft outline-none placeholder:text-text-muted focus:shadow-focus-ring"
+          />
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Gesamtprodukte</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{totalCount}</p>
-              </div>
-              <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
-                <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          {/* <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Products</p>
-                <p className="text-2xl font-bold text-gray-900">{products.length}</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-lg">
-                <TrendingUp className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div> */}
-
-          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Gewinnorientiert</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                  {products.filter(p => p.riskType === 'GEWINNORIENTIERT').length}
-                </p>
-              </div>
-              <div className="p-2 sm:p-3 bg-red-100 rounded-lg flex-shrink-0">
-                <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-red-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Diesen Monat</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                  {products.filter(p => {
-                    const productDate = new Date(p.createdAt);
-                    const now = new Date();
-                    return productDate.getMonth() === now.getMonth() &&
-                      productDate.getFullYear() === now.getFullYear();
-                  }).length}
-                </p>
-              </div>
-              <div className="p-2 sm:p-3 bg-purple-100 rounded-lg flex-shrink-0">
-                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters and Actions */}
-        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex flex-col sm:flex-row gap-4 flex-1">
-              {/* Search */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
-                <input
-                  type="text"
-                  placeholder="Produkte suchen..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
-                />
-              </div>
-
-              {/* Risk Filter */}
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
-                <select
-                  value={riskFilter}
-                  onChange={(e) => setRiskFilter(e.target.value)}
-                  className="w-full sm:w-auto pl-9 sm:pl-10 pr-8 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white text-sm sm:text-base"
-                >
-                  <option value="all">Alle Risikotypen</option>
-                  <option value="KONSERVATIV">Konservativ</option>
-                  <option value="AUSGEWOGEN">Ausgewogen</option>
-                  <option value="GEWINNORIENTIERT">Gewinnorientiert</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Add Product Button */}
+        <div className="flex flex-wrap gap-1.5 max-lg:basis-full">
+          {RISK_FILTERS.map((option) => (
             <button
-              onClick={() => router.push('/admin/products/add')}
-              className="flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+              key={option.value}
+              type="button"
+              onClick={() => setRiskFilter(option.value)}
+              aria-pressed={riskFilter === option.value}
+              className={`rounded-xl px-3 py-2 text-[11px] transition-shadow max-lg:flex-1 max-lg:text-center ${riskFilter === option.value
+                ? 'bg-accent-primary text-text-on-accent'
+                : 'bg-surface-card text-text-primary shadow-soft hover:shadow-raised'
+                }`}
             >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">Produkt hinzufügen</span>
-              <span className="sm:hidden">Hinzufügen</span>
+              {option.label}
             </button>
-          </div>
+          ))}
         </div>
 
-        {/* Products Table */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          {isLoading ? (
-            <div className="flex items-center justify-center p-8 sm:p-12">
-              <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-blue-600" />
+        <button
+          onClick={() => router.push('/admin/products/add')}
+          className="flex items-center gap-2 whitespace-nowrap rounded-xl bg-accent-primary px-4 py-2.5 text-xs font-semibold text-text-on-accent shadow-soft transition-colors hover:bg-accent-primary-hov max-lg:basis-full max-lg:justify-center"
+        >
+          <Plus className="h-4 w-4" strokeWidth={1.75} />
+          <span className="hidden sm:inline">Produkt hinzufügen</span>
+          <span className="sm:hidden">Hinzufügen</span>
+        </button>
+      </div>
+
+      {/* Products list */}
+      {isLoading ? (
+        <div className="flex items-center justify-center rounded-[14px] bg-surface-card px-5 py-12 shadow-soft">
+          <Loader2 className="h-7 w-7 animate-spin text-accent-primary" />
+        </div>
+      ) : products.length === 0 ? (
+        <div className="flex flex-col items-center rounded-[14px] bg-surface-card px-5 py-8 text-center shadow-soft">
+          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-surface-subtle text-accent-primary">
+            <FileText className="h-[18px] w-[18px]" strokeWidth={1.75} />
+          </div>
+          <div className="mb-1 text-[13px] font-semibold text-text-primary">Keine Produkte gefunden</div>
+          {hasActiveFilters ? (
+            <div className="max-w-[280px] text-[11px] text-text-muted">
+              Versuchen Sie, Ihre Such- oder Filterkriterien anzupassen.
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm">Produkt</th>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell">Risikotyp</th>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden md:table-cell">Anlagehorizont</th>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden lg:table-cell">PDF</th>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden xl:table-cell">Nutzung</th>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell">Erstellt</th>
-                      <th className="text-right p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm">Aktionen</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {products.map((product) => (
-                      <tr key={product.id} className="hover:bg-gray-50">
-                        <td className="p-3 sm:p-4">
-                          <div>
-                            <div className="font-medium text-gray-900 text-sm sm:text-base">{product.name}</div>
-                            {product.shortName && (
-                              <div className="text-xs sm:text-sm text-gray-500">{product.shortName}</div>
-                            )}
-                            {product.description && (
-                              <div className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2">
-                                {product.description}
-                              </div>
-                            )}
-                            {/* Mobile-only additional info */}
-                            <div className="mt-2 space-y-1 sm:hidden">
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskTypeColor(product.riskType)}`}>
-                                  {getRiskTypeText(product.riskType)}
-                                </span>
-                              </div>
-                              {(product.minimumYear !== null || product.maximumYear !== null) && (
-                                <div className="text-xs text-gray-500">
-                                  Horizont: {product.minimumYear !== null ? `${product.minimumYear}` : '0'} - {product.maximumYear !== null ? `${product.maximumYear}` : '∞'} Jahre
-                                </div>
-                              )}
-                              <div className="text-xs text-gray-400">
-                                {new Date(product.createdAt).toLocaleDateString()}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-3 sm:p-4 hidden sm:table-cell">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskTypeColor(product.riskType)}`}>
-                            {getRiskTypeText(product.riskType)}
-                          </span>
-                        </td>
-                        <td className="p-3 sm:p-4 hidden md:table-cell">
-                          <div className="text-xs sm:text-sm text-gray-900">
-                            {product.minimumYear !== null || product.maximumYear !== null ? (
-                              <>
-                                {product.minimumYear !== null ? `${product.minimumYear}` : '0'} - {product.maximumYear !== null ? `${product.maximumYear}` : '∞'} Jahre
-                              </>
-                            ) : (
-                              '—'
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-3 sm:p-4 hidden lg:table-cell">
-                          {product.fileName ? (
-                            <a
-                              href={`/api/products/file/${product.fileName.replace(/^\/products\//, '')}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs sm:text-sm"
-                            >
-                              <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
-                              <span className="hidden xl:inline">PDF anzeigen</span>
-                              <span className="xl:hidden">PDF</span>
-                            </a>
-                          ) : (
-                            <span className="text-gray-400 text-xs sm:text-sm">Kein PDF</span>
-                          )}
-                        </td>
-                        <td className="p-3 sm:p-4 hidden xl:table-cell">
-                          <div className="text-xs sm:text-sm text-gray-900">
-                            <div>{product._count.productSuggestions} Vorschläge</div>
-                            <div className="text-gray-500">{product._count.aiSettings} KI-Konfigurationen</div>
-                          </div>
-                        </td>
-                        <td className="p-3 sm:p-4 hidden sm:table-cell">
-                          <div className="text-xs sm:text-sm text-gray-900">
-                            {new Date(product.createdAt).toLocaleDateString()}
-                          </div>
-                        </td>
-                        <td className="p-3 sm:p-4">
-                          <div className="flex items-center justify-end gap-1 sm:gap-2">
-                            <button
-                              onClick={() => router.push(`/admin/products/${product.id}`)}
-                              className="p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="View Details"
-                            >
-                              <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </button>
-                            <button
-                              onClick={() => router.push(`/admin/products/${product.id}/edit`)}
-                              className="p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Edit Product"
-                            >
-                              <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(product)}
-                              className="p-1.5 sm:p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete Product"
-                            >
-                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="mb-4 max-w-[280px] text-[11px] text-text-muted">
+                Beginnen Sie mit der Erstellung Ihres ersten Produkts
               </div>
-
-              {products.length === 0 && !isLoading && (
-                <div className="text-center py-8 sm:py-12 px-4">
-                  <FileText className="w-8 h-8 sm:w-12 sm:h-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Keine Produkte gefunden</h3>
-                  <p className="text-sm sm:text-base text-gray-500 mb-4">Beginnen Sie mit der Erstellung Ihres ersten Produkts</p>
-                  <button
-                    onClick={() => router.push('/admin/products/add')}
-                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
-                  >
-                    <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                    Produkt hinzufügen
-                  </button>
-                </div>
-              )}
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="border-t border-gray-200 px-4 sm:px-6 py-4">
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
-                      Zeige {((currentPage - 1) * 10) + 1} bis {Math.min(currentPage * 10, totalCount)} von {totalCount} Produkten
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        disabled={currentPage === 1}
-                        className="p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
-                      <span className="px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-gray-900">
-                        {currentPage} von {totalPages}
-                      </span>
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                        disabled={currentPage === totalPages}
-                        className="p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <button
+                onClick={() => router.push('/admin/products/add')}
+                className="inline-flex items-center gap-2 rounded-xl bg-accent-primary px-4 py-2.5 text-xs font-semibold text-text-on-accent shadow-soft transition-colors hover:bg-accent-primary-hov"
+              >
+                <Plus className="h-4 w-4" strokeWidth={1.75} />
+                Produkt hinzufügen
+              </button>
             </>
           )}
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Column headers — seven labelled columns, hidden below lg where the
+              rows reflow into two-column cards. */}
+          <div className="mb-0.5 hidden items-center gap-4 px-[18px] lg:flex">
+            <div className={`min-w-[220px] flex-[2.2] ${COL_HEADER_CLASS}`}>Produkt</div>
+            <div className={`flex-[0.9] ${COL_HEADER_CLASS}`}>Risikotyp</div>
+            <div className={`flex-[0.9] ${COL_HEADER_CLASS}`}>Anlagehorizont</div>
+            <div className={`flex-[0.8] ${COL_HEADER_CLASS}`}>PDF</div>
+            <div className={`flex-1 ${COL_HEADER_CLASS}`}>Nutzung</div>
+            <div className={`flex-[0.8] ${COL_HEADER_CLASS}`}>Erstellt</div>
+            <div className={`flex-[0.7] text-right ${COL_HEADER_CLASS}`}>Aktionen</div>
+          </div>
+
+          <div className="flex flex-col gap-2.5">
+            {products.map((product) => (
+              <div
+                key={product.id}
+                className="grid grid-cols-2 items-start gap-x-3.5 gap-y-2.5 rounded-[14px] bg-surface-card p-[18px] shadow-soft transition-shadow hover:shadow-raised lg:flex lg:items-center lg:gap-4"
+              >
+                <div className="col-span-2 min-w-0 lg:min-w-[220px] lg:flex-[2.2]">
+                  <div className="text-sm font-semibold text-text-primary">{product.name}</div>
+                  {product.shortName && (
+                    <div className="mb-1 text-[10px] text-text-muted">{product.shortName}</div>
+                  )}
+                  {product.description && (
+                    <div className="line-clamp-2 text-[11px] leading-relaxed text-text-muted" title={product.description}>
+                      {product.description}
+                    </div>
+                  )}
+                </div>
+
+                <div className="lg:flex-[0.9]">
+                  <span className={`inline-block rounded-lg px-2.5 py-1 text-[10px] font-medium ${getRiskTypeColor(product.riskType)}`}>
+                    {getRiskTypeText(product.riskType)}
+                  </span>
+                </div>
+
+                <div className="text-[11px] text-text-primary max-lg:text-right lg:flex-[0.9]">
+                  {product.minimumYear !== null || product.maximumYear !== null ? (
+                    <>
+                      {product.minimumYear !== null ? `${product.minimumYear}` : '0'} - {product.maximumYear !== null ? `${product.maximumYear}` : '∞'} Jahre
+                    </>
+                  ) : (
+                    '—'
+                  )}
+                </div>
+
+                <div className="min-w-0 lg:flex-[0.8]">
+                  {product.fileName ? (
+                    <a
+                      href={`/api/products/file/${product.fileName.replace(/^\/products\//, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[11px] text-accent-primary transition-colors hover:text-accent-primary-hov"
+                    >
+                      <FileText className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.75} />
+                      <span className="hidden xl:inline">PDF anzeigen</span>
+                      <span className="xl:hidden">PDF</span>
+                    </a>
+                  ) : (
+                    <span className="text-[11px] text-text-muted">Kein PDF</span>
+                  )}
+                </div>
+
+                <div className="col-span-2 rounded-[10px] text-[11px] leading-relaxed text-text-muted max-lg:order-6 max-lg:bg-surface-subtle max-lg:px-2.5 max-lg:py-2 lg:flex-1">
+                  <div>
+                    <span className="font-semibold tabular-nums text-text-primary">{product._count.productSuggestions}</span> Vorschläge
+                  </div>
+                  <div>
+                    <span className="font-semibold tabular-nums text-text-primary">{product._count.aiSettings}</span> KI-Konfigurationen
+                  </div>
+                </div>
+
+                <div className="text-[11px] tabular-nums text-text-muted max-lg:order-5 max-lg:text-right lg:flex-[0.8]">
+                  {new Date(product.createdAt).toLocaleDateString()}
+                </div>
+
+                <div className="col-span-2 flex items-center gap-1.5 max-lg:order-7 max-lg:border-t max-lg:border-line-soft max-lg:pt-2.5 lg:flex-[0.7] lg:justify-end">
+                  <button
+                    onClick={() => router.push(`/admin/products/${product.id}`)}
+                    className={ICON_BTN_CLASS}
+                    title="View Details"
+                  >
+                    <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  </button>
+                  <button
+                    onClick={() => router.push(`/admin/products/${product.id}/edit`)}
+                    className={ICON_BTN_CLASS}
+                    title="Edit Product"
+                  >
+                    <Edit className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(product)}
+                    className={`${ICON_BTN_CLASS} hover:bg-status-flagged hover:text-status-flagged-fg`}
+                    title="Delete Product"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-2.5 flex items-center justify-center gap-2 rounded-[14px] bg-surface-card px-[18px] py-3 shadow-soft">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                aria-label="Vorherige Seite"
+                className={ICON_BTN_CLASS}
+              >
+                <ChevronLeft className="h-4 w-4" strokeWidth={1.75} />
+              </button>
+              <span className="px-2 text-[11px] font-medium tabular-nums text-text-primary">
+                {currentPage} von {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                aria-label="Nächste Seite"
+                className={ICON_BTN_CLASS}
+              >
+                <ChevronRight className="h-4 w-4" strokeWidth={1.75} />
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </AdminDashboardShell>
   );
 };
+
+const StatCard = ({
+  label,
+  value,
+  icon,
+  iconClassName,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  iconClassName: string;
+}) => (
+  <div className="flex min-w-[180px] flex-1 items-center gap-3.5 rounded-[14px] bg-surface-card px-[18px] py-4 shadow-soft transition-shadow hover:shadow-raised max-sm:basis-full">
+    <div className={`flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-xl ${iconClassName}`}>
+      {icon}
+    </div>
+    <div className="min-w-0">
+      <div className="mb-[3px] truncate text-xs text-text-muted">{label}</div>
+      <div className="text-[22px] font-semibold leading-none tabular-nums text-text-primary">{value}</div>
+    </div>
+  </div>
+);
 
 export default ProductsPage;
