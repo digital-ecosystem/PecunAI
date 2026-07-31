@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
+import { zeroAllowedLabel } from "@/lib/questionRules";
 import { X, ArrowRight, Info, Edit3 } from "lucide-react";
 import type { FrameRect } from "./frameMath";
 import type { ModalQuestion, QuestionOption } from "./VoiceQuestionModal";
@@ -160,8 +161,11 @@ export function ExpandedQuestionCard({
   }, [preSelectedValue, question.options, isChoice]);
 
   const numVal   = isNumber ? parseInt(inputValue, 10) : NaN;
+  // Optional amounts accept 0 meaning "none"; 1–(minValue−1) stays invalid. Shared with
+  // VoiceQuestionModal and the voice path via ZERO_ALLOWED_QUESTIONS.
+  const zeroLabel = zeroAllowedLabel(question.questionOrder);
   const belowMin = isNumber && question.minValue !== undefined && !isNaN(numVal) &&
-    (question.questionOrder === 19 ? (numVal !== 0 && numVal < question.minValue) : numVal < question.minValue);
+    (zeroLabel ? (numVal !== 0 && numVal < question.minValue) : numVal < question.minValue);
   const aboveMax = isNumber && question.maxValue !== undefined && !isNaN(numVal) && numVal > question.maxValue;
   const hasError = belowMin || aboveMax;
 
@@ -473,8 +477,8 @@ export function ExpandedQuestionCard({
                   <div className="px-1 space-y-0.5" style={{ marginTop: 6 }}>
                     {question.minValue !== undefined && (
                       <p className="text-xs" style={{ color: "rgba(100,116,139,0.65)" }}>
-                        {question.questionOrder === 19
-                          ? `Entweder 0 (kein Sparplan) oder mind. ${formatValue(question.minValue, question.inputPlaceholder)}`
+                        {zeroLabel
+                          ? `Entweder 0 (${zeroLabel}) oder mind. ${formatValue(question.minValue, question.inputPlaceholder)}`
                           : `Mindestwert: ${formatValue(question.minValue, question.inputPlaceholder)}`}
                       </p>
                     )}
@@ -488,8 +492,8 @@ export function ExpandedQuestionCard({
                 {hasError && (
                   <p className="text-sm" style={{ color: "rgba(239,68,68,1)" }}>
                     {belowMin
-                      ? question.questionOrder === 19
-                        ? `Bitte 0 (kein Sparplan) oder mindestens €${question.minValue?.toLocaleString("de-AT")} eingeben`
+                      ? zeroLabel
+                        ? `Bitte 0 (${zeroLabel}) oder mindestens €${question.minValue?.toLocaleString("de-AT")} eingeben`
                         : `Mindestwert ist ${question.minValue?.toLocaleString("de-AT")}`
                       : `Höchstwert ist ${question.maxValue?.toLocaleString("de-AT")}`}
                   </p>

@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { zeroAllowedLabel } from "@/lib/questionRules";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 export interface QuestionOption {
@@ -83,9 +84,11 @@ export default function VoiceQuestionModal({ question, onClose, onNext, preSelec
   }, [preSelectedValue, question.options, isChoice]);
 
   const numVal   = isNumber ? parseInt(inputValue, 10) : NaN;
-  // Q19 (monthly savings): 0 is valid (no savings plan), 1–74 invalid, 75+ valid.
+  // Some amounts are optional: 0 means "none", while 1–(minValue−1) stays invalid. Which questions
+  // those are lives in ZERO_ALLOWED_QUESTIONS so the voice path enforces the same rule.
+  const zeroLabel = zeroAllowedLabel(question.questionOrder);
   const belowMin = isNumber && question.minValue !== undefined && !isNaN(numVal) &&
-    (question.questionOrder === 19 ? (numVal !== 0 && numVal < question.minValue) : numVal < question.minValue);
+    (zeroLabel ? (numVal !== 0 && numVal < question.minValue) : numVal < question.minValue);
   const aboveMax = isNumber && question.maxValue !== undefined && !isNaN(numVal) && numVal > question.maxValue;
   const hasError = belowMin || aboveMax;
 
@@ -296,8 +299,8 @@ export default function VoiceQuestionModal({ question, onClose, onNext, preSelec
               />
               {question.minValue !== undefined && (
                 <p className="text-xs" style={{ color: "rgba(100,116,139,0.6)" }}>
-                  {question.questionOrder === 19
-                    ? `Entweder 0 (kein Sparplan) oder mind. ${formatValue(question.minValue, question.inputPlaceholder)}`
+                  {zeroLabel
+                    ? `Entweder 0 (${zeroLabel}) oder mind. ${formatValue(question.minValue, question.inputPlaceholder)}`
                     : `Mindestwert: ${formatValue(question.minValue, question.inputPlaceholder)}`}
                 </p>
               )}
@@ -309,8 +312,8 @@ export default function VoiceQuestionModal({ question, onClose, onNext, preSelec
               {hasError && (
                 <p className="text-sm" style={{ color: "rgba(239,68,68,1)" }}>
                   {belowMin
-                    ? question.questionOrder === 19
-                      ? `Bitte 0 (kein Sparplan) oder mindestens €${question.minValue?.toLocaleString("de-AT")} eingeben`
+                    ? zeroLabel
+                      ? `Bitte 0 (${zeroLabel}) oder mindestens €${question.minValue?.toLocaleString("de-AT")} eingeben`
                       : `Mindestwert ist ${question.minValue?.toLocaleString("de-AT")}`
                     : `Höchstwert ist ${question.maxValue?.toLocaleString("de-AT")}`}
                 </p>

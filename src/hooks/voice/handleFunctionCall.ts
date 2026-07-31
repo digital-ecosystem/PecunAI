@@ -1,6 +1,7 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, BLOCKER_SYSTEM_MSG, BLOCKER_Q3_INSTRUCTIONS, BLOCKER_Q4_INSTRUCTIONS, BLOCKER_Q7_INSTRUCTIONS, BLOCKER_ASSET_KNOWLEDGE_INSTRUCTIONS, ASSET_KNOWLEDGE_CONTEXT_MSG, ASSET_KNOWLEDGE_INTRO_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./prompts";
+import { zeroAllowedLabel } from "@/lib/questionRules";
 import type { VoiceContext } from "./voiceContext";
 
 export async function handleFunctionCall(
@@ -91,19 +92,20 @@ export async function handleFunctionCall(
             sendResult({ success: false, reason: `"${value}" is not a valid number.` });
             return;
           }
-          // FORM-001: Q19 (monthly savings) allows 0 (no plan) or 75+. 1–74 is invalid.
-          if (validatingQ.questionOrder === 19) {
-            if (num !== 0 && num < 75) {
-              pendingVoiceTranscriptRef.current = null;
-              sendResult({ success: false, reason: `Monthly savings must be either 0 (no savings plan) or at least €75. Values between 1 and 74 are not valid.` });
-              return;
-            }
-          } else {
-            if (validatingQ.minValue !== undefined && num < validatingQ.minValue) {
-              pendingVoiceTranscriptRef.current = null;
-              sendResult({ success: false, reason: `Value must be at least ${validatingQ.minValue}.` });
-              return;
-            }
+          // FORM-001: optional amounts (lump sum, savings plan) accept 0 meaning "none", while
+          // 1–(minValue−1) stays invalid. The bound comes from the DB — the old code hardcoded 75
+          // here, which would silently drift from the configured minValue.
+          const zeroLabel = zeroAllowedLabel(validatingQ.questionOrder);
+          if (
+            validatingQ.minValue !== undefined &&
+            num < validatingQ.minValue &&
+            !(zeroLabel && num === 0)
+          ) {
+            pendingVoiceTranscriptRef.current = null;
+            sendResult({ success: false, reason: zeroLabel
+              ? `This amount must be either 0 (${zeroLabel}) or at least ${validatingQ.minValue}. Values between 1 and ${validatingQ.minValue - 1} are not valid.`
+              : `Value must be at least ${validatingQ.minValue}.` });
+            return;
           }
           if (validatingQ.maxValue !== undefined && num > validatingQ.maxValue) {
             pendingVoiceTranscriptRef.current = null;

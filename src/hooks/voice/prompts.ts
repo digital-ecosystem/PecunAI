@@ -3,6 +3,7 @@
 
 import { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import { ExplainOverlayData, ProductData } from "./types";
+import { zeroAllowedLabel } from "@/lib/questionRules";
 import { computeGebuehren } from "@/lib/gebuehren";
 import { formatEuro } from "@/utils/helper";
 
@@ -62,13 +63,15 @@ export function buildSystemPrompt(
       if (q.options?.length) {
         extra = `\n  Valid values: ${q.options.map(o => `"${o.value ?? o.label}"`).join(", ")}`;
       } else if (q.questionType === "number") {
-        if (q.questionOrder === 19) {
-          // Monthly savings: 0 = no savings plan (valid), 1–74 invalid, 75+ valid
-          const max = q.maxValue !== undefined ? `, max ${q.maxValue}` : "";
-          extra = `\n  Format: number${max}\n  RULE: 0 is valid (customer wants no monthly savings plan). 1–74 is invalid. 75 or more is valid. If the customer says 0 or "no monthly savings plan" or "no recurring investment", accept it and call submit_answer with "0".`;
+        // Optional amounts (lump sum, savings plan) accept 0 meaning "none". Bounds come from the
+        // question row — this used to hardcode 75 for Q19 and gave Q18 a plain minimum, so the
+        // model refused 0 for the lump sum. See ZERO_ALLOWED_QUESTIONS in @/lib/questionRules.
+        const zeroLabel = zeroAllowedLabel(q.questionOrder);
+        const max = q.maxValue !== undefined ? `, max ${q.maxValue}` : "";
+        if (zeroLabel && q.minValue !== undefined) {
+          extra = `\n  Format: number${max}\n  RULE: 0 is valid — it means "${zeroLabel}", i.e. the customer wants none of this. 1–${q.minValue - 1} is invalid. ${q.minValue} or more is valid. If the customer says 0, or says they do not want this at all, accept it and call submit_answer with "0".`;
         } else {
           const min = q.minValue !== undefined ? `, min ${q.minValue}` : "";
-          const max = q.maxValue !== undefined ? `, max ${q.maxValue}` : "";
           extra = `\n  Format: number${min}${max}`;
         }
       } else {
