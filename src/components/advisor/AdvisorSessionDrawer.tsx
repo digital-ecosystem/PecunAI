@@ -237,7 +237,7 @@ export default function AdvisorSessionDrawer({
                 ) : (
                   <div className="flex flex-col gap-3">
                     <p className="text-sm text-gray-500">Sie müssen das Dokument noch vollständig unterschreiben.</p>
-                    {selectedSession?.workflowState?.stepData?.signteq?.status === 'FIRST_DOCUMENT_COMPLETED' && onResendAdvisorLink && (
+                    {selectedSession?.workflowState?.stepData?.signteq?.documentId && onResendAdvisorLink && (
                       <button
                         onClick={() => onResendAdvisorLink(selectedSession.id)}
                         disabled={isResendingAdvisorLink}
