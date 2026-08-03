@@ -36,6 +36,9 @@ export async function GET(
     });
 
     const stepData  = (ws?.stepData ?? {}) as Record<string, unknown>;
+    // Phase 1 compliance stop — the page renders the blocked notice instead of resuming. Read here
+    // rather than via a new endpoint because the page already calls this on mount.
+    const isBlocked = !!stepData.sessionBlocked;
     const voice     = (stepData.voice ?? {}) as Record<string, unknown>;
 
     const lastIndex    = typeof voice.lastQuestionIndex === "number" ? voice.lastQuestionIndex : 0;
@@ -56,6 +59,7 @@ export async function GET(
       termsSubStep,
       isRevisiting,
       currentPhase:      session?.phase ?? null,
+      isBlocked,
       phase6Chat,
     });
   } catch (error) {

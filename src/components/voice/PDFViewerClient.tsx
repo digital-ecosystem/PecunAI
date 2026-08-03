@@ -25,7 +25,9 @@ interface PDFViewerClientProps {
   onScaleChange?: (scale: number) => void;
 }
 
-// Hide scrollbars visually without blocking programmatic scroll (needed for jumpToPage)
+// Hide scrollbars visually without blocking programmatic scroll (needed for jumpToPage).
+// Compact preview only — in full-screen the scrollbars are the affordance for panning a
+// zoomed page, and dragging one is how you do it on desktop.
 const HIDE_SCROLLBAR_CSS = `
   .pdf-ns .rpv-core__inner-pages,
   .pdf-ns .rpv-core__inner-page-container--single {
@@ -107,12 +109,18 @@ export default function PDFViewerClient({
 
   return (
     <div ref={wrapRef} className="pdf-ns" style={{ overflow: "hidden", width: "100%", height: "100%" }}>
-      <style>{HIDE_SCROLLBAR_CSS}</style>
+      {!allowScroll && <style>{HIDE_SCROLLBAR_CSS}</style>}
       <Worker workerUrl={CONFIG.EXTERNAL.PDF_WORKER_URL}>
         <Viewer
           fileUrl={fileUrl}
           defaultScale={SpecialZoomLevel.PageWidth}
-          scrollMode={ScrollMode.Page}
+          // Page mode fits and centres a single page and clips the overflow, so a zoomed page has
+          // nowhere to scroll to — you magnify one spot and are stuck there. Correct for the
+          // compact preview (the parent drives pages with arrows and blocks scrolling entirely),
+          // wrong for full-screen, where zooming is the point. Vertical mode lets the normal
+          // scroller pan a zoomed page in both axes. jumpToPage is unaffected, so the page arrows
+          // and the page counter keep working. See TEAM_REVIEW_FIXES_PLAN.md.
+          scrollMode={allowScroll ? ScrollMode.Vertical : ScrollMode.Page}
           plugins={[navPlugin]}
           initialPage={currentPage - 1}
           onDocumentLoad={(e) => onLoadSuccess(e.doc.numPages)}

@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import { Agent, Session, SessionStatus, User } from '@/types';
+import SessionBlockedModal from '@/components/customer/SessionBlockedModal';
 import {
     AlertTriangle,
     Ban,
@@ -41,6 +42,9 @@ const Dashboard = () => {
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [user, setUser] = useState<User | null>(null);
     const [sessions, setSessions] = useState<Session[]>([]);
+    // Set when the customer taps a session ended by a Phase 1 compliance blocker — all three
+    // navigation paths below open this instead of routing into an unresumable session.
+    const [showBlockedModal, setShowBlockedModal] = useState(false);
     const router = useRouter();
     const [loading, setLoading] = useState<boolean>(false);
     const [isStartDrawerOpen, setIsStartDrawerOpen] = useState(false);
@@ -343,6 +347,7 @@ const Dashboard = () => {
     ];
 
     const openSessionRoute = (session: Session) => {
+        if (session.isBlocked) { setShowBlockedModal(true); return; }
         if (session.status === SessionStatus.DRAFT) {
             router.push('/customer/voice-session/' + session.id);
         }
@@ -418,7 +423,10 @@ const Dashboard = () => {
                                                     Sie haben bereits eine offene Beratung. Bitte zuerst abschließen.
                                                 </p>
                                                 <button
-                                                    onClick={() => router.push('/customer/voice-session/' + openSession.id)}
+                                                    onClick={() => {
+                                                            if (openSession.isBlocked) { setShowBlockedModal(true); return; }
+                                                            router.push('/customer/voice-session/' + openSession.id);
+                                                        }}
                                                     className="w-full rounded-xl bg-accent-primary px-4 py-2.5 text-sm font-medium text-text-on-accent transition-colors hover:bg-accent-primary-hov"
                                                 >
                                                     Fortsetzen
@@ -791,7 +799,12 @@ const Dashboard = () => {
 
                         {/* Floating Action Button */}
                         <button
-                            onClick={openSession?.id ? () => router.push('/customer/voice-session/' + openSession.id) : handleStartNow}
+                            onClick={openSession?.id
+                                        ? () => {
+                                            if (openSession.isBlocked) { setShowBlockedModal(true); return; }
+                                            router.push('/customer/voice-session/' + openSession.id);
+                                        }
+                                        : handleStartNow}
                             disabled={false}
                             className="fixed bottom-4 right-4 z-[25] flex cursor-pointer items-center gap-2 rounded-2xl bg-accent-primary px-[18px] py-3 text-xs font-semibold text-text-on-accent shadow-overlay transition-colors hover:bg-accent-primary-hov sm:bottom-7 sm:right-7 sm:px-[22px] sm:py-3.5 sm:text-[13px]"
                         >
@@ -803,6 +816,7 @@ const Dashboard = () => {
                 )
             }
 
+            {showBlockedModal && <SessionBlockedModal onClose={() => setShowBlockedModal(false)} />}
         </>
     );
 };

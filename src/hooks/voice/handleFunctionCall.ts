@@ -1,6 +1,7 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
-import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_CONTEXT_MSG, ASSET_KNOWLEDGE_INTRO_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./prompts";
+import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, BLOCKER_SYSTEM_MSG, BLOCKER_Q3_INSTRUCTIONS, BLOCKER_Q4_INSTRUCTIONS, BLOCKER_Q7_INSTRUCTIONS, BLOCKER_ASSET_KNOWLEDGE_INSTRUCTIONS, ASSET_KNOWLEDGE_CONTEXT_MSG, ASSET_KNOWLEDGE_INTRO_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./prompts";
+import { zeroAllowedLabel } from "@/lib/questionRules";
 import type { VoiceContext } from "./voiceContext";
 
 export async function handleFunctionCall(
@@ -17,7 +18,7 @@ export async function handleFunctionCall(
     sustainabilityConfirmedRef, pendingVoiceTranscriptRef, applyPendingTranscriptRef,
     skipInProgressRef, prevInProgressRef, assetKnowledgeShownRef, pendingPhaseTransitionRef, fastModeRef, mutedRef,
     explainAwaitConfirmRef, explainAssetOrderRef,
-    send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase,
+    send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, blockSession, advancePhase,
     advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign,
     backToPersonalInfo, backToInvestment, backToContracts, setIsRevisiting_internal, router, sessionId,
     setPendingVoiceAnswer, setExplainOverlayData, setTermsSubStep,
@@ -91,19 +92,20 @@ export async function handleFunctionCall(
             sendResult({ success: false, reason: `"${value}" is not a valid number.` });
             return;
           }
-          // FORM-001: Q19 (monthly savings) allows 0 (no plan) or 75+. 1–74 is invalid.
-          if (validatingQ.questionOrder === 19) {
-            if (num !== 0 && num < 75) {
-              pendingVoiceTranscriptRef.current = null;
-              sendResult({ success: false, reason: `Monthly savings must be either 0 (no savings plan) or at least €75. Values between 1 and 74 are not valid.` });
-              return;
-            }
-          } else {
-            if (validatingQ.minValue !== undefined && num < validatingQ.minValue) {
-              pendingVoiceTranscriptRef.current = null;
-              sendResult({ success: false, reason: `Value must be at least ${validatingQ.minValue}.` });
-              return;
-            }
+          // FORM-001: optional amounts (lump sum, savings plan) accept 0 meaning "none", while
+          // 1–(minValue−1) stays invalid. The bound comes from the DB — the old code hardcoded 75
+          // here, which would silently drift from the configured minValue.
+          const zeroLabel = zeroAllowedLabel(validatingQ.questionOrder);
+          if (
+            validatingQ.minValue !== undefined &&
+            num < validatingQ.minValue &&
+            !(zeroLabel && num === 0)
+          ) {
+            pendingVoiceTranscriptRef.current = null;
+            sendResult({ success: false, reason: zeroLabel
+              ? `This amount must be either 0 (${zeroLabel}) or at least ${validatingQ.minValue}. Values between 1 and ${validatingQ.minValue - 1} are not valid.`
+              : `Value must be at least ${validatingQ.minValue}.` });
+            return;
           }
           if (validatingQ.maxValue !== undefined && num > validatingQ.maxValue) {
             pendingVoiceTranscriptRef.current = null;
@@ -182,14 +184,18 @@ export async function handleFunctionCall(
 
       // ── BLOCKER: Q3 sustainability info not received → session ends ──
       if (validatingQ?.questionOrder === 3 && value === "no") {
+        blockSession("q3_sustainability_info_not_received");
         pendingVoiceTranscriptRef.current = null;
         sendResult({ success: true });
         pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
+        // Required before the override — see BLOCKER_SYSTEM_MSG's declaration.
+        send({
+          type: "conversation.item.create",
+          item: { type: "message", role: "user", content: [{ type: "input_text", text: BLOCKER_SYSTEM_MSG }] },
+        });
         send({
           type: "response.create",
-          response: {
-            instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat angegeben, die Nachhaltigkeitsinformationen nicht erhalten zu haben. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist es erforderlich, dass Sie die Nachhaltigkeitsinformationen zur Kenntnis genommen haben, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`,
-          },
+          response: { instructions: BLOCKER_Q3_INSTRUCTIONS(langRef.current) },
         });
         return;
       }
@@ -198,14 +204,18 @@ export async function handleFunctionCall(
       // "yes" (must have sustainable) or "no" (refuses all sustainable) → session ends.
       // "neutral" → continue normally.
       if (validatingQ?.questionOrder === 4 && (value === "yes" || value === "no")) {
+        blockSession("q4_sustainability_preference_unsupported");
         pendingVoiceTranscriptRef.current = null;
         sendResult({ success: true });
         pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
+        // Required before the override — see BLOCKER_SYSTEM_MSG's declaration.
+        send({
+          type: "conversation.item.create",
+          item: { type: "message", role: "user", content: [{ type: "input_text", text: BLOCKER_SYSTEM_MSG }] },
+        });
         send({
           type: "response.create",
-          response: {
-            instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat eine Nachhaltigkeitspräferenz angegeben, die mit dem aktuellen Produktangebot nicht abgedeckt werden kann. Erklären Sie in 2–3 Sätzen freundlich aber klar: Aufgrund der angegebenen Nachhaltigkeitspräferenzen ist eine persönliche Beratung erforderlich — das aktuelle Produktangebot deckt diese Präferenz nicht vollständig ab. Ein Berater wird sich in Kürze bei Ihnen melden. Verabschieden Sie sich herzlich.`,
-          },
+          response: { instructions: BLOCKER_Q4_INSTRUCTIONS(langRef.current) },
         });
         return;
       }
@@ -218,14 +228,18 @@ export async function handleFunctionCall(
         const income     = parseFloat(incomeStr ?? "0");
         const expenses   = parseFloat(value);
         if (!isNaN(income) && !isNaN(expenses) && (income - expenses) <= 150) {
+          blockSession("q7_insufficient_disposable_income");
           pendingVoiceTranscriptRef.current = null;
           sendResult({ success: true });
           pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
+          // Required before the override — see BLOCKER_SYSTEM_MSG's declaration.
+          send({
+            type: "conversation.item.create",
+            item: { type: "message", role: "user", content: [{ type: "input_text", text: BLOCKER_SYSTEM_MSG }] },
+          });
           send({
             type: "response.create",
-            response: {
-              instructions: `${ADVISOR_PERSONA(langRef.current)} Das verfügbare monatliche Einkommen des Kunden beträgt nach Abzug der Ausgaben weniger als 150 Euro. Erklären Sie in 2–3 Sätzen verständnisvoll: Aufgrund der angegebenen finanziellen Verhältnisse ist eine Investition zum aktuellen Zeitpunkt leider nicht empfehlenswert — das verfügbare monatliche Budget reicht für eine sinnvolle Anlage nicht aus. Eine persönliche Beratung wird empfohlen. Verabschieden Sie sich herzlich.`,
-            },
+            response: { instructions: BLOCKER_Q7_INSTRUCTIONS(langRef.current) },
           });
           return;
         }
@@ -238,14 +252,18 @@ export async function handleFunctionCall(
       // so this can't be bypassed by advancePhase() if it happens to be the last remaining question.
       if (isAssetKnowledgeQ && value === "none") {
         const overlayEntry = ASSET_CLASS_OVERLAY[validatingQ!.questionOrder!];
+        blockSession(`q${validatingQ!.questionOrder}_asset_knowledge_insufficient`);
         pendingVoiceTranscriptRef.current = null;
         sendResult({ success: true });
         pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
+        // Required before the override — see BLOCKER_SYSTEM_MSG's declaration.
+        send({
+          type: "conversation.item.create",
+          item: { type: "message", role: "user", content: [{ type: "input_text", text: BLOCKER_SYSTEM_MSG }] },
+        });
         send({
           type: "response.create",
-          response: {
-            instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat angegeben, "${overlayEntry.data.title}" auch nach der Erklärung nicht zu verstehen. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist ein ausreichendes Verständnis dieser Anlageklasse erforderlich, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`,
-          },
+          response: { instructions: BLOCKER_ASSET_KNOWLEDGE_INSTRUCTIONS(langRef.current, overlayEntry.data.title) },
         });
         return;
       }

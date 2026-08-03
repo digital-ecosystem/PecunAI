@@ -262,7 +262,6 @@ export function useVoiceSession({
   const pendingPhaseTransitionRef  = useRef<(() => void) | null>(null);
   const chatOpenRef            = useRef(false); // true while chat modal is open
   const chatAnsweredRef        = useRef(0);     // count of answers given while chat was open
-  const voiceThreadIdRef       = useRef<string | null>(null); // threadId from chat/init, used to persist voice chat messages
   const explainIdleTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetExplainIdleRef    = useRef<() => void>(() => {});
   const productVectorIdRef     = useRef<string | null>(null); // vector store ID for the recommended product (set in advancePhase)
@@ -342,6 +341,24 @@ export function useVoiceSession({
     try { localStorage.setItem(`doguide_lang_${sessionId}`, lang); } catch {}
   }, [sessionId]);
 
+  /** Writes one transcript line to the Thread/Message table. Keyed on sessionId rather than
+   *  a threadId captured at the Phase 1→2 advance, which is how this used to work and why the
+   *  whole of Phase 1 went unrecorded. The route upserts the thread, so whichever line arrives
+   *  first creates it. Fire-and-forget: a lost transcript line must never disturb the session.
+   *  See private-documents/after-demo/TRANSCRIPT_PERSISTENCE_PLAN.md. */
+  const persistTranscript = useCallback((text: string, sender: "ai" | "user") => {
+    if (!text.trim()) return;
+    fetch("/api/phase/chat/message", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ sessionId, role: sender === "ai" ? "assistant" : "user", content: text }),
+    }).catch(() => console.warn("[voice] failed to persist transcript line"));
+  }, [sessionId]);
+
+  /** Appends to the live transcript AND persists it. Persistence lives here rather than at the call
+   *  sites deliberately: it used to be bolted onto individual sites, so tap answers, spoken answers
+   *  and PTT questions were never recorded at all — the admin transcript showed only the AI's half.
+   *  Any future call site is now covered by construction. */
   const appendChatMessage = useCallback((text: string, sender: "ai" | "user", questionId?: string) => {
     setChatMessages(prev => [...prev, {
       id:        `${sender}-${Date.now()}`,
@@ -350,7 +367,8 @@ export function useVoiceSession({
       sender,
       timestamp: new Date(),
     }]);
-  }, []);
+    persistTranscript(text, sender);
+  }, [persistTranscript]);
 
   // Phase 6's own isolated append — writes to phase6ChatMessages only, and persists the
   // updated array into stepData.voice.phase6Chat (never the shared Thread/Message table that
@@ -556,6 +574,19 @@ export function useVoiceSession({
     });
   }, [sessionId]);
 
+  /** Records a Phase 1 compliance stop so the session can never be resumed. Fire-and-forget: the
+   *  goodbye is already playing and the dashboard redirect is parked, and a failed write must not
+   *  stall either — a session left resumable is a bug, but a hung goodbye is worse. The reason is
+   *  stored for the advisor's follow-up, never shown to the customer.
+   *  See private-documents/after-demo/SESSION_BLOCKED_STEPDATA_PLAN.md. */
+  const blockSession = useCallback((reason: string) => {
+    fetch(`/api/qa-session/${sessionId}/block`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ reason }),
+    }).catch(err => console.warn("[voice] blockSession failed:", err));
+  }, [sessionId]);
+
   const saveVoiceState = useCallback(async (index: number) => {
     try {
       const res = await fetch(`/api/qa-session/${sessionId}/voice-state`, {
@@ -631,18 +662,14 @@ export function useVoiceSession({
         body: JSON.stringify({ sessionId, phase: "SUGGESTIONS" }),
       });
 
-      // Create or get the Thread for this session so voice chat messages are persisted
-      try {
-        const initRes  = await fetch("/api/phase/chat/init", {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId, productId: product.id }),
-        });
-        const initJson = await initRes.json();
-        if (initJson?.threadId) voiceThreadIdRef.current = initJson.threadId;
-      } catch {
-        console.warn("[voice] chat/init failed — chat messages will not be persisted to DB");
-      }
+      // Registers the product against the session's chat thread. No longer load-bearing for
+      // transcript persistence — persistTranscript upserts the thread itself from Phase 1 onward,
+      // so its threadId result is not needed. See TRANSCRIPT_PERSISTENCE_PLAN.md.
+      fetch("/api/phase/chat/init", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, productId: product.id }),
+      }).catch(() => console.warn("[voice] chat/init failed"));
 
       productRef.current             = product;
       productVectorIdRef.current     = product.aiSettings?.vectorId ?? null;
@@ -1113,8 +1140,8 @@ export function useVoiceSession({
     // config
     sessionId, termsVectorId, router,
     // callbacks
-    send, dispatch, setCard, appendChatMessage, appendPhase6ChatMessage,
-    saveAnswer, saveVoiceState, advancePhase,
+    send, dispatch, setCard, appendChatMessage, appendPhase6ChatMessage, persistTranscript,
+    saveAnswer, saveVoiceState, blockSession, advancePhase,
     scheduleAIDone, scheduleChunk, handleFunctionCall,
     disconnectVoice, reconnectVoice, advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign,
     backToPersonalInfo, backToInvestment, backToContracts, suppressNavBackRef,
@@ -1133,7 +1160,7 @@ export function useVoiceSession({
     activeSourcesRef, serverResponseActiveRef, activeResponseIdRef, awaitingResponseCreatedRef, pendingResponseAfterCancelRef, knowledgeBlockerNextQRef,
     kbExplanationStartedRef, kbExplanationResponseIdRef, explainAwaitConfirmRef, explainAssetOrderRef, pendingPhaseTransitionRef,
     chatOpenRef, chatAnsweredRef,
-    voiceThreadIdRef, explainIdleTimerRef, resetExplainIdleRef, productVectorIdRef,
+    explainIdleTimerRef, resetExplainIdleRef, productVectorIdRef,
     productRef, pttVectorStoreRef, pttSecondaryStoreRef, pttActiveRef, pttContextRef, pttSearchPendingRef,
     pttDocLabelRef, pttPartialTranscriptRef, pttSpeculativeSearchRef, savedAnswersRef,
     answeredIdsRef, skippedIdsRef, explainedQuestionsRef, activeCardIdRef, voicePhaseRef,
@@ -1508,16 +1535,8 @@ export function useVoiceSession({
   }, [send]);
 
   const sendChatMessage = useCallback((text: string) => {
-    appendChatMessage(text, "user");
+    appendChatMessage(text, "user"); // persists as well
     setIsChatAITyping(true);
-    // Persist to DB if we have a thread (Phase 2+)
-    if (voiceThreadIdRef.current) {
-      fetch("/api/phase/chat/message", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ threadId: voiceThreadIdRef.current, role: "user", content: text }),
-      }).catch(() => console.warn("[voice] failed to persist chat message"));
-    }
     send({
       type: "conversation.item.create",
       item: { type: "message", role: "user", content: [{ type: "input_text", text }] },
@@ -1525,7 +1544,7 @@ export function useVoiceSession({
     send({ type: "response.create", response: { output_modalities: ["text"] } });
   }, [send, appendChatMessage]);
 
-  // Phase 6's own isolated send — never touches chatMessages, voiceThreadIdRef, or the
+  // Phase 6's own isolated send — never touches chatMessages, persistTranscript, or the
   // /api/phase/chat/message Thread persistence route. Also does the same document-grounded
   // search PTT already does for Phase 6, so both input channels answer consistently instead
   // of chat relying on the model's unguided knowledge — see

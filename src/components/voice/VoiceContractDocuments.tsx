@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import { Menu, User, Mic, ChevronLeft, ChevronRight, Download, Maximize2, ArrowLeft } from "lucide-react";
+import { Menu, Mic, ChevronLeft, ChevronRight, Download, Maximize2, ArrowLeft } from "lucide-react";
+import VoiceProfileMenu from "./VoiceProfileMenu";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { AnimatedFrame } from "./AnimatedFrame";
@@ -51,6 +52,7 @@ const VERTRAEGE_DOCS = [
 
 const WEITERE_INFO_DOCS = [
   { file: "Froots_Allgemeine_Informationsbroschüren.pdf", label: "Froots Allgemeine Informationsbroschüren" },
+  { file: "202607_froots_Mifid_Broschuere_Nachhaltigkeit.pdf", label: "froots Mifid Broschüre & Nachhaltigkeit" },
 ] as const;
 
 interface Agreements {
@@ -472,13 +474,7 @@ export default function VoiceContractDocuments({
             >
               <Menu size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
             </motion.button>
-            <motion.button
-              className="flex items-center justify-center rounded-full"
-              style={{ width: 44, height: 44, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.5)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <User size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
-            </motion.button>
+            <VoiceProfileMenu />
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
-import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_CONTEXT_MSG, ASSET_KNOWLEDGE_INTRO_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA } from "./prompts";
+import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, BLOCKER_SYSTEM_MSG, BLOCKER_Q3_INSTRUCTIONS, BLOCKER_Q4_INSTRUCTIONS, BLOCKER_Q7_INSTRUCTIONS, BLOCKER_ASSET_KNOWLEDGE_INSTRUCTIONS, ASSET_KNOWLEDGE_CONTEXT_MSG, ASSET_KNOWLEDGE_INTRO_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA } from "./prompts";
 import type { VoiceContext } from "./voiceContext";
 
 export async function handleAnswerConfirmed(
@@ -15,7 +15,7 @@ export async function handleAnswerConfirmed(
     assetKnowledgeShownRef, pendingPhaseTransitionRef, fastModeRef, mutedRef,
     explainAwaitConfirmRef, explainAssetOrderRef,
     audioEndTimer, stateRef, langRef,
-    dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase, send, router,
+    dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, blockSession, advancePhase, send, router,
     setSavedAnswers, setTermsSubStep, setExplainOverlayData,
   } = ctx;
 
@@ -121,24 +121,32 @@ export async function handleAnswerConfirmed(
 
   // ── BLOCKER: Q3 sustainability info not received → session ends ──
   if (question.questionOrder === 3 && value === "no") {
+    blockSession("q3_sustainability_info_not_received");
     pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
+    // Required before the override — see BLOCKER_SYSTEM_MSG's declaration.
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text", text: BLOCKER_SYSTEM_MSG }] },
+    });
     send({
       type: "response.create",
-      response: {
-        instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat angegeben, die Nachhaltigkeitsinformationen nicht erhalten zu haben. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist es erforderlich, dass Sie die Nachhaltigkeitsinformationen zur Kenntnis genommen haben, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`,
-      },
+      response: { instructions: BLOCKER_Q3_INSTRUCTIONS(langRef.current) },
     });
     return;
   }
 
   // ── BLOCKER: Q4 sustainability preference ────────────────────────
   if (question.questionOrder === 4 && (value === "yes" || value === "no")) {
+    blockSession("q4_sustainability_preference_unsupported");
     pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
+    // Required before the override — see BLOCKER_SYSTEM_MSG's declaration.
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text", text: BLOCKER_SYSTEM_MSG }] },
+    });
     send({
       type: "response.create",
-      response: {
-        instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat eine Nachhaltigkeitspräferenz angegeben, die mit dem aktuellen Produktangebot nicht abgedeckt werden kann. Erklären Sie in 2–3 Sätzen freundlich aber klar: Aufgrund der angegebenen Nachhaltigkeitspräferenzen ist eine persönliche Beratung erforderlich — das aktuelle Produktangebot deckt diese Präferenz nicht vollständig ab. Ein Berater wird sich in Kürze bei Ihnen melden. Verabschieden Sie sich herzlich.`,
-      },
+      response: { instructions: BLOCKER_Q4_INSTRUCTIONS(langRef.current) },
     });
     return;
   }
@@ -150,12 +158,16 @@ export async function handleAnswerConfirmed(
     const income    = parseFloat(incomeStr ?? "0");
     const expenses  = parseFloat(value);
     if (!isNaN(income) && !isNaN(expenses) && (income - expenses) <= 150) {
+      blockSession("q7_insufficient_disposable_income");
       pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
+      // Required before the override — see BLOCKER_SYSTEM_MSG's declaration.
+      send({
+        type: "conversation.item.create",
+        item: { type: "message", role: "user", content: [{ type: "input_text", text: BLOCKER_SYSTEM_MSG }] },
+      });
       send({
         type: "response.create",
-        response: {
-          instructions: `${ADVISOR_PERSONA(langRef.current)} Das verfügbare monatliche Einkommen des Kunden beträgt nach Abzug der Ausgaben weniger als 150 Euro. Erklären Sie in 2–3 Sätzen verständnisvoll: Aufgrund der angegebenen finanziellen Verhältnisse ist eine Investition zum aktuellen Zeitpunkt leider nicht empfehlenswert — das verfügbare monatliche Budget reicht für eine sinnvolle Anlage nicht aus. Eine persönliche Beratung wird empfohlen. Verabschieden Sie sich herzlich.`,
-        },
+        response: { instructions: BLOCKER_Q7_INSTRUCTIONS(langRef.current) },
       });
       return;
     }
@@ -168,12 +180,16 @@ export async function handleAnswerConfirmed(
   // bypassed by advancePhase() if it happens to be the last remaining question.
   if (isAssetKnowledgeQ && value === "none") {
     const overlayEntry = ASSET_CLASS_OVERLAY[question.questionOrder!];
+    blockSession(`q${question.questionOrder}_asset_knowledge_insufficient`);
     pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
+    // Required before the override — see BLOCKER_SYSTEM_MSG's declaration.
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text", text: BLOCKER_SYSTEM_MSG }] },
+    });
     send({
       type: "response.create",
-      response: {
-        instructions: `${ADVISOR_PERSONA(langRef.current)} Der Kunde hat angegeben, "${overlayEntry.data.title}" auch nach der Erklärung nicht zu verstehen. Erklären Sie in 2–3 Sätzen freundlich aber klar: Gemäß den gesetzlichen Vorschriften ist ein ausreichendes Verständnis dieser Anlageklasse erforderlich, bevor die Beratung fortgesetzt werden kann. Wir empfehlen, sich mit einem persönlichen Berater in Verbindung zu setzen. Verabschieden Sie sich herzlich.`,
-      },
+      response: { instructions: BLOCKER_ASSET_KNOWLEDGE_INSTRUCTIONS(langRef.current, overlayEntry.data.title) },
     });
     return;
   }

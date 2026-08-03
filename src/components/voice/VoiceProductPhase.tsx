@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import { Menu, User, Mic } from "lucide-react";
+import { Menu, Mic } from "lucide-react";
+import VoiceProfileMenu from "./VoiceProfileMenu";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { AnimatedFrame } from "./AnimatedFrame";
 import FullscreenPDFViewer from "./FullscreenPDFViewer";
 import { SphereToFrameTransition } from "./SphereToFrameTransition";
@@ -90,6 +92,7 @@ export default function VoiceProductPhase({
   onFrameRect,
   footerHeight = 0,
 }: VoiceProductPhaseProps) {
+  const router = useRouter();
   const reduceMotion = !!useReducedMotion();
   const [pdfSize,       setPdfSize]       = useState<{ width: number; height: number } | null>(null);
   const [pageNumber,    setPageNumber]    = useState(1);
@@ -211,6 +214,8 @@ export default function VoiceProductPhase({
               boxShadow:      "0 2px 8px rgba(0,0,0,0.04)",
             }}
             whileTap={{ scale: 0.95 }}
+            onClick={() => router.push("/customer/dashboard")}
+            aria-label="Zum Dashboard"
           >
             <Menu size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
           </motion.button>
@@ -230,20 +235,7 @@ export default function VoiceProductPhase({
             Vox.2
           </motion.h1>
 
-          <motion.button
-            className="flex items-center justify-center rounded-full"
-            style={{
-              width:          44,
-              height:         44,
-              background:     "rgba(255,255,255,0.6)",
-              backdropFilter: "blur(10px)",
-              border:         "1px solid rgba(255,255,255,0.5)",
-              boxShadow:      "0 2px 8px rgba(0,0,0,0.04)",
-            }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <User size={20} style={{ color: "rgba(59,130,246,0.8)" }} />
-          </motion.button>
+          <VoiceProfileMenu />
         </div>
       </div>
 

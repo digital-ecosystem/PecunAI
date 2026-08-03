@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
       "Vermittlungsgebühr.pdf",
       "Vermögensverwaltungsvertrag.pdf",
       "Froots_Allgemeine_Informationsbroschüren.pdf",
-      "4money_protokoll_digital_onboarding_guide_v.pdf"
+      "4money_protokoll_digital_onboarding_guide_v.pdf",
+      "202607_froots_Mifid_Broschuere_Nachhaltigkeit.pdf"
     ];
 
     const finalPdfPaths: string[] = [];
