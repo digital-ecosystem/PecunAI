@@ -13,6 +13,10 @@ const DOC_FILES = [
   "4money Protokoll Digital Onboarding Guide.md",
   "Froots Allgemeine Informationsbroschüren.md",
   "Depoteröffnungsantrag.md",
+  // Fassung Juli 2026 — a NEWER version of the WAG-2018 material that also appears as Teil 4
+  // of "Froots Allgemeine Informationsbroschüren" (Fassung 04/2024). Both are searchable; the
+  // markdown flags which is current so the model can say so rather than pick one at random.
+  "froots Kundeninformationen WAG 2018.md",
 ];
 
 const VEKTORDATENBANK_DIR = path.join(process.cwd(), "Vektordatenbank");

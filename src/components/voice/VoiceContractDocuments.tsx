@@ -52,6 +52,7 @@ const VERTRAEGE_DOCS = [
 
 const WEITERE_INFO_DOCS = [
   { file: "Froots_Allgemeine_Informationsbroschüren.pdf", label: "Froots Allgemeine Informationsbroschüren" },
+  { file: "202607_froots_Mifid_Broschuere_Nachhaltigkeit.pdf", label: "froots Mifid Broschüre & Nachhaltigkeit" },
 ] as const;
 
 interface Agreements {
