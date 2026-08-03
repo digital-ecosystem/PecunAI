@@ -371,7 +371,12 @@ const Dashboard = () => {
                                         <h2 className="truncate text-lg font-bold text-text-primary sm:text-xl">
                                             {isChatOpen ? 'KI Unterhaltung' : 'Sitzungsdetails'}
                                         </h2>
-                                        <p className="truncate text-xs text-text-muted sm:text-sm">Sitzungs-ID: #{selectedSession?.personalInfo?.qaSessionId}</p>
+                                        {/* selectedSession.id IS the qaSessionId — the same value this page
+                                            already passes to the questions and chat-messages endpoints. Was
+                                            read off personalInfo.qaSessionId, a back-reference that only
+                                            exists once the customer has completed the personal-info step, so
+                                            the line rendered as a bare "#" for every earlier-stage session. */}
+                                        <p className="truncate text-xs text-text-muted sm:text-sm">Sitzungs-ID: #{selectedSession?.id}</p>
                                     </div>
                                     <button
                                         onClick={isChatOpen ? closeChatView : closeDrawer}
