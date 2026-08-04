@@ -85,9 +85,8 @@ const Dashboard = () => {
         return match ? decodeURIComponent(match[1]) : '';
     };
 
-    const clearCookie = (name: string) => {
-        document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
-    };
+    // Note: referral_code and agent_code are deliberately never cleared here. Both are consumed
+    // server-side by /api/qa-session/create once a session has actually been created.
 
     const openSession = allSessionsForStats.find(
         s => s.status === SessionStatus.DRAFT
@@ -218,19 +217,20 @@ const Dashboard = () => {
         setLoading(true);
         let didNavigate = false;
         try {
+            // Partner and agent are both resolved and written by the create call itself, in one
+            // atomic write — there is no follow-up request that can fail independently.
             const response = await fetch('/api/qa-session/create', {
                 method: 'POST',
-                body: JSON.stringify(opts?.partnerCode ? { partnerCode: opts.partnerCode } : {}),
+                body: JSON.stringify({
+                    ...(opts?.partnerCode ? { partnerCode: opts.partnerCode } : {}),
+                    ...(opts?.agentCode ? { agentCode: opts.agentCode } : {}),
+                }),
                 headers: { 'Content-Type': 'application/json' },
             });
             const res = await response.json();
             if (res?.success && res?.session?.id) {
-                if (opts?.agentCode) {
-                    await fetch('/api/qa-session/agent', {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ sessionId: res.session.id, agentCode: opts.agentCode }),
-                    }).catch(() => console.warn('agent code assignment failed'));
+                if (opts?.agentCode && res?.agentLinked === false) {
+                    console.warn('agent code not linked to session:', res?.agentWarning ?? 'unknown');
                 }
                 setIsStartDrawerOpen(false);
                 didNavigate = true;
@@ -303,8 +303,8 @@ const Dashboard = () => {
 
         const referralCode = getCookieValue('referral_code');
         if (referralCode) {
+            // Cookie is left in place; the create route clears it once the session exists.
             const agentCode = getCookieValue('agent_code') || undefined;
-            clearCookie('agent_code');
             await startSession(agentCode ? { agentCode } : undefined);
             return;
         }
@@ -326,8 +326,9 @@ const Dashboard = () => {
         }
         // Require explicit confirmation before starting the onboarding session
         setIsStartDrawerOpen(true);
+        // Cookie is left in place; the create route clears it once the session exists, so
+        // cancelling here (or reloading) does not lose the agent.
         const agentCodeFromCookie = getCookieValue('agent_code') || undefined;
-        clearCookie('agent_code');
         openWelcomeAndQueueStart(agentCodeFromCookie ? { agentCode: agentCodeFromCookie } : undefined);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, didAutostart]);
@@ -436,7 +437,10 @@ const Dashboard = () => {
                                             <div className="flex flex-col gap-3">
                                                 <p className="text-sm text-text-primary">Partner-Link erkannt. Sie können direkt starten.</p>
                                                 <button
-                                                    onClick={() => openWelcomeAndQueueStart()}
+                                                    onClick={() => {
+                                                        const agentCode = getCookieValue('agent_code') || undefined;
+                                                        openWelcomeAndQueueStart(agentCode ? { agentCode } : undefined);
+                                                    }}
                                                     className="w-full rounded-xl bg-accent-primary px-4 py-2.5 text-sm font-medium text-text-on-accent transition-colors hover:bg-accent-primary-hov"
                                                 >
                                                     Starten
@@ -529,6 +533,7 @@ const Dashboard = () => {
                                                 onClick={() => {
                                                     setShowOnboardingWelcomePopup(false);
                                                     setPendingStartPartnerCode(null);
+                                                    setPendingStartAgentCode(null);
                                                 }}
                                                 className="w-full rounded-xl border border-line-strong bg-surface-card px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:bg-surface-selected sm:w-auto"
                                             >
