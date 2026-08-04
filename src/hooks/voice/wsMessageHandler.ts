@@ -549,6 +549,15 @@ export async function handleWsMessage(
       // speech_started never fires so currentSpeechItemIdRef is null and the guard would reject this.
       if (pttSearchPendingRef.current) {
         pttSearchPendingRef.current = false;
+        // Record the customer's spoken question BEFORE anything else in this branch. Every path
+        // below ends in `break`, so the bubble/persistence code further down is unreachable from
+        // here — which is why PTT document questions (Phase 0 terms, 2, 4, 5, 6) appeared nowhere
+        // while the AI's answers to them were persisted normally. The transcript was consumed as a
+        // search query and discarded. Client report: "i cannot see the questions from the client,
+        // only the ai answers". A plain append is correct ordering here, unlike the VAD path's
+        // insert-before-last-AI-bubble: the answer response is only created further down, so the
+        // customer's turn genuinely precedes it.
+        appendChatMessage(transcript, "user");
         const vectorStoreId  = pttVectorStoreRef.current;
         const docLabel       = pttDocLabelRef.current;
         const speculativeHit = pttSpeculativeSearchRef.current;

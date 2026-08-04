@@ -370,10 +370,16 @@ export function useVoiceSession({
     persistTranscript(text, sender);
   }, [persistTranscript]);
 
-  // Phase 6's own isolated append — writes to phase6ChatMessages only, and persists the
-  // updated array into stepData.voice.phase6Chat (never the shared Thread/Message table that
-  // backs Phase 1's chat). See private-documents/phase-6-final-qa/PHASE_6_TEXT_CHAT_ADDENDUM.md.
+  // Phase 6's own isolated append — the LIVE state stays separate from Phase 1's chatMessages
+  // (which is the whole session transcript, not just chat) and resumes from
+  // stepData.voice.phase6Chat. See private-documents/phase-6-final-qa/PHASE_6_TEXT_CHAT_ADDENDUM.md.
+  //
+  // The Thread line below is deliberately NOT isolated: that isolation was only ever about the
+  // in-session UI array, but it also silently kept the entire Phase 6 text conversation — both
+  // sides — out of the advisor transcript. Phase 6's *voice* answers already land there via
+  // appendChatMessage, so this only closes the text channel and cannot duplicate them.
   const appendPhase6ChatMessage = useCallback((text: string, sender: "ai" | "user") => {
+    persistTranscript(text, sender);
     setPhase6ChatMessages(prev => {
       const updated: ChatMessage[] = [...prev, { id: `${sender}-${Date.now()}`, text, sender, timestamp: new Date() }];
       fetch(`/api/qa-session/${sessionId}/voice-state`, {
@@ -387,7 +393,7 @@ export function useVoiceSession({
       }).catch(() => {});
       return updated;
     });
-  }, [sessionId]);
+  }, [sessionId, persistTranscript]);
 
   // ── Audio setup ────────────────────────────────────────────────
 
