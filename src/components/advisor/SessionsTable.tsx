@@ -16,6 +16,11 @@ type Props = {
   onRowClick: (sessionId: string) => void;
 };
 
+// Both names arrive pre-constructed on the /api/advisor/dashboard payload. No extra fetch.
+// agentName is null when a session has no linked agent; partnerName is always a real name
+// (partnerId is required on QASession) — the fallback there is only a type guard.
+const formatPersonName = (name?: string | null) => name?.trim() || '—';
+
 // Same five values, same order as the <select> this replaces.
 const STATUS_FILTERS = [
   { value: 'all', label: 'Alle' },
@@ -91,8 +96,12 @@ export default function SessionsTable({
         )
       ) : (
         <div>
-          <div className="mb-1.5 hidden px-3.5 sm:flex">
+          {/* gap-x-2.5 mirrors the row cards' own gap so each label stays aligned over its
+              cell — with five columns the un-gapped header drifted from the data. */}
+          <div className="mb-1.5 hidden gap-x-2.5 px-3.5 sm:flex">
             <div className="flex-[2.2] text-[9px] tracking-wider text-text-muted">KUNDE</div>
+            <div className="flex-[1.1] text-[9px] tracking-wider text-text-muted">AGENT</div>
+            <div className="flex-[1.1] text-[9px] tracking-wider text-text-muted">BERATER</div>
             <div className="flex-1 text-[9px] tracking-wider text-text-muted">STATUS</div>
             <div className="flex-1 text-right text-[9px] tracking-wider text-text-muted">ERSTELLT</div>
           </div>
@@ -112,7 +121,7 @@ export default function SessionsTable({
                 <div
                   key={session.id}
                   onClick={() => onRowClick(session.id)}
-                  className="flex cursor-pointer items-center gap-x-2.5 gap-y-1.5 rounded-2xl bg-surface-card p-3.5 shadow-soft transition-shadow hover:shadow-raised max-sm:flex-wrap"
+                  className="flex cursor-pointer items-center gap-x-2.5 gap-y-1.5 rounded-2xl bg-surface-card p-3.5 shadow-soft transition-shadow hover:shadow-raised max-sm:flex-wrap max-sm:gap-y-2.5"
                 >
                   <div className="flex min-w-0 flex-[2.2] items-center gap-2.5 max-sm:basis-full">
                     <div className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[9px] bg-surface-subtle text-[10px] font-semibold text-accent-primary">
@@ -125,6 +134,31 @@ export default function SessionsTable({
                       <div className="truncate text-[11px] text-text-muted" title={session.user.email}>
                         {session.user.email}
                       </div>
+                    </div>
+                  </div>
+                  {/* Agent + Berater — plain text, no badge, no icon: the exact treatment
+                      the admin dashboard gives these same two columns. Below sm the two
+                      share one wrapped line (50% each, less half the gap), so the existing
+                      status/date line is untouched. The column header row is hidden there,
+                      so each carries its own micro-label in the exact header type style —
+                      without it the two names sit side by side with nothing saying which
+                      is which. */}
+                  <div
+                    className="min-w-0 flex-[1.1] pr-2 max-sm:order-2 max-sm:flex-[0_0_calc(50%_-_5px)] max-sm:pr-0"
+                    title={formatPersonName(session.agentName)}
+                  >
+                    <div className="mb-0.5 text-[9px] tracking-wider text-text-muted sm:hidden">AGENT</div>
+                    <div className="truncate text-xs text-text-primary">
+                      {formatPersonName(session.agentName)}
+                    </div>
+                  </div>
+                  <div
+                    className="min-w-0 flex-[1.1] pr-2 max-sm:order-3 max-sm:flex-[0_0_calc(50%_-_5px)] max-sm:pr-0"
+                    title={formatPersonName(session.partnerName)}
+                  >
+                    <div className="mb-0.5 text-[9px] tracking-wider text-text-muted sm:hidden">BERATER</div>
+                    <div className="truncate text-xs text-text-primary">
+                      {formatPersonName(session.partnerName)}
                     </div>
                   </div>
                   <div className="flex-1 max-sm:order-4 max-sm:flex-none">
