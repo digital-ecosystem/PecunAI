@@ -5,7 +5,7 @@ import { join } from 'path';
 import { prisma } from '@/lib/prisma';
 import { CONFIG } from '@/config/constants';
 import { downloadLegtitationPDF } from '@/utils/downloadVerfiyPersonPDF';
-import { createAdviosrSignTeqRequest } from '@/utils/adviosrRequest';
+import { createAdviosrSignTeqRequest, persistAdvisorRequestIds } from '@/utils/adviosrRequest';
 
 const SIGNTEQ_API_TOKEN = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_API_KEY_PRO || '' : process.env.SIGNTEQ_API_KEY_DEV || '';
 const SIGNTEQ_ORG_ID = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_ORG_ID_PRO || '' : process.env.SIGNTEQ_ORG_ID_DEV || '';
@@ -217,17 +217,31 @@ export async function POST(request: NextRequest) {
 				base64 = await downloadCompletedDocumentBase64(documentId);
 				if (!base64) return NextResponse.json({ success: false, error: 'Failed to download completed document' }, { status: 500 });
 				if (requestFromMeta === "final_signature_request") {
-					const saved = await saveSignedPdfToSession({ qaSessionId, base64Data: base64 });
+					// The PDF write is best-effort and deliberately NOT allowed to gate the status write.
+					// It used to run first, inside the same try whose catch merely warns — so a failed
+					// mkdir/writeFile skipped the upsert below, left the session reading "not yet fully
+					// signed" in the advisor dashboard, and still answered SignTeq 200 so no retry came.
+					// advisorDocumentId is recorded either way, so the download route can fetch the
+					// finished PDF from SignTeq on demand when the local file is missing.
+					let saved: { publicUrl: string; size: number } | null = null;
+					try {
+						saved = await saveSignedPdfToSession({ qaSessionId, base64Data: base64 });
+					} catch (err) {
+						console.error('❌ Webhook: could not write the signed PDF to disk — setting the status anyway; the PDF will be fetched from SignTeq on demand', { qaSessionId, documentId, err });
+					}
 					mergedStepData = {
 						...existingStepData,
 						signteq: {
 							...signteq,
 							requestId: (signteq.requestId as string | undefined) ?? requestId,
 							documentId: (signteq.documentId as string | undefined) ?? documentId,
+							// The advisor's own request and document — a NEW document in SignTeq, distinct from
+							// the customer documentId above, and the only handle for re-downloading the final PDF.
+							advisorRequestId: requestId ?? (signteq.advisorRequestId as string | undefined),
+							advisorDocumentId: documentId,
 							status:'DOCUMENT_COMPLETED',
 							completedAt: payload.timestamp ?? new Date().toISOString(),
-							savedUrl: saved.publicUrl,
-							savedSize: saved.size,
+							...(saved ? { savedUrl: saved.publicUrl, savedSize: saved.size } : {}),
 						},
 					};
 				} else if (requestFromMeta === "first_signature_request") {
@@ -255,7 +269,12 @@ export async function POST(request: NextRequest) {
 				update: { stepData: mergedStepData },
 			});
 		} catch (err) {
-			console.warn('⚠️ Webhook: failed to update workflow state (continuing):', err);
+			// NOT "continuing" — anything thrown here means the session status was never written,
+			// so the advisor dashboard keeps showing the document as not fully signed. Report it as
+			// an error and say so in the response body, rather than answering a clean 200 that hides
+			// the failure from both SignTeq and whoever reads the logs.
+			console.error('❌ Webhook: FAILED to update workflow state — signature status not recorded', { qaSessionId, documentId, event, err });
+			return NextResponse.json({ success: true, processed: false, reason: 'state_update_failed' });
 		}
 
 		if (requestFromMeta === "first_signature_request") {
@@ -265,7 +284,18 @@ export async function POST(request: NextRequest) {
 				console.warn('⚠️ Webhook: failed to download legitiation PDF (continuing):', err);
 			}
 			if (base64) {
-				await createAdviosrSignTeqRequest(qaSessionId, partnerIdFromMeta, base64);
+				const advisorIds = await createAdviosrSignTeqRequest(qaSessionId, partnerIdFromMeta, base64);
+				// Record the advisor request BEFORE its completion webhook can arrive. Without this the
+				// advisor's document id existed only in a log line, so a session whose completion event
+				// was missed could not be reconciled or its final PDF re-downloaded — the only recovery
+				// was to send a fresh request and have the advisor sign a second time.
+				if (advisorIds.requestId || advisorIds.documentId) {
+					try {
+						await persistAdvisorRequestIds(qaSessionId, advisorIds);
+					} catch (err) {
+						console.error('❌ Webhook: advisor request created but its ids could not be stored', { qaSessionId, advisorIds, err });
+					}
+				}
 			}
 		}
 

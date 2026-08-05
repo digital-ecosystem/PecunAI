@@ -38,7 +38,15 @@ export interface WorkflowState {
       savedSize?: number | null
       requestId?: string | null
       documentId?: string | null
+      // The advisor's own signature request — a separate SignTeq request whose document is the
+      // fully-signed contract. Distinct from documentId above, which is the customer's
+      // half-signed one. Recorded when the request is created so a missed completion webhook can
+      // be reconciled afterwards.
+      advisorRequestId?: string | null
+      advisorDocumentId?: string | null
+      advisorRequestedAt?: string | null
       completedAt?: string | null
+      completedVia?: 'status_check' | string
       createdAt?: string
       updatedAt?: string
       recipients?: unknown[]

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { CONFIG } from '@/config/constants';
 import { handleApiError } from '@/lib/api-error';
 import { logger } from '@/lib/logger';
-import { createAdviosrSignTeqRequest } from '@/utils/adviosrRequest';
+import { createAdviosrSignTeqRequest, persistAdvisorRequestIds } from '@/utils/adviosrRequest';
 
 const SIGNTEQ_API_TOKEN =
   process.env.NEXT_PUBLIC_ENV === 'production'
@@ -84,9 +84,19 @@ export async function POST(request: NextRequest) {
     const base64Document = await downloadDocumentBase64(documentId);
 
     // Re-create the advisor signature request
-    await createAdviosrSignTeqRequest(sessionId, session.partner.id, base64Document);
+    const advisorIds = await createAdviosrSignTeqRequest(sessionId, session.partner.id, base64Document);
 
-    logger.info('Advisor SignTeq link resent successfully', { sessionId });
+    // Each resend supersedes the previous advisor request, so overwrite the stored ids with the
+    // newest ones — that is the request the advisor will actually be signing from the fresh mail.
+    if (advisorIds.requestId || advisorIds.documentId) {
+      try {
+        await persistAdvisorRequestIds(sessionId, advisorIds);
+      } catch (err) {
+        logger.error('Advisor link resent but its request ids could not be stored', { sessionId, advisorIds, err });
+      }
+    }
+
+    logger.info('Advisor SignTeq link resent successfully', { sessionId, advisorIds });
 
     return NextResponse.json({ success: true });
   } catch (error) {

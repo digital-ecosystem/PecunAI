@@ -6,7 +6,42 @@ const SIGNTEQ_API_TOKEN = process.env.NEXT_PUBLIC_ENV === "production" ? process
 const SIGNTEQ_ORG_ID = process.env.NEXT_PUBLIC_ENV === "production" ? process.env.SIGNTEQ_ORG_ID_PRO || '' : process.env.SIGNTEQ_ORG_ID_DEV || '';
 
 
-export async function createAdviosrSignTeqRequest(qaSessionId: string, partnerId: string, base64Document: string): Promise<void> {
+/** Identity of the advisor signature request in SignTeq. Returned so callers can persist it:
+ *  the advisor's request creates a NEW document with its own id, distinct from the customer's
+ *  (`signteq.documentId`). That id used to be logged and discarded, which left no way to ask
+ *  SignTeq about the advisor's request or to re-download the finally-signed PDF — so a single
+ *  missed `document_completed` webhook made the session permanently unrecoverable. */
+export interface AdvisorRequestIds {
+  requestId?:  string;
+  documentId?: string;
+}
+
+/** Merges the advisor request ids into stepData.signteq, leaving every other field alone —
+ *  notably the customer's own requestId/documentId, and any status already recorded. */
+export async function persistAdvisorRequestIds(qaSessionId: string, ids: AdvisorRequestIds): Promise<void> {
+  const existing = await prisma.sessionWorkflowState.findUnique({
+    where:  { qaSessionId },
+    select: { stepData: true },
+  });
+  const existingStepData = (existing?.stepData ?? {}) as Record<string, unknown>;
+  const signteq          = (existingStepData.signteq ?? {}) as Record<string, unknown>;
+  const mergedStepData = {
+    ...existingStepData,
+    signteq: {
+      ...signteq,
+      ...(ids.requestId  ? { advisorRequestId:  ids.requestId  } : {}),
+      ...(ids.documentId ? { advisorDocumentId: ids.documentId } : {}),
+      advisorRequestedAt: new Date().toISOString(),
+    },
+  };
+  await prisma.sessionWorkflowState.upsert({
+    where:  { qaSessionId },
+    create: { qaSessionId, stepData: mergedStepData },
+    update: { stepData: mergedStepData },
+  });
+}
+
+export async function createAdviosrSignTeqRequest(qaSessionId: string, partnerId: string, base64Document: string): Promise<AdvisorRequestIds> {
   // Simulated logic for creating an Adviosr SignTeq request
   const session = await prisma.qASession.findUnique({
     where: { id: qaSessionId },
@@ -18,7 +53,7 @@ export async function createAdviosrSignTeqRequest(qaSessionId: string, partnerId
 
   if (!session || !session.partner || !session.personalInfo) {
     console.error(`❌ No session found for qaSessionId: ${qaSessionId}`);
-    return;
+    return {};
   }
 
 
@@ -107,4 +142,12 @@ export async function createAdviosrSignTeqRequest(qaSessionId: string, partnerId
   });
   console.log(`SignTeq API response for session:`, response.data);
   console.log(`Creating Adviosr SignTeq request for session ${qaSessionId} and partner ${partnerId}`);
+
+  const data = response.data as { id?: string; documents?: Array<{ id?: string }> } | undefined;
+  const ids: AdvisorRequestIds = {
+    requestId:  data?.id,
+    documentId: data?.documents?.[0]?.id,
+  };
+  console.log(`Advisor SignTeq request ids for session ${qaSessionId}:`, ids);
+  return ids;
 }
