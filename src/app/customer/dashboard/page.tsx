@@ -360,10 +360,16 @@ const Dashboard = () => {
         return name || '—';
     };
 
+    // Renders the partner name the /api/dashboard payload already constructs. No extra fetch.
+    // `partnerId` is required on QASession, so this is always a real name; the '—' mirrors
+    // formatAgentName only because the shared Session type marks the field optional.
+    const formatPartnerName = (session: Session) => session.partnerName?.trim() || '—';
+
     const columnHeaders = (
-        <div className="mb-1.5 hidden px-3.5 sm:flex">
+        <div className="mb-1.5 hidden gap-x-2.5 px-3.5 sm:flex">
             <div className="flex-[1.8] text-[9px] tracking-wider text-text-muted">SITZUNG</div>
             <div className="flex-[1.1] text-[9px] tracking-wider text-text-muted">AGENT</div>
+            <div className="flex-[1.1] text-[9px] tracking-wider text-text-muted">BERATER</div>
             <div className="flex-[0.8] text-[9px] tracking-wider text-text-muted">STATUS</div>
             <div className="flex-[0.9] text-right text-[9px] tracking-wider text-text-muted">ERSTELLT</div>
         </div>
@@ -704,6 +710,14 @@ const Dashboard = () => {
                                                     title={formatAgentName(session)}
                                                 >
                                                     {formatAgentName(session)}
+                                                </div>
+                                                {/* Same visual register as AGENT, and the same mobile order group so it
+                                                    reflows directly after it without renumbering the cells below. */}
+                                                <div
+                                                    className="min-w-0 flex-[1.1] truncate pr-2 text-xs text-text-primary max-sm:order-4 max-sm:flex-auto max-sm:text-[10px] max-sm:text-text-muted"
+                                                    title={formatPartnerName(session)}
+                                                >
+                                                    {formatPartnerName(session)}
                                                 </div>
                                                 <div className="flex-[0.8] max-sm:order-5 max-sm:flex-none">
                                                     <StatusBadge status={session.status} />
