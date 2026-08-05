@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     const validatedData = productSchema.parse(body);
 
     // Separate product data from AI settings data
-    const { aiModel, aiPrompt, vectorId, ...productData } = validatedData;
+    const { aiModel, aiPrompt, vectorId, firstMessage, ...productData } = validatedData;
 
     // Create product with AI settings in a transaction
     const product = await prisma.$transaction(async (tx) => {
@@ -137,6 +137,7 @@ export async function POST(request: NextRequest) {
         data: {
           model: aiModel,
           prompt: aiPrompt,
+          firstMessage: firstMessage,
           vectorId: vectorId || null,
           productId: newProduct.id,
           isActive: true,
@@ -158,6 +159,7 @@ export async function POST(request: NextRequest) {
               id: true,
               model: true,
               prompt: true,
+              firstMessage: true,
               vectorId: true,
               isActive: true,
             },

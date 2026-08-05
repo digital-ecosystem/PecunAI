@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import AdminDashboardShell from '@/components/admin/AdminDashboardShell';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 interface Product {
   id: string;
@@ -63,6 +64,8 @@ const ProductsPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  // The product whose delete confirmation is open — null when no dialog is up.
+  const [productPendingDelete, setProductPendingDelete] = useState<Product | null>(null);
 
   const router = useRouter();
 
@@ -113,11 +116,19 @@ const ProductsPage = () => {
     return () => clearTimeout(debounceTimer);
   }, [searchTerm, riskFilter]);
 
-  // Handle delete
-  const handleDelete = async (product: Product) => {
-    if (!confirm(`Sind Sie sicher, dass Sie "${product.name}" löschen möchten?`)) {
-      return;
-    }
+  // Handle delete — the row button now opens the in-app confirmation dialog
+  // instead of a native `window.confirm()`. Same trigger, same question.
+  const handleDelete = (product: Product) => {
+    setProductPendingDelete(product);
+  };
+
+  // Runs only on an explicit "Löschen" in that dialog — the branch the old
+  // `confirm()` gated. Dialog closes first, exactly as the native prompt did
+  // before the fetch began; the request and both result branches are untouched.
+  const confirmDelete = async () => {
+    const product = productPendingDelete;
+    if (!product) return;
+    setProductPendingDelete(null);
 
     try {
       const response = await fetch(`/api/admin/products/${product.id}`, {
@@ -397,6 +408,24 @@ const ProductsPage = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* Delete confirmation — replaces the native `window.confirm()` this page
+          used to call inside `handleDelete`. Same question, same wording. */}
+      {productPendingDelete && (
+        <ConfirmDialog
+          title="Produkt löschen"
+          message={
+            <>
+              Sind Sie sicher, dass Sie{' '}
+              <strong className="font-semibold">&bdquo;{productPendingDelete.name}&ldquo;</strong>{' '}
+              löschen möchten?
+            </>
+          }
+          confirmLabel="Löschen"
+          onConfirm={confirmDelete}
+          onCancel={() => setProductPendingDelete(null)}
+        />
       )}
     </AdminDashboardShell>
   );

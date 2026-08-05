@@ -17,6 +17,13 @@ export default function SessionBlockedModal({ onClose }: { onClose: () => void }
       onClose={onClose}
       closeOnBackdropClick
       maxWidthClassName="max-w-md"
+      // Restores this modal's pre-migration `z-[100]`. The customer dashboard's
+      // "start new session" welcome popup is `z-[60]` and CAN open while this one
+      // is already up (autostart fires on `user` resolving, after the customer has
+      // clicked a blocked row) — at the shell's default `z-50` the compliance notice
+      // they asked for would be buried under it. Traced in
+      // docs/fix-reports/modal-hardening-and-delete-confirm.md §1.
+      zIndexClassName="z-[100]"
       footer={
         <button
           type="button"
