@@ -268,141 +268,155 @@ export default function AgentsPage() {
       ) : (
         <>
           {/* Column headers — the prototype's six labelled columns, hidden below
-              lg where the rows reflow into its two-column card. */}
-          <div className="mb-0.5 hidden items-center gap-4 px-[18px] lg:flex">
+              lg where the rows reflow into its two-column card. Horizontal padding
+              matches the row cards' own p-3.5 (advisor's SessionsTable rhythm) so
+              labels stay aligned over their cells. */}
+          <div className="mb-1.5 hidden items-center gap-4 px-3.5 lg:flex">
             <div className={`flex-[1.4] ${COL_HEADER_CLASS}`}>Name</div>
             <div className={`flex-[1.2] ${COL_HEADER_CLASS}`}>Code</div>
             <div className={`flex-[1.1] ${COL_HEADER_CLASS}`}>Berater</div>
             <div className={`flex-[0.7] ${COL_HEADER_CLASS}`}>Status</div>
             <div className={`flex-[0.9] ${COL_HEADER_CLASS}`}>Erstellt</div>
-            <div className={`flex-[1.6] text-right ${COL_HEADER_CLASS}`} />
+            <div className={`w-[300px] flex-none text-right ${COL_HEADER_CLASS}`} />
           </div>
 
-          <div className="overflow-hidden rounded-[14px] bg-surface-card shadow-soft">
-            {/* sm and up — the prototype's row list */}
-            <div className="hidden max-h-[480px] flex-col overflow-y-auto sm:flex">
-              {filtered.map((agent) => (
-                <div
-                  key={agent.id}
-                  className="grid grid-cols-2 items-start gap-x-3.5 gap-y-2.5 border-b border-line-soft p-[18px] transition-colors last:border-b-0 hover:bg-surface-subtle lg:flex lg:items-center lg:gap-4"
-                >
-                  <div className="col-span-2 min-w-0 text-[13px] font-semibold text-text-primary max-lg:order-1 lg:flex-[1.4]">
+          {/* sm and up — advisor SessionsTable's row-card list: each row is its
+              own rounded-2xl/shadow-soft card (not one shared card with hairline
+              dividers), gap-2 between cards, hover lifts to shadow-raised. The
+              480px scroll cap is unchanged from before this pass. */}
+          <div className="hidden max-h-[480px] flex-col gap-2 overflow-y-auto sm:flex">
+            {filtered.map((agent) => (
+              <div
+                key={agent.id}
+                className="grid grid-cols-2 items-start gap-x-3.5 gap-y-2.5 rounded-2xl bg-surface-card p-3.5 shadow-soft transition-shadow hover:shadow-raised lg:flex lg:items-center lg:gap-4"
+              >
+                <div className="col-span-2 flex min-w-0 items-center gap-2.5 max-lg:order-1 lg:flex-[1.4]">
+                  <div className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[9px] bg-surface-subtle text-[10px] font-semibold text-accent-primary">
+                    {agent.firstName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 truncate text-[13px] font-semibold text-text-primary">
                     {agent.firstName} {agent.lastName}
                   </div>
-
-                  <div className="min-w-0 max-lg:order-2 lg:flex-[1.2]">
-                    <code className="inline-block max-w-full truncate rounded-md bg-surface-raised px-2 py-1 font-mono text-[11px] text-text-primary">
-                      {agent.agentCode}
-                    </code>
-                  </div>
-
-                  <div className="min-w-0 truncate text-xs text-text-primary max-lg:order-4 lg:flex-[1.1]">
-                    {agent.partner.firstName} {agent.partner.lastName}
-                  </div>
-
-                  <div className="max-lg:order-3 max-lg:text-right lg:flex-[0.7]">
-                    <StatusBadge
-                      tone={agent.isActive ? 'approved' : 'neutral'}
-                      label={agent.isActive ? 'Aktiv' : 'Inaktiv'}
-                    />
-                  </div>
-
-                  <div className="text-xs tabular-nums text-text-muted max-lg:order-5 max-lg:text-right lg:flex-[0.9]">
-                    {new Date(agent.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </div>
-
-                  <div className="col-span-2 flex flex-wrap items-center gap-1.5 max-lg:order-6 max-lg:border-t max-lg:border-line-soft max-lg:pt-2.5 lg:flex-[1.6] lg:justify-end">
-                    {agent.isActive && (
-                      <button
-                        onClick={() => copyLink(agent)}
-                        className={`${ACTION_BTN_CLASS} min-w-[84px] ${copiedId === agent.id ? 'bg-status-approved text-status-approved-fg' : 'bg-surface-selected text-accent-primary hover:bg-surface-raised'}`}
-                      >
-                        {copiedId === agent.id ? 'Kopiert!' : 'Link'}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => openEdit(agent)}
-                      className={`${ACTION_BTN_CLASS} border border-surface-raised bg-surface-subtle text-text-primary hover:bg-surface-raised`}
-                    >
-                      Bearbeiten
-                    </button>
-                    <button
-                      onClick={() => toggleActive(agent)}
-                      className={`${ACTION_BTN_CLASS} ${agent.isActive ? 'bg-status-flagged text-status-flagged-fg hover:bg-status-flagged-border' : 'bg-status-approved text-status-approved-fg hover:bg-status-approved-border'}`}
-                    >
-                      {agent.isActive ? 'Deaktivieren' : 'Aktivieren'}
-                    </button>
-                  </div>
                 </div>
-              ))}
-            </div>
 
-            {/* Mobile — the existing expand/collapse card list, restyled. The
-                chevron and its `expandedId` state are preserved deliberately:
-                they are a real interaction, and the prototype's always-visible
-                mobile reflow would have removed one (see the report). */}
-            <div className="max-h-[580px] overflow-y-auto sm:hidden">
-              {filtered.map((agent) => (
-                <div key={agent.id} className="border-b border-line-soft p-4 last:border-b-0">
-                  <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 max-lg:order-2 lg:flex-[1.2]">
+                  <code className="inline-block max-w-full truncate rounded-md bg-surface-raised px-2 py-1 font-mono text-[11px] text-text-primary">
+                    {agent.agentCode}
+                  </code>
+                </div>
+
+                <div className="min-w-0 truncate text-xs text-text-primary max-lg:order-4 lg:flex-[1.1]">
+                  {agent.partner.firstName} {agent.partner.lastName}
+                </div>
+
+                <div className="max-lg:order-3 max-lg:text-right lg:flex-[0.7]">
+                  <StatusBadge
+                    tone={agent.isActive ? 'approved' : 'neutral'}
+                    label={agent.isActive ? 'Aktiv' : 'Inaktiv'}
+                  />
+                </div>
+
+                <div className="text-xs tabular-nums text-text-muted max-lg:order-5 max-lg:text-right lg:flex-[0.9]">
+                  {new Date(agent.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </div>
+
+                <div className="col-span-2 flex flex-nowrap items-center justify-end gap-1.5 max-lg:order-6 max-lg:border-t max-lg:border-line-soft max-lg:pt-2.5 lg:w-[300px] lg:flex-none">
+                  {agent.isActive && (
+                    <button
+                      onClick={() => copyLink(agent)}
+                      className={`${ACTION_BTN_CLASS} min-w-[84px] ${copiedId === agent.id ? 'bg-status-approved text-status-approved-fg' : 'bg-surface-selected text-accent-primary hover:bg-surface-raised'}`}
+                    >
+                      {copiedId === agent.id ? 'Kopiert!' : 'Link'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => openEdit(agent)}
+                    className={`${ACTION_BTN_CLASS} border border-surface-raised bg-surface-subtle text-text-primary hover:bg-surface-raised`}
+                  >
+                    Bearbeiten
+                  </button>
+                  <button
+                    onClick={() => toggleActive(agent)}
+                    className={`${ACTION_BTN_CLASS} ${agent.isActive ? 'bg-status-flagged text-status-flagged-fg hover:bg-status-flagged-border' : 'bg-status-approved text-status-approved-fg hover:bg-status-approved-border'}`}
+                  >
+                    {agent.isActive ? 'Deaktivieren' : 'Aktivieren'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile — the existing expand/collapse card list, restyled to the
+              same per-row card treatment as the sm+ list above. The chevron
+              and its `expandedId` state are preserved deliberately: they are
+              a real interaction, and the prototype's always-visible mobile
+              reflow would have removed one (see the report). */}
+          <div className="flex max-h-[580px] flex-col gap-2 overflow-y-auto sm:hidden">
+            {filtered.map((agent) => (
+              <div key={agent.id} className="rounded-2xl bg-surface-card p-4 shadow-soft">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[9px] bg-surface-subtle text-[10px] font-semibold text-accent-primary">
+                      {agent.firstName.charAt(0).toUpperCase()}
+                    </div>
                     <div className="min-w-0">
                       <p className="truncate text-[13px] font-semibold text-text-primary">
                         {agent.firstName} {agent.lastName}
                       </p>
                       <code className="font-mono text-[11px] text-text-muted">{agent.agentCode}</code>
                     </div>
-                    <div className="flex flex-shrink-0 items-center gap-2">
-                      <StatusBadge
-                        tone={agent.isActive ? 'approved' : 'neutral'}
-                        label={agent.isActive ? 'Aktiv' : 'Inaktiv'}
-                      />
+                  </div>
+                  <div className="flex flex-shrink-0 items-center gap-2">
+                    <StatusBadge
+                      tone={agent.isActive ? 'approved' : 'neutral'}
+                      label={agent.isActive ? 'Aktiv' : 'Inaktiv'}
+                    />
+                    <button
+                      onClick={() => setExpandedId(expandedId === agent.id ? null : agent.id)}
+                      aria-expanded={expandedId === agent.id}
+                      aria-label={expandedId === agent.id ? 'Details ausblenden' : 'Details anzeigen'}
+                      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-text-primary transition-colors hover:bg-surface-raised focus:outline-none focus:shadow-focus-ring"
+                    >
+                      {expandedId === agent.id
+                        ? <ChevronUp className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        : <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                    </button>
+                  </div>
+                </div>
+                {expandedId === agent.id && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-[11px] text-text-muted">
+                      Berater: <span className="text-text-primary">{agent.partner.firstName} {agent.partner.lastName}</span>
+                    </p>
+                    <p className="text-[11px] text-text-muted">
+                      Erstellt: <span className="tabular-nums text-text-primary">{new Date(agent.createdAt).toLocaleDateString('de-DE')}</span>
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 border-t border-line-soft pt-2.5">
+                      {agent.isActive && (
+                        <button
+                          onClick={() => copyLink(agent)}
+                          className={`${ACTION_BTN_CLASS} flex-1 ${copiedId === agent.id ? 'bg-status-approved text-status-approved-fg' : 'bg-surface-selected text-accent-primary'}`}
+                        >
+                          {copiedId === agent.id ? 'Kopiert!' : 'Link'}
+                        </button>
+                      )}
                       <button
-                        onClick={() => setExpandedId(expandedId === agent.id ? null : agent.id)}
-                        aria-expanded={expandedId === agent.id}
-                        aria-label={expandedId === agent.id ? 'Details ausblenden' : 'Details anzeigen'}
-                        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-text-primary transition-colors hover:bg-surface-raised focus:outline-none focus:shadow-focus-ring"
+                        onClick={() => openEdit(agent)}
+                        className={`${ACTION_BTN_CLASS} flex-1 border border-surface-raised bg-surface-subtle text-text-primary`}
                       >
-                        {expandedId === agent.id
-                          ? <ChevronUp className="h-3.5 w-3.5" strokeWidth={1.75} />
-                          : <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                        Bearbeiten
+                      </button>
+                      <button
+                        onClick={() => toggleActive(agent)}
+                        className={`${ACTION_BTN_CLASS} flex-1 ${agent.isActive ? 'bg-status-flagged text-status-flagged-fg' : 'bg-status-approved text-status-approved-fg'}`}
+                      >
+                        {agent.isActive ? 'Deaktivieren' : 'Aktivieren'}
                       </button>
                     </div>
                   </div>
-                  {expandedId === agent.id && (
-                    <div className="mt-3 space-y-2">
-                      <p className="text-[11px] text-text-muted">
-                        Berater: <span className="text-text-primary">{agent.partner.firstName} {agent.partner.lastName}</span>
-                      </p>
-                      <p className="text-[11px] text-text-muted">
-                        Erstellt: <span className="tabular-nums text-text-primary">{new Date(agent.createdAt).toLocaleDateString('de-DE')}</span>
-                      </p>
-                      <div className="flex flex-wrap gap-1.5 border-t border-line-soft pt-2.5">
-                        {agent.isActive && (
-                          <button
-                            onClick={() => copyLink(agent)}
-                            className={`${ACTION_BTN_CLASS} flex-1 ${copiedId === agent.id ? 'bg-status-approved text-status-approved-fg' : 'bg-surface-selected text-accent-primary'}`}
-                          >
-                            {copiedId === agent.id ? 'Kopiert!' : 'Link'}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => openEdit(agent)}
-                          className={`${ACTION_BTN_CLASS} flex-1 border border-surface-raised bg-surface-subtle text-text-primary`}
-                        >
-                          Bearbeiten
-                        </button>
-                        <button
-                          onClick={() => toggleActive(agent)}
-                          className={`${ACTION_BTN_CLASS} flex-1 ${agent.isActive ? 'bg-status-flagged text-status-flagged-fg' : 'bg-status-approved text-status-approved-fg'}`}
-                        >
-                          {agent.isActive ? 'Deaktivieren' : 'Aktivieren'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                )}
+              </div>
+            ))}
           </div>
         </>
       )}
