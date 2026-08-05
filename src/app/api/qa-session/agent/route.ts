@@ -36,73 +36,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function PATCH(req: Request) {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Nicht authentifiziert' }, { status: 401 });
-    }
-
-    const user = await AuthService.getUserFromToken(token);
-    if (!user?.id) {
-      return NextResponse.json({ success: false, message: 'Ungültiges Token' }, { status: 401 });
-    }
-
-    let sessionId: string | undefined, agentCode: string | undefined;
-    try {
-      ({ sessionId, agentCode } = await req.json());
-    } catch {
-      return NextResponse.json({ success: false, message: 'Ungültiger Request-Body' }, { status: 400 });
-    }
-
-    if (!sessionId || !agentCode?.trim()) {
-      return NextResponse.json(
-        { success: false, message: 'Sitzungs-ID und Agenten-Code sind erforderlich' },
-        { status: 400 }
-      );
-    }
-
-    // Verify the session belongs to this user
-    const session = await prisma.qASession.findFirst({
-      where: { id: sessionId, userId: user.id },
-      select: { id: true },
-    });
-
-    if (!session) {
-      return NextResponse.json({ success: false, message: 'Sitzung nicht gefunden' }, { status: 404 });
-    }
-
-    // Look up agent by code
-    const agent = await prisma.agent.findUnique({
-      where: { agentCode: agentCode.trim().toUpperCase() },
-      select: { id: true, firstName: true, lastName: true, agentCode: true, isActive: true },
-    });
-
-    if (!agent || !agent.isActive) {
-      return NextResponse.json(
-        { success: false, message: 'Agenten-Code ungültig oder nicht aktiv' },
-        { status: 400 }
-      );
-    }
-
-    await prisma.qASession.update({
-      where: { id: sessionId },
-      data: { agentId: agent.id },
-    });
-
-    return NextResponse.json({
-      success: true,
-      agent: {
-        id: agent.id,
-        firstName: agent.firstName,
-        lastName: agent.lastName,
-        agentCode: agent.agentCode,
-      },
-    });
-  } catch (error) {
-    console.error('[PATCH /api/qa-session/agent]', error);
-    return NextResponse.json({ success: false, message: 'Interner Serverfehler' }, { status: 500 });
-  }
-}
+// Removed: PATCH /api/qa-session/agent (attach an agent to an already-created session).
+//
+// Agent linkage is now resolved and written by POST /api/qa-session/create in the same write as
+// the partner, so there is no window in which a session exists without the agent it was started
+// with. Nothing else in the app attaches or changes an agent after creation — the only writes to
+// QASession.agentId were this handler and the create route — so a standalone attach endpoint had
+// no remaining caller, and keeping it would have preserved a hole this fix closes: it let any
+// authenticated user attach any active agent code to their own session, including an agent
+// belonging to a different partner. See docs/fix-reports/agent-linkage-fix.md.

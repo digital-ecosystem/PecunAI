@@ -6,7 +6,18 @@ import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import { Agent, Session, SessionStatus, User } from '@/types';
 import SessionBlockedModal from '@/components/customer/SessionBlockedModal';
-import { Ban, CheckCircle, Clock, FileText, Hourglass, LogOut } from 'lucide-react';
+import {
+    AlertTriangle,
+    Ban,
+    CheckCircle,
+    Clock,
+    FileText,
+    Hourglass,
+    LayoutDashboard,
+    LogOut,
+    Plus,
+    Search,
+} from 'lucide-react';
 import {
     Drawer,
     DrawerContent,
@@ -15,6 +26,16 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
+import DashboardShell, { DashboardProfilePill } from '@/components/ui/DashboardShell';
+import StatusBadge from '@/components/ui/StatusBadge';
+
+const STATUS_FILTERS = [
+    { value: 'all', label: 'Alle' },
+    { value: 'DRAFT', label: 'Entwurf' },
+    { value: 'PENDING', label: 'Anfrage' },
+    { value: 'REJECTED', label: 'Abgelehnt' },
+    { value: 'APPROVED', label: 'Genehmigt' },
+];
 
 const Dashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -51,6 +72,10 @@ const Dashboard = () => {
     const [totalPages, setTotalPages] = useState(0);
     const [totalCount, setTotalCount] = useState(0);
     const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+    // Presentational only: drives the approved design's explicit error panel.
+    // Set from the exact same failure branches the previous code already had.
+    const [sessionsError, setSessionsError] = useState(false);
+    const [sessionsReloadKey, setSessionsReloadKey] = useState(0);
     const [allSessionsForStats, setAllSessionsForStats] = useState<Session[]>([]);
     const drawerScrollRef = useRef<HTMLDivElement>(null);
 
@@ -60,9 +85,8 @@ const Dashboard = () => {
         return match ? decodeURIComponent(match[1]) : '';
     };
 
-    const clearCookie = (name: string) => {
-        document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
-    };
+    // Note: referral_code and agent_code are deliberately never cleared here. Both are consumed
+    // server-side by /api/qa-session/create once a session has actually been created.
 
     const openSession = allSessionsForStats.find(
         s => s.status === SessionStatus.DRAFT
@@ -98,7 +122,7 @@ const Dashboard = () => {
             }
         };
         fetchAllSessions();
-    }, []);
+    }, [sessionsReloadKey]);
 
     // Fetch paginated sessions based on filters
     useEffect(() => {
@@ -119,14 +143,17 @@ const Dashboard = () => {
                     setSessions(data.sessions);
                     setTotalPages(data.pagination.totalPages);
                     setTotalCount(data.pagination.totalCount);
+                    setSessionsError(false);
                 } else {
                     setSessions([]);
                     setTotalPages(0);
                     setTotalCount(0);
+                    setSessionsError(true);
                 }
             } catch (error) {
                 console.error('Error fetching sessions:', error);
                 setSessions([]);
+                setSessionsError(true);
             } finally {
                 setIsLoadingSessions(false);
             }
@@ -138,21 +165,7 @@ const Dashboard = () => {
         }, searchTerm ? 500 : 0);
 
         return () => clearTimeout(timeoutId);
-    }, [currentPage, itemsPerPage, searchTerm, statusFilter]);
-
-    const getStatusBadge = (status: string) => {
-        const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
-        switch (status) {
-            case SessionStatus.APPROVED:
-                return `${baseClasses} bg-green-100 text-green-800`;
-            case SessionStatus.PENDING:
-                return `${baseClasses} bg-yellow-100 text-yellow-800`;
-            case SessionStatus.REJECTED:
-                return `${baseClasses} bg-red-100 text-red-800`;
-            default:
-                return `${baseClasses} bg-gray-100 text-gray-800`;
-        }
-    };
+    }, [currentPage, itemsPerPage, searchTerm, statusFilter, sessionsReloadKey]);
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('de-DE', {
@@ -204,19 +217,20 @@ const Dashboard = () => {
         setLoading(true);
         let didNavigate = false;
         try {
+            // Partner and agent are both resolved and written by the create call itself, in one
+            // atomic write — there is no follow-up request that can fail independently.
             const response = await fetch('/api/qa-session/create', {
                 method: 'POST',
-                body: JSON.stringify(opts?.partnerCode ? { partnerCode: opts.partnerCode } : {}),
+                body: JSON.stringify({
+                    ...(opts?.partnerCode ? { partnerCode: opts.partnerCode } : {}),
+                    ...(opts?.agentCode ? { agentCode: opts.agentCode } : {}),
+                }),
                 headers: { 'Content-Type': 'application/json' },
             });
             const res = await response.json();
             if (res?.success && res?.session?.id) {
-                if (opts?.agentCode) {
-                    await fetch('/api/qa-session/agent', {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ sessionId: res.session.id, agentCode: opts.agentCode }),
-                    }).catch(() => console.warn('agent code assignment failed'));
+                if (opts?.agentCode && res?.agentLinked === false) {
+                    console.warn('agent code not linked to session:', res?.agentWarning ?? 'unknown');
                 }
                 setIsStartDrawerOpen(false);
                 didNavigate = true;
@@ -289,8 +303,8 @@ const Dashboard = () => {
 
         const referralCode = getCookieValue('referral_code');
         if (referralCode) {
+            // Cookie is left in place; the create route clears it once the session exists.
             const agentCode = getCookieValue('agent_code') || undefined;
-            clearCookie('agent_code');
             await startSession(agentCode ? { agentCode } : undefined);
             return;
         }
@@ -312,11 +326,54 @@ const Dashboard = () => {
         }
         // Require explicit confirmation before starting the onboarding session
         setIsStartDrawerOpen(true);
+        // Cookie is left in place; the create route clears it once the session exists, so
+        // cancelling here (or reloading) does not lose the agent.
         const agentCodeFromCookie = getCookieValue('agent_code') || undefined;
-        clearCookie('agent_code');
         openWelcomeAndQueueStart(agentCodeFromCookie ? { agentCode: agentCodeFromCookie } : undefined);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, didAutostart]);
+
+    const totalSessions = allSessionsForStats.length;
+    const approvedCount = allSessionsForStats.filter(s => s.status === SessionStatus.APPROVED).length;
+    const rejectedCount = allSessionsForStats.filter(s => s.status === SessionStatus.REJECTED).length;
+    const pendingCount = allSessionsForStats.filter(s => s.status === SessionStatus.PENDING).length;
+    const draftCount = allSessionsForStats.filter(s => s.status === SessionStatus.DRAFT).length;
+
+    const navItems = [
+        { name: 'Dashboard', href: '/customer/dashboard', icon: LayoutDashboard },
+    ];
+
+    const footerItems = [
+        { name: 'Abmelden', icon: LogOut, tone: 'danger' as const, onClick: handleLogout },
+    ];
+
+    const openSessionRoute = (session: Session) => {
+        if (session.isBlocked) { setShowBlockedModal(true); return; }
+        if (session.status === SessionStatus.DRAFT) {
+            router.push('/customer/voice-session/' + session.id);
+        }
+    };
+
+    // Renders the agent already included in the /api/dashboard payload. No extra fetch.
+    const formatAgentName = (session: Session) => {
+        const name = `${session.agent?.firstName ?? ''} ${session.agent?.lastName ?? ''}`.trim();
+        return name || '—';
+    };
+
+    // Renders the partner name the /api/dashboard payload already constructs. No extra fetch.
+    // `partnerId` is required on QASession, so this is always a real name; the '—' mirrors
+    // formatAgentName only because the shared Session type marks the field optional.
+    const formatPartnerName = (session: Session) => session.partnerName?.trim() || '—';
+
+    const columnHeaders = (
+        <div className="mb-1.5 hidden gap-x-2.5 px-3.5 sm:flex">
+            <div className="flex-[1.8] text-[9px] tracking-wider text-text-muted">SITZUNG</div>
+            <div className="flex-[1.1] text-[9px] tracking-wider text-text-muted">AGENT</div>
+            <div className="flex-[1.1] text-[9px] tracking-wider text-text-muted">BERATER</div>
+            <div className="flex-[0.8] text-[9px] tracking-wider text-text-muted">STATUS</div>
+            <div className="flex-[0.9] text-right text-[9px] tracking-wider text-text-muted">ERSTELLT</div>
+        </div>
+    );
 
     return (
         <>
@@ -326,553 +383,454 @@ const Dashboard = () => {
             </Head>
             {
                 loading ? (
-                    <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-75 z-50">
-                        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-blue-500"></div>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-base/80 backdrop-blur-sm">
+                        <div className="h-16 w-16 animate-spin rounded-full border-2 border-line border-t-accent-primary"></div>
                     </div>
                 ) : (
                     <React.Fragment>
-                        <div className="min-h-screen bg-gray-50">
-                            {/* Header */}
-                            <div className="bg-white shadow-sm border-b border-gray-200">
-                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                    <div className="py-4 sm:py-6">
-                                        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-                                            <div className="min-w-0 flex-1">
-                                                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
-                                                    Dashboard
-                                                </h1>
-                                                <p className="mt-1 text-sm text-gray-600 truncate" suppressHydrationWarning>
-                                                    Willkommen zurück, {user?.name || user?.email?.split('@')[0] || ''}!
+                        <DashboardShell
+                            title="Dashboard"
+                            subtitle={
+                                <>
+                                    Willkommen zurück,{' '}
+                                    <strong className="font-semibold text-text-primary">
+                                        {user?.name || user?.email?.split('@')[0] || ''}
+                                    </strong>
+                                    !
+                                </>
+                            }
+                            navItems={navItems}
+                            footerItems={footerItems}
+                            headerRight={
+                                <DashboardProfilePill
+                                    name={user?.name || ''}
+                                    email={user?.email || ''}
+                                    initial={user?.email?.charAt(0) || ''}
+                                    className="max-sm:w-full"
+                                />
+                            }
+                        >
+                            <Drawer open={isStartDrawerOpen} onOpenChange={setIsStartDrawerOpen} repositionInputs={false}>
+                                <DrawerContent>
+                                    <div className="mx-auto w-full max-w-2xl">
+                                        <DrawerHeader className="pb-2">
+                                            <DrawerTitle className="text-text-primary">Beratung beginnen</DrawerTitle>
+                                            <DrawerDescription className="text-text-muted">
+                                                Für eine neue Beratung wird ein Partner benötigt.
+                                            </DrawerDescription>
+                                            {startError && (
+                                                <p className="mt-2 text-sm text-status-flagged-fg">{startError}</p>
+                                            )}
+                                        </DrawerHeader>
+
+                                        <div ref={drawerScrollRef} className="px-4 pb-4 max-h-[65vh] overflow-y-auto sm:max-h-none">
+                                        {openSession?.id ? (
+                                            <div className="flex flex-col gap-3">
+                                                <p className="text-sm text-text-primary">
+                                                    Sie haben bereits eine offene Beratung. Bitte zuerst abschließen.
                                                 </p>
-                                            </div>
-                                            <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
-                                                {/* User Info - Hidden on mobile, shown on larger screens */}
-                                                <div className="hidden sm:flex items-center space-x-2">
-                                                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                                        <span className="text-white font-medium text-sm">
-                                                            {user?.email?.charAt(0).toUpperCase()}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-sm text-gray-700 truncate max-w-32 lg:max-w-none">
-                                                        {user?.email || ''}
-                                                    </span>
-                                                </div>
-
-                                                {/* Mobile User Info */}
-                                                <div className="flex sm:hidden items-center justify-between">
-                                                    <div className="flex items-center space-x-2">
-                                                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                                                            <span className="text-white font-medium text-sm">
-                                                                {user?.email?.charAt(0).toUpperCase()}
-                                                            </span>
-                                                        </div>
-                                                        <span className="text-sm text-gray-700 truncate">
-                                                            {user?.email || ''}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
                                                 <button
-                                                    onClick={handleLogout}
-                                                    className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 hover:text-red-700 transition-colors text-sm font-medium shadow-sm w-full sm:w-auto"
-                                                >
-                                                    <LogOut className="w-4 h-4" />
-                                                    <span>Abmelden</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Main Content */}
-                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-
-                                <Drawer open={isStartDrawerOpen} onOpenChange={setIsStartDrawerOpen} repositionInputs={false}>
-                                    <DrawerContent>
-                                        <div className="mx-auto w-full max-w-2xl">
-                                            <DrawerHeader className="pb-2">
-                                                <DrawerTitle>Beratung beginnen</DrawerTitle>
-                                                <DrawerDescription>
-                                                    Für eine neue Beratung wird ein Partner benötigt.
-                                                </DrawerDescription>
-                                                {startError && (
-                                                    <p className="mt-2 text-sm text-red-600">{startError}</p>
-                                                )}
-                                            </DrawerHeader>
-
-                                            <div ref={drawerScrollRef} className="px-4 pb-4 max-h-[65vh] overflow-y-auto sm:max-h-none">
-                                            {openSession?.id ? (
-                                                <div className="flex flex-col gap-3">
-                                                    <p className="text-sm text-gray-700">
-                                                        Sie haben bereits eine offene Beratung. Bitte zuerst abschließen.
-                                                    </p>
-                                                    <button
-                                                        onClick={() => {
+                                                    onClick={() => {
                                                             if (openSession.isBlocked) { setShowBlockedModal(true); return; }
                                                             router.push('/customer/voice-session/' + openSession.id);
                                                         }}
-                                                        className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                                                    >
-                                                        Fortsetzen
-                                                    </button>
-                                                </div>
-                                            ) : getCookieValue('referral_code') ? (
-                                                <div className="flex flex-col gap-3">
-                                                    <p className="text-sm text-gray-700">Partner-Link erkannt. Sie können direkt starten.</p>
-                                                    <button
-                                                        onClick={() => openWelcomeAndQueueStart()}
-                                                        className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                                                    >
-                                                        Starten
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div>
-                                                    <div className="mt-3 flex items-start gap-2">
-                                                        <div className="flex-1 min-w-0">
-                                                            <input
-                                                                value={partnerCode}
-                                                                onChange={(e) => { setPartnerCode(e.target.value); setPartnerPreview(null); setPartnerLookupError(null); }}
-                                                                onKeyDown={(e) => { if (e.key === 'Enter') handleLookupBoth(); }}
-                                                                placeholder="Partner-Code"
-                                                                className="h-10 w-full px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                            />
-                                                            {partnerLookupError && <p className="mt-1 text-xs text-red-600">{partnerLookupError}</p>}
-                                                            {partnerPreview && <p className="mt-1 text-xs text-green-700 font-medium">✓ {partnerPreview.firstName} {partnerPreview.lastName}</p>}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <input
-                                                                value={drawerAgentCode}
-                                                                onChange={(e) => { setDrawerAgentCode(e.target.value); setDrawerAgentPreview(null); setDrawerAgentLookupError(null); }}
-                                                                onKeyDown={(e) => { if (e.key === 'Enter') handleLookupBoth(); }}
-                                                                placeholder="Agenten-Code"
-                                                                className="h-10 w-full px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                            />
-                                                            {drawerAgentLookupError && <p className="mt-1 text-xs text-red-600">{drawerAgentLookupError}</p>}
-                                                            {drawerAgentPreview && <p className="mt-1 text-xs text-green-700 font-medium">✓ {drawerAgentPreview.firstName} {drawerAgentPreview.lastName}</p>}
-                                                        </div>
-                                                        <button
-                                                            onClick={handleLookupBoth}
-                                                            disabled={partnerLookupLoading || !partnerCode.trim() || !drawerAgentCode.trim()}
-                                                            className={`shrink-0 px-4 h-10 rounded-lg text-sm font-medium transition-colors ${partnerLookupLoading || !partnerCode.trim() || !drawerAgentCode.trim() ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'}`}
-                                                        >
-                                                            {partnerLookupLoading ? 'Prüfe...' : 'Prüfen'}
-                                                        </button>
-                                                    </div>
-
-                                                    {partnerPreview && drawerAgentPreview && (
-                                                        <button
-                                                            onClick={() => openWelcomeAndQueueStart({ partnerCode: partnerPreview.referralCode, agentCode: drawerAgentPreview.agentCode })}
-                                                            className="mt-3 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                                                        >
-                                                            Weiter
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )}
-                                            </div>
-
-                                            <DrawerFooter className="pt-2">
-                                                <button
-                                                    onClick={() => setIsStartDrawerOpen(false)}
-                                                    className="w-full px-4 py-2.5 bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 rounded-lg transition-colors text-sm font-medium"
+                                                    className="w-full rounded-xl bg-accent-primary px-4 py-2.5 text-sm font-medium text-text-on-accent transition-colors hover:bg-accent-primary-hov"
                                                 >
-                                                    Schließen
+                                                    Fortsetzen
                                                 </button>
-                                            </DrawerFooter>
-                                        </div>
-                                    </DrawerContent>
-                                </Drawer>
-
-                                {showOnboardingWelcomePopup && (
-                                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-5 sm:p-8">
-                                            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3">
-                                                Willkommen bei Digital Onboarding Guide.
-                                            </h2>
-                                            <div className="max-h-[60vh] overflow-y-auto pr-1 text-sm sm:text-base text-gray-700 space-y-3">
-                                                <p>
-                                                    Diese Onboarding-Strecke ist der erste Schritt Ihrer Finanzberatung. In den nächsten Schritten erfassen wir gemeinsam relevante Informationen wie Ihre Ziele, Erfahrungen, finanzielle Situation und Risikoneigung. Daraus entsteht ein persönliches Anlegerprofil.
-                                                </p>
-                                                <p>
-                                                    Auf Basis dieses Profils wird ein Anlagevorschlag erstellt, der aus konkreten Vermögensverwaltungsstrategien von froots (Asset Management by froots GmbH) besteht. Diese Strategien sind darauf ausgelegt, langfristig und strukturiert zu investieren und werden individuell auf Ihr Profil abgestimmt.
-                                                </p>
-                                                <p>
-                                                    Die Anlageberatung und Vermittlung erfolgt durch 4money Financial Services GmbH, die Vermögensverwaltung übernimmt froots (Asset Management by froots GmbH). Ihr Wertpapierdepot wird auf Ihren Namen bei der Schelhammer Capital Bank geführt.
-                                                </p>
-                                                <p>
-                                                    Am Ende der Beratungsstrecke steht Ihnen Digital Onboarding Guide – unser digitaler KI-Assistent – zur Verfügung, um Ihre Fragen zu beantworten und Sie bei der Entscheidungsfindung zu unterstützen.
-                                                </p>
-                                                <p>
-                                                    Ihre Angaben werden vertraulich behandelt und ausschließlich im Rahmen dieser Beratung verwendet.
-                                                </p>
                                             </div>
-
-                                            <div className="mt-5 flex flex-col sm:flex-row justify-end gap-3">
+                                        ) : getCookieValue('referral_code') ? (
+                                            <div className="flex flex-col gap-3">
+                                                <p className="text-sm text-text-primary">Partner-Link erkannt. Sie können direkt starten.</p>
                                                 <button
                                                     onClick={() => {
-                                                        setShowOnboardingWelcomePopup(false);
-                                                        setPendingStartPartnerCode(null);
+                                                        const agentCode = getCookieValue('agent_code') || undefined;
+                                                        openWelcomeAndQueueStart(agentCode ? { agentCode } : undefined);
                                                     }}
-                                                    className="w-full sm:w-auto px-4 py-2.5 bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 rounded-lg transition-colors text-sm font-medium"
+                                                    className="w-full rounded-xl bg-accent-primary px-4 py-2.5 text-sm font-medium text-text-on-accent transition-colors hover:bg-accent-primary-hov"
                                                 >
-                                                    Abbrechen
-                                                </button>
-                                                <button
-                                                    onClick={handleWelcomeContinue}
-                                                    className="w-full sm:w-auto px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                                                >
-                                                    Weiter
+                                                    Starten
                                                 </button>
                                             </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Stats Cards */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                                        <div className="flex items-center">
-                                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-                                                <FileText className="w-5 h-5 text-blue-600" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Gesamtsitzungen</p>
-                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.length}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                                        <div className="flex items-center">
-                                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-                                                <CheckCircle className="w-5 h-5 text-green-600" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Genehmigt</p>
-                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.filter(s => s.status === SessionStatus.APPROVED).length}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                                        <div className="flex items-center">
-                                            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-                                                <Ban className="w-5 h-5 text-red-600" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Abgelehnt</p>
-                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.filter(s => s.status === SessionStatus.REJECTED).length}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                                        <div className="flex items-center">
-                                            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-                                                <Hourglass className="w-5 h-5 text-orange-600" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Ausstehend</p>
-                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.filter(s => s.status === SessionStatus.PENDING).length}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                                        <div className="flex items-center">
-                                            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0">
-                                                <Clock className="w-5 h-5 text-yellow-600" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-xs sm:text-sm text-gray-600 truncate">Entwurf</p>
-                                                <p className="text-xl sm:text-2xl font-bold text-gray-900">{allSessionsForStats.filter(s => s.status === SessionStatus.DRAFT).length}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Filters and Search */}
-                                <div className="mb-6 flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-                                    <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
-                                        <div className="relative flex-1 sm:flex-none sm:w-80">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                                </svg>
-                                            </div>
-                                            <input
-                                                type="text"
-                                                placeholder="Sitzungen suchen..."
-                                                value={searchTerm}
-                                                onChange={(e) => setSearchTerm(e.target.value)}
-                                                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                                            />
-                                        </div>
-                                        <select
-                                            value={statusFilter}
-                                            onChange={(e) => setStatusFilter(e.target.value)}
-                                            className="block w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                                        >
-                                            <option value="all">Alle Status</option>
-                                            <option value="DRAFT">Entwurf</option>
-                                            <option value="PENDING">Anfrage</option>
-                                            <option value="REJECTED">Abgelehnt</option>
-                                            <option value="APPROVED">Genehmigt</option>
-                                        </select>
-                                    </div>
-                                    <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-right">
-                                        <span className="font-medium">{totalCount}</span> von <span className="font-medium">{allSessionsForStats.length}</span> Sitzungen
-                                    </div>
-                                </div>
-
-                                {/* Sessions Table */}
-                                <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-                                    {isLoadingSessions ? (
-                                        <div className="text-center py-12 px-4">
-                                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-blue-500 mx-auto mb-4"></div>
-                                            <p className="text-sm text-gray-600">Sitzungen werden geladen...</p>
-                                        </div>
-                                    ) : sessions.length === 0 ? (
-                                        <div className="text-center py-12 px-4">
-                                            <div className="text-4xl sm:text-6xl mb-4">📚</div>
-                                            <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                                {allSessionsForStats.length === 0 ? 'Noch keine Sitzungen' : 'Keine Sitzungen gefunden'}
-                                            </h3>
-                                            <p className="text-sm sm:text-base text-gray-600 max-w-md mx-auto">
-                                                {allSessionsForStats.length === 0
-                                                    ? 'Ihre Sitzungen erscheinen hier, sobald sie erstellt wurden.'
-                                                    : 'Versuchen Sie, Ihre Such- oder Filterkriterien anzupassen.'
-                                                }
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {/* Desktop Table View */}
-                                            <div className="hidden sm:block overflow-x-auto">
-                                                <table className="min-w-full divide-y divide-gray-200">
-                                                    <thead className="bg-gray-50">
-                                                        <tr>
-                                                            <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                Sitzung
-                                                            </th>
-                                                            <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                Status
-                                                            </th>
-                                                            <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                                Erstellt
-                                                            </th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="bg-white divide-y divide-gray-200">
-                                                        {sessions.map((session) => (
-                                                            <tr key={session.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
-                                                                if (session.isBlocked) { setShowBlockedModal(true); return; }
-                                                                if (session.status === SessionStatus.DRAFT) {
-                                                                    router.push('/customer/voice-session/' + session.id);
-                                                                }
-                                                            }}>
-                                                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                                                                    <div className="flex items-center">
-                                                                        <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
-                                                                            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                                                                                <svg className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                                                </svg>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="ml-3 sm:ml-4 min-w-0 flex-1">
-                                                                            <div className="text-sm font-medium text-gray-900 truncate">
-                                                                                {session?.personalInfo?.firstName} {session?.personalInfo?.lastName}
-                                                                            </div>
-                                                                            <div className="text-xs sm:text-sm text-gray-500 truncate">
-                                                                                {session.user.email}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                                                                    <span className={getStatusBadge(session.status)}>
-                                                                        {/* {session.status.replace('_', ' ')} */}
-                                                                        {session.status === SessionStatus.DRAFT && (
-                                                                            <span className="text-xs text-gray-500">Entwurf</span>
-                                                                        )}
-                                                                        {session.status === SessionStatus.PENDING && (
-                                                                            <span className="text-xs text-gray-500">Anfrage</span>
-                                                                        )}
-                                                                        {session.status === SessionStatus.REJECTED && (
-                                                                            <span className="text-xs text-gray-500">Abgelehnt</span>
-                                                                        )}
-                                                                        {session.status === SessionStatus.APPROVED && (
-                                                                            <span className="text-xs text-gray-500">Genehmigt</span>
-                                                                        )}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                                    {formatDate(session?.createdAt)}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-
-                                            {/* Mobile Card View */}
-                                            <div className="sm:hidden divide-y divide-gray-200">
-                                                {sessions.map((session) => (
-                                                    <div key={session.id} className="p-4 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
-                                                        if (session.status === SessionStatus.DRAFT) {
-                                                            router.push('/customer/voice-session/' + session.id);
-                                                        }
-                                                    }}>
-                                                        <div className="flex items-start space-x-3">
-                                                            <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                                                                <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                                </svg>
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="flex items-center justify-between">
-                                                                    <div className="min-w-0 flex-1">
-                                                                        <p className="text-sm font-medium text-gray-900 truncate">
-                                                                            {session?.personalInfo?.firstName} {session?.personalInfo?.lastName}
-                                                                        </p>
-                                                                        <p className="text-xs text-gray-500 truncate">
-                                                                            {session.user.email}
-                                                                        </p>
-                                                                    </div>
-                                                                    <span className={getStatusBadge(session.status)}>
-                                                                        {session.status.replace('_', ' ')}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="mt-2">
-                                                                    <p className="text-xs text-gray-500">
-                                                                        Erstellt: {formatDate(session?.createdAt)}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                        ) : (
+                                            <div>
+                                                <div className="mt-3 flex items-start gap-2">
+                                                    <div className="flex-1 min-w-0">
+                                                        <input
+                                                            value={partnerCode}
+                                                            onChange={(e) => { setPartnerCode(e.target.value); setPartnerPreview(null); setPartnerLookupError(null); }}
+                                                            onKeyDown={(e) => { if (e.key === 'Enter') handleLookupBoth(); }}
+                                                            placeholder="Partner-Code"
+                                                            className="h-10 w-full rounded-xl border border-line-strong bg-surface-card px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-accent-primary focus:outline-none focus:shadow-focus-ring"
+                                                        />
+                                                        {partnerLookupError && <p className="mt-1 text-xs text-status-flagged-fg">{partnerLookupError}</p>}
+                                                        {partnerPreview && <p className="mt-1 text-xs font-medium text-status-approved-fg">✓ {partnerPreview.firstName} {partnerPreview.lastName}</p>}
                                                     </div>
-                                                ))}
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-
-                                {/* Pagination Controls */}
-                                {!isLoadingSessions && totalPages > 1 && (
-                                    <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden mt-4">
-                                        <div className="px-4 py-3 sm:px-6 bg-gray-50">
-                                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                                {/* Page Info */}
-                                                <div className="text-sm text-gray-700">
-                                                    Zeige <span className="font-medium">{indexOfFirstItem + 1}</span> bis{' '}
-                                                    <span className="font-medium">{Math.min(indexOfLastItem, totalCount)}</span> von{' '}
-                                                    <span className="font-medium">{totalCount}</span> Ergebnissen
+                                                    <div className="flex-1 min-w-0">
+                                                        <input
+                                                            value={drawerAgentCode}
+                                                            onChange={(e) => { setDrawerAgentCode(e.target.value); setDrawerAgentPreview(null); setDrawerAgentLookupError(null); }}
+                                                            onKeyDown={(e) => { if (e.key === 'Enter') handleLookupBoth(); }}
+                                                            placeholder="Agenten-Code"
+                                                            className="h-10 w-full rounded-xl border border-line-strong bg-surface-card px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-accent-primary focus:outline-none focus:shadow-focus-ring"
+                                                        />
+                                                        {drawerAgentLookupError && <p className="mt-1 text-xs text-status-flagged-fg">{drawerAgentLookupError}</p>}
+                                                        {drawerAgentPreview && <p className="mt-1 text-xs font-medium text-status-approved-fg">✓ {drawerAgentPreview.firstName} {drawerAgentPreview.lastName}</p>}
+                                                    </div>
+                                                    <button
+                                                        onClick={handleLookupBoth}
+                                                        disabled={partnerLookupLoading || !partnerCode.trim() || !drawerAgentCode.trim()}
+                                                        className={`h-10 shrink-0 rounded-xl px-4 text-sm font-medium transition-colors ${partnerLookupLoading || !partnerCode.trim() || !drawerAgentCode.trim() ? 'cursor-not-allowed bg-surface-raised text-text-muted' : 'border border-line-strong bg-surface-card text-text-primary hover:bg-surface-selected'}`}
+                                                    >
+                                                        {partnerLookupLoading ? 'Prüfe...' : 'Prüfen'}
+                                                    </button>
                                                 </div>
 
-                                                {/* Pagination Buttons */}
-                                                <div className="flex items-center space-x-2">
-                                                    {/* Previous Button */}
+                                                {partnerPreview && drawerAgentPreview && (
                                                     <button
-                                                        onClick={() => handlePageChange(currentPage - 1)}
-                                                        disabled={currentPage === 1}
-                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === 1
-                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                            : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                                                            }`}
-                                                    >
-                                                        Zurück
-                                                    </button>
-
-                                                    {/* Page Numbers */}
-                                                    <div className="hidden sm:flex items-center space-x-1">
-                                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => {
-                                                            // Show first, last, current, and adjacent pages
-                                                            if (
-                                                                pageNumber === 1 ||
-                                                                pageNumber === totalPages ||
-                                                                (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                                                            ) {
-                                                                return (
-                                                                    <button
-                                                                        key={pageNumber}
-                                                                        onClick={() => handlePageChange(pageNumber)}
-                                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${pageNumber === currentPage
-                                                                            ? 'bg-blue-600 text-white'
-                                                                            : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                                                                            }`}
-                                                                    >
-                                                                        {pageNumber}
-                                                                    </button>
-                                                                );
-                                                            } else if (
-                                                                pageNumber === currentPage - 2 ||
-                                                                pageNumber === currentPage + 2
-                                                            ) {
-                                                                return (
-                                                                    <span key={pageNumber} className="px-2 text-gray-500">
-                                                                        ...
-                                                                    </span>
-                                                                );
-                                                            }
-                                                            return null;
-                                                        })}
-                                                    </div>
-
-                                                    {/* Mobile Page Indicator */}
-                                                    <div className="sm:hidden px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700">
-                                                        {currentPage} / {totalPages}
-                                                    </div>
-
-                                                    {/* Next Button */}
-                                                    <button
-                                                        onClick={() => handlePageChange(currentPage + 1)}
-                                                        disabled={currentPage === totalPages}
-                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === totalPages
-                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                            : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                                                            }`}
+                                                        onClick={() => openWelcomeAndQueueStart({ partnerCode: partnerPreview.referralCode, agentCode: drawerAgentPreview.agentCode })}
+                                                        className="mt-3 w-full rounded-xl bg-accent-primary px-4 py-2 text-sm font-medium text-text-on-accent transition-colors hover:bg-accent-primary-hov"
                                                     >
                                                         Weiter
                                                     </button>
-                                                </div>
+                                                )}
                                             </div>
+                                        )}
+                                        </div>
+
+                                        <DrawerFooter className="pt-2">
+                                            <button
+                                                onClick={() => setIsStartDrawerOpen(false)}
+                                                className="w-full rounded-xl border border-line-strong bg-surface-card px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:bg-surface-selected"
+                                            >
+                                                Schließen
+                                            </button>
+                                        </DrawerFooter>
+                                    </div>
+                                </DrawerContent>
+                            </Drawer>
+
+                            {showOnboardingWelcomePopup && (
+                                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-text-primary/40 p-4 backdrop-blur-sm">
+                                    <div className="w-full max-w-2xl rounded-2xl bg-surface-card p-5 shadow-overlay sm:p-8">
+                                        <h2 className="mb-3 text-lg font-semibold text-text-primary sm:text-xl">
+                                            Willkommen bei Digital Onboarding Guide.
+                                        </h2>
+                                        <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1 text-sm text-text-primary sm:text-base">
+                                            <p>
+                                                Diese Onboarding-Strecke ist der erste Schritt Ihrer Finanzberatung. In den nächsten Schritten erfassen wir gemeinsam relevante Informationen wie Ihre Ziele, Erfahrungen, finanzielle Situation und Risikoneigung. Daraus entsteht ein persönliches Anlegerprofil.
+                                            </p>
+                                            <p>
+                                                Auf Basis dieses Profils wird ein Anlagevorschlag erstellt, der aus konkreten Vermögensverwaltungsstrategien von froots (Asset Management by froots GmbH) besteht. Diese Strategien sind darauf ausgelegt, langfristig und strukturiert zu investieren und werden individuell auf Ihr Profil abgestimmt.
+                                            </p>
+                                            <p>
+                                                Die Anlageberatung und Vermittlung erfolgt durch 4money Financial Services GmbH, die Vermögensverwaltung übernimmt froots (Asset Management by froots GmbH). Ihr Wertpapierdepot wird auf Ihren Namen bei der Schelhammer Capital Bank geführt.
+                                            </p>
+                                            <p>
+                                                Am Ende der Beratungsstrecke steht Ihnen Digital Onboarding Guide – unser digitaler KI-Assistent – zur Verfügung, um Ihre Fragen zu beantworten und Sie bei der Entscheidungsfindung zu unterstützen.
+                                            </p>
+                                            <p>
+                                                Ihre Angaben werden vertraulich behandelt und ausschließlich im Rahmen dieser Beratung verwendet.
+                                            </p>
+                                        </div>
+
+                                        <div className="mt-5 flex flex-col justify-end gap-3 sm:flex-row">
+                                            <button
+                                                onClick={() => {
+                                                    setShowOnboardingWelcomePopup(false);
+                                                    setPendingStartPartnerCode(null);
+                                                    setPendingStartAgentCode(null);
+                                                }}
+                                                className="w-full rounded-xl border border-line-strong bg-surface-card px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:bg-surface-selected sm:w-auto"
+                                            >
+                                                Abbrechen
+                                            </button>
+                                            <button
+                                                onClick={handleWelcomeContinue}
+                                                className="w-full rounded-xl bg-accent-primary px-4 py-2.5 text-sm font-medium text-text-on-accent transition-colors hover:bg-accent-primary-hov sm:w-auto"
+                                            >
+                                                Weiter
+                                            </button>
                                         </div>
                                     </div>
-                                )}
+                                </div>
+                            )}
 
-                            </div>                            {/* Spacing for mobile to prevent content overlap with FAB */}
-                            <div className="h-24 sm:h-0"></div>
+                            {/* KPI row — two stacked cards · focal total · two stacked cards */}
+                            <div className="mb-8 flex w-full flex-wrap items-stretch gap-3">
+                                <div className="flex min-w-0 flex-1 flex-col gap-2.5 max-sm:basis-full max-sm:flex-row max-sm:flex-wrap">
+                                    <StatCard
+                                        icon={<Hourglass className="h-[18px] w-[18px] text-accent-primary" strokeWidth={1.75} />}
+                                        value={pendingCount}
+                                        label="Ausstehend"
+                                    />
+                                    <StatCard
+                                        icon={<Clock className="h-[18px] w-[18px] text-status-neutral-fg" strokeWidth={1.75} />}
+                                        value={draftCount}
+                                        label="Entwurf"
+                                    />
+                                </div>
 
-                            {/* Floating Action Button */}
-                            <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
-                                <button
-                                    onClick={openSession?.id
+                                {/* Signature moment for this surface: one soft accent glow behind the focal metric. */}
+                                <div className="relative flex flex-1 flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl bg-surface-card p-4 text-center shadow-soft transition-shadow hover:shadow-raised max-sm:order-first max-sm:basis-full">
+                                    <div
+                                        aria-hidden="true"
+                                        className="pointer-events-none absolute inset-x-0 -top-16 h-40 bg-[radial-gradient(ellipse_at_center,rgba(55,124,244,0.14),transparent_70%)]"
+                                    />
+                                    <div className="relative mb-1 flex h-[34px] w-[34px] items-center justify-center rounded-xl bg-surface-subtle text-accent-primary">
+                                        <FileText className="h-4 w-4" strokeWidth={1.75} />
+                                    </div>
+                                    <div className="relative text-[28px] font-semibold leading-none tabular-nums text-text-primary">
+                                        {totalSessions}
+                                    </div>
+                                    <div className="relative mt-1 text-[11px] text-text-muted">Gesamtsitzungen</div>
+                                </div>
+
+                                <div className="flex min-w-0 flex-1 flex-col gap-2.5 max-sm:basis-full max-sm:flex-row max-sm:flex-wrap">
+                                    <StatCard
+                                        icon={<CheckCircle className="h-[18px] w-[18px] text-status-approved-fg" strokeWidth={1.75} />}
+                                        value={approvedCount}
+                                        label="Genehmigt"
+                                    />
+                                    <StatCard
+                                        icon={<Ban className="h-[18px] w-[18px] text-status-flagged-fg" strokeWidth={1.75} />}
+                                        value={rejectedCount}
+                                        label="Abgelehnt"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mb-3 text-[15px] font-semibold text-text-primary">Ihre Sitzungen</div>
+
+                            {/* Search + status filter */}
+                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 max-sm:flex-col max-sm:items-stretch">
+                                <div className="relative min-w-[200px] max-sm:w-full max-sm:min-w-0">
+                                    <Search
+                                        className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
+                                        strokeWidth={1.75}
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Sitzungen suchen..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full rounded-2xl bg-surface-card py-2.5 pl-10 pr-3.5 text-xs text-text-primary shadow-soft placeholder:text-text-muted focus:outline-none focus:shadow-focus-ring"
+                                    />
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 max-sm:w-full">
+                                    {STATUS_FILTERS.map((option) => (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            onClick={() => setStatusFilter(option.value)}
+                                            aria-pressed={statusFilter === option.value}
+                                            className={`rounded-xl px-3 py-1.5 text-[10px] transition-shadow max-sm:flex-1 max-sm:text-center ${
+                                                statusFilter === option.value
+                                                    ? 'bg-accent-primary text-text-on-accent'
+                                                    : 'bg-surface-card text-text-primary shadow-soft hover:shadow-raised'
+                                            }`}
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Sessions list */}
+                            {isLoadingSessions ? (
+                                <div>
+                                    {columnHeaders}
+                                    <div className="flex flex-col gap-2">
+                                        {[0, 1, 2].map((i) => (
+                                            <div
+                                                key={i}
+                                                className="flex items-center gap-2.5 rounded-2xl bg-surface-card p-3.5 shadow-soft"
+                                            >
+                                                <div className="skeleton-pulse h-[26px] w-[26px] rounded-[9px] bg-surface-raised" />
+                                                <div className="skeleton-pulse h-2.5 w-[140px] rounded bg-surface-raised" />
+                                                <div className="flex-1" />
+                                                <div className="skeleton-pulse h-4 w-[60px] rounded-lg bg-surface-raised" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="mt-3 text-center text-[11px] text-text-muted">Sitzungen werden geladen...</p>
+                                </div>
+                            ) : sessionsError ? (
+                                <StatePanel
+                                    icon={<AlertTriangle className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+                                    iconClassName="bg-status-flagged text-status-flagged-fg"
+                                    title="Sitzungen konnten nicht geladen werden"
+                                    description="Bitte versuchen Sie es erneut."
+                                    action={
+                                        <button
+                                            type="button"
+                                            onClick={() => setSessionsReloadKey((k) => k + 1)}
+                                            className="mt-3.5 rounded-xl bg-accent-primary px-4 py-2 text-[11px] font-medium text-text-on-accent transition-colors hover:bg-accent-primary-hov"
+                                        >
+                                            Erneut versuchen
+                                        </button>
+                                    }
+                                />
+                            ) : sessions.length === 0 ? (
+                                <StatePanel
+                                    icon={<FileText className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+                                    iconClassName="bg-surface-subtle text-accent-primary"
+                                    title={allSessionsForStats.length === 0 ? 'Noch keine Sitzungen' : 'Keine Sitzungen gefunden'}
+                                    description={
+                                        allSessionsForStats.length === 0
+                                            ? 'Ihre Sitzungen erscheinen hier, sobald sie erstellt wurden.'
+                                            : 'Versuchen Sie, Ihre Such- oder Filterkriterien anzupassen.'
+                                    }
+                                />
+                            ) : (
+                                <div>
+                                    {columnHeaders}
+                                    <div className="flex flex-col gap-2">
+                                        {sessions.map((session) => (
+                                            <div
+                                                key={session.id}
+                                                onClick={() => openSessionRoute(session)}
+                                                className="flex cursor-pointer items-center gap-x-2.5 gap-y-1.5 rounded-2xl bg-surface-card p-3.5 shadow-soft transition-shadow hover:shadow-raised max-sm:flex-wrap"
+                                            >
+                                                <div className="flex min-w-0 flex-[1.8] items-center gap-2.5 max-sm:basis-full">
+                                                    <div className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[9px] bg-surface-subtle text-accent-primary">
+                                                        <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="truncate text-xs font-medium text-text-primary">
+                                                            {session?.personalInfo?.firstName} {session?.personalInfo?.lastName}
+                                                        </div>
+                                                        <div className="truncate text-[11px] text-text-muted" title={session.user.email}>
+                                                            {session.user.email}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    className="min-w-0 flex-[1.1] truncate pr-2 text-xs text-text-primary max-sm:order-4 max-sm:flex-auto max-sm:text-[10px] max-sm:text-text-muted"
+                                                    title={formatAgentName(session)}
+                                                >
+                                                    {formatAgentName(session)}
+                                                </div>
+                                                {/* Same visual register as AGENT, and the same mobile order group so it
+                                                    reflows directly after it without renumbering the cells below. */}
+                                                <div
+                                                    className="min-w-0 flex-[1.1] truncate pr-2 text-xs text-text-primary max-sm:order-4 max-sm:flex-auto max-sm:text-[10px] max-sm:text-text-muted"
+                                                    title={formatPartnerName(session)}
+                                                >
+                                                    {formatPartnerName(session)}
+                                                </div>
+                                                <div className="flex-[0.8] max-sm:order-5 max-sm:flex-none">
+                                                    <StatusBadge status={session.status} />
+                                                </div>
+                                                <div className="flex-[0.9] text-right text-[10px] text-text-muted max-sm:order-6 max-sm:flex-1">
+                                                    {formatDate(session?.createdAt)}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Pagination Controls */}
+                            {!isLoadingSessions && !sessionsError && totalPages > 1 && (
+                                <div className="mt-4 rounded-2xl bg-surface-card px-4 py-3 shadow-soft sm:px-6">
+                                    <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+                                        {/* Page Info */}
+                                        <div className="text-xs text-text-muted">
+                                            Zeige <span className="font-medium text-text-primary tabular-nums">{indexOfFirstItem + 1}</span> bis{' '}
+                                            <span className="font-medium text-text-primary tabular-nums">{Math.min(indexOfLastItem, totalCount)}</span> von{' '}
+                                            <span className="font-medium text-text-primary tabular-nums">{totalCount}</span> Ergebnissen
+                                        </div>
+
+                                        {/* Pagination Buttons */}
+                                        <div className="flex items-center space-x-2">
+                                            {/* Previous Button */}
+                                            <button
+                                                onClick={() => handlePageChange(currentPage - 1)}
+                                                disabled={currentPage === 1}
+                                                className={`rounded-xl px-3 py-2 text-xs font-medium transition-colors ${currentPage === 1
+                                                    ? 'cursor-not-allowed bg-surface-raised text-text-muted'
+                                                    : 'border border-line bg-surface-card text-text-primary hover:bg-surface-selected'
+                                                    }`}
+                                            >
+                                                Zurück
+                                            </button>
+
+                                            {/* Page Numbers */}
+                                            <div className="hidden sm:flex items-center space-x-1">
+                                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => {
+                                                    // Show first, last, current, and adjacent pages
+                                                    if (
+                                                        pageNumber === 1 ||
+                                                        pageNumber === totalPages ||
+                                                        (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                                                    ) {
+                                                        return (
+                                                            <button
+                                                                key={pageNumber}
+                                                                onClick={() => handlePageChange(pageNumber)}
+                                                                className={`rounded-xl px-3 py-2 text-xs font-medium tabular-nums transition-colors ${pageNumber === currentPage
+                                                                    ? 'bg-accent-primary text-text-on-accent'
+                                                                    : 'border border-line bg-surface-card text-text-primary hover:bg-surface-selected'
+                                                                    }`}
+                                                            >
+                                                                {pageNumber}
+                                                            </button>
+                                                        );
+                                                    } else if (
+                                                        pageNumber === currentPage - 2 ||
+                                                        pageNumber === currentPage + 2
+                                                    ) {
+                                                        return (
+                                                            <span key={pageNumber} className="px-2 text-text-muted">
+                                                                ...
+                                                            </span>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })}
+                                            </div>
+
+                                            {/* Mobile Page Indicator */}
+                                            <div className="sm:hidden rounded-xl border border-line bg-surface-card px-3 py-2 text-xs font-medium tabular-nums text-text-primary">
+                                                {currentPage} / {totalPages}
+                                            </div>
+
+                                            {/* Next Button */}
+                                            <button
+                                                onClick={() => handlePageChange(currentPage + 1)}
+                                                disabled={currentPage === totalPages}
+                                                className={`rounded-xl px-3 py-2 text-xs font-medium transition-colors ${currentPage === totalPages
+                                                    ? 'cursor-not-allowed bg-surface-raised text-text-muted'
+                                                    : 'border border-line bg-surface-card text-text-primary hover:bg-surface-selected'
+                                                    }`}
+                                            >
+                                                Weiter
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Spacing so the FAB never covers the last row */}
+                            <div className="h-24"></div>
+                        </DashboardShell>
+
+                        {/* Floating Action Button */}
+                        <button
+                            onClick={openSession?.id
                                         ? () => {
                                             if (openSession.isBlocked) { setShowBlockedModal(true); return; }
                                             router.push('/customer/voice-session/' + openSession.id);
                                         }
                                         : handleStartNow}
-                                    className={
-                                        'px-4 py-3 sm:px-6 sm:py-3 rounded-full shadow-lg transition-all duration-200 text-sm sm:text-base font-medium ' +
-                                        (!openSession?.id
-                                            ? 'cursor-pointer bg-blue-600 text-white hover:bg-blue-700 hover:shadow-xl transform hover:scale-105'
-                                            : 'cursor-pointer bg-blue-600 text-white hover:bg-blue-700 hover:shadow-xl transform hover:scale-105')
-                                    }
-                                    disabled={false}
-                                >
-                                    <span className="flex items-center space-x-2">
-                                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                        </svg>
-                                        <span className="hidden sm:inline">{openSession?.id ? 'Beratung fortsetzen' : 'Beratung beginnen'}</span>
-                                        <span className="sm:hidden">{openSession?.id ? 'Weiter' : 'Beratung beginnen'}</span>
-                                    </span>
-                                </button>
-                            </div>
-                        </div>
+                            disabled={false}
+                            className="fixed bottom-4 right-4 z-[25] flex cursor-pointer items-center gap-2 rounded-2xl bg-accent-primary px-[18px] py-3 text-xs font-semibold text-text-on-accent shadow-overlay transition-colors hover:bg-accent-primary-hov sm:bottom-7 sm:right-7 sm:px-[22px] sm:py-3.5 sm:text-[13px]"
+                        >
+                            <Plus className="h-4 w-4 sm:h-[18px] sm:w-[18px]" strokeWidth={2} />
+                            <span className="hidden sm:inline">{openSession?.id ? 'Beratung fortsetzen' : 'Beratung beginnen'}</span>
+                            <span className="sm:hidden">{openSession?.id ? 'Weiter' : 'Beratung beginnen'}</span>
+                        </button>
                     </React.Fragment>
                 )
             }
@@ -881,5 +839,44 @@ const Dashboard = () => {
         </>
     );
 };
+
+const StatCard = ({
+    icon,
+    value,
+    label,
+}: {
+    icon: React.ReactNode;
+    value: number;
+    label: string;
+}) => (
+    <div className="flex flex-1 items-center gap-3 rounded-2xl bg-surface-card px-4 py-3.5 shadow-soft transition-shadow hover:shadow-raised max-sm:basis-full max-sm:flex-col max-sm:gap-1.5 max-sm:text-center">
+        <span className="flex-shrink-0">{icon}</span>
+        <div className="max-sm:flex max-sm:flex-col max-sm:items-center">
+            <div className="text-lg font-semibold leading-none tabular-nums text-text-primary">{value}</div>
+            <div className="mt-1 text-[10px] text-text-muted">{label}</div>
+        </div>
+    </div>
+);
+
+const StatePanel = ({
+    icon,
+    iconClassName,
+    title,
+    description,
+    action,
+}: {
+    icon: React.ReactNode;
+    iconClassName: string;
+    title: string;
+    description: string;
+    action?: React.ReactNode;
+}) => (
+    <div className="flex flex-col items-center rounded-2xl bg-surface-card px-5 py-8 text-center shadow-soft">
+        <div className={`mb-3 flex h-11 w-11 items-center justify-center rounded-xl ${iconClassName}`}>{icon}</div>
+        <div className="mb-1 text-[13px] font-semibold text-text-primary">{title}</div>
+        <div className="max-w-[280px] text-[11px] text-text-muted">{description}</div>
+        {action}
+    </div>
+);
 
 export default Dashboard;

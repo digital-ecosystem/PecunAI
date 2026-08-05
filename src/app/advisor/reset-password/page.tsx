@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { Lock, Eye, EyeOff, Users } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Lock, Eye, EyeOff, KeyRound, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
@@ -66,31 +66,42 @@ function ResetPasswordForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-600 rounded-2xl mb-4">
-            <Users className="w-8 h-8 text-white" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-surface-base p-4">
+      {/* Signature moment for this surface: one soft accent glow behind the card. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent-primary/10 blur-[120px]"
+      />
+
+      <div className="relative w-full max-w-md">
+        <div className="mb-7 text-center">
+          <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-primary shadow-soft">
+            <Users className="h-6 w-6 text-text-on-accent" strokeWidth={1.75} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Neues Passwort setzen</h1>
-          <p className="text-gray-600 mt-2">Geben Sie Ihr neues Passwort ein.</p>
+          <h1 className="text-[22px] font-bold leading-tight text-text-primary">Neues Passwort setzen</h1>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">
+            Geben Sie Ihr neues Passwort ein.
+          </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="rounded-[16px] bg-surface-card p-6 shadow-raised sm:p-7">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {!tokenFromUrl && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Token (aus der E-Mail)</label>
+                <label className="mb-1.5 block text-xs font-semibold text-text-primary">
+                  Token (aus der E-Mail)
+                </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                  </div>
+                  <KeyRound
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
+                    strokeWidth={1.75}
+                  />
                   <input
                     type="text"
                     value={token}
                     onChange={(e) => setToken(e.target.value)}
                     placeholder="Token einfügen"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                    className="w-full rounded-[10px] border border-surface-raised bg-surface-card py-2.5 pl-9 pr-3 font-mono text-xs text-text-primary outline-none transition-colors placeholder:font-sans placeholder:text-text-muted focus:border-accent-primary focus:shadow-focus-ring disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={isLoading}
                   />
                 </div>
@@ -98,42 +109,48 @@ function ResetPasswordForm() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Neues Passwort</label>
+              <label className="mb-1.5 block text-xs font-semibold text-text-primary">Neues Passwort</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
+                <Lock
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
+                  strokeWidth={1.75}
+                />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Mindestens 8 Zeichen"
-                  className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                  className="w-full rounded-[10px] border border-surface-raised bg-surface-card py-2.5 pl-9 pr-10 text-xs text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent-primary focus:shadow-focus-ring disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isLoading}
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
+                  className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-subtle hover:text-text-primary focus:shadow-focus-ring focus:outline-none"
                   tabIndex={-1}
                   onClick={() => setShowPassword((p) => !p)}
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" strokeWidth={1.75} />
+                  ) : (
+                    <Eye className="h-4 w-4" strokeWidth={1.75} />
+                  )}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Passwort bestätigen</label>
+              <label className="mb-1.5 block text-xs font-semibold text-text-primary">Passwort bestätigen</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
+                <Lock
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
+                  strokeWidth={1.75}
+                />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Passwort wiederholen"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                  className="w-full rounded-[10px] border border-surface-raised bg-surface-card py-2.5 pl-9 pr-3 text-xs text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent-primary focus:shadow-focus-ring disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isLoading}
                 />
               </div>
@@ -141,29 +158,39 @@ function ResetPasswordForm() {
 
             {message && (
               <div
-                className={`text-sm text-center py-2 px-3 rounded-lg ${
-                  message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-600'
+                className={`flex items-start gap-2 rounded-[10px] border px-3 py-2.5 text-xs ${
+                  message.type === 'success'
+                    ? 'border-status-approved-border bg-status-approved text-status-approved-fg'
+                    : 'border-status-flagged-border bg-status-flagged text-status-flagged-fg'
                 }`}
               >
-                {message.text}
+                {message.type === 'success' ? (
+                  <CheckCircle2 className="mt-px h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.75} />
+                ) : (
+                  <AlertCircle className="mt-px h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.75} />
+                )}
+                <span>{message.text}</span>
               </div>
             )}
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-emerald-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] bg-accent-primary px-5 py-3 text-xs font-semibold text-text-on-accent transition-colors hover:bg-accent-primary-hov focus:shadow-focus-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? (
-                <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} />
               ) : (
                 'Passwort ändern'
               )}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-600">
-            <Link href="/advisor/signin" className="text-emerald-600 hover:underline">
+          <p className="mt-5 text-center text-xs text-text-muted">
+            <Link
+              href="/advisor/signin"
+              className="font-semibold text-accent-primary transition-colors hover:text-accent-primary-hov hover:underline"
+            >
               Zurück zur Anmeldung
             </Link>
           </p>
@@ -175,7 +202,13 @@ function ResetPasswordForm() {
 
 export default function AdvisorResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Laden...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-surface-base text-xs text-text-muted">
+          Laden...
+        </div>
+      }
+    >
       <ResetPasswordForm />
     </Suspense>
   );

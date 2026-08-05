@@ -7,9 +7,10 @@ import {
   FileText,
   X,
   Loader2,
-  ArrowLeft
+  ArrowLeft,
+  ChevronDown
 } from 'lucide-react';
-import AdminHeader from '@/components/AdminHeader';
+import AdminDashboardShell from '@/components/admin/AdminDashboardShell';
 
 interface ProductFormData {
   name: string;
@@ -165,288 +166,292 @@ const EditProductPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <AdminHeader />
-        <div className="flex items-center justify-center p-12">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <AdminDashboardShell
+        contentClassName="max-w-[1180px]"
+        title="Produkt bearbeiten"
+        subtitle="Produktdetails und KI-Konfiguration aktualisieren"
+      >
+        <div className="flex items-center justify-center rounded-[14px] bg-surface-card px-5 py-12 shadow-soft">
+          <Loader2 className="h-7 w-7 animate-spin text-accent-primary" />
         </div>
-      </div>
+      </AdminDashboardShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <AdminHeader />
-      <div className="p-3 sm:p-4 lg:p-6">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.push('/admin/products')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm sm:text-base">Zurück zu Produkten</span>
-          </button>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Produkt bearbeiten</h1>
-          <p className="text-sm sm:text-base text-gray-600">Produktdetails und KI-Konfiguration aktualisieren</p>
-        </div>
+    <AdminDashboardShell
+      contentClassName="max-w-[1180px]"
+      title="Produkt bearbeiten"
+      subtitle="Produktdetails und KI-Konfiguration aktualisieren"
+    >
+      <button
+        type="button"
+        onClick={() => router.push('/admin/products')}
+        className="mb-4 flex w-fit items-center gap-1.5 text-[12px] text-text-muted transition-colors hover:text-accent-primary"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
+        Zurück zu Produkten
+      </button>
 
-        {/* Form Card */}
-        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 lg:p-8 max-w-full">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {errors.general && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="text-red-800 text-sm">{errors.general}</div>
+      <form onSubmit={handleSubmit}>
+        <div className="rounded-[16px] bg-surface-card p-5 shadow-soft sm:p-6 lg:px-[30px] lg:py-7">
+          {errors.general && (
+            <div className="mb-6 rounded-[10px] border border-status-flagged-border bg-status-flagged p-4 text-sm text-status-flagged-fg">
+              {errors.general}
+            </div>
+          )}
+
+          {/* Product Information */}
+          <div>
+            <h2 className="mb-4 text-[15px] font-bold text-text-primary">Produktinformationen</h2>
+            <div className="mb-[18px] flex flex-wrap gap-[18px]">
+              <div className="min-w-[200px] flex-1">
+                <label className="mb-1.5 block text-xs font-semibold text-text-primary">
+                  Produktname <span className="text-accent-primary">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className={`w-full rounded-[10px] border ${errors.name ? 'border-status-flagged-border' : 'border-surface-raised'} bg-surface-card px-3 py-2.5 text-xs text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent-primary focus:shadow-focus-ring`}
+                  placeholder="Produktnamen eingeben"
+                />
+                {errors.name && <div className="mt-1 text-xs text-status-flagged-fg">{errors.name}</div>}
               </div>
-            )}
 
-            {/* Product Information */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Produktinformationen</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Produktname *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${errors.name ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                    placeholder="Produktnamen eingeben"
-                  />
-                  {errors.name && <div className="text-red-600 text-sm mt-1">{errors.name}</div>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Kurzname
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.shortName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, shortName: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    placeholder="Kurznamen eingeben"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Beschreibung
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    placeholder="Produktbeschreibung eingeben"
-                    rows={3}
-                  />
-                </div>
+              <div className="min-w-[200px] flex-1">
+                <label className="mb-1.5 block text-xs font-semibold text-text-primary">
+                  Kurzname
+                </label>
+                <input
+                  type="text"
+                  value={formData.shortName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, shortName: e.target.value }))}
+                  className="w-full rounded-[10px] border border-surface-raised bg-surface-card px-3 py-2.5 text-xs text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent-primary focus:shadow-focus-ring"
+                  placeholder="Kurznamen eingeben"
+                />
               </div>
             </div>
 
-            {/* Investment Details */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Anlagedetails</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mindestanlagehorizont (Jahre)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.minimumYear || ''}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      minimumYear: e.target.value ? parseInt(e.target.value) : null
-                    }))}
-                    min="0"
-                    max="50"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${errors.minimumYear ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                    placeholder="z.B. 0 (sofort)"
-                  />
-                  {errors.minimumYear && <div className="text-red-600 text-sm mt-1">{errors.minimumYear}</div>}
-                </div>
+            <div className="mb-[18px] flex flex-wrap gap-[18px]">
+              <div className="w-full">
+                <label className="mb-1.5 block text-xs font-semibold text-text-primary">
+                  Beschreibung
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="min-h-[70px] w-full resize-y rounded-[10px] border border-surface-raised bg-surface-card px-3 py-2.5 text-xs text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent-primary focus:shadow-focus-ring"
+                  placeholder="Produktbeschreibung eingeben"
+                  rows={3}
+                />
+              </div>
+            </div>
+          </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Maximaler Anlagehorizont (Jahre)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.maximumYear || ''}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      maximumYear: e.target.value ? parseInt(e.target.value) : null
-                    }))}
-                    min="0"
-                    max="1000"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    placeholder="z.B. 7"
-                  />
-                </div>
+          {/* Investment Details */}
+          <div className="mt-7 border-t border-surface-subtle pt-6">
+            <h2 className="mb-4 text-[15px] font-bold text-text-primary">Anlagedetails</h2>
+            <div className="mb-[18px] flex flex-wrap gap-[18px]">
+              <div className="min-w-[200px] flex-1">
+                <label className="mb-1.5 block text-xs font-semibold text-text-primary">
+                  Mindestanlagehorizont (Jahre)
+                </label>
+                <input
+                  type="number"
+                  value={formData.minimumYear || ''}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    minimumYear: e.target.value ? parseInt(e.target.value) : null
+                  }))}
+                  min="0"
+                  max="50"
+                  className={`w-full rounded-[10px] border ${errors.minimumYear ? 'border-status-flagged-border' : 'border-surface-raised'} bg-surface-card px-3 py-2.5 text-xs text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent-primary focus:shadow-focus-ring`}
+                  placeholder="z.B. 0 (sofort)"
+                />
+                {errors.minimumYear && <div className="mt-1 text-xs text-status-flagged-fg">{errors.minimumYear}</div>}
+              </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Risikotyp
-                  </label>
+              <div className="min-w-[200px] flex-1">
+                <label className="mb-1.5 block text-xs font-semibold text-text-primary">
+                  Maximaler Anlagehorizont (Jahre)
+                </label>
+                <input
+                  type="number"
+                  value={formData.maximumYear || ''}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    maximumYear: e.target.value ? parseInt(e.target.value) : null
+                  }))}
+                  min="0"
+                  max="1000"
+                  className="w-full rounded-[10px] border border-surface-raised bg-surface-card px-3 py-2.5 text-xs text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent-primary focus:shadow-focus-ring"
+                  placeholder="z.B. 7"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-[18px]">
+              <div className="w-full">
+                <label className="mb-1.5 block text-xs font-semibold text-text-primary">
+                  Risikotyp
+                </label>
+                <div className="relative">
                   <select
                     value={formData.riskType || ''}
                     onChange={(e) => setFormData(prev => ({
                       ...prev,
                       riskType: (e.target.value as 'KONSERVATIV' | 'AUSGEWOGEN' | 'GEWINNORIENTIERT') || null
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full appearance-none rounded-[10px] border border-surface-raised bg-surface-card px-3 py-2.5 pr-8 text-xs text-text-primary outline-none transition-colors focus:border-accent-primary focus:shadow-focus-ring"
                   >
                     <option value="">Risikotyp auswählen</option>
                     <option value="KONSERVATIV">Konservativ</option>
                     <option value="AUSGEWOGEN">Ausgewogen</option>
                     <option value="GEWINNORIENTIERT">Gewinnorientiert</option>
                   </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" strokeWidth={1.75} />
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* AI Configuration */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">KI-Konfiguration</h2>
-              <div className="grid grid-cols-1 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Produkt-Prompt *
-                  </label>
-                  <textarea
-                    value={formData.aiPrompt}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      aiPrompt: e.target.value
-                    }))}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${errors.aiPrompt ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                    placeholder="KI-Prompt für Produktempfehlungen eingeben"
-                    rows={4}
-                  />
-                  {errors.aiPrompt && <div className="text-red-600 text-sm mt-1">{errors.aiPrompt}</div>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Erste Nachricht *
-                  </label>
-                  <textarea
-                    value={formData.firstMessage}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      firstMessage: e.target.value
-                    }))}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${errors.firstMessage ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                    placeholder="Erste Nachricht für Produktempfehlungen eingeben"
-                    rows={4}
-                  />
-                  {errors.firstMessage && <div className="text-red-600 text-sm mt-1">{errors.firstMessage}</div>}
-                </div>
+          {/* AI Configuration */}
+          <div className="mt-7 border-t border-surface-subtle pt-6">
+            <h2 className="mb-4 text-[15px] font-bold text-text-primary">KI-Konfiguration</h2>
+            <div className="mb-[18px] flex flex-wrap gap-[18px]">
+              <div className="w-full">
+                <label className="mb-1.5 block text-xs font-semibold text-text-primary">
+                  Produkt-Prompt <span className="text-accent-primary">*</span>
+                </label>
+                <textarea
+                  value={formData.aiPrompt}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    aiPrompt: e.target.value
+                  }))}
+                  className={`min-h-[90px] w-full resize-y rounded-[10px] border ${errors.aiPrompt ? 'border-status-flagged-border' : 'border-surface-raised'} bg-surface-card px-3 py-2.5 text-xs text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent-primary focus:shadow-focus-ring`}
+                  placeholder="KI-Prompt für Produktempfehlungen eingeben"
+                  rows={4}
+                />
+                {errors.aiPrompt && <div className="mt-1 text-xs text-status-flagged-fg">{errors.aiPrompt}</div>}
               </div>
             </div>
 
-            {/* Document Upload */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Produktdokument</h2>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                {uploadedFile ? (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                      <span className="text-sm text-gray-900">PDF hochgeladen</span>
-                      <a
-                        href={uploadedFile}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                      >
-                        Ansehen
-                      </a>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUploadedFile(null);
-                        setFormData(prev => ({ ...prev, fileName: null }));
-                      }}
-                      className="text-red-600 hover:text-red-800 p-1"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <div className="text-sm text-gray-600 mb-2">
-                      Klicken zum Hochladen oder PDF-Datei hierher ziehen
-                    </div>
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload(file);
-                      }}
-                      className="hidden"
-                      id="pdf-upload"
-                    />
-                    <label
-                      htmlFor="pdf-upload"
-                      className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
-                    >
-                      {isUploading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Wird hochgeladen...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-4 h-4" />
-                          Datei auswählen
-                        </>
-                      )}
-                    </label>
-                  </div>
-                )}
+            <div className="flex flex-wrap gap-[18px]">
+              <div className="w-full">
+                <label className="mb-1.5 block text-xs font-semibold text-text-primary">
+                  Erste Nachricht <span className="text-accent-primary">*</span>
+                </label>
+                <textarea
+                  value={formData.firstMessage}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    firstMessage: e.target.value
+                  }))}
+                  className={`min-h-[90px] w-full resize-y rounded-[10px] border ${errors.firstMessage ? 'border-status-flagged-border' : 'border-surface-raised'} bg-surface-card px-3 py-2.5 text-xs text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent-primary focus:shadow-focus-ring`}
+                  placeholder="Erste Nachricht für Produktempfehlungen eingeben"
+                  rows={4}
+                />
+                {errors.firstMessage && <div className="mt-1 text-xs text-status-flagged-fg">{errors.firstMessage}</div>}
               </div>
-              {errors.fileName && <div className="text-red-600 text-sm mt-1">{errors.fileName}</div>}
             </div>
+          </div>
 
-            {/* Form Actions */}
-            <div className="border-t pt-6 flex items-center gap-3 justify-end">
-              <button
-                type="button"
-                onClick={() => router.push('/admin/products')}
-                className="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                Abbrechen
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Aktualisieren...
-                  </>
-                ) : (
-                  'Produkt aktualisieren'
-                )}
-              </button>
-            </div>
-          </form>
+          {/* Document Upload */}
+          <div className="mt-7 border-t border-surface-subtle pt-6">
+            <h2 className="mb-4 text-[15px] font-bold text-text-primary">Produktdokument</h2>
+            {uploadedFile ? (
+              <div className="flex items-center gap-3 rounded-[12px] border border-surface-raised px-3.5 py-3">
+                <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[10px] bg-surface-subtle text-accent-primary">
+                  <FileText className="h-4 w-4" strokeWidth={1.75} />
+                </div>
+                <div className="flex-1 text-xs font-semibold text-text-primary">
+                  PDF hochgeladen{' '}
+                  <a
+                    href={uploadedFile}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-accent-primary hover:text-accent-primary-hov"
+                  >
+                    Ansehen
+                  </a>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadedFile(null);
+                    setFormData(prev => ({ ...prev, fileName: null }));
+                  }}
+                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-surface-subtle text-text-primary transition-colors hover:bg-status-flagged hover:text-status-flagged-fg"
+                >
+                  <X className="h-3.5 w-3.5" strokeWidth={1.75} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2.5 rounded-[14px] border-[1.5px] border-dashed border-surface-raised px-5 py-9 text-center">
+                <Upload className="h-5 w-5 text-text-muted" strokeWidth={1.75} />
+                <div className="text-xs text-text-muted">
+                  Klicken zum Hochladen oder PDF-Datei hierher ziehen
+                </div>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file);
+                  }}
+                  className="hidden"
+                  id="pdf-upload"
+                />
+                <label
+                  htmlFor="pdf-upload"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-[10px] bg-accent-primary px-4 py-[9px] text-xs font-semibold text-text-on-accent transition-colors hover:bg-accent-primary-hov"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} />
+                      Wird hochgeladen...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      Datei auswählen
+                    </>
+                  )}
+                </label>
+              </div>
+            )}
+            {errors.fileName && <div className="mt-1 text-xs text-status-flagged-fg">{errors.fileName}</div>}
+          </div>
         </div>
-      </div>
-    </div>
+
+        {/* Form Actions */}
+        <div className="mt-5 flex items-center justify-end gap-2.5 max-sm:flex-col-reverse">
+          <button
+            type="button"
+            onClick={() => router.push('/admin/products')}
+            className="rounded-[10px] bg-surface-subtle px-5 py-2.5 text-xs font-semibold text-text-primary transition-colors hover:bg-surface-raised max-sm:w-full"
+          >
+            Abbrechen
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex items-center justify-center gap-2 rounded-[10px] bg-accent-primary px-5 py-2.5 text-xs font-semibold text-text-on-accent transition-colors hover:bg-accent-primary-hov disabled:cursor-not-allowed disabled:opacity-50 max-sm:w-full"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} />
+                Aktualisieren...
+              </>
+            ) : (
+              'Produkt aktualisieren'
+            )}
+          </button>
+        </div>
+      </form>
+    </AdminDashboardShell>
   );
 };
 

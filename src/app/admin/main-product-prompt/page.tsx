@@ -6,18 +6,19 @@ import {
   Plus,
   Edit,
   // Trash2, 
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   MessageSquare,
   Calendar,
   Bot,
   Eye,
-  X,
   Loader2,
   Link
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import AdminHeader from '@/components/AdminHeader';
+import AdminDashboardShell from '@/components/admin/AdminDashboardShell';
+import Modal from '@/components/ui/Modal';
 
 interface MainProductPrompt {
   id: string;
@@ -35,6 +36,27 @@ interface MainProductPromptFormData {
   mcpUrl: string;
   mainPrompt: string;
 }
+
+const ICON_BTN_CLASS =
+  'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-text-primary transition-colors hover:bg-surface-raised focus:outline-none focus:shadow-focus-ring disabled:opacity-50 disabled:cursor-not-allowed';
+
+const COL_HEADER_CLASS = 'text-[9px] uppercase tracking-wider text-text-muted';
+
+/**
+ * Every KI-model pill carries the decorative `violet` chip tone the approved
+ * design specifies for AI-model contexts — one treatment for all models, as in
+ * the prototype. The model id is the pill's own text, so no information rides
+ * on the colour.
+ */
+const MODEL_PILL_CLASS =
+  'inline-block rounded-lg bg-violet px-2.5 py-1 text-[10px] font-semibold text-violet-fg';
+
+/** Shared label + field styling for the modal's fields (the 5b form treatment). */
+const MODAL_LABEL_CLASS = 'mb-1.5 block text-xs font-semibold text-text-primary';
+const MODAL_VALUE_CLASS = 'text-[12.5px] text-text-primary';
+const MODAL_INPUT_CLASS =
+  'w-full rounded-[10px] border bg-surface-card px-3 py-2.5 text-xs text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent-primary focus:shadow-focus-ring';
+const MODAL_BTN_CLASS = 'rounded-[10px] px-[18px] py-2.5 text-xs font-semibold transition-colors max-sm:w-full';
 
 const MainProductPromptPage = () => {
   const [mainProductPrompts, setMainProductPrompts] = useState<MainProductPrompt[]>([]);
@@ -215,475 +237,430 @@ const MainProductPromptPage = () => {
   //   }
   // };
 
-  // AI Model color helper
-  const getAiModelColor = (aiModel: string) => {
-    switch (aiModel) {
-      case 'gpt-5.2': return 'bg-purple-100 text-purple-800';
-      case 'gpt-5': return 'bg-purple-100 text-purple-800';
-      case 'gpt-5-mini': return 'bg-purple-100 text-purple-800';
-      case 'gpt-4': return 'bg-blue-100 text-blue-800';
-      case 'gpt-3.5-turbo': return 'bg-green-100 text-green-800';
-      case 'claude-3-sonnet': return 'bg-orange-100 text-orange-800';
-      case 'claude-3-haiku': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const hasActiveFilters = searchTerm.trim() !== '';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <AdminHeader />
-      <div className="p-3 sm:p-4 lg:p-6">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Hauptprodukt-Prompts</h1>
-          <p className="text-sm sm:text-base text-gray-600">Verwalten Sie Ihre KI-Modellkonfigurationen und Prompts</p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Gesamt-Prompts</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{totalCount}</p>
-              </div>
-              <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
-                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">GPT-5 Modelle</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                  {mainProductPrompts.filter(p => p.aiModel === 'gpt-5').length}
-                </p>
-              </div>
-              <div className="p-2 sm:p-3 bg-purple-100 rounded-lg flex-shrink-0">
-                <Bot className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Mit MCP-URL</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                  {mainProductPrompts.filter(p => p.mcpUrl).length}
-                </p>
-              </div>
-              <div className="p-2 sm:p-3 bg-green-100 rounded-lg flex-shrink-0">
-                <Link className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Diesen Monat</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                  {mainProductPrompts.filter(p => {
-                    const promptDate = new Date(p.createdAt);
-                    const now = new Date();
-                    return promptDate.getMonth() === now.getMonth() &&
-                      promptDate.getFullYear() === now.getFullYear();
-                  }).length}
-                </p>
-              </div>
-              <div className="p-2 sm:p-3 bg-orange-100 rounded-lg flex-shrink-0">
-                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters and Actions */}
-        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex flex-col sm:flex-row gap-4 flex-1">
-              {/* Search */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
-                <input
-                  type="text"
-                  placeholder="Prompts suchen..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base"
-                />
-              </div>
-            </div>
-
-            {/* Add Prompt Button */}
-            {/* <button
-              onClick={handleCreate}
-              className="flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
-            >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">Add Prompt</span>
-              <span className="sm:hidden">Add</span>
-            </button> */}
-          </div>
-        </div>
-
-        {/* Prompts Table */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          {isLoading ? (
-            <div className="flex items-center justify-center p-8 sm:p-12">
-              <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-blue-600" />
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm">KI-Modell</th>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden md:table-cell">Vektor-ID</th>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden lg:table-cell">MCP-URL</th>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm">Prompt-Vorschau</th>
-                      <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell">Erstellt</th>
-                      <th className="text-right p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm">Aktionen</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {mainProductPrompts.map((prompt) => (
-                      <tr key={prompt.id} className="hover:bg-gray-50">
-                        <td className="p-3 sm:p-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAiModelColor(prompt.aiModel)}`}>
-                            {prompt.aiModel}
-                          </span>
-                        </td>
-                        <td className="p-3 sm:p-4 hidden md:table-cell">
-                          <div className="text-xs sm:text-sm text-gray-900">
-                            {prompt.vectorId ? (
-                              <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                                {prompt.vectorId.length > 15 ? `${prompt.vectorId.substring(0, 15)}...` : prompt.vectorId}
-                              </span>
-                            ) : (
-                              <span className="text-gray-400">—</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-3 sm:p-4 hidden lg:table-cell">
-                          {prompt.mcpUrl ? (
-                            <a
-                              href={prompt.mcpUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs sm:text-sm"
-                            >
-                              <Link className="w-3 h-3 sm:w-4 sm:h-4" />
-                              <span className="hidden xl:inline">MCP-Link</span>
-                              <span className="xl:hidden">Link</span>
-                            </a>
-                          ) : (
-                            <span className="text-gray-400 text-xs sm:text-sm">Keine URL</span>
-                          )}
-                        </td>
-                        <td className="p-3 sm:p-4">
-                          <div className="text-xs sm:text-sm text-gray-900 max-w-xs">
-                            <div className="line-clamp-2">
-                              {prompt.mainPrompt.length > 80
-                                ? `${prompt.mainPrompt.substring(0, 80)}...`
-                                : prompt.mainPrompt}
-                            </div>
-                            {/* Show additional info on mobile */}
-                            <div className="mt-2 space-y-1 md:hidden">
-                              {prompt.vectorId && (
-                                <div className="text-xs text-gray-500">
-                                  <span className="font-medium">Vector:</span> {prompt.vectorId.substring(0, 10)}...
-                                </div>
-                              )}
-                              {prompt.mcpUrl && (
-                                <div className="text-xs text-blue-600">
-                                  <Link className="w-3 h-3 inline mr-1" />
-                                  Hat MCP-URL
-                                </div>
-                              )}
-                              <div className="text-xs text-gray-400 sm:hidden">
-                                {new Date(prompt.createdAt).toLocaleDateString()}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-3 sm:p-4 hidden sm:table-cell">
-                          <div className="text-xs sm:text-sm text-gray-900">
-                            {new Date(prompt.createdAt).toLocaleDateString()}
-                          </div>
-                        </td>
-                        <td className="p-3 sm:p-4">
-                          <div className="flex items-center justify-end gap-1 sm:gap-2">
-                            <button
-                              onClick={() => handleView(prompt)}
-                              className="p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="View Details"
-                            >
-                              <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleEdit(prompt)}
-                              className="p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Edit Prompt"
-                            >
-                              <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </button>
-                            {/* <button
-                              onClick={() => handleDelete(prompt)}
-                              className="p-1.5 sm:p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete Prompt"
-                            >
-                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </button> */}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {mainProductPrompts.length === 0 && !isLoading && (
-                <div className="text-center py-8 sm:py-12 px-4">
-                  <MessageSquare className="w-8 h-8 sm:w-12 sm:h-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Keine Prompts gefunden</h3>
-                  <p className="text-sm sm:text-base text-gray-500 mb-4">Beginnen Sie mit der Erstellung Ihres ersten Hauptprodukt-Prompts</p>
-                  <button
-                    onClick={handleCreate}
-                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
-                  >
-                    <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                    Prompt hinzufügen
-                  </button>
-                </div>
-              )}
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="border-t border-gray-200 px-4 sm:px-6 py-4">
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
-                      Zeige {((currentPage - 1) * 10) + 1} bis {Math.min(currentPage * 10, totalCount)} von {totalCount} Prompts
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        disabled={currentPage === 1}
-                        className="p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
-                      <span className="px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-gray-900">
-                        {currentPage} von {totalPages}
-                      </span>
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                        disabled={currentPage === totalPages}
-                        className="p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+    <AdminDashboardShell contentClassName="max-w-[1180px]">
+      {/* KPI row — a hard 2x2 grid at every width, matching the prototype's own
+          `grid-template-columns: 1fr 1fr` exactly (client-confirmed, not a
+          breakpoint-derived layout — see Phase 6 follow-up report). Only
+          relaxes to one column below `sm`, where two 180px-min cards no
+          longer fit the content width. */}
+      <div className="mb-8 grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+        <StatCard
+          label="Gesamt-Prompts"
+          value={totalCount}
+          icon={<MessageSquare className="h-4 w-4" strokeWidth={1.75} />}
+          iconClassName="bg-surface-subtle text-accent-primary"
+        />
+        <StatCard
+          label="GPT-5 Modelle"
+          value={mainProductPrompts.filter(p => p.aiModel === 'gpt-5').length}
+          icon={<Bot className="h-4 w-4" strokeWidth={1.75} />}
+          iconClassName="bg-violet text-violet-fg"
+        />
+        <StatCard
+          label="Mit MCP-URL"
+          value={mainProductPrompts.filter(p => p.mcpUrl).length}
+          icon={<Link className="h-4 w-4" strokeWidth={1.75} />}
+          iconClassName="bg-status-approved text-status-approved-fg"
+        />
+        <StatCard
+          label="Diesen Monat"
+          value={mainProductPrompts.filter(p => {
+            const promptDate = new Date(p.createdAt);
+            const now = new Date();
+            return promptDate.getMonth() === now.getMonth() &&
+              promptDate.getFullYear() === now.getFullYear();
+          }).length}
+          icon={<Calendar className="h-4 w-4" strokeWidth={1.75} />}
+          iconClassName="bg-risk-growth text-risk-growth-fg"
+        />
       </div>
 
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center p-3 sm:p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm sm:max-w-md lg:max-w-2xl max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="border-b border-gray-200 p-4 sm:p-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 truncate pr-4">
-                  {modalMode === 'create' && 'Neuen Hauptprodukt-Prompt hinzufügen'}
-                  {modalMode === 'edit' && 'Hauptprodukt-Prompt bearbeiten'}
-                  {modalMode === 'view' && 'Hauptprodukt-Prompt Details'}
-                </h2>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                >
-                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-              </div>
-            </div>
+      {/* Search */}
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="relative min-w-[220px] flex-1">
+          <Search
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
+            strokeWidth={1.75}
+          />
+          <input
+            type="text"
+            placeholder="Prompts suchen..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full rounded-[14px] bg-surface-card py-2.5 pl-10 pr-3.5 text-xs text-text-primary shadow-soft outline-none placeholder:text-text-muted focus:shadow-focus-ring"
+          />
+        </div>
 
-            {/* Modal Content */}
-            <div className="p-4 sm:p-6">
-              {modalMode === 'view' ? (
-                // View Mode
-                <div className="space-y-4 sm:space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">KI-Modell</label>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAiModelColor(selectedPrompt?.aiModel || '')}`}>
-                        {selectedPrompt?.aiModel}
-                      </span>
-                    </div>
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Vektor-ID</label>
-                      <div className="text-sm sm:text-base text-gray-900 font-mono break-all">
-                        {selectedPrompt?.vectorId || '—'}
-                      </div>
-                    </div>
-                    <div className="lg:col-span-2">
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">MCP-URL</label>
-                      {selectedPrompt?.mcpUrl ? (
-                        <a
-                          href={selectedPrompt.mcpUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 break-all text-sm sm:text-base"
-                        >
-                          <Link className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                          <span className="truncate">{selectedPrompt.mcpUrl}</span>
-                        </a>
-                      ) : (
-                        <div className="text-gray-500 text-sm sm:text-base">Keine MCP-URL</div>
-                      )}
-                    </div>
-                    <div className="lg:col-span-2">
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Haupt-Prompt</label>
-                      <div className="text-sm sm:text-base text-gray-900 bg-gray-50 rounded-lg p-3 whitespace-pre-wrap max-h-40 sm:max-h-60 overflow-y-auto">
-                        {selectedPrompt?.mainPrompt}
-                      </div>
-                    </div>
-                  </div>
+        {/* Add Prompt Button */}
+        {/* <button
+          onClick={handleCreate}
+          className="flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+        >
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="hidden sm:inline">Add Prompt</span>
+          <span className="sm:hidden">Add</span>
+        </button> */}
+      </div>
 
-                  <div className="border-t pt-4 sm:pt-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Erstellungsdatum</label>
-                        <div className="text-sm sm:text-base text-gray-900">{selectedPrompt ? new Date(selectedPrompt.createdAt).toLocaleDateString() : '—'}</div>
-                      </div>
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Zuletzt aktualisiert</label>
-                        <div className="text-sm sm:text-base text-gray-900">{selectedPrompt ? new Date(selectedPrompt.updatedAt).toLocaleDateString() : '—'}</div>
-                      </div>
-                    </div>
+      {/* Prompts list */}
+      {isLoading ? (
+        <div className="flex items-center justify-center rounded-[14px] bg-surface-card px-5 py-12 shadow-soft">
+          <Loader2 className="h-7 w-7 animate-spin text-accent-primary" />
+        </div>
+      ) : mainProductPrompts.length === 0 ? (
+        <div className="flex flex-col items-center rounded-[14px] bg-surface-card px-5 py-8 text-center shadow-soft">
+          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-surface-subtle text-accent-primary">
+            <MessageSquare className="h-[18px] w-[18px]" strokeWidth={1.75} />
+          </div>
+          <div className="mb-1 text-[13px] font-semibold text-text-primary">Keine Prompts gefunden</div>
+          <div className="mb-4 max-w-[280px] text-[11px] text-text-muted">
+            {hasActiveFilters
+              ? 'Versuchen Sie einen anderen Suchbegriff.'
+              : 'Beginnen Sie mit der Erstellung Ihres ersten Hauptprodukt-Prompts'}
+          </div>
+          <button
+            onClick={handleCreate}
+            className="inline-flex items-center gap-2 rounded-xl bg-accent-primary px-4 py-2.5 text-xs font-semibold text-text-on-accent shadow-soft transition-colors hover:bg-accent-primary-hov"
+          >
+            <Plus className="h-4 w-4" strokeWidth={1.75} />
+            Prompt hinzufügen
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Column headers — six labelled columns, hidden below md where the
+              rows reflow into two-column cards. */}
+          <div className="mb-0.5 hidden items-center gap-4 px-[18px] md:flex">
+            <div className={`flex-[0.9] ${COL_HEADER_CLASS}`}>KI-Modell</div>
+            <div className={`flex-[1.1] ${COL_HEADER_CLASS}`}>Vektor-ID</div>
+            <div className={`flex-1 ${COL_HEADER_CLASS}`}>MCP-URL</div>
+            <div className={`min-w-[200px] flex-[2.4] ${COL_HEADER_CLASS}`}>Prompt-Vorschau</div>
+            <div className={`flex-[0.8] ${COL_HEADER_CLASS}`}>Erstellt</div>
+            <div className={`flex-[0.6] text-right ${COL_HEADER_CLASS}`}>Aktionen</div>
+          </div>
+
+          <div className="flex flex-col gap-2.5">
+            {mainProductPrompts.map((prompt) => (
+              <div
+                key={prompt.id}
+                className="grid grid-cols-2 items-start gap-x-3.5 gap-y-2.5 rounded-[14px] bg-surface-card p-[18px] shadow-soft transition-shadow hover:shadow-raised md:flex md:items-center md:gap-4"
+              >
+                <div className="md:flex-[0.9]">
+                  <span className={MODEL_PILL_CLASS}>
+                    {prompt.aiModel}
+                  </span>
+                </div>
+
+                <div className="min-w-0 md:flex-[1.1]">
+                  {prompt.vectorId ? (
+                    <span
+                      className="inline-block max-w-full truncate rounded-md bg-surface-subtle px-2 py-1 font-mono text-[11px] text-text-primary"
+                      title={prompt.vectorId}
+                    >
+                      {prompt.vectorId.length > 15 ? `${prompt.vectorId.substring(0, 15)}...` : prompt.vectorId}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-text-muted">—</span>
+                  )}
+                </div>
+
+                <div className="min-w-0 md:flex-1">
+                  {prompt.mcpUrl ? (
+                    <a
+                      href={prompt.mcpUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[11px] text-accent-primary transition-colors hover:text-accent-primary-hov"
+                    >
+                      <Link className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.75} />
+                      <span className="hidden xl:inline">MCP-Link</span>
+                      <span className="xl:hidden">Link</span>
+                    </a>
+                  ) : (
+                    <span className="text-[11px] text-text-muted">Keine URL</span>
+                  )}
+                </div>
+
+                <div className="col-span-2 rounded-[10px] max-md:order-5 max-md:bg-surface-subtle max-md:px-2.5 max-md:py-2 md:min-w-[200px] md:flex-[2.4]">
+                  <div
+                    className="line-clamp-2 text-[11.5px] leading-relaxed text-text-muted"
+                    title={prompt.mainPrompt}
+                  >
+                    {prompt.mainPrompt.length > 80
+                      ? `${prompt.mainPrompt.substring(0, 80)}...`
+                      : prompt.mainPrompt}
                   </div>
                 </div>
-              ) : (
-                // Create/Edit Mode
-                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-                  {errors.general && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
-                      <div className="text-red-800 text-sm sm:text-base">{errors.general}</div>
-                    </div>
-                  )}
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                        KI-Modell *
-                      </label>
-                      <select
-                        value={formData.aiModel}
-                        onChange={(e) => setFormData(prev => ({ ...prev, aiModel: e.target.value }))}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base ${errors.aiModel ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                      >
-                        <option value="gpt-5.2">GPT-5.2</option>
-                        <option value="gpt-5">GPT-5</option>
-                        <option value="gpt-5-mini">GPT-5-mini</option>
-                        <option value="gpt-4">GPT-4</option>
-                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                        <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                        <option value="claude-3-haiku">Claude 3 Haiku</option>
-                      </select>
-                      {errors.aiModel && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.aiModel}</div>}
-                    </div>
+                <div className="text-[11px] tabular-nums text-text-muted max-md:order-4 max-md:text-right md:flex-[0.8]">
+                  {new Date(prompt.createdAt).toLocaleDateString()}
+                </div>
 
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                        Vektor-ID
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.vectorId}
-                        onChange={(e) => setFormData(prev => ({ ...prev, vectorId: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none font-mono text-xs sm:text-sm"
-                        placeholder="Vektor-ID eingeben (optional)"
-                      />
-                    </div>
-
-                    <div className="lg:col-span-2">
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                        MCP-URL
-                      </label>
-                      <input
-                        type="url"
-                        value={formData.mcpUrl}
-                        onChange={(e) => setFormData(prev => ({ ...prev, mcpUrl: e.target.value }))}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base ${errors.mcpUrl ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        placeholder="https://example.com/mcp-endpoint (optional)"
-                      />
-                      {errors.mcpUrl && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.mcpUrl}</div>}
-                    </div>
-
-                    <div className="lg:col-span-2">
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                        Haupt-Prompt *
-                      </label>
-                      <textarea
-                        value={formData.mainPrompt}
-                        onChange={(e) => setFormData(prev => ({ ...prev, mainPrompt: e.target.value }))}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm sm:text-base ${errors.mainPrompt ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        placeholder="Geben Sie den Haupt-Prompt für Produktempfehlungen ein"
-                        rows={4}
-                      />
-                      {errors.mainPrompt && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.mainPrompt}</div>}
-                    </div>
-                  </div>
-
-                  {/* Modal Actions */}
-                  <div className="border-t pt-4 sm:pt-6 flex flex-col sm:flex-row items-center justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setIsModalOpen(false)}
-                      className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm sm:text-base"
-                    >
-                      Abbrechen
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                          <span className="hidden sm:inline">{modalMode === 'create' ? 'Erstellen...' : 'Aktualisieren...'}</span>
-                          <span className="sm:hidden">{modalMode === 'create' ? 'Erstellen' : 'Aktualisieren'}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="hidden sm:inline">{modalMode === 'create' ? 'Prompt erstellen' : 'Prompt aktualisieren'}</span>
-                          <span className="sm:hidden">{modalMode === 'create' ? 'Erstellen' : 'Aktualisieren'}</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
+                <div className="col-span-2 flex items-center gap-1.5 max-md:order-6 max-md:border-t max-md:border-line-soft max-md:pt-2.5 md:flex-[0.6] md:justify-end">
+                  <button
+                    onClick={() => handleView(prompt)}
+                    className={ICON_BTN_CLASS}
+                    title="View Details"
+                  >
+                    <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  </button>
+                  <button
+                    onClick={() => handleEdit(prompt)}
+                    className={ICON_BTN_CLASS}
+                    title="Edit Prompt"
+                  >
+                    <Edit className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  </button>
+                  {/* <button
+                    onClick={() => handleDelete(prompt)}
+                    className="p-1.5 sm:p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete Prompt"
+                  >
+                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                  </button> */}
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-2.5 flex items-center justify-center gap-2 rounded-[14px] bg-surface-card px-[18px] py-3 shadow-soft">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                aria-label="Vorherige Seite"
+                className={ICON_BTN_CLASS}
+              >
+                <ChevronLeft className="h-4 w-4" strokeWidth={1.75} />
+              </button>
+              <span className="px-2 text-[11px] font-medium tabular-nums text-text-primary">
+                {currentPage} von {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                aria-label="Nächste Seite"
+                className={ICON_BTN_CLASS}
+              >
+                <ChevronRight className="h-4 w-4" strokeWidth={1.75} />
+              </button>
+            </div>
+          )}
+        </>
       )}
-    </div>
+
+      {/* Modal — one shell, the same three modes as before: view (read-only, no
+          footer) and create/edit (the form, submitted from the footer). */}
+      {isModalOpen && (
+        <Modal
+          title={
+            <>
+              {modalMode === 'create' && 'Neuen Hauptprodukt-Prompt hinzufügen'}
+              {modalMode === 'edit' && 'Hauptprodukt-Prompt bearbeiten'}
+              {modalMode === 'view' && 'Hauptprodukt-Prompt Details'}
+            </>
+          }
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={modalMode === 'view' ? undefined : handleSubmit}
+          footer={
+            modalMode === 'view' ? undefined : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className={`${MODAL_BTN_CLASS} bg-surface-subtle text-text-primary hover:bg-surface-raised`}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`${MODAL_BTN_CLASS} flex items-center justify-center gap-2 bg-accent-primary text-text-on-accent hover:bg-accent-primary-hov disabled:cursor-not-allowed disabled:opacity-50`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} />
+                      <span className="hidden sm:inline">{modalMode === 'create' ? 'Erstellen...' : 'Aktualisieren...'}</span>
+                      <span className="sm:hidden">{modalMode === 'create' ? 'Erstellen' : 'Aktualisieren'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">{modalMode === 'create' ? 'Prompt erstellen' : 'Prompt aktualisieren'}</span>
+                      <span className="sm:hidden">{modalMode === 'create' ? 'Erstellen' : 'Aktualisieren'}</span>
+                    </>
+                  )}
+                </button>
+              </>
+            )
+          }
+        >
+          {modalMode === 'view' ? (
+            // View Mode
+            <>
+              <div className="mb-[18px] flex flex-wrap gap-6">
+                <div className="min-w-[180px] flex-1">
+                  <div className={MODAL_LABEL_CLASS}>KI-Modell</div>
+                  <span className={MODEL_PILL_CLASS}>
+                    {selectedPrompt?.aiModel}
+                  </span>
+                </div>
+                <div className="min-w-[180px] flex-1">
+                  <div className={MODAL_LABEL_CLASS}>Vektor-ID</div>
+                  <div className={`${MODAL_VALUE_CLASS} break-all font-mono`}>
+                    {selectedPrompt?.vectorId || '—'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-[18px]">
+                <div className={MODAL_LABEL_CLASS}>MCP-URL</div>
+                {selectedPrompt?.mcpUrl ? (
+                  <a
+                    href={selectedPrompt.mcpUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex max-w-full items-center gap-2 break-all font-mono text-[12.5px] text-accent-primary transition-colors hover:text-accent-primary-hov"
+                  >
+                    <Link className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.75} />
+                    <span className="truncate">{selectedPrompt.mcpUrl}</span>
+                  </a>
+                ) : (
+                  <div className="text-[12.5px] text-text-muted">Keine MCP-URL</div>
+                )}
+              </div>
+
+              <div className="mb-[18px]">
+                <div className={MODAL_LABEL_CLASS}>Haupt-Prompt</div>
+                <div className="max-h-[220px] overflow-y-auto whitespace-pre-wrap rounded-[10px] bg-surface-subtle px-4 py-3.5 font-mono text-[11.5px] leading-relaxed text-text-primary">
+                  {selectedPrompt?.mainPrompt}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-6">
+                <div className="min-w-[180px] flex-1">
+                  <div className={MODAL_LABEL_CLASS}>Erstellungsdatum</div>
+                  <div className={`${MODAL_VALUE_CLASS} tabular-nums`}>
+                    {selectedPrompt ? new Date(selectedPrompt.createdAt).toLocaleDateString() : '—'}
+                  </div>
+                </div>
+                <div className="min-w-[180px] flex-1">
+                  <div className={MODAL_LABEL_CLASS}>Zuletzt aktualisiert</div>
+                  <div className={`${MODAL_VALUE_CLASS} tabular-nums`}>
+                    {selectedPrompt ? new Date(selectedPrompt.updatedAt).toLocaleDateString() : '—'}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            // Create/Edit Mode
+            <>
+              {errors.general && (
+                <div className="mb-[18px] rounded-[10px] border border-status-flagged-border bg-status-flagged px-3.5 py-3 text-xs text-status-flagged-fg">
+                  {errors.general}
+                </div>
+              )}
+
+              <div className="mb-[18px] flex flex-wrap gap-[18px]">
+                <div className="min-w-[180px] flex-1">
+                  <label className={MODAL_LABEL_CLASS}>
+                    KI-Modell <span className="text-accent-primary">*</span>
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={formData.aiModel}
+                      onChange={(e) => setFormData(prev => ({ ...prev, aiModel: e.target.value }))}
+                      className={`${MODAL_INPUT_CLASS} appearance-none pr-8 ${errors.aiModel ? 'border-status-flagged-border' : 'border-surface-raised'}`}
+                    >
+                      <option value="gpt-5.2">GPT-5.2</option>
+                      <option value="gpt-5">GPT-5</option>
+                      <option value="gpt-5-mini">GPT-5-mini</option>
+                      <option value="gpt-4">GPT-4</option>
+                      <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                      <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                      <option value="claude-3-haiku">Claude 3 Haiku</option>
+                    </select>
+                    <ChevronDown
+                      className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted"
+                      strokeWidth={1.75}
+                    />
+                  </div>
+                  {errors.aiModel && <div className="mt-1 text-xs text-status-flagged-fg">{errors.aiModel}</div>}
+                </div>
+
+                <div className="min-w-[180px] flex-1">
+                  <label className={MODAL_LABEL_CLASS}>
+                    Vektor-ID
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.vectorId}
+                    onChange={(e) => setFormData(prev => ({ ...prev, vectorId: e.target.value }))}
+                    className={`${MODAL_INPUT_CLASS} border-surface-raised font-mono`}
+                    placeholder="Vektor-ID eingeben (optional)"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-[18px]">
+                <label className={MODAL_LABEL_CLASS}>
+                  MCP-URL
+                </label>
+                <input
+                  type="url"
+                  value={formData.mcpUrl}
+                  onChange={(e) => setFormData(prev => ({ ...prev, mcpUrl: e.target.value }))}
+                  className={`${MODAL_INPUT_CLASS} ${errors.mcpUrl ? 'border-status-flagged-border' : 'border-surface-raised'}`}
+                  placeholder="https://example.com/mcp-endpoint (optional)"
+                />
+                {errors.mcpUrl && <div className="mt-1 text-xs text-status-flagged-fg">{errors.mcpUrl}</div>}
+              </div>
+
+              <div>
+                <label className={MODAL_LABEL_CLASS}>
+                  Haupt-Prompt <span className="text-accent-primary">*</span>
+                </label>
+                <textarea
+                  value={formData.mainPrompt}
+                  onChange={(e) => setFormData(prev => ({ ...prev, mainPrompt: e.target.value }))}
+                  className={`${MODAL_INPUT_CLASS} min-h-[130px] resize-y ${errors.mainPrompt ? 'border-status-flagged-border' : 'border-surface-raised'}`}
+                  placeholder="Geben Sie den Haupt-Prompt für Produktempfehlungen ein"
+                  rows={4}
+                />
+                {errors.mainPrompt && <div className="mt-1 text-xs text-status-flagged-fg">{errors.mainPrompt}</div>}
+              </div>
+            </>
+          )}
+        </Modal>
+      )}
+    </AdminDashboardShell>
   );
 };
+
+const StatCard = ({
+  label,
+  value,
+  icon,
+  iconClassName,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  iconClassName: string;
+}) => (
+  <div className="flex min-w-[180px] flex-1 items-center gap-3.5 rounded-[14px] bg-surface-card px-[18px] py-4 shadow-soft transition-shadow hover:shadow-raised max-sm:basis-full">
+    <div className={`flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-xl ${iconClassName}`}>
+      {icon}
+    </div>
+    <div className="min-w-0">
+      <div className="mb-[3px] truncate text-xs text-text-muted">{label}</div>
+      <div className="text-[22px] font-semibold leading-none tabular-nums text-text-primary">{value}</div>
+    </div>
+  </div>
+);
 
 export default MainProductPromptPage;

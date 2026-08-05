@@ -46,9 +46,115 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/* ---------------------------------------------------------------------------
+   Dashboard design system (customer / advisor / admin restyle).
+   Additive: the legacy shadcn tokens further down are still consumed by
+   `components/ui/drawer.tsx` and the `@layer base` reset — do not restyle
+   dashboard pages with those. Use the tokens below as Tailwind utilities
+   (`bg-surface-subtle`, `text-text-muted`, `border-line`, `shadow-soft`, ...).
+   Never hardcode hex in a component; never redefine these per page.
+--------------------------------------------------------------------------- */
+@theme {
+  /* Surfaces */
+  --color-surface-base: #FBFDFF;
+  --color-surface-subtle: #F0F5FE;
+  --color-surface-raised: #E8F1FE;
+  --color-surface-selected: #EBF2FE;
+  --color-surface-card: #FFFFFF;
+
+  /* Accent */
+  --color-accent-primary: #377CF4;
+  --color-accent-primary-hov: #5290F6;
+  --color-text-on-accent: #FFFFFF;
+
+  /* Text */
+  --color-text-primary: #4B515F;
+  --color-text-muted: #AFB7C3;
+
+  /* Lines */
+  --color-line-soft: rgba(175, 183, 195, 0.20);
+  --color-line: rgba(175, 183, 195, 0.35);
+  --color-line-strong: rgba(175, 183, 195, 0.55);
+
+  /* Semantic status triplets — approved/flagged/neutral are deliberately duller
+     than accent-primary so a table full of pills never competes with the single
+     blue CTA.
+
+     PENDING IS A DELIBERATE EXCEPTION: "Anfrage"/pending is the intentional
+     "needs attention" signal across every approved prototype in this project, so
+     it uses accent-primary blue on purpose — same eye-draw as the KPI card and
+     table-row emphasis elsewhere. This is not a violation of the restraint rule
+     above; do not "correct" it back to a muted tone. */
+  --color-status-pending: var(--color-surface-selected); /* #EBF2FE */
+  --color-status-pending-fg: var(--color-accent-primary); /* #377CF4 */
+  --color-status-pending-border: #D3E2FC; /* accent-primary @ 22% over white */
+
+  --color-status-approved: #E3F3EE;
+  --color-status-approved-fg: #1F6B57;
+  --color-status-approved-border: #C6E4DA;
+
+  --color-status-flagged: #FBEAE9;
+  --color-status-flagged-fg: #9C3A38;
+  --color-status-flagged-border: #F3D2D0;
+
+  --color-status-neutral: #EEF1F6;
+  --color-status-neutral-fg: #565E6D;
+  --color-status-neutral-border: #DCE2EB;
+
+  /* Binary on/off toggle controls (e.g. the admin dashboard's "In Bericht"
+     switch). Deliberately a more vivid green than status-approved-fg: a toggle
+     is a live control the eye must find, not a status pill that has to stay
+     duller than the accent. Chosen during prototyping specifically for this
+     role — reuse it for every on/off toggle; the off state stays
+     surface-raised. Do not substitute status-approved-fg here. */
+  --color-toggle-on: #34C77B;
+
+  /* Risk-type badges (admin products catalogue). A SECOND SEMANTIC AXIS, not a
+     status: "Konservativ / Ausgewogen / Gewinnorientiert" describes a product's
+     risk profile, it does not report a review outcome. The two axes must stay
+     visually separable, so risk gets its own warm ladder that runs
+     green → sand → amber as risk rises.
+
+     Konservativ deliberately REUSES status-approved (#E3F3EE / #1F6B57) — the
+     low-risk end and the "all good" end read the same green, and a third new
+     token there would have been a duplicate. Only the middle and high steps are
+     new. Confirmed by the client in Phase 5a (2026-07-29); do not re-derive
+     these, do not add a third risk token, and do not put status-approved-fg on
+     anything that is not actually a status. */
+  --color-risk-balanced: #FBF2E0;
+  --color-risk-balanced-fg: #8A6314;
+
+  --color-risk-growth: #FDE9D2;
+  --color-risk-growth-fg: #B15B12;
+
+  /* Decorative violet accent. Purely an icon-chip tone, on no semantic axis at
+     all: it marks the KI-Konfigurationen / "Diesen Monat" icon contexts in the
+     approved designs. NOT amber/status-neutral — the original design is
+     explicit about the violet here. Confirmed by the client in Phase 5a
+     (2026-07-29). Never use it to carry state. */
+  --color-violet: #F0E9FB;
+  --color-violet-fg: #7C4DBF;
+
+  /* Elevation — soft, large-radius, low-opacity, tinted with accent-primary
+     rather than black (a dark drop shadow reads as dirt on this palette). */
+  --shadow-soft: 0 1px 2px rgba(75, 81, 95, 0.04), 0 8px 24px rgba(55, 124, 244, 0.06);
+  --shadow-raised: 0 2px 4px rgba(75, 81, 95, 0.05), 0 16px 40px rgba(55, 124, 244, 0.08);
+  --shadow-overlay: 0 4px 8px rgba(75, 81, 95, 0.06), 0 32px 64px rgba(55, 124, 244, 0.10);
+  --shadow-focus-ring: 0 0 0 3px rgba(55, 124, 244, 0.18);
+}
+
 body {
   /* background: var(--background); */
   /* color: var(--foreground); */
+}
+
+/* Skeleton pulse for dashboard loading states */
+@keyframes dashboard-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.skeleton-pulse {
+  animation: dashboard-skeleton-pulse 1.4s ease-in-out infinite;
 }
 
 /* Prevent mobile zoom on input focus */

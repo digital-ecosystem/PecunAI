@@ -1,5 +1,13 @@
 import React from 'react';
-import { RankBadge, formatVolume } from './_shared';
+import {
+  RankBadge,
+  RankTh,
+  RankingSkeleton,
+  SECTION_CARD_CLASS,
+  SectionEmpty,
+  SectionHeading,
+  formatVolume,
+} from './_shared';
 
 export interface TeamRow {
   rank: number;
@@ -21,69 +29,60 @@ interface TeamRankingTableProps {
 
 export default function TeamRankingTable({ teams, isLoading }: TeamRankingTableProps) {
   if (isLoading) {
-    return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <div className="animate-pulse space-y-3">
-          <div className="h-4 bg-gray-200 rounded w-1/4" />
-          <div className="h-3 bg-gray-100 rounded w-1/3" />
-          <div className="mt-4 space-y-2">
-            {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-gray-100 rounded" />)}
-          </div>
-        </div>
-      </div>
-    );
+    return <RankingSkeleton rows={4} />;
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-800">Team-Rangliste</h3>
-          <p className="mt-1 text-xs text-gray-500">Teams nach Gesamtleistung im Unternehmen</p>
-        </div>
-      </div>
+    <div className={SECTION_CARD_CLASS}>
+      <SectionHeading
+        title="Team-Rangliste"
+        subtitle="Teams nach Gesamtleistung im Unternehmen"
+        className="mb-3.5"
+      />
 
       {teams.length === 0 ? (
-        <p className="mt-6 text-sm text-gray-400 text-center py-6">Keine Teams für den gewählten Zeitraum</p>
+        <SectionEmpty>Keine Teams für den gewählten Zeitraum</SectionEmpty>
       ) : (
-        <div className="mt-5 rounded-lg border border-gray-200 overflow-hidden">
-          {/* Sticky header */}
-          <div className="grid grid-cols-8 gap-4 border-b bg-gray-50 px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
-            <div>Rang</div>
-            <div className="col-span-2">Team</div>
-            <div>Teamleiter</div>
-            <div>Gestartet</div>
-            <div>Abgeschlossen</div>
-            <div>Verkauft</div>
-            <div>Volumen</div>
-          </div>
+        <div className="overflow-x-auto">
+          <div className="min-w-[720px]">
+            {/* Column headers */}
+            <div className="flex border-b border-surface-raised px-1 pb-2.5">
+              <RankTh className="w-[34px]">Rang</RankTh>
+              <RankTh className="flex-[1.8]">Team</RankTh>
+              <RankTh className="flex-[1.2]">Teamleiter</RankTh>
+              <RankTh className="flex-1 text-center">Gestartet</RankTh>
+              <RankTh className="flex-1 text-center">Abgeschlossen</RankTh>
+              <RankTh className="flex-1 text-center">Verkauft</RankTh>
+              <RankTh className="flex-[1.1] text-right">Volumen</RankTh>
+            </div>
 
-          {/* Scrollable body */}
-          <div className="max-h-96 overflow-y-auto">
-            {teams.map((team) => (
-              <div
-                key={team.id}
-                className="grid grid-cols-8 gap-4 items-center border-b px-4 py-4 last:border-b-0 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center">
-                  <RankBadge rank={team.rank} />
-                </div>
+            {/* Scrollable body */}
+            <div className="max-h-[280px] overflow-y-auto">
+              {teams.map((team) => (
+                <div
+                  key={team.id}
+                  className="flex items-center border-b border-surface-subtle px-1 py-2.5 transition-colors last:border-b-0 hover:bg-surface-subtle"
+                >
+                  <div className="w-[34px]">
+                    <RankBadge rank={team.rank} />
+                  </div>
 
-                <div className="col-span-2 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{team.name}</p>
-                  <p className="text-xs text-gray-500">{team.memberCount} Berater</p>
-                </div>
+                  <div className="min-w-0 flex-[1.8] pr-2">
+                    <p className="truncate text-xs font-semibold text-text-primary">{team.name}</p>
+                    <p className="truncate text-[10px] text-text-muted">{team.memberCount} Berater</p>
+                  </div>
 
-                <div className="text-sm text-gray-700 truncate">{team.lead}</div>
-                <div className="text-sm font-medium text-gray-900">{team.started}</div>
-                <div className="text-sm font-medium text-gray-900">{team.completed}</div>
-                <div className="text-sm font-medium text-green-600">{team.sold}</div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{formatVolume(team.volumeOneTime)}</p>
-                  <p className="text-xs text-gray-500">{formatVolume(team.volumeRecurring)}/Mo</p>
+                  <div className="flex-[1.2] truncate pr-2 text-xs text-text-muted">{team.lead}</div>
+                  <div className="flex-1 text-center text-xs tabular-nums text-text-primary">{team.started}</div>
+                  <div className="flex-1 text-center text-xs tabular-nums text-text-primary">{team.completed}</div>
+                  <div className="flex-1 text-center text-xs font-semibold tabular-nums text-status-approved-fg">{team.sold}</div>
+                  <div className="flex-[1.1] text-right">
+                    <p className="text-xs tabular-nums text-text-primary">{formatVolume(team.volumeOneTime)}</p>
+                    <p className="text-[10px] tabular-nums text-text-muted">{formatVolume(team.volumeRecurring)}/Mo</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}

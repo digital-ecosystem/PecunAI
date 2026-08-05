@@ -3,6 +3,10 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { AuthService } from "@/lib/auth";
 
+// Full-name construction shared with /api/admin/dashboard and /api/advisor/dashboard.
+type NamedPerson = { firstName: string; lastName: string };
+const fullName = (person: NamedPerson) => `${person.firstName} ${person.lastName}`.trim();
+
 export async function GET(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -71,6 +75,10 @@ export async function GET(request: Request) {
         user: true,
         personalInfo: true,
         agent: { select: { id: true, firstName: true, lastName: true, agentCode: true } },
+        // Narrow select on purpose: Partner rows carry a password hash, email and phone.
+        // Only the two name columns are read, and the relation is stripped below — the
+        // response carries the constructed `partnerName` string and nothing else.
+        partner: { select: { firstName: true, lastName: true } },
         // Only needed to derive isBlocked below — stripped before responding.
         workflowState: { select: { stepData: true } },
       },
@@ -83,9 +91,12 @@ export async function GET(request: Request) {
     // would send the voice resume state and Phase 6 chat transcripts to the browser for up to 1000
     // sessions per request — far more than the client needs to decide whether to open the
     // "session blocked" modal. See private-documents/after-demo/SESSION_BLOCKED_STEPDATA_PLAN.md.
-    const sessions = rawSessions.map(({ workflowState, ...session }) => ({
+    const sessions = rawSessions.map(({ workflowState, partner, ...session }) => ({
       ...session,
       isBlocked: !!(workflowState?.stepData as Record<string, unknown> | null)?.sessionBlocked,
+      // Same construction as /api/admin/dashboard and /api/advisor/dashboard.
+      // `partnerId` is non-nullable on QASession, so `partner` is always present here.
+      partnerName: fullName(partner),
     }));
 
     // console.log("🚀 ~ GET ~ sessions:", sessions)

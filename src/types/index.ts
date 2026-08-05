@@ -16,14 +16,13 @@ export interface Session {
   referralCode?: string
   agentId?: string | null
   agent?: Agent | null
+  agentName?: string | null
+  partnerName?: string
   user: User
   answers?: Answer[]
   personalInfo?: PersonalInfo | null
   workflowState?: WorkflowState | null
   excludedFromReport?: boolean
-  /** Derived server-side by /api/dashboard from stepData.sessionBlocked — the raw blob is
-   *  never sent to the client. True means a Phase 1 compliance blocker ended this session
-   *  and it cannot be resumed. See SESSION_BLOCKED_STEPDATA_PLAN.md. */
   isBlocked?: boolean
 }
 

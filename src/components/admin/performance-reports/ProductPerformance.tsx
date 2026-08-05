@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { formatVolume } from './_shared';
+import { formatVolume, SECTION_CARD_CLASS, SectionEmpty, SectionHeading } from './_shared';
 
 type MetricKey = 'cases' | 'oneTime' | 'recurring';
 
@@ -43,13 +43,13 @@ export default function ProductPerformance({ products, isLoading }: ProductPerfo
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-1/4" />
-          <div className="h-3 bg-gray-100 rounded w-1/2" />
-          <div className="h-40 bg-gray-100 rounded" />
-          <div className="grid grid-cols-4 gap-3">
-            {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-gray-100 rounded" />)}
+      <div className={SECTION_CARD_CLASS}>
+        <div className="skeleton-pulse space-y-4">
+          <div className="h-4 w-1/4 rounded-lg bg-surface-raised" />
+          <div className="h-3 w-1/2 rounded-lg bg-surface-subtle" />
+          <div className="h-40 rounded-xl bg-surface-subtle" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[...Array(4)].map((_, i) => <div key={i} className="h-24 rounded-xl bg-surface-subtle" />)}
           </div>
         </div>
       </div>
@@ -58,9 +58,9 @@ export default function ProductPerformance({ products, isLoading }: ProductPerfo
 
   if (products.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h3 className="text-sm font-semibold text-gray-800">Produktleistung</h3>
-        <p className="mt-4 text-sm text-gray-400 text-center py-8">Keine Produktdaten für den gewählten Zeitraum</p>
+      <div className={SECTION_CARD_CLASS}>
+        <h3 className="text-sm font-semibold text-text-primary">Produktleistung</h3>
+        <SectionEmpty>Keine Produktdaten für den gewählten Zeitraum</SectionEmpty>
       </div>
     );
   }
@@ -68,25 +68,24 @@ export default function ProductPerformance({ products, isLoading }: ProductPerfo
   const maxValue = Math.max(...products.map((p) => getMetricValue(p, activeMetric)));
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+    <div className={SECTION_CARD_CLASS}>
 
-      {/* Header + toggle */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-800">Produktleistung</h3>
-          <p className="mt-1 text-xs text-gray-500">
-            Produkte nach Fällen, Einmal- oder wiederkehrendem Volumen vergleichen
-          </p>
-        </div>
-        <div className="flex flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-1 gap-1">
+      {/* Header + metric toggle */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <SectionHeading
+          title="Produktleistung"
+          subtitle="Produkte nach Fällen, Einmal- oder wiederkehrendem Volumen vergleichen"
+        />
+        <div className="flex flex-shrink-0 gap-1 self-start rounded-xl bg-surface-subtle p-[3px]">
           {METRICS.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setActiveMetric(key)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              aria-pressed={activeMetric === key}
+              className={`rounded-lg px-3 py-1.5 text-[11px] transition-colors ${
                 activeMetric === key
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-accent-primary text-text-on-accent'
+                  : 'text-text-primary hover:bg-surface-selected'
               }`}
             >
               {label}
@@ -95,58 +94,48 @@ export default function ProductPerformance({ products, isLoading }: ProductPerfo
         </div>
       </div>
 
-      {/* Value labels above bars */}
-      <div className="mt-6 flex gap-4 px-4">
-        {products.map((p) => (
-          <div key={p.productId} className="flex-1 text-center text-xs font-medium text-gray-600">
-            {formatMetricValue(p, activeMetric)}
-          </div>
-        ))}
-      </div>
-
-      {/* Bar chart */}
-      <div className="mt-1 flex h-40 items-end gap-4 rounded-lg bg-gray-50 px-4 pb-3 pt-2">
+      {/* Bar chart — value label above each bar, product short name below */}
+      <div className="mt-5 flex items-end gap-4">
         {products.map((p) => {
           const heightPct = maxValue === 0 ? '0%' : `${Math.round((getMetricValue(p, activeMetric) / maxValue) * 100)}%`;
           return (
-            <div key={p.productId} className="flex flex-1 h-full items-end justify-center">
-              <div
-                className="w-full min-h-1 rounded-t bg-blue-500 transition-all duration-300"
-                style={{ height: heightPct }}
-                title={p.name}
-              />
+            <div key={p.productId} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+              <div className="text-[11px] text-text-muted tabular-nums">
+                {formatMetricValue(p, activeMetric)}
+              </div>
+              <div className="flex h-[140px] w-full items-end">
+                <div
+                  className="min-h-1 w-full rounded-t-md bg-accent-primary transition-all duration-300"
+                  style={{ height: heightPct }}
+                  title={p.name}
+                />
+              </div>
+              <div className="w-full truncate text-center text-[11px] text-text-muted">
+                {p.shortName || p.name}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Product short-name labels */}
-      <div className="mt-1 flex gap-4">
-        {products.map((p) => (
-          <div key={p.productId} className="flex-1 text-center text-xs text-gray-400 truncate">
-            {p.shortName || p.name}
-          </div>
-        ))}
-      </div>
-
       {/* Per-product stat cards */}
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-4 flex flex-wrap gap-3">
         {products.map((p) => (
-          <div key={p.productId} className="rounded-lg border border-gray-200 p-3">
-            <p className="text-xs font-semibold text-gray-700 truncate">{p.name}</p>
-            <p className="mt-1.5 text-base font-bold text-gray-900">{p.cases} Fälle</p>
-            <div className="mt-2 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">Einmalig</span>
-                <span className="text-xs font-medium text-gray-700">{formatVolume(p.oneTime)}</span>
+          <div key={p.productId} className="min-w-[150px] flex-1 rounded-xl bg-surface-subtle p-3.5">
+            <p className="truncate text-xs font-semibold text-text-primary">{p.name}</p>
+            <p className="mb-2 text-xs text-text-muted">{p.cases} Fälle</p>
+            <div className="space-y-1">
+              <div className="flex items-baseline justify-between gap-2 text-[11px] text-text-muted">
+                <span>Einmalig</span>
+                <span className="font-semibold tabular-nums text-text-primary">{formatVolume(p.oneTime)}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">Wiederk.</span>
-                <span className="text-xs font-medium text-gray-700">{formatVolume(p.recurring)}</span>
+              <div className="flex items-baseline justify-between gap-2 text-[11px] text-text-muted">
+                <span>Wiederk.</span>
+                <span className="font-semibold tabular-nums text-text-primary">{formatVolume(p.recurring)}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">Verkauft</span>
-                <span className="text-xs font-medium text-green-600">{p.approvalRate}%</span>
+              <div className="flex items-baseline justify-between gap-2 text-[11px] text-text-muted">
+                <span>Verkauft</span>
+                <span className="font-semibold tabular-nums text-status-approved-fg">{p.approvalRate}%</span>
               </div>
             </div>
           </div>

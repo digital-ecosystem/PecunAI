@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { TrendingUp, CheckCircle, ShoppingBag, Wallet, Users } from 'lucide-react';
-import AdminHeader from '@/components/AdminHeader';
+import AdminDashboardShell from '@/components/admin/AdminDashboardShell';
 import KPICard from '@/components/admin/performance-reports/KPICard';
 import PerformanceFilters, { FilterState, FilterOptions } from '@/components/admin/performance-reports/PerformanceFilters';
 import TrendChart from '@/components/admin/performance-reports/TrendChart';
@@ -133,10 +133,9 @@ export default function CompanyPerformancePage() {
     : [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminHeader />
+    <AdminDashboardShell contentClassName="max-w-[1180px]">
 
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 space-y-6">
+      <div className="flex flex-col gap-5">
 
         {/* Filters */}
         <PerformanceFilters
@@ -144,52 +143,60 @@ export default function CompanyPerformancePage() {
           onFilterChange={handleFilterChange}
         />
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {/* KPI row — two stacked cards · focal hero · two stacked cards */}
+        <div className="flex w-full flex-wrap items-stretch gap-3">
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5 max-sm:grid max-sm:basis-full max-sm:grid-cols-2">
+            <KPICard
+              label="Abgeschlossen"
+              value={kpis?.completed ?? '—'}
+              icon={CheckCircle}
+              iconBgClass="bg-status-approved"
+              iconColorClass="text-status-approved-fg"
+            />
+            <KPICard
+              label="Volumen"
+              splitValues={kpis ? [
+                { label: 'Einmalig', value: formatVolume(kpis.volumeOneTime) },
+                { label: 'Wiederk.', value: `${formatVolume(kpis.volumeRecurring)}/Mo` },
+              ] : undefined}
+              value={kpis ? undefined : '—'}
+              icon={Wallet}
+              iconBgClass="bg-surface-selected"
+              iconColorClass="text-accent-primary"
+            />
+          </div>
+
           <KPICard
+            variant="hero"
             label="Gestartet"
             value={kpis?.started ?? '—'}
             icon={TrendingUp}
-            iconBgClass="bg-blue-100"
-            iconColorClass="text-blue-600"
+            iconBgClass="bg-surface-subtle"
+            iconColorClass="text-accent-primary"
+            className="flex-[1.2] max-sm:order-first max-sm:basis-full"
           />
-          <KPICard
-            label="Abgeschlossen"
-            value={kpis?.completed ?? '—'}
-            icon={CheckCircle}
-            iconBgClass="bg-green-100"
-            iconColorClass="text-green-600"
-          />
-          <KPICard
-            label="Verkauft"
-            value={kpis?.sold ?? '—'}
-            icon={ShoppingBag}
-            iconBgClass="bg-emerald-100"
-            iconColorClass="text-emerald-600"
-          />
-          <KPICard
-            label="Volumen"
-            splitValues={kpis ? [
-              { label: 'Einmalig', value: formatVolume(kpis.volumeOneTime) },
-              { label: 'Wiederk.', value: `${formatVolume(kpis.volumeRecurring)}/Mo` },
-            ] : undefined}
-            value={kpis ? undefined : '—'}
-            icon={Wallet}
-            iconBgClass="bg-purple-100"
-            iconColorClass="text-purple-600"
-          />
-          <KPICard
-            label=""
-            splitValues={kpiTeamsSplit}
-            value={kpis ? undefined : '—'}
-            icon={Users}
-            iconBgClass="bg-orange-100"
-            iconColorClass="text-orange-600"
-          />
+
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5 max-sm:grid max-sm:basis-full max-sm:grid-cols-2">
+            <KPICard
+              label="Verkauft"
+              value={kpis?.sold ?? '—'}
+              icon={ShoppingBag}
+              iconBgClass="bg-status-approved"
+              iconColorClass="text-status-approved-fg"
+            />
+            <KPICard
+              label=""
+              splitValues={kpiTeamsSplit}
+              value={kpis ? undefined : '—'}
+              icon={Users}
+              iconBgClass="bg-status-neutral"
+              iconColorClass="text-status-neutral-fg"
+            />
+          </div>
         </div>
 
         {/* Trend Charts */}
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div className="flex flex-col gap-3.5">
           <TrendChart
             type="dual"
             title="Gestartet vs. Abgeschlossen"
@@ -227,6 +234,6 @@ export default function CompanyPerformancePage() {
         />
 
       </div>
-    </div>
+    </AdminDashboardShell>
   );
 }

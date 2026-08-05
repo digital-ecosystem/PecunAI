@@ -20,9 +20,16 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}));
     const partnerCodeFromBody = typeof body?.partnerCode === 'string' ? body.partnerCode.trim() : '';
+    const agentCodeFromBody = typeof body?.agentCode === 'string' ? body.agentCode.trim() : '';
 
     const referralCodeFromCookie = (cookieStore.get('referral_code')?.value ?? '').trim();
+    const agentCodeFromCookie = (cookieStore.get('agent_code')?.value ?? '').trim();
+
     const partnerCode = partnerCodeFromBody || referralCodeFromCookie;
+    // An agent code held in a cookie belongs to the referral link that also set `referral_code`.
+    // If the caller passed its own partner code (manual entry), only an explicitly passed agent
+    // code applies — a leftover cookie must not be grafted onto a hand-entered partner.
+    const agentCode = partnerCodeFromBody ? agentCodeFromBody : agentCodeFromBody || agentCodeFromCookie;
 
     if (!partnerCode) {
       const response = NextResponse.json(
@@ -81,6 +88,35 @@ export async function POST(req: Request) {
       return response;
     }
 
+    // Agent membership is optional (`QASession.agentId` is nullable), so an unusable agent code
+    // degrades to "no agent" instead of costing the customer their session — but never silently:
+    // every rejection is logged and reported back on the response.
+    let agent: { id: string } | null = null;
+    let agentWarning: 'AGENT_INVALID' | 'AGENT_PARTNER_MISMATCH' | null = null;
+
+    if (agentCode) {
+      const candidate = await prisma.agent.findUnique({
+        where: { agentCode: agentCode.toUpperCase() },
+        select: { id: true, isActive: true, partnerId: true },
+      });
+
+      if (!candidate || !candidate.isActive) {
+        agentWarning = 'AGENT_INVALID';
+      } else if (candidate.partnerId !== partner.id) {
+        // Agent.partnerId is a required FK: an agent may only be credited on sessions belonging
+        // to their own partner, otherwise partner- and agent-rollups disagree.
+        agentWarning = 'AGENT_PARTNER_MISMATCH';
+      } else {
+        agent = { id: candidate.id };
+      }
+
+      if (agentWarning) {
+        console.warn(
+          `[POST /api/qa-session/create] ${agentWarning} — userId=${user.id} partnerCode=${partner.referralCode} agentCode=${agentCode.toUpperCase()}`
+        );
+      }
+    }
+
     const newSession = await prisma.qASession.create({
       data: {
         status: 'DRAFT',
@@ -88,6 +124,7 @@ export async function POST(req: Request) {
         referralCode: partner.referralCode,
         user: { connect: { id: user.id } },
         partner: { connect: { id: partner.id } },
+        agent: agent ? { connect: { id: agent.id } } : undefined,
       },
     });
 
@@ -95,6 +132,8 @@ export async function POST(req: Request) {
       {
         success: true,
         session: newSession,
+        agentLinked: agent !== null,
+        ...(agentWarning ? { agentWarning } : {}),
         partner: {
           id: partner.id,
           firstName: partner.firstName,
@@ -109,6 +148,13 @@ export async function POST(req: Request) {
     // Clear referral cookie only if we used it (i.e., no explicit partnerCode in body)
     if (!partnerCodeFromBody && referralCodeFromCookie) {
       response.cookies.set('referral_code', '', { path: '/', maxAge: 0 });
+    }
+
+    // Same timing for the agent cookie: never cleared before the session actually exists, so a
+    // cancelled or failed attempt stays recoverable. The link's agent applies to the session it
+    // produced, so it is consumed here whether it arrived via body or cookie.
+    if (agentCodeFromCookie) {
+      response.cookies.set('agent_code', '', { path: '/', maxAge: 0 });
     }
 
     // Clear autostart marker after successful creation
