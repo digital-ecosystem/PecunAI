@@ -16,6 +16,13 @@ export interface Session {
   referralCode?: string
   agentId?: string | null
   agent?: Agent | null
+  /** Constructed server-side by /api/admin/dashboard as `${firstName} ${lastName}` of the
+   *  linked agent. Null when the session has no agent — agentId is nullable on QASession. */
+  agentName?: string | null
+  /** Constructed server-side by /api/admin/dashboard as `${firstName} ${lastName}` of the
+   *  linked Berater. partnerId is required on QASession, so this is always a real name on
+   *  that payload; it is optional here only because other Session producers omit it. */
+  partnerName?: string
   user: User
   answers?: Answer[]
   personalInfo?: PersonalInfo | null
