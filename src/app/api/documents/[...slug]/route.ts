@@ -4,18 +4,11 @@ import path from 'path';
 import axios from 'axios';
 import { prisma } from '@/lib/prisma';
 import { CONFIG } from '@/config/constants';
+import { downloadLegtitationPDF } from '@/utils/downloadVerfiyPersonPDF';
 
 const SIGNTEQ_API_TOKEN = process.env.NEXT_PUBLIC_ENV === 'production' ? process.env.SIGNTEQ_API_KEY_PRO || '' : process.env.SIGNTEQ_API_KEY_DEV || '';
 const SIGNTEQ_ORG_ID    = process.env.NEXT_PUBLIC_ENV === 'production' ? process.env.SIGNTEQ_ORG_ID_PRO || '' : process.env.SIGNTEQ_ORG_ID_DEV || '';
 
-/** Last-resort recovery for the finally-signed contract: re-fetch it from SignTeq and cache it.
- *
- *  The signed PDF only ever reached disk during the `document_completed` webhook. If that write
- *  failed the file was gone for good, even though SignTeq still holds the document — which is how
- *  "the advisor signed but we cannot access the signed pdfs" became unrecoverable. Keyed on the
- *  advisor's own document id, recorded by persistAdvisorRequestIds when the request is created.
- *
- *  Returns null when there is nothing to recover from, so the caller falls through to its 404. */
 async function recoverSignedPdf(sessionId: string): Promise<Buffer | null> {
   if (!SIGNTEQ_API_TOKEN || !SIGNTEQ_ORG_ID) return null;
 
@@ -25,9 +18,6 @@ async function recoverSignedPdf(sessionId: string): Promise<Buffer | null> {
   });
   const stepData = (workflowState?.stepData ?? {}) as Record<string, unknown>;
   const signteq  = (stepData.signteq ?? {}) as Record<string, unknown>;
-  // The advisor's document is the fully-signed one. Sessions created before the id was recorded
-  // have no advisorDocumentId — nothing to fall back to, and the customer's documentId would only
-  // return the half-signed version, which must never be served as the signed contract.
   const advisorDocumentId = signteq.advisorDocumentId as string | undefined;
   if (!advisorDocumentId || signteq.status !== 'DOCUMENT_COMPLETED') return null;
 
@@ -53,6 +43,37 @@ async function recoverSignedPdf(sessionId: string): Promise<Buffer | null> {
     console.error('⚠️ Could not cache the recovered signed PDF (serving it anyway)', { sessionId, err });
   }
   return buffer;
+}
+
+async function recoverLegitimationPdf(sessionId: string, filePath: string): Promise<Buffer | null> {
+  const handshake = await prisma.signteqHandshakeInfo.findUnique({
+    where:  { qaSessionId: sessionId },
+    select: { sessionToken: true, createdAt: true },
+  });
+
+  if (!handshake?.sessionToken) {
+    console.error('❌ Legitimation missing and no signd.id session token is stored — cannot recover', { sessionId });
+    return null;
+  }
+
+  console.log('↻ Legitimation missing on disk — re-fetching from signd.id', {
+    sessionId,
+    tokenCreatedAt: handshake.createdAt,
+  });
+
+  try {
+    await downloadLegtitationPDF(sessionId); // writes to exactly this path
+    return await readFile(filePath);
+  } catch (err) {
+    // Most likely an expired session token. Say which session and why, loudly — this is the
+    // information someone needs to go back to the identity provider.
+    console.error('❌ Legitimation re-fetch failed — the stored signd.id token may have expired', {
+      sessionId,
+      tokenCreatedAt: handshake.createdAt,
+      err,
+    });
+    return null;
+  }
 }
 
 export async function GET(
@@ -88,8 +109,14 @@ export async function GET(
     try {
       fileBuffer = await readFile(realPath);
     } catch (readErr) {
-      const isSignedContract = slug.length === 3 && slug[1] === 'signed' && slug[2] === 'signature.pdf';
-      const recovered = isSignedContract ? await recoverSignedPdf(slug[0]) : null;
+      const inSignedFolder = slug.length === 3 && slug[1] === 'signed';
+      const recovered = !inSignedFolder
+        ? null
+        : slug[2] === 'signature.pdf'
+        ? await recoverSignedPdf(slug[0])
+        : slug[2] === 'legitimation.pdf'
+        ? await recoverLegitimationPdf(slug[0], realPath)
+        : null;
       if (!recovered) throw readErr;
       fileBuffer = recovered;
     }

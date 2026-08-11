@@ -281,7 +281,23 @@ export async function POST(request: NextRequest) {
 			try {
 				await downloadLegtitationPDF(qaSessionId);
 			} catch (err) {
-				console.warn('⚠️ Webhook: failed to download legitiation PDF (continuing):', err);
+				console.error('❌ Webhook: legitimation PDF download FAILED', { qaSessionId, err });
+				try {
+					const existing = await prisma.sessionWorkflowState.findUnique({
+						where:  { qaSessionId },
+						select: { stepData: true },
+					});
+					const sd = (existing?.stepData ?? {}) as Record<string, unknown>;
+					await prisma.sessionWorkflowState.update({
+						where: { qaSessionId },
+						data:  { stepData: { ...sd, legitimationError: {
+							at:      new Date().toISOString(),
+							message: err instanceof Error ? err.message : String(err),
+						} } },
+					});
+				} catch (markErr) {
+					console.error('❌ Webhook: could not record the legitimation failure', { qaSessionId, markErr });
+				}
 			}
 			if (base64) {
 				const advisorIds = await createAdviosrSignTeqRequest(qaSessionId, partnerIdFromMeta, base64);
