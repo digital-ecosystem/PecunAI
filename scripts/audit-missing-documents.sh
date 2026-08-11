@@ -40,6 +40,19 @@ ORDER BY q."createdAt";
 SQL
 )
 
+# Take the whole filesystem inventory in ONE call.
+#
+# The previous version ran `docker compose exec` inside the read loop. That command reads
+# stdin, so it consumed the rest of the session list being piped into `while read` and the
+# audit silently examined exactly one session before stopping — while still printing a
+# confident summary. Hence both the single round trip and the row-count assertion below:
+# an audit you cannot trust is worse than no audit, because it gets believed.
+INVENTORY=$(docker compose exec -T "$APP_SVC" \
+  sh -c 'find private-documents -name "*.pdf" 2>/dev/null | grep "/signed/"' \
+  < /dev/null || true)
+
+expected=$(printf '%s\n' "$ROWS" | grep -c . || true)
+
 printf '%-38s %-30s %-10s %-26s %-9s %-8s %s\n' \
   SESSION CUSTOMER STATUS SIGNTEQ TOKEN FLAG MISSING
 printf '%s\n' "$(printf '─%.0s' {1..170})"
@@ -50,14 +63,15 @@ while IFS='|' read -r id customer status signteq token flag; do
   [ -z "$id" ] && continue
   total=$((total + 1))
 
-  present=$(docker compose exec -T "$APP_SVC" \
-    sh -c "ls private-documents/$id/signed/ 2>/dev/null" || true)
-
   gaps=""
-  echo "$present" | grep -q 'signature.pdf'    || { gaps="signature"; missing_sig=$((missing_sig + 1)); }
-  echo "$present" | grep -q 'legitimation.pdf' || {
-    gaps="${gaps:+$gaps + }legitimation"; missing_leg=$((missing_leg + 1));
-  }
+  case "$INVENTORY" in
+    *"private-documents/$id/signed/signature.pdf"*) ;;
+    *) gaps="signature"; missing_sig=$((missing_sig + 1)) ;;
+  esac
+  case "$INVENTORY" in
+    *"private-documents/$id/signed/legitimation.pdf"*) ;;
+    *) gaps="${gaps:+$gaps + }legitimation"; missing_leg=$((missing_leg + 1)) ;;
+  esac
   [ "$gaps" = "signature + legitimation" ] && missing_both=$((missing_both + 1))
 
   # Only print rows with a problem — a clean audit should be quiet.
@@ -67,7 +81,12 @@ while IFS='|' read -r id customer status signteq token flag; do
 done <<< "$ROWS"
 
 echo
-echo "non-DRAFT sessions checked : $total"
+if [ "$total" -ne "$expected" ]; then
+  echo "!! INCOMPLETE: the database returned $expected sessions but only $total were checked."
+  echo "!! Do not draw conclusions from this run. Something consumed the input stream."
+  echo
+fi
+echo "non-DRAFT sessions checked : $total  (database returned $expected)"
 echo "missing signature.pdf      : $missing_sig"
 echo "missing legitimation.pdf   : $missing_leg"
 echo "missing both               : $missing_both"
