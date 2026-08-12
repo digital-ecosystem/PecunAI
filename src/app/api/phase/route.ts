@@ -93,27 +93,29 @@ export async function GET(req: NextRequest) {
           where: { qaSessionId: session.id }
         });
 
-        // Map answered questions
-        const answeredQuestions = allQuestions.filter(q =>
-          answerRows.some(a => a.questionId === q.id)
-        );
-
-        // Map answers
         answers = answerRows.reduce((acc, ans) => {
           acc[ans.questionId] = ans.value;
           return acc;
         }, {} as Record<string, string>);
 
-        // Get unanswered questions (exclude those already answered)
-        const unansweredQuestions = allQuestions.filter(q =>
-          !answerRows.some(a => a.questionId === q.id)
-        );
-
-        // Combine: answered first, then unanswered
-        questions = [
-          ...answeredQuestions,
-          ...unansweredQuestions
-        ];
+        // Return questions in questionOrder — NOT answered-first.
+        //
+        // This used to be `[...answeredQuestions, ...unansweredQuestions]`, which made the
+        // array's shape depend on which questions THIS customer had answered. Several
+        // consumers index it positionally (the Phase 4 cost screen, its AI grounding, and
+        // ~60 field mappings in pdfFormFiller.ts that populate the signed contract), and
+        // every one of those indices was written against the natural questionOrder array.
+        //
+        // The conditional sub-questions 12.1/13.1/14.1 are only answered when their parent
+        // is "good". For every other customer they landed in the unanswered block at the
+        // END, shifting everything from position 12 onward — so the cost screen read a
+        // sub-question instead of the investment amount and showed 0,00 €, and the contract
+        // read the monthly payment from an unanswered sub-question. Ordering by
+        // questionOrder makes the array invariant and every positional consumer correct.
+        //
+        // `answers` is returned alongside, so anything that needs to know what is answered
+        // can look it up by id rather than relying on array position.
+        questions = allQuestions;
 
       } else {
         // No session found, just return first 15 questions from main table

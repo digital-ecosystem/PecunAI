@@ -1,18 +1,3 @@
-/** Questions where 0 is a legitimate answer meaning "none", *in addition* to the configured
- *  minValue–maxValue band. Values between 1 and minValue−1 stay invalid.
- *
- *  Keyed by `questionOrder`; the value is the German label for the zero case, used in both the
- *  input hint and the validation error ("Entweder 0 (keine Einmalzahlung) oder mind. …").
- *
- *  The exemption previously existed for question 19 only, hardcoded separately in the tap path
- *  (VoiceQuestionModal) and the voice path (handleFunctionCall) — which is how question 18 came to
- *  reject 0 in production even though a lump sum is optional. Keeping it in one place means the two
- *  paths cannot disagree again.
- *
- *  The bounds themselves are NOT here: minValue/maxValue live on the Question rows and differ
- *  between environments (dev had 1500–5000 while production ran 1500–10000). Never hardcode them.
- *  See private-documents/after-demo/OPTIONAL_LUMP_SUM_FIX_PLAN.md.
- */
 export const ZERO_ALLOWED_QUESTIONS: Record<number, string> = {
   18: "keine Einmalzahlung", // Beabsichtigte Einmalveranlagung — a lump sum is optional
   19: "kein Sparplan",       // Beabsichtigte monatliche Veranlagung — a savings plan is optional
@@ -21,4 +6,41 @@ export const ZERO_ALLOWED_QUESTIONS: Record<number, string> = {
 /** German zero-case label if this question accepts 0, otherwise undefined. */
 export function zeroAllowedLabel(questionOrder?: number): string | undefined {
   return questionOrder === undefined ? undefined : ZERO_ALLOWED_QUESTIONS[questionOrder];
+}
+
+/** questionOrder values the UI and prompts depend on. Verified against prisma/seed.ts. */
+export const Q = {
+  REASON:              1,  // Anlageziele
+  DURATION_YEARS:      2,  // Angedachte Anlagedauer
+  PRIOR_EXPERIENCE:   15,  // Erfahrungen mit Vermögensverwaltung (experienced_positive lives here)
+  SOURCE_OF_FUNDS:    16,  // Herkunft der Vermögenswerte
+  ONE_TIME_INVESTMENT: 18, // Beabsichtigte Einmalveranlagung
+  MONTHLY_INVESTMENT:  19, // Beabsichtigte monatliche Veranlagung
+} as const;
+
+interface OrderedQuestion { id: string; questionOrder?: number }
+
+export function questionByOrder<T extends OrderedQuestion>(questions: T[], order: number): T | undefined {
+  return questions.find(q => q.questionOrder === order);
+}
+
+/** The saved answer for a question, located by its order. `undefined` if unanswered. */
+export function answerByOrder(
+  questions: OrderedQuestion[],
+  answers:   Record<string, string>,
+  order:     number,
+): string | undefined {
+  const q = questionByOrder(questions, order);
+  return q ? answers[q.id] : undefined;
+}
+
+/** A numeric answer located by order. Returns 0 when absent or unparseable — but note the
+ *  caller cannot distinguish "answered zero" from "not answered"; use answerByOrder when
+ *  that difference matters. */
+export function numericAnswerByOrder(
+  questions: OrderedQuestion[],
+  answers:   Record<string, string>,
+  order:     number,
+): number {
+  return parseFloat(answerByOrder(questions, answers, order) ?? "") || 0;
 }

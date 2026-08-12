@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Q, questionByOrder, answerByOrder, numericAnswerByOrder } from "@/lib/questionRules";
 import { motion, useReducedMotion } from "motion/react";
 import { Menu, Mic, ArrowLeft } from "lucide-react";
 import VoiceProfileMenu from "./VoiceProfileMenu";
@@ -426,22 +427,28 @@ export default function VoiceInvestmentForm({
 
   const statusLabel = STATUS_LABEL[sessionState] ?? "";
 
-  // ⚠️ These question lookups are by array index, not by question ID — kept identical per
-  // explicit instruction, this is existing, working functionality and not something to
-  // "fix" here. See PHASE_4_INVESTMENT_FORM_PLAN.md's ⚠️ section: two of these are
-  // confirmed (Q18 = one-time, Q19 = monthly investment), the others rest on the same
-  // positional assumption. Reordering or inserting questions silently changes what they read.
-  const reasonLabel = questions[0]?.options?.find(o => o.value === answers[questions[0]?.id])?.label ?? "";
-  const durationYears = Number(answers[questions[1]?.id]);
-  const oneTimeInvestment = parseFloat(answers[questions[20]?.id] ?? "") || 0;
-  const monthlyInvestment = parseFloat(answers[questions[21]?.id] ?? "") || 0;
-  const priorExperienceAnswer = answers[questions[17]?.id];
+  // Looked up by questionOrder, never by array position. The questions API returns answered
+  // questions first, so positions shift per customer — which is exactly how a €100 monthly
+  // plan rendered as 0,00 €. See questionRules.ts for the full account.
+  const reasonQ = questionByOrder(questions, Q.REASON);
+  const reasonLabel = reasonQ?.options?.find(o => o.value === answers[reasonQ.id])?.label ?? "";
+  const durationYears = Number(answerByOrder(questions, answers, Q.DURATION_YEARS));
+  const oneTimeInvestment = numericAnswerByOrder(questions, answers, Q.ONE_TIME_INVESTMENT);
+  const monthlyInvestment = numericAnswerByOrder(questions, answers, Q.MONTHLY_INVESTMENT);
+  const priorExperienceAnswer = answerByOrder(questions, answers, Q.PRIOR_EXPERIENCE);
   const hasPriorAdvisoryExperience =
     priorExperienceAnswer === "good" ||
     priorExperienceAnswer === "average" ||
     priorExperienceAnswer === "experienced_positive" ||
     priorExperienceAnswer === "experienced_negative";
 
+  // ⚠️ The €10,000 stand-in is retained ON PURPOSE for now. It presents the running-cost
+  // table for a portfolio the customer never entered — on a €100/month plan that shows an
+  // effective 2.31 % p.a. where the true year-1 figure is 5.64 %, because €44.80 of
+  // non-scaling fees (the €24 minimum plus the €20.80 flat account fee) are being divided
+  // by €11,200 instead of €1,200. Removing it is a change to a compliance-relevant
+  // disclosure, so it is being put to the client separately rather than shipped alongside
+  // this bug fix. Until then the displayed cost figures are unchanged from V1.
   const gebuehrenVolume = oneTimeInvestment > 0 ? oneTimeInvestment : 10000;
   const gebuehrenMonthly = monthlyInvestment > 0 ? monthlyInvestment : 0;
 

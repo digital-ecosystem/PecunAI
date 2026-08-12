@@ -2,6 +2,7 @@
 // This replaces the Sprint 2 plan of moving prompts to the DB admin panel.
 
 import { CarouselQuestion } from "@/components/voice/VoiceCarousel";
+import { Q, questionByOrder, answerByOrder, numericAnswerByOrder } from "@/lib/questionRules";
 import { ExplainOverlayData, ProductData } from "./types";
 import { zeroAllowedLabel } from "@/lib/questionRules";
 import { computeGebuehren } from "@/lib/gebuehren";
@@ -480,11 +481,18 @@ export function buildPhase4PresentationContext(
 ): string | null {
   if (!questions.length) return null;
 
-  const reasonLabel   = questions[0]?.options?.find(o => o.value === answers[questions[0]?.id])?.label ?? "";
-  const durationYears = Number(answers[questions[1]?.id]);
-  const oneTime       = parseFloat(answers[questions[20]?.id] ?? "") || 0;
-  const monthly       = parseFloat(answers[questions[21]?.id] ?? "") || 0;
+  // By questionOrder, not array position — the API returns answered questions first, so
+  // positions differ per customer. Reading by index fed the AI 0 for a customer who had
+  // entered €100 monthly, and it would then quote those wrong figures with confidence.
+  const reasonQ       = questionByOrder(questions, Q.REASON);
+  const reasonLabel   = reasonQ?.options?.find(o => o.value === answers[reasonQ.id])?.label ?? "";
+  const durationYears = Number(answerByOrder(questions, answers, Q.DURATION_YEARS));
+  const oneTime       = numericAnswerByOrder(questions, answers, Q.ONE_TIME_INVESTMENT);
+  const monthly       = numericAnswerByOrder(questions, answers, Q.MONTHLY_INVESTMENT);
 
+  // ⚠️ Kept identical to VoiceInvestmentForm's stand-in volume ON PURPOSE — the screen and
+  // the spoken answer must quote the same numbers. Both are pending a client decision on the
+  // €10,000 example volume; see the note in VoiceInvestmentForm.tsx.
   const gebuehrenVolume  = oneTime > 0 ? oneTime : 10000;
   const gebuehrenMonthly = monthly > 0 ? monthly : 0;
   const {
