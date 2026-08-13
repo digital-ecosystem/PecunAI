@@ -1,4 +1,5 @@
 import { PDFDocument, PDFForm } from 'pdf-lib';
+import { Q, answerByOrder } from "@/lib/questionRules";
 import fs from 'fs';
 import path from 'path';
 import { Option, Question } from '@/types';
@@ -1182,10 +1183,30 @@ const vermoegensverwaltungsvertragMapper = (userInfo: UserInfo, questions: Quest
   UserSector: userInfo.industry || "",
   UserEducation: userInfo.education || "",
 
-  // Question 18
-  UserPreviousFinancialActivitiesProfessional: getDynamicAnswer(questions[19], answers, true) == "experienced_positive" ? true : false,
-  
-  
+  // "Wie hat der Auftraggeber bisherige Anlageentscheidungen getroffen?" — questionOrder 17.
+  //
+  // Vermögensverwaltungsvertrag.pdf page 5 has only THREE physical checkboxes here, but FIVE
+  // field names: two boxes carry a duplicate name at identical coordinates, presumably from a
+  // template rename that left the old name behind. Verified against the widget rectangles and
+  // the printed labels:
+  //
+  //   y 173  "Mit professioneller Hilfe …"                    → Professional  +  Both0
+  //   y 125  "Eigenständig und ohne professionelle Beratung."  → Private       +  Both1
+  //   y  92  "… noch keine Anlageentscheidung getroffen."      → No
+  //
+  // So Professional/Private are NOT about investment experience — they are the first two
+  // options of this question, and each must carry the same value as its duplicate. All five
+  // are written so the output stays correct if the template is ever tidied and the Both*
+  // names removed.
+  //
+  // Previously Professional tested "experienced_positive", a value that only exists on
+  // questionOrder 15, so it never matched. That had no visible effect, because Both0 ticks the
+  // same box — but it would have become a real defect the moment Both0 was cleaned up.
+  UserPreviousFinancialActivitiesProfessional:
+    answerByOrder(questions, answers, Q.PREVIOUS_DECISIONS) === "with_professional_help",
+  UserPreviousFinancialActivitiesPrivate:
+    answerByOrder(questions, answers, Q.PREVIOUS_DECISIONS) === "independently",
+
   UserPreviousFinancialActivitiesBoth0: getDynamicAnswer(questions[19], answers, true) == "with_professional_help" ? true : false,
   UserPreviousFinancialActivitiesBoth1: getDynamicAnswer(questions[19], answers, true) == "independently" ? true : false,
   UserPreviousFinancialActivitiesNo: getDynamicAnswer(questions[19], answers, true) == "other_method" ? true : false,

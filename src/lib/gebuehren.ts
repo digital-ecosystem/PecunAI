@@ -60,7 +60,30 @@ export function getRowEur(row: (typeof GEBUEHREN_DATA)[number], volume: number) 
   return 0;
 }
 
-/** Average invested volume: einmalig + (jährliches Sparvolumen × Laufzeit / 2) */
+/**
+ * Volume that year `years` of fees is charged on: the lump sum plus everything contributed
+ * by the END of that year.
+ *
+ * ⚠️ The docstring here used to promise `einmalig + (jährliches Sparvolumen × Laufzeit / 2)`,
+ * which the code has never done. **Do not "fix" the code to match that.** The `/ 2` version is
+ * the average balance across the WHOLE savings period, not the balance in year `years`, so it
+ * is only right in year 1 and badly wrong later — for €100/month it claims €6,000 in year 10
+ * when the customer holds €12,000, understating ten-year disclosed costs by about €630.
+ *
+ * Three candidate conventions, for €100/month over ten years:
+ *
+ *   A  oneTime + 12m·y          as implemented   1,708.60 €   balance at end of year y
+ *   B  oneTime + 12m·y / 2      old docstring    1,078.30 €   understates — do not use
+ *   C  oneTime + 12m·(y − 0.5)  mid-year         1,594.00 €   average balance during year y
+ *
+ * C is the technically accurate base for an annual percentage fee, since contributions arrive
+ * progressively. A overstates it by half a year of contributions — 100 % in year 1, about 5 %
+ * by year 10, €114.60 over the ten years.
+ *
+ * A is retained deliberately: these are illustrative projected costs, and overstating them is
+ * the safe direction for a disclosure. Moving to C changes published figures and is a decision
+ * for the client and compliance, not a code cleanup. Raised 2026-08-11, awaiting an answer.
+ */
 export function getAvgVolume(oneTime: number, monthly: number, years: number): number {
   const annualSavings = monthly * 12;
   return oneTime + annualSavings * years;

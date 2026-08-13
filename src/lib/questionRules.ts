@@ -14,6 +14,7 @@ export const Q = {
   DURATION_YEARS:      2,  // Angedachte Anlagedauer
   PRIOR_EXPERIENCE:   15,  // Erfahrungen mit Vermögensverwaltung (experienced_positive lives here)
   SOURCE_OF_FUNDS:    16,  // Herkunft der Vermögenswerte
+  PREVIOUS_DECISIONS: 17,  // Wie hat der Auftraggeber bisherige Anlageentscheidungen getroffen?
   ONE_TIME_INVESTMENT: 18, // Beabsichtigte Einmalveranlagung
   MONTHLY_INVESTMENT:  19, // Beabsichtigte monatliche Veranlagung
 } as const;

@@ -442,15 +442,17 @@ export default function VoiceInvestmentForm({
     priorExperienceAnswer === "experienced_positive" ||
     priorExperienceAnswer === "experienced_negative";
 
-  // ⚠️ The €10,000 stand-in is retained ON PURPOSE for now. It presents the running-cost
-  // table for a portfolio the customer never entered — on a €100/month plan that shows an
-  // effective 2.31 % p.a. where the true year-1 figure is 5.64 %, because €44.80 of
-  // non-scaling fees (the €24 minimum plus the €20.80 flat account fee) are being divided
-  // by €11,200 instead of €1,200. Removing it is a change to a compliance-relevant
-  // disclosure, so it is being put to the client separately rather than shipped alongside
-  // this bug fix. Until then the displayed cost figures are unchanged from V1.
-  const gebuehrenVolume = oneTimeInvestment > 0 ? oneTimeInvestment : 10000;
-  const gebuehrenMonthly = monthlyInvestment > 0 ? monthlyInvestment : 0;
+  // The running-cost table is computed on the customer's OWN amounts. It previously fell
+  // back to a €10,000 example volume whenever there was no lump sum — inherited from V1,
+  // where it was unreachable because a lump sum of at least €1,500 was mandatory. Making
+  // the lump sum optional made it reachable, and a monthly-only plan was then costed as if
+  // it held €10,000. Client confirmed 2026-08-11 that this should show the real case.
+  //
+  // computeGebuehren already models a savings plan properly: it evaluates
+  // oneTime + monthly × 12 × y for y = 1…10, so the volume grows year by year and no
+  // stand-in is needed. NOTE this does not touch getAvgVolume's missing ÷ 2 — that is a
+  // separate question still with the client.
+  const hasAmounts = oneTimeInvestment > 0 || monthlyInvestment > 0;
 
   return (
     <div
@@ -662,10 +664,17 @@ export default function VoiceInvestmentForm({
                   {/* Laufende Kosten — table on desktop (wide frame), cards below 1024px */}
                   <div>
                     <h2 className="text-base font-bold text-gray-900 mb-2">Laufende Kosten</h2>
-                    {isCardLayout ? (
-                      <GebuehrenCards oneTimeInvestment={gebuehrenVolume} monthlyInvestment={gebuehrenMonthly} />
+                    {!hasAmounts ? (
+                      // Both amounts genuinely zero. Drawing a fee table would mean inventing the
+                      // volume it is computed from, which is how the €10,000 stand-in got here.
+                      <p className="text-sm text-gray-500 border border-gray-200 rounded-lg p-3">
+                        Sobald Sie einen Betrag angegeben haben, sehen Sie hier die laufenden Kosten
+                        für Ihre Veranlagung.
+                      </p>
+                    ) : isCardLayout ? (
+                      <GebuehrenCards oneTimeInvestment={oneTimeInvestment} monthlyInvestment={monthlyInvestment} />
                     ) : (
-                      <GebuehrenTable oneTimeInvestment={gebuehrenVolume} monthlyInvestment={gebuehrenMonthly} />
+                      <GebuehrenTable oneTimeInvestment={oneTimeInvestment} monthlyInvestment={monthlyInvestment} />
                     )}
                   </div>
 

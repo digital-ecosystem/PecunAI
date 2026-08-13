@@ -490,15 +490,14 @@ export function buildPhase4PresentationContext(
   const oneTime       = numericAnswerByOrder(questions, answers, Q.ONE_TIME_INVESTMENT);
   const monthly       = numericAnswerByOrder(questions, answers, Q.MONTHLY_INVESTMENT);
 
-  // ⚠️ Kept identical to VoiceInvestmentForm's stand-in volume ON PURPOSE — the screen and
-  // the spoken answer must quote the same numbers. Both are pending a client decision on the
-  // €10,000 example volume; see the note in VoiceInvestmentForm.tsx.
-  const gebuehrenVolume  = oneTime > 0 ? oneTime : 10000;
-  const gebuehrenMonthly = monthly > 0 ? monthly : 0;
+  // Real amounts, matching the screen exactly — this block is what the AI answers cost
+  // questions from, so a stand-in volume here would have it quoting figures the customer
+  // cannot see anywhere. See the note in VoiceInvestmentForm.tsx.
+  const hasAmounts = oneTime > 0 || monthly > 0;
   const {
     rows, jahr1, jahr2, jahr10, durchschnitt,
     pctSum, fixedEur, effPct1, effPct2, effPct10, effPctDurchschnitt,
-  } = computeGebuehren(gebuehrenVolume, gebuehrenMonthly);
+  } = computeGebuehren(oneTime, monthly);
 
   const pct = (v: number) => `${v.toFixed(2).replace(".", ",")} %`;
 
@@ -516,7 +515,9 @@ export function buildPhase4PresentationContext(
     `Einmalige Einzahlung: ${formatEuro(oneTime)}`,
     `Monatliche Zahlung: ${formatEuro(monthly)}`,
     `Einmalige Kosten — Vermittlungskosten bzw. Eröffnungsgebühr (4money), einmalig beim Start und NICHT jährlich: Kosten Einmalerlag (5 % der Einmalzahlung): ${formatEuro(oneTime * 0.05)}; Sparplan Set-up Fee (entspricht drei Monatsraten): ${formatEuro(monthly * 3)}`,
-    `Laufende Kosten p.a.${oneTime > 0 ? "" : " (berechnet auf Basis eines Beispielvolumens von 10.000 €)"}:`,
+    hasAmounts
+      ? `Laufende Kosten p.a.${monthly > 0 && oneTime === 0 ? " (Sparplan — das Anlagevolumen wächst mit jeder Monatsrate, daher steigen die Beträge von Jahr 1 bis Jahr 10; im ersten Jahr fallen die fixen Gebühren prozentuell stärker ins Gewicht)" : ""}:`
+      : `Laufende Kosten p.a.: Der Kunde hat noch keinen Betrag angegeben. Nennen Sie KEINE Kostenbeträge und KEINE Prozentsätze — sagen Sie, dass die Kosten erst berechnet werden können, sobald ein Betrag feststeht.`,
     feeLines,
     `Laufende Kosten gesamt in PROZENT — DIES IST DIE ANTWORT AUF FRAGEN NACH DEN LAUFENDEN KOSTEN: effektiv ${pct(effPctDurchschnitt)} pro Jahr im Durchschnitt (Jahr 1 ${pct(effPct1)}, Jahr 2 ${pct(effPct2)}, Jahr 10 ${pct(effPct10)}). Diese Prozentsätze beziehen sich auf das jeweilige Anlagevolumen und enthalten bereits alle Gebühren.`,
     `Zur Herleitung (nur nennen, wenn der Kunde nach der Zusammensetzung fragt): ${pct(pctSum)} p.a. prozentuale Gebühren zuzüglich ${formatEuro(fixedEur)} p.a. fixe Gebühren. Der effektive Prozentsatz liegt darüber, weil die fixen Gebühren und die Mindestgebühr von 24 € bei kleineren Anlagevolumina stärker ins Gewicht fallen.`,
