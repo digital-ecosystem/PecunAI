@@ -128,6 +128,14 @@ jobs:
           echo "last  : $(tail -c 36 /tmp/k)"
           echo "fingerprint:"
           ssh-keygen -lf /tmp/k || echo "  ✗ not a usable key file — wrong content in the secret"
+          echo
+          # The PUBLIC half, derived from the secret. Public keys are not secret — this is the
+          # same string you would paste into GitHub's "SSH keys" page. It is printed so the VPS's
+          # authorized_keys can be matched to whatever key the secret actually holds, instead of
+          # re-pasting a 7-line private key into a web form and hoping the newlines survive.
+          echo "── PUBLIC KEY FOR THIS SECRET — put this line in the VPS authorized_keys ──"
+          ssh-keygen -y -f /tmp/k || echo "  ✗ could not derive a public key"
+          echo "──────────────────────────────────────────────────────────────────────────"
           rm -f /tmp/k
 
       - name: Release over SSH
