@@ -169,22 +169,44 @@ customer session, every advisor account and every admin login.
 It is therefore **not** in the deploy pipeline. It runs once, from `setup-staging.sh`, which
 checks the database is empty first and demands a typed confirmation if it isn't.
 
-## Voice needs HTTPS
+## Reaching staging: the provider firewall only allows 22/80/443
 
-Staging currently has no hostname, so it is reached at `http://<vps-ip>:4002`. Browsers only grant
-microphone access on a **secure origin** — `https://`, or `localhost`. Over a bare IP the app
-loads and login, tap-through questions, PDFs and admin all work, but `getUserMedia` is blocked, so
-**the voice flow cannot be tested**. Webhooks are affected too: SignTeq and signd may refuse to
-deliver to a plain-HTTP callback URL.
+Port 4002 is open **on the VPS** — `ufw` is inactive and the container binds `0.0.0.0` — but the
+hosting firewall (IONOS, above the OS) drops everything except 22, 80 and 443. Staging was
+therefore unreachable from a browser, with `ERR_CONNECTION_TIMED_OUT` rather than a refusal.
+Changing 4002 to another port does not help; they are all blocked.
 
-Two ways round it:
+nginx already owns 80 and 443, so staging is served through nginx instead:
+`infra/nginx-host/staging-ip.conf`, deployed to `/etc/nginx/sites-available/staging-ip` and
+symlinked into `sites-enabled`.
 
-1. **Add a hostname** — the real fix, about ten minutes. `infra/nginx-host/staging.conf.example`
-   carries the full recipe: DNS A record, certbot, flip `STAGING_BIND` to `127.0.0.1`, update
-   `NEXT_PUBLIC_FRONTEND_URL`, re-tag.
-2. **Force-trust the origin locally** — for a quick check without DNS. Chrome only, per-machine,
-   and it does not help webhooks:
-   `chrome://flags/#unsafely-treat-insecure-origin-as-secure` → add `http://<vps-ip>:4002`.
+| URL | goes to |
+|---|---|
+| `https://217.160.250.227` | staging (self-signed cert) |
+| `http://217.160.250.227` | staging (plain) |
+| `https://onboarding.4money.at` | production, unchanged |
+
+It is a `default_server` block, which only catches requests matching **no** `server_name`.
+Production declares `server_name onboarding.4money.at`, so anything carrying that Host or TLS SNI
+still reaches production exactly as before — verified by comparing response hashes. Certbot
+renewals are unaffected: the HTTP-01 challenge arrives with production's Host header.
+
+### Why HTTPS, given the browser warning
+
+Browsers only grant microphone access on a **secure origin**. Over plain HTTP the app loads and
+login, tap-through questions, PDFs and admin all work, but `getUserMedia` is blocked — so the
+voice flow, which is the product, cannot be tested at all.
+
+A public CA cannot issue a certificate for a bare IP, so the cert is self-signed with
+`subjectAltName = IP:...`. The browser shows a one-time interstitial; **Advanced → Proceed**. Once
+accepted, the origin counts as secure and voice works. That warning is expected, not a fault.
+
+### When a hostname becomes available
+
+Switch to `infra/nginx-host/staging.conf.example` — real certificate, no warning, no
+`default_server`. Its header carries the full recipe: DNS A record, certbot, flip `STAGING_BIND`
+to `127.0.0.1`, update `NEXT_PUBLIC_FRONTEND_URL`, re-tag. Remove the `staging-ip` symlink at that
+point so the bare IP stops answering.
 
 ## One-time setup
 
