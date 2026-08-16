@@ -45,3 +45,47 @@ export function numericAnswerByOrder(
 ): number {
   return parseFloat(answerByOrder(questions, answers, order) ?? "") || 0;
 }
+
+// ── The two amount questions are a pair ──────────────────────────────────────
+// Each is individually optional (ZERO_ALLOWED_QUESTIONS above), but BOTH at zero is an
+// investment of nothing — the customer would reach Phase 4 with an empty cost table and sign
+// a contract for no money. Client decision 2026-08-13: one of the two must be above zero.
+//
+// Enforced where the amount is entered rather than at the Phase 4 confirmation: by then the
+// customer is four phases past the mistake and the only remedy is a disabled button and a
+// long walk back. Here the rule is simply "this question is not optional any more".
+//
+// Order matters, and this handles both directions. Q18 is asked first, so when it is answered
+// its partner is still unanswered — 0 stays acceptable, because Q19 can still carry the
+// investment. By the time Q19 is asked, Q18 is on record: if it was 0, Q19 must be above zero.
+// On a revisit the same test blocks whichever one is edited down to 0 last.
+const AMOUNT_PARTNER: Record<number, number> = {
+  [Q.ONE_TIME_INVESTMENT]: Q.MONTHLY_INVESTMENT,
+  [Q.MONTHLY_INVESTMENT]:  Q.ONE_TIME_INVESTMENT,
+};
+
+
+const ZERO_BLOCKED_REASON: Record<number, string> = {
+  [Q.ONE_TIME_INVESTMENT]: "Sie haben keinen monatlichen Sparplan gewählt — bitte geben Sie hier einen Einmalbetrag an.",
+  [Q.MONTHLY_INVESTMENT]:  "Sie haben keine Einmalzahlung angegeben — bitte geben Sie hier einen monatlichen Betrag an.",
+};
+
+/**
+ * Reason why 0 is not acceptable for this amount question right now, or undefined when 0 is
+ * still fine. Truthy only for Q18/Q19, and only once the partner amount is on record as 0.
+ */
+export function zeroBlockedReason(
+  questionOrder: number | undefined,
+  questions:     OrderedQuestion[],
+  answers:       Record<string, string>,
+): string | undefined {
+  if (questionOrder === undefined) return undefined;
+  const partnerOrder = AMOUNT_PARTNER[questionOrder];
+  if (partnerOrder === undefined) return undefined;
+
+  
+  const partner = answerByOrder(questions, answers, partnerOrder);
+  if (partner === undefined || partner.trim() === "") return undefined;
+
+  return (parseFloat(partner) || 0) > 0 ? undefined : ZERO_BLOCKED_REASON[questionOrder];
+}

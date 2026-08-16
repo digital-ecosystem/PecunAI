@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { zeroBlockedReason } from "@/lib/questionRules";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Menu, Mic, VolumeX, Hand, Check, ChevronRight } from "lucide-react";
@@ -27,13 +28,10 @@ import VoiceRecordingDisclaimerModal from "./VoiceRecordingDisclaimerModal";
 import VoiceLanguageSelectModal from "./VoiceLanguageSelectModal";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 
-// Gap between the disclosure step activating (right as Q2's answer saves) and
-// its card/frame appearing — long enough for the Q2 card's collapse-into-orb
-// morph (~1.2s) to fully play plus a beat of resting orb.
+
 const SUSTAINABILITY_MORPH_GAP_MS = 2200;
 
-// Phase 3 → 4 handoff: how long the "AI returns" grow-in sphere phantom plays
-// before VoiceInvestmentForm's entry morph consumes it into the form's frame.
+
 const PHASE4_GROW_MS = 780;
 
 // ── Status labels ─────────────────────────────────────────────────
@@ -1688,6 +1686,7 @@ export default function VoiceSessionShell({
             question={modalCardQ}
             preSelectedValue={cardPreSelected}
             contextMessage={cardContextMessage}
+            zeroBlockedReason={zeroBlockedReason(modalCardQ.questionOrder, questions, savedAnswers)}
             snap={(fastMode && !fastModeIntroActive && !growNextCardRef.current) || reduceMotion}
             onClose={() => {
               suppressAutoModalRef.current = true;

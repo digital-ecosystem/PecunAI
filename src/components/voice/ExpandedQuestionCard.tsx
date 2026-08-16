@@ -34,25 +34,15 @@ interface ExpandedQuestionCardProps {
   onNext: (value: string) => void;
   preSelectedValue?: string;
   contextMessage?: string;
-  /** Fast Mode / reduced motion: skip the grow-from-compact morph and staggered reveal — the card
-   *  just appears at its expanded rect with a quick fade (boss 2026-07-23: the animation "doesn't
-   *  make sense when you're doing the questions fast"). The sphere-consume morph is snapped too
-   *  (see PhaseOneNeuralModel's `snap`). */
+  zeroBlockedReason?: string;
   snap?: boolean;
 }
 
-// The band the CENTERED card floats in: below the header zone, above the
-// ControlBar. Since Round 22 this geometry only serves the sustainability
-// disclosure (via computeExpandedRect) and the no-startRect fallback —
-// question cards now expand in place at the compact card's spot instead
-// (computeInPlaceRect below). The options area inside is plain
-// flex-1/overflow-y-auto, so longer lists scroll internally at any height.
+
 const TOP_MARGIN    = 72;  // header zone
 const BAR_CLEARANCE = 124; // ControlBar ≈88px + gap so even the frame's spikes clear it
 const BAND_PAD      = 12;
-// Round 21 (boss: "not that much heighty"): a fixed medium band instead of
-// filling the whole available height. Long option lists still scroll inside
-// the plain flex-1/overflow-y-auto answer area; short ones just have air.
+
 const CARD_MAX_H    = 470;
 
 export function computeExpandedCardSize(vw: number, vh: number) {
@@ -124,6 +114,7 @@ export function ExpandedQuestionCard({
   preSelectedValue,
   contextMessage,
   snap,
+  zeroBlockedReason,
 }: ExpandedQuestionCardProps) {
   const isChoice = !question.questionType || question.questionType === "choice";
   const isNumber = question.questionType === "number";
@@ -163,7 +154,9 @@ export function ExpandedQuestionCard({
   const numVal   = isNumber ? parseInt(inputValue, 10) : NaN;
   // Optional amounts accept 0 meaning "none"; 1–(minValue−1) stays invalid. Shared with
   // VoiceQuestionModal and the voice path via ZERO_ALLOWED_QUESTIONS.
-  const zeroLabel = zeroAllowedLabel(question.questionOrder);
+  // With the partner amount already at 0 this question is no longer optional: dropping zeroLabel
+  // makes 0 fall below minValue, so the existing min handling disables Weiter and reports it.
+  const zeroLabel = zeroBlockedReason ? undefined : zeroAllowedLabel(question.questionOrder);
   const belowMin = isNumber && question.minValue !== undefined && !isNaN(numVal) &&
     (zeroLabel ? (numVal !== 0 && numVal < question.minValue) : numVal < question.minValue);
   const aboveMax = isNumber && question.maxValue !== undefined && !isNaN(numVal) && numVal > question.maxValue;
@@ -475,6 +468,11 @@ export function ExpandedQuestionCard({
                 </div>
                 {(question.minValue !== undefined || question.maxValue !== undefined) && (
                   <div className="px-1 space-y-0.5" style={{ marginTop: 6 }}>
+                    {zeroBlockedReason && (
+                      <p className="text-xs" style={{ color: "rgba(100,116,139,0.85)" }}>
+                        {zeroBlockedReason}
+                      </p>
+                    )}
                     {question.minValue !== undefined && (
                       <p className="text-xs" style={{ color: "rgba(100,116,139,0.65)" }}>
                         {zeroLabel

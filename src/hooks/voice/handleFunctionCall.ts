@@ -1,7 +1,7 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, BLOCKER_SYSTEM_MSG, BLOCKER_Q3_INSTRUCTIONS, BLOCKER_Q4_INSTRUCTIONS, BLOCKER_Q7_INSTRUCTIONS, BLOCKER_ASSET_KNOWLEDGE_INSTRUCTIONS, ASSET_KNOWLEDGE_CONTEXT_MSG, ASSET_KNOWLEDGE_INTRO_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./prompts";
-import { zeroAllowedLabel } from "@/lib/questionRules";
+import { zeroAllowedLabel, zeroBlockedReason } from "@/lib/questionRules";
 import type { VoiceContext } from "./voiceContext";
 
 export async function handleFunctionCall(
@@ -61,9 +61,6 @@ export async function handleFunctionCall(
       }
       const { questionId, value } = args;
 
-      // Validate value against the question definition before doing anything.
-      // Rejects hallucinated values (e.g. fragments of ambient audio like "And")
-      // that don't match any valid option or type constraint.
       const validatingQ = questionsRef.current.find(q => q.id === questionId);
 
       // Reject conditional sub-questions (e.g. 12.1, 13.1, 14.1) if parent answer ≠ "good"
@@ -96,6 +93,15 @@ export async function handleFunctionCall(
           // 1–(minValue−1) stays invalid. The bound comes from the DB — the old code hardcoded 75
           // here, which would silently drift from the configured minValue.
           const zeroLabel = zeroAllowedLabel(validatingQ.questionOrder);
+          // One of the two amounts must be above zero (client 2026-08-13). Checked before the
+          // min/max bounds so the model is told WHY 0 stopped being valid here — the generic
+          // "must be at least 75" would have it re-offer 0 as the optional-amount case.
+          const zeroBlocked = zeroBlockedReason(validatingQ.questionOrder, questionsRef.current, savedAnswersRef.current);
+          if (num === 0 && zeroBlocked) {
+            pendingVoiceTranscriptRef.current = null;
+            sendResult({ success: false, reason: `The customer already answered 0 to the other amount, so 0 is no longer valid here — one of the two must be above zero, otherwise they would be investing nothing. Tell them this and ask for an amount of at least ${validatingQ.minValue}. Do NOT submit 0 again.` });
+            return;
+          }
           if (
             validatingQ.minValue !== undefined &&
             num < validatingQ.minValue &&
