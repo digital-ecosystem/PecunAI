@@ -1,0 +1,75 @@
+# Demo vhost — for the demo VPS (82.165.219.240).
+#
+# ⚠️  THIS MACHINE IS SHARED. It serves ~17 vhosts for other products (naturo, toc2me, hermes,
+#     five-pillars, paito, …) that must keep working exactly as they do. Two rules:
+#
+#     1. NEVER add `default_server` to this box. Nothing on it claims it today, so unmatched
+#        requests fall through to nginx's own default handling. Claiming it would silently change
+#        the fallback for every other site on the machine. The bare-IP approach used on the
+#        staging box (infra/nginx-host/staging-ip.conf) works there only because ours was the
+#        single vhost — it must NOT be copied here.
+#     2. Always `nginx -t` before reloading. A syntax error would affect all 17 sites, not just
+#        this one.
+#
+# ── Why adding this file is safe for the other sites ─────────────────────────────────────────
+# nginx routes by `server_name`. A vhost naming a hostname nobody else uses is only ever selected
+# for requests carrying that exact Host header — it ADDS a route, it does not modify, reorder or
+# shadow any existing one. No other file is edited. And `systemctl reload nginx` is graceful: if
+# `nginx -t` fails the reload is refused and nginx keeps serving the current config, so there is
+# no window in which the other sites are down.
+#
+# Even so, the person who administers this box should be the one to run the steps below.
+#
+# ── Installing it (for that admin) ───────────────────────────────────────────────────────────
+# Prerequisite: a DNS A record for the hostname → 82.165.219.240.
+#
+#   1. Replace DEMO_HOSTNAME below with the real hostname (one place: the server_name line).
+#
+#   2. sudo cp infra/nginx-host/demo.conf.example /etc/nginx/sites-available/s2s-demo
+#      sudo ln -sf /etc/nginx/sites-available/s2s-demo /etc/nginx/sites-enabled/s2s-demo
+#      (a symlink, not a copy — a real file in sites-enabled means later edits to sites-available
+#       are silently ignored and nginx keeps serving the stale copy)
+#
+#   3. sudo nginx -t
+#      Must print "syntax is ok" AND "test is successful" before going further. If it does not,
+#      remove the symlink and stop — nothing has changed yet at this point.
+#
+#   4. sudo systemctl reload nginx
+#
+#   5. sudo certbot --nginx -d DEMO_HOSTNAME
+#      Rewrites the listen/ssl lines below with a real Let's Encrypt certificate and adds the
+#      port-80 redirect. Certbot only edits this file.
+#
+# Nothing in steps 1–5 touches any other vhost.
+#
+# ── Why HTTPS is required, not preferred ─────────────────────────────────────────────────────
+# Browsers only grant microphone access on a secure origin. Over plain HTTP the app loads and the
+# dashboard, tap-through questions and PDFs all work, but getUserMedia is blocked — so the voice
+# flow, which is the thing being demonstrated, cannot run. A real certificate also avoids putting
+# a "your connection is not private" warning in front of an audience.
+
+server {
+    # The ONLY line that needs changing. No default_server — deliberately.
+    server_name DEMO_HOSTNAME;
+
+    # One location proxying everything, including the WebSocket upgrade that
+    # /api/realtime/proxy needs for the OpenAI voice connection. Do not add a narrower location
+    # that bypasses the Upgrade/Connection headers, or voice breaks.
+    location / {
+        proxy_pass http://127.0.0.1:4003;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+    }
+
+    # PDF uploads (legitimation documents, signed contracts) exceed the 1M default.
+    client_max_body_size 25M;
+
+    # certbot replaces this with the real listen 443 / ssl_certificate lines in step 5.
+    listen 80;
+}

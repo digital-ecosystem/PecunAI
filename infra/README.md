@@ -18,6 +18,7 @@ infra/
     onboarding.conf                 live production vhost
     staging-ip.conf                 staging via bare IP (in use — no DNS available)
     staging.conf.example            ready for when staging gets a hostname
+    demo.conf.example               demo vhost — hostname-matched, for the SHARED demo box
   scripts/setup-staging.sh          one-time staging bootstrap
   scripts/setup-demo.sh             one-time demo bootstrap
 .github/workflows/
@@ -386,6 +387,42 @@ The first successful `build` job creates `ghcr.io/digital-ecosystem/s2s-finance`
 there is nothing to create by hand. It starts **private**, which is correct. Afterwards, link it
 to this repository so the two are navigable from each other, under the package's **Package
 settings → Manage Actions access**.
+
+## Demo go-live: what to do before the subdomain exists, and after
+
+Everything except the public route can be done ahead of DNS. The trick is to **decide the
+hostname first**: `NEXT_PUBLIC_FRONTEND_URL` is compiled into the image at build time, but the
+name does not have to resolve for the build to bake it in. Set it to the future hostname today and
+the image is already correct — the day the record appears, no rebuild is needed.
+
+**Today — no DNS required:**
+
+1. Pick the hostname, e.g. `s2s-demo.digital-ecosystem.management`.
+2. GitHub variables: `DEMO_NEXT_PUBLIC_ENV=demo`, and
+   `DEMO_NEXT_PUBLIC_FRONTEND_URL=https://<that hostname>`.
+3. GitHub secrets: `DEMO_VPS_HOST` `82.165.219.240`, `DEMO_VPS_USER`, `DEMO_VPS_SSH_KEY`
+   (the **private** key).
+4. On the demo VPS: clone to `/opt/s2s-finance-demo`, write `.env` with
+   `NEXT_PUBLIC_FRONTEND_URL` and `NEXTAUTH_URL` both set to `https://<that hostname>`,
+   `DEMO_BIND="127.0.0.1"`, then `docker login ghcr.io` and run `setup-demo.sh` (pass 1).
+5. `git tag demo-v0.1.0 && git push origin demo-v0.1.0` — builds the image, creates the
+   `s2s-finance-demo` package, migrates, starts the app.
+6. Re-run `setup-demo.sh` (pass 2) to seed.
+
+At this point the app is running and healthy on `127.0.0.1:4003`, simply not reachable from
+outside yet. Confirm with `curl -I http://127.0.0.1:4003/landing` on the box.
+
+`DEMO_BIND="127.0.0.1"` from the start is deliberate: port 4003 is blocked by the provider
+firewall anyway, so exposing it publicly would achieve nothing, and nginx reaches it over
+loopback once the vhost exists.
+
+**Tomorrow — once the A record resolves:**
+
+1. DNS A record: `<hostname>` → `82.165.219.240`
+2. The box's administrator installs `infra/nginx-host/demo.conf.example` and runs certbot —
+   the five steps are written out in that file's header.
+
+Nothing else. No re-tag, no `.env` edit, no rebuild — the image already carries the right URL.
 
 ## When production moves onto the pipeline
 
