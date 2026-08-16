@@ -1,0 +1,27 @@
+# Keeps the build context small and stops host-only state leaking into the image.
+# The builder stage does `COPY . .`, so anything not excluded here is uploaded to
+# the Docker daemon and baked into that layer.
+
+.git
+.github
+node_modules
+.next
+out
+build
+coverage
+
+# Runtime state, never part of an image — these are docker volumes / bind mounts
+# in docker-compose.yml (private-documents, public/products, public/audio).
+private-documents
+public/products
+public/audio
+
+# Secrets live in .env on the host and are injected at runtime via env_file.
+.env
+.env.*
+
+# Local scratch
+*.log
+.DS_Store
+.vscode
+.idea

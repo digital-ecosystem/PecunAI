@@ -1,0 +1,100 @@
+# Staging stack for S2S Finance (PecunAI) — runs on the SAME VPS as production, fully isolated.
+#
+# Run it from the REPOSITORY ROOT, not from this folder:
+#
+#   docker compose --project-directory . -f infra/docker-compose.staging.yml <command>
+#
+# ⚠️  THE PROJECT NAME BELOW IS THE SAFETY BOUNDARY BETWEEN STAGING AND PRODUCTION.
+#     Docker prefixes volume names with it. Production runs as `digital-onboarding-guide`;
+#     if this file ever said that name, staging would attach to the PRODUCTION DATABASE
+#     VOLUME and write test data into real customer records. Docker would not warn — it
+#     would just work. Never copy the project name from production's compose file
+#     (/opt/digital-onboarding-guide/docker-compose.yml on the VPS, untracked).
+#
+# Everything below is deliberately different from production so the two can coexist on one box:
+#
+#   |               | production                  | staging                |
+#   |---------------|-----------------------------|------------------------|
+#   | project name  | digital-onboarding-guide    | s2s-finance-staging    |
+#   |               | (derived from its directory)| (pinned below)         |
+#   | directory     | /opt/digital-onboarding-guide | /opt/s2s-finance-staging |
+#   | app port      | 127.0.0.1:4001              | 4002                   |
+#   | db port       | 127.0.0.1:5432              | 127.0.0.1:5433         |
+#   | containers    | onboarding-app / -db        | staging-app / staging-db |
+#   | branch        | complete                    | staging                |
+#   | image tag     | v*                          | staging-v*             |
+#
+# See infra/README.md.
+
+name: s2s-finance-staging
+
+services:
+  staging-db:
+    image: postgres:16-alpine
+    container_name: staging-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    # 5433 on the host — 5432 is production's. Loopback only: nothing outside the VPS has any
+    # business reaching the database directly.
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - staging-db-data:/var/lib/postgresql/data
+    networks:
+      - staging-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  staging-app:
+    # Built and pushed by .github/workflows/deploy-staging.yml on a `staging-v*` tag. Same GHCR
+    # package as production (one image for front and back — PecunAI is a single Next.js app with
+    # its own server.ts), separated by tag prefix, never by package.
+    #
+    # A staging image is NOT promotable to production: NEXT_PUBLIC_ENV is inlined at BUILD time,
+    # so `:staging-v1.2.0` has the staging SignTeq work area compiled into it. Production builds
+    # its own image from its own tag. See infra/README.md → "Why staging images can't be promoted".
+    image: ghcr.io/digital-ecosystem/s2s-finance:${IMAGE_TAG:-staging-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_ENV: ${NEXT_PUBLIC_ENV}
+        NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL}
+    container_name: staging-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    # STAGING_BIND defaults to 0.0.0.0 because staging currently has no domain and no nginx in
+    # front of it — the port must be reachable from outside the VPS to be usable at all. Once a
+    # hostname and TLS exist (infra/nginx-host/staging.conf.example), set STAGING_BIND=127.0.0.1
+    # in .env so only nginx can reach the app.
+    ports:
+      - "${STAGING_BIND:-0.0.0.0}:4002:4001"
+    volumes:
+      - staging-private-documents:/app/private-documents
+      - ./Vektordatenbank:/app/Vektordatenbank:ro
+      - staging-products:/app/public/products
+      - staging-audio:/app/public/audio
+    depends_on:
+      staging-db:
+        condition: service_healthy
+    networks:
+      - staging-net
+
+networks:
+  staging-net:
+    driver: bridge
+
+# All four are prefixed `s2s-finance-staging_` by the project name above, so they can never
+# collide with production's `digital-onboarding-guide_` volumes.
+volumes:
+  staging-db-data:
+  staging-private-documents:
+  staging-products:
+  staging-audio:

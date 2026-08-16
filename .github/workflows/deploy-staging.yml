@@ -1,0 +1,181 @@
+name: Deploy Staging
+
+# Tag-triggered from the `staging` branch:
+#
+#   git push origin staging
+#   git tag staging-v1.0.0 && git push origin staging-v1.0.0
+#
+# Pushing to `staging` alone does NOT deploy — the tag is the release. Production is NOT touched
+# by this workflow and is still released by hand; see infra/README.md.
+on:
+  push:
+    tags:
+      - "staging-v*"
+  # Re-release an existing tag from the Actions tab without cutting a new one.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing staging-v* tag to build and deploy"
+        required: true
+
+concurrency:
+  # Two releases deploying at once would race each other's container restart.
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/digital-ecosystem/s2s-finance
+  DEPLOY_DIR: /opt/s2s-finance-staging
+  COMPOSE: docker compose --project-directory . -f infra/docker-compose.staging.yml
+
+jobs:
+  # next.config.ts sets `typescript.ignoreBuildErrors: true` and `eslint.ignoreDuringBuilds: true`,
+  # so a green `npm run build` proves NOTHING about type safety. Without this gate the pipeline
+  # would happily ship type-broken code. eslint is deliberately not gated: the repo carries known
+  # pre-existing findings, and failing every release on them makes a pipeline people route around.
+  check:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The Prisma client is generated, not committed — tsc needs it to resolve @/lib/prisma.
+      - run: npx prisma generate
+
+      - run: npx tsc --noEmit
+
+  build:
+    name: Build & push image
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # lets GITHUB_TOKEN push to GHCR — no PAT needed for the push side
+    outputs:
+      tag: ${{ steps.tag.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve tag name
+        id: tag
+        run: echo "value=${{ inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          # `staging-latest`, never plain `latest` — production's compose falls back to `latest`,
+          # so a staging build claiming that tag could be pulled onto production by a manual
+          # `docker compose pull` on the prod box.
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.tag.outputs.value }}
+            ${{ env.IMAGE }}:staging-latest
+          # GHCR creates the package automatically on the first push — nothing to set up by hand.
+          # This label is what makes GitHub link it back to this repository, so the package page
+          # shows the source repo and inherits the repo's access settings rather than needing them
+          # granted by hand under Package settings → Manage Actions access.
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          # NEXT_PUBLIC_* are inlined into the bundle at BUILD time — setting them at runtime has
+          # no effect. This is exactly why a staging image cannot be promoted to production: the
+          # staging SignTeq work area is compiled in. Repo *variables*, not secrets: neither value
+          # is sensitive.
+          build-args: |
+            NEXT_PUBLIC_ENV=${{ vars.STAGING_NEXT_PUBLIC_ENV }}
+            NEXT_PUBLIC_FRONTEND_URL=${{ vars.STAGING_NEXT_PUBLIC_FRONTEND_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to staging
+    needs: build
+    runs-on: ubuntu-latest
+    environment: staging # optional approval gate — configure in Settings → Environments
+    steps:
+      - name: Release over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script_stops: true
+          script: |
+            set -euo pipefail
+            cd ${{ env.DEPLOY_DIR }}
+
+            TAG="${{ needs.build.outputs.tag }}"
+
+            # Check out the exact tag that was built, so the compose file matches the image.
+            # .env is gitignored, so the staging secrets on this box survive the checkout.
+            git fetch --tags --force
+            git checkout --force "$TAG"
+
+            # ── SAFETY RAIL ────────────────────────────────────────────────────────────────
+            # Production lives on this same VPS. Two independent assertions, because getting
+            # either wrong means writing test data into real customer records:
+            #   1. we are in the staging directory, not production's;
+            #   2. the compose file is pinned to the staging project name, so Docker resolves
+            #      the staging volumes and not `digital-onboarding-guide_*`.
+            # Both are cheap. Neither failure mode announces itself — Docker would silently
+            # attach to the wrong volumes and the deploy would look successful.
+            test "$PWD" = "${{ env.DEPLOY_DIR }}" \
+              || { echo "❌ Wrong directory: $PWD"; exit 1; }
+            grep -qx "name: s2s-finance-staging" infra/docker-compose.staging.yml \
+              || { echo "❌ Staging compose is not pinned to the staging project name — refusing to deploy"; exit 1; }
+
+            export IMAGE_TAG="$TAG"
+
+            ${{ env.COMPOSE }} pull staging-app
+
+            # Database first, and wait for it to be genuinely healthy before migrating.
+            ${{ env.COMPOSE }} up -d --wait staging-db
+
+            # Migrations run automatically HERE and only here. That is the point of staging: a
+            # bad migration should break this box, loudly, before it ever reaches production —
+            # where migrations stay manual and supervised. `migrate deploy` only applies pending
+            # migrations; it never resets, and never prompts. `run --rm` gets a throwaway
+            # container with the tag's own schema, so the migration always matches the image.
+            #
+            # NOT `db seed`: prisma/seed.ts opens with deleteMany() across sessions, agents,
+            # admins and partners. It is a factory reset, not a top-up, and belongs only in the
+            # one-time bootstrap (infra/scripts/setup-staging.sh).
+            ${{ env.COMPOSE }} run --rm --no-deps -T staging-app npx prisma migrate deploy
+
+            ${{ env.COMPOSE }} up -d staging-app
+
+            # Don't call the release good until it actually serves. /landing is a static page, so
+            # a 200 means Next is up — not merely that the container started.
+            for i in $(seq 1 30); do
+              if curl -fsS -o /dev/null http://127.0.0.1:4002/landing; then
+                echo "✅ Healthy after $((i * 10))s — $TAG is live on staging"
+                docker image prune -f
+                exit 0
+              fi
+              sleep 10
+            done
+
+            echo "❌ Not healthy within 5 minutes — recent staging logs:"
+            ${{ env.COMPOSE }} logs --tail=80 staging-app
+            exit 1

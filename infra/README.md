@@ -1,0 +1,299 @@
+# infra
+
+Deployment configuration for **S2S Finance** (PecunAI).
+
+Everything lives in this repository rather than a separate `infra` repo, because PecunAI is a
+single service — one Next.js app with its own `server.ts`, no front/back split, so there is
+nothing to coordinate between two repos and no `repository_dispatch` hand-off.
+
+```
+Dockerfile                          repo ROOT — the build context is the repo root
+.dockerignore                       root, same reason
+infra/
+  docker-compose.staging.yml        staging stack   (automated)
+  env/staging.env.example           template for /opt/s2s-finance-staging/.env
+  nginx-host/
+    onboarding.conf                 live production vhost
+    staging.conf.example            ready for when staging gets a hostname
+  scripts/setup-staging.sh          one-time staging bootstrap
+.github/workflows/
+  deploy-staging.yml                staging-v* tag → typecheck → GHCR → SSH release
+```
+
+`Dockerfile` stays at the root deliberately: its builder stage does `COPY . .`, so the context is
+the repository root, and `infra/Dockerfile` with `context: ..` reads worse than it solves.
+
+## The two environments
+
+Both run on the **same VPS**, fully isolated from each other.
+
+|  | production | staging |
+|---|---|---|
+| released by | **hand** — `git pull` + `docker compose up -d --build` | **pipeline** — push a `staging-v*` tag |
+| branch | `complete` | `staging` |
+| image tag | `v*` | `staging-v*` |
+| directory | `/opt/digital-onboarding-guide` | `/opt/s2s-finance-staging` |
+| compose project | `digital-onboarding-guide` | `s2s-finance-staging` |
+| volumes | `digital-onboarding-guide_*` | `s2s-finance-staging_*` |
+| app | `127.0.0.1:4001` behind nginx | `:4002` direct (no domain yet) |
+| database | `127.0.0.1:5432` | `127.0.0.1:5433` |
+| containers | `onboarding-app` / `onboarding-db` | `staging-app` / `staging-db` |
+| `NEXT_PUBLIC_ENV` | `production` | `staging` |
+| SignTeq work area | live | test (`SIGNTEQ_*_DEV`) |
+| migrations | manual, supervised | automatic on every deploy |
+
+**Production is untouched by any of this.** No workflow deploys it, and releasing it is still the
+same manual sequence it was. The staging pipeline is where the automation gets proven first.
+
+## Running compose
+
+Always from the **repository root**, never from inside `infra/`:
+
+```bash
+docker compose --project-directory . -f infra/docker-compose.staging.yml <command>
+```
+
+Production's compose file is **not** in this repository — it lives only on the VPS at
+`/opt/digital-onboarding-guide/docker-compose.yml`, untracked, and is run the way it always was:
+
+```bash
+cd /opt/digital-onboarding-guide && docker compose up -d --build
+```
+
+`--project-directory .` makes relative paths (`./Vektordatenbank`, the build context) and the
+`.env` file resolve against the repo root, which is where `.env` lives on the VPS. Running plain
+`docker compose` from inside `infra/` would look for `infra/.env`, find nothing, and silently
+interpolate empty `POSTGRES_*` values.
+
+```bash
+C="docker compose --project-directory . -f infra/docker-compose.staging.yml"
+
+$C ps                          # what's running
+$C logs -f staging-app         # follow logs
+$C restart staging-app         # bounce it
+$C up -d --build staging-app   # build on the host instead of pulling (slow — fallback only)
+
+IMAGE_TAG=staging-v1.0.0 $C pull staging-app   # deploy a specific tag by hand
+IMAGE_TAG=staging-v1.0.0 $C up -d staging-app
+```
+
+## The project name is the safety boundary — leave it alone
+
+`docker-compose.staging.yml` pins `name: s2s-finance-staging`. Docker prefixes volume names with
+the project name, so staging's database volume is `s2s-finance-staging_staging-db-data` while
+production's is `digital-onboarding-guide_onboarding-db-data`.
+
+Production's file has no `name:` — it doesn't need one, because compose falls back to the
+*directory* name and production only ever runs from `/opt/digital-onboarding-guide`, which
+produces exactly that prefix. Staging can't rely on that: it must be pinned so the name is a
+property of the file rather than of wherever someone happens to run it.
+
+Two failure modes, both silent:
+
+- **Without the pin**, the project name comes from the directory — `s2s-finance-staging` on the
+  VPS, but `pecunai` in a local checkout. A changed prefix does not error; Docker creates **brand
+  new empty volumes**, i.e. a database that comes up blank.
+- **With the wrong pin** — say production's name gets copied into the staging file — staging
+  attaches to the **production volumes** and writes test data into real customer records. Docker
+  would not warn. It would just work.
+
+So `deploy-staging.yml` and `setup-staging.sh` both assert `name: s2s-finance-staging` is present
+before touching anything, and both refuse to run outside `/opt/s2s-finance-staging`.
+
+Verify once on the VPS:
+
+```bash
+docker volume ls | grep -E "onboarding|staging"
+```
+
+Production volumes must all be prefixed `digital-onboarding-guide_`, staging's
+`s2s-finance-staging_`.
+
+## Releasing to staging
+
+Pushing to `staging` does **not** deploy. A release is a tag:
+
+```bash
+git push origin staging
+git tag staging-v1.0.0
+git push origin staging-v1.0.0
+```
+
+That runs: typecheck → build image → push to `ghcr.io/digital-ecosystem/s2s-finance` → SSH to the
+VPS → check out the tag → assert it is the staging environment → pull → `prisma migrate deploy` →
+restart `staging-app` → poll for HTTP 200. Any failing step stops the release.
+
+To re-release an existing tag: **Actions → Deploy Staging → Run workflow**, pass the tag.
+
+### Why the typecheck job is load-bearing
+
+`next.config.ts` sets `typescript.ignoreBuildErrors: true` and `eslint.ignoreDuringBuilds: true`,
+so a green `npm run build` says **nothing** about type safety — the Docker build alone would
+happily ship type-broken code. `eslint` is deliberately *not* gated: the repo carries known
+pre-existing findings, and a pipeline that fails every release on them is one people learn to
+bypass. (`private-documents` is gitignored, so the Figma-export type errors that must be filtered
+out locally don't exist in a CI checkout — `tsc --noEmit` is genuinely clean there.)
+
+### Why staging images can't be promoted to production
+
+`NEXT_PUBLIC_*` variables are inlined into the bundle at **build** time, not read at runtime.
+`NEXT_PUBLIC_ENV` is what selects the SignTeq work area, so `:staging-v1.2.0` has the *test* work
+area compiled into it. Shipping that image to production would point live signature requests at
+the test tenant.
+
+Both environments therefore build their own image from their own tag, into the **same GHCR
+package** (`s2s-finance`, front and back together — it is one app), separated by tag prefix:
+`v*` for production, `staging-v*` for staging. Staging also publishes `staging-latest` rather than
+`latest`, so that a `docker compose pull` on the production box can never land a staging build.
+
+### Migrations: automatic on staging, manual on production
+
+The staging deploy runs `prisma migrate deploy` on every release. That is the point of having a
+staging environment — a bad migration should break *this* box, loudly, while someone is watching.
+
+Production keeps them manual. An unattended migration is how a bad one takes production down at
+2am with nobody there:
+
+```bash
+cd /opt/digital-onboarding-guide
+npx prisma migrate status     # confirm what's pending
+npx prisma migrate deploy     # never `migrate dev` — it can offer to reset
+```
+
+### `npm run seed` is a factory reset — never run it on production
+
+`prisma/seed.ts` opens with `deleteMany()` across `question`, `qASession`, `agent`, `admin`,
+`team`, `partner` and `product`. It is not a top-up. Pointed at production it destroys every
+customer session, every advisor account and every admin login.
+
+It is therefore **not** in the deploy pipeline. It runs once, from `setup-staging.sh`, which
+checks the database is empty first and demands a typed confirmation if it isn't.
+
+## Voice needs HTTPS
+
+Staging currently has no hostname, so it is reached at `http://<vps-ip>:4002`. Browsers only grant
+microphone access on a **secure origin** — `https://`, or `localhost`. Over a bare IP the app
+loads and login, tap-through questions, PDFs and admin all work, but `getUserMedia` is blocked, so
+**the voice flow cannot be tested**. Webhooks are affected too: SignTeq and signd may refuse to
+deliver to a plain-HTTP callback URL.
+
+Two ways round it:
+
+1. **Add a hostname** — the real fix, about ten minutes. `infra/nginx-host/staging.conf.example`
+   carries the full recipe: DNS A record, certbot, flip `STAGING_BIND` to `127.0.0.1`, update
+   `NEXT_PUBLIC_FRONTEND_URL`, re-tag.
+2. **Force-trust the origin locally** — for a quick check without DNS. Chrome only, per-machine,
+   and it does not help webhooks:
+   `chrome://flags/#unsafely-treat-insecure-origin-as-secure` → add `http://<vps-ip>:4002`.
+
+## One-time setup
+
+### On the VPS
+
+```bash
+sudo mkdir -p /opt/s2s-finance-staging
+sudo git clone -b staging <repo-url> /opt/s2s-finance-staging
+cd /opt/s2s-finance-staging
+
+# The deploy runs `git fetch` / `git checkout` as VPS_USER. A root-owned clone makes both fail —
+# on permissions, or on git's "dubious ownership" refusal. Hand it to the deploy user now.
+sudo chown -R <VPS_USER>:<VPS_USER> /opt/s2s-finance-staging
+
+sudo cp infra/env/staging.env.example .env
+sudo nano .env                       # fill in — see the comments in that file
+sudo chmod 600 .env                  # it holds API keys
+
+# so it can pull the private image (same user the workflow SSHes in as, or the pull is "denied")
+docker login ghcr.io -u <github-username> -p <PAT with read:packages>
+
+sudo ufw allow 4002/tcp              # only while there is no nginx in front — see the warning below
+
+sudo bash infra/scripts/setup-staging.sh
+```
+
+> **Opening 4002 puts staging on the public internet, unencrypted.** Two consequences worth
+> deciding about rather than inheriting:
+>
+> - `prisma/seed.ts` creates admin and partner accounts with **passwords written in that file** —
+>   which is in the repository. On a reachable staging box those are live credentials. Either
+>   change them straight after seeding, or restrict who can reach the port:
+>   `sudo ufw allow from <your-ip> to any port 4002 proto tcp` instead of the blanket rule.
+> - There is no TLS, so logins and OTP codes cross the network in the clear.
+>
+> Both go away once staging is behind nginx with a certificate, which is the same change that
+> makes voice testable. Until then, treat staging as readable by strangers and keep real customer
+> data off it.
+
+The bootstrap script validates `.env`, refuses to run if `NEXT_PUBLIC_ENV=production` or if
+`DATABASE_URL` doesn't point at `staging-db`, and starts the database.
+
+**It runs in two passes, and that is deliberate.** Migrations and the seed execute *inside* the
+app image, and the app image is built by the pipeline — so on a brand-new box there is nothing to
+run them in yet. The script detects this, stops after the database, and tells you to cut your
+first tag. Once the pipeline has built the image and deployed, run the same command again and it
+migrates, seeds and starts the app:
+
+```
+pass 1   validate .env → start staging-db → "no image yet, go cut a tag"
+   ↓
+         git tag staging-v0.1.0 && git push origin staging-v0.1.0
+         (pipeline: build → GHCR package created → migrate → start app)
+   ↓
+pass 2   sudo bash infra/scripts/setup-staging.sh  → migrate → seed → app up
+```
+
+After that you never run the script again — every release is just a tag.
+
+### GitHub → Settings → Secrets and variables → Actions
+
+**Variables** (baked into the client bundle at build time — not secret):
+
+| Variable | Value |
+|---|---|
+| `STAGING_NEXT_PUBLIC_ENV` | `staging` |
+| `STAGING_NEXT_PUBLIC_FRONTEND_URL` | `http://<vps-ip>:4002` (later the https URL) |
+
+**Secrets:**
+
+| Secret | What |
+|---|---|
+| `VPS_HOST` | VPS hostname or IP |
+| `VPS_USER` | SSH user — needs docker access |
+| `VPS_SSH_KEY` | private key whose public half is in that user's `authorized_keys` |
+| `VPS_PORT` | optional, defaults to 22 |
+
+`GITHUB_TOKEN` covers pushing to GHCR — no PAT needed for the push side. The PAT is only for the
+VPS's *pull* side.
+
+### The GHCR package
+
+The first successful `build` job creates `ghcr.io/digital-ecosystem/s2s-finance` automatically —
+there is nothing to create by hand. It starts **private**, which is correct. Afterwards, link it
+to this repository so the two are navigable from each other, under the package's **Package
+settings → Manage Actions access**.
+
+## When production moves onto the pipeline
+
+A production workflow already exists as a draft at `private-documents/workflows/deploy.yml`.
+Promoting it is:
+
+1. Prove the staging pipeline over a few releases.
+2. Bring production's `docker-compose.yml` into this repo as `infra/docker-compose.prod.yml` —
+   it is currently untracked on the VPS. It needs two additions: `name: digital-onboarding-guide`
+   (a no-op that pins today's derived value) and `image: ghcr.io/digital-ecosystem/s2s-finance:${IMAGE_TAG:-latest}`
+   alongside the existing `build:`, so the VPS pulls instead of compiling Next.js itself.
+3. Move `private-documents/workflows/deploy.yml` to `.github/workflows/deploy.yml`.
+4. Add repo variables `NEXT_PUBLIC_ENV=production` and
+   `NEXT_PUBLIC_FRONTEND_URL=https://onboarding.4money.at`.
+5. Check the three things listed in `private-documents/after-demo/CI_CD_PIPELINE_PLAN.md` →
+   "Before the first release": volume prefix, `sites-enabled/onboarding` is a **symlink**, and
+   `docker compose config` parses on the box.
+6. Keep migrations manual there.
+
+## Observation, not changed
+
+`proxy_read_timeout 300s` applies to the WebSocket at `/api/realtime/proxy`. If a voice session
+ever goes five minutes without WebSocket traffic — plausible while a customer reads the Phase 5
+contract documents — nginx would close it. No dropped-session reports exist, so this is left
+exactly as it is rather than changed speculatively. Worth remembering if voice ever drops on long
+idle screens.

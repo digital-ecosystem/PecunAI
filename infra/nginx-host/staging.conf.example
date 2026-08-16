@@ -1,0 +1,56 @@
+# Host nginx vhost for staging — NOT YET IN USE.
+#
+# Staging currently runs on a bare IP and port (http://<vps-ip>:4002) with no domain, so nothing
+# copies this file anywhere and the deploy workflow does not reference it. It is here because
+# adding a hostname later should be a ten-minute job, not a research project.
+#
+# ── Why you will probably want it ─────────────────────────────────────────────────────────────
+# Browsers only grant microphone access on a secure origin. On http://<ip>:4002 the app loads and
+# everything else works, but getUserMedia is blocked — so the voice flow, which is the whole
+# product, cannot be tested. HTTPS is what unblocks it, and HTTPS needs a hostname.
+#
+# ── Turning it on ────────────────────────────────────────────────────────────────────────────
+#   1. DNS: A record for the hostname → the VPS IP.
+#   2. Replace STAGING_HOSTNAME below (three places) with that hostname.
+#   3. sudo cp infra/nginx-host/staging.conf.example /etc/nginx/sites-available/staging
+#      sudo ln -sf /etc/nginx/sites-available/staging /etc/nginx/sites-enabled/staging
+#      (a symlink, not a copy — a real file in sites-enabled means edits to sites-available are
+#       silently ignored and nginx keeps serving the stale copy)
+#   4. sudo certbot --nginx -d STAGING_HOSTNAME     ← rewrites the listen/ssl lines below
+#   5. sudo nginx -t && sudo systemctl reload nginx
+#   6. In /opt/s2s-finance-staging/.env set:
+#        STAGING_BIND="127.0.0.1"                      (app no longer exposed directly)
+#        NEXT_PUBLIC_FRONTEND_URL="https://STAGING_HOSTNAME"
+#        NEXTAUTH_URL="https://STAGING_HOSTNAME"
+#      and set the GitHub repo variable STAGING_NEXT_PUBLIC_FRONTEND_URL to the same https URL —
+#      it is compiled into the bundle, so the next tag is what actually applies it.
+#   7. Close the direct port: sudo ufw delete allow 4002/tcp
+#   8. Re-release: git tag staging-v0.2.0 && git push origin staging-v0.2.0
+#
+# Once this is live, consider adding the copy/nginx -t/reload step to deploy-staging.yml the way
+# the production workflow draft does, so the vhost stays version-controlled.
+
+server {
+    server_name STAGING_HOSTNAME;
+
+    # One location block proxying everything, including the WebSocket upgrade that
+    # /api/realtime/proxy needs for the OpenAI voice connection. Do not add a narrower location
+    # that bypasses the Upgrade/Connection headers, or voice breaks.
+    location / {
+        proxy_pass http://127.0.0.1:4002;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+    }
+
+    # PDF uploads (legitimation documents, signed contracts) exceed the 1M default.
+    client_max_body_size 25M;
+
+    # certbot replaces these with the real listen 443 / ssl_certificate lines.
+    listen 80;
+}
