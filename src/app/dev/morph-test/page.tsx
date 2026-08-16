@@ -158,7 +158,14 @@ export default function MorphTestPage() {
         inputPlaceholder: modalQ.inputPlaceholder,
       }
     : null;
-  const inPlaceRect = modalCardQ && compactRect ? computeInPlaceRect(compactRect, modalCardQ) : null;
+  // computeInPlaceRect's second argument is the available viewport height, not the question —
+  // it took the question object before the card became content-sized, and this harness was never
+  // updated. The shell passes `window.innerHeight - footerHeight`; there is no footer here, so
+  // the full height is correct. The 800 fallback matches the shell's, for the SSR pass where
+  // `window` doesn't exist.
+  const inPlaceRect = modalCardQ && compactRect
+    ? computeInPlaceRect(compactRect, typeof window !== "undefined" ? window.innerHeight : 800)
+    : null;
   const cardRect = inPlaceRect ?? expandedRect;
 
   if (!entered) {

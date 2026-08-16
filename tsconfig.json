@@ -23,7 +23,12 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "prisma/seed.js"],
-  "exclude": ["node_modules"],
+  // private-documents is gitignored reference material (Figma exports, plans, scratch scripts).
+  // It is absent in a CI checkout but present locally, and several of those files have outright
+  // SYNTAX errors — which make tsc abort before it reaches src/, so `tsc --noEmit` locally would
+  // silently pass while CI failed on real type errors. Excluding it makes the local check mean
+  // the same thing the pipeline's check means.
+  "exclude": ["node_modules", "private-documents"],
   "ts-node": {
     "esm": true
   }
