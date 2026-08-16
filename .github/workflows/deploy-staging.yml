@@ -113,6 +113,23 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging # optional approval gate — configure in Settings → Environments
     steps:
+      # TEMPORARY DIAGNOSTIC — remove once the SSH step succeeds.
+      # Prints only the shape and the public fingerprint of the secret, never the key itself.
+      # A fingerprint is derived from the PUBLIC half and is safe to publish; it is exactly what
+      # `ssh-keygen -lf` shows and what GitHub displays next to your account keys.
+      # Expected: 7 lines, 411 bytes, SHA256:CgH1J1Z7CS00ST7KQMJbfvQwr8/35D0/tSYmnJ54owE
+      - name: Inspect VPS_SSH_KEY secret
+        run: |
+          printf '%s' "${{ secrets.VPS_SSH_KEY }}" > /tmp/k
+          chmod 600 /tmp/k
+          echo "bytes : $(wc -c < /tmp/k)"
+          echo "lines : $(wc -l < /tmp/k)"
+          echo "first : $(head -c 36 /tmp/k)"
+          echo "last  : $(tail -c 36 /tmp/k)"
+          echo "fingerprint:"
+          ssh-keygen -lf /tmp/k || echo "  ✗ not a usable key file — wrong content in the secret"
+          rm -f /tmp/k
+
       - name: Release over SSH
         uses: appleboy/ssh-action@v1
         with:
@@ -120,7 +137,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          script_stops: true
+          # No `script_stops:` — it is not an input in ssh-action@v1 and only produces a warning.
+          # The script's own `set -euo pipefail` is what aborts on the first failing command.
           script: |
             set -euo pipefail
             cd ${{ env.DEPLOY_DIR }}
