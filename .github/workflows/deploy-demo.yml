@@ -1,0 +1,168 @@
+name: Deploy Demo
+
+# Tag-triggered from the `demo` branch:
+#
+#   git push origin demo
+#   git tag demo-v1.0.0 && git push origin demo-v1.0.0
+#
+# Pushing to `demo` alone does NOT deploy — the tag is the release.
+#
+# This workflow touches NEITHER production NOR staging. It builds a different image, into a
+# different GHCR package, and ships it to a different machine via its own DEMO_VPS_* secrets.
+# Nothing here can reach 217.160.250.227. See infra/README.md.
+on:
+  push:
+    tags:
+      - "demo-v*"
+  # Re-release an existing tag from the Actions tab without cutting a new one.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing demo-v* tag to build and deploy"
+        required: true
+
+concurrency:
+  group: deploy-demo
+  cancel-in-progress: false
+
+env:
+  # A separate package, not a tag inside s2s-finance — see docker-compose.demo.yml for why.
+  IMAGE: ghcr.io/digital-ecosystem/s2s-finance-demo
+  DEPLOY_DIR: /opt/s2s-finance-demo
+  COMPOSE: docker compose --project-directory . -f infra/docker-compose.demo.yml
+
+jobs:
+  # next.config.ts sets `typescript.ignoreBuildErrors: true`, so a green `npm run build` proves
+  # nothing about type safety. This gate is what actually stops broken code shipping.
+  check:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The Prisma client is generated, not committed — tsc needs it to resolve @/lib/prisma.
+      - run: npx prisma generate
+
+      - run: npx tsc --noEmit
+
+  build:
+    name: Build & push image
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.tag.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve tag name
+        id: tag
+        run: echo "value=${{ inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          # `demo-latest`, never plain `latest` — nothing else should ever resolve to a demo build.
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.tag.outputs.value }}
+            ${{ env.IMAGE }}:demo-latest
+          # GHCR creates the s2s-finance-demo package automatically on this first push.
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          # NEXT_PUBLIC_ENV is inlined at BUILD time. It must be exactly `demo` here — it is what
+          # makes the delete-session control appear on the dashboard (see the DEMO_MODE constant
+          # in src/app/customer/dashboard/page.tsx) and what keeps SignTeq on the test work area.
+          # Setting it at runtime has no effect.
+          build-args: |
+            NEXT_PUBLIC_ENV=${{ vars.DEMO_NEXT_PUBLIC_ENV }}
+            NEXT_PUBLIC_FRONTEND_URL=${{ vars.DEMO_NEXT_PUBLIC_FRONTEND_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to demo
+    needs: build
+    runs-on: ubuntu-latest
+    environment: demo
+    steps:
+      - name: Release over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          # DEMO_VPS_* — deliberately distinct from the VPS_* secrets the staging workflow uses,
+          # so a demo release cannot be pointed at the box running production by a copy-paste.
+          host: ${{ secrets.DEMO_VPS_HOST }}
+          username: ${{ secrets.DEMO_VPS_USER }}
+          key: ${{ secrets.DEMO_VPS_SSH_KEY }}
+          port: ${{ secrets.DEMO_VPS_PORT || 22 }}
+          script: |
+            set -euo pipefail
+            cd ${{ env.DEPLOY_DIR }}
+
+            TAG="${{ needs.build.outputs.tag }}"
+
+            # .env is gitignored, so the demo secrets on this box survive the checkout.
+            git fetch --tags --force
+            git checkout --force "$TAG"
+
+            # ── SAFETY RAIL ────────────────────────────────────────────────────────────────
+            # Cheap assertions against the failure mode that does not announce itself: a compose
+            # file carrying another environment's project name would make Docker attach to that
+            # environment's volumes, and the deploy would still report success.
+            test "$PWD" = "${{ env.DEPLOY_DIR }}" \
+              || { echo "❌ Wrong directory: $PWD"; exit 1; }
+            grep -qx "name: s2s-finance-demo" infra/docker-compose.demo.yml \
+              || { echo "❌ Demo compose is not pinned to the demo project name — refusing to deploy"; exit 1; }
+
+            export IMAGE_TAG="$TAG"
+
+            ${{ env.COMPOSE }} pull demo-app
+            ${{ env.COMPOSE }} up -d --wait demo-db
+
+            # Migrations run automatically here, as on staging. `migrate deploy` only applies what
+            # is pending; it never resets and never prompts.
+            #
+            # NOT `db seed`: prisma/seed.ts opens with deleteMany() across sessions, agents,
+            # admins and partners. It is a factory reset, and belongs only in the one-time
+            # bootstrap (infra/scripts/setup-demo.sh).
+            ${{ env.COMPOSE }} run --rm --no-deps -T demo-app npx prisma migrate deploy
+
+            ${{ env.COMPOSE }} up -d demo-app
+
+            # /landing is static, so a 200 means Next is serving — not merely that the container
+            # started.
+            for i in $(seq 1 30); do
+              if curl -fsS -o /dev/null http://127.0.0.1:4003/landing; then
+                echo "✅ Healthy after $((i * 10))s — $TAG is live on demo"
+                docker image prune -f
+                exit 0
+              fi
+              sleep 10
+            done
+
+            echo "❌ Not healthy within 5 minutes — recent demo logs:"
+            ${{ env.COMPOSE }} logs --tail=80 demo-app
+            exit 1

@@ -17,6 +17,8 @@ import {
     LogOut,
     Plus,
     Search,
+    Trash2,
+    X,
 } from 'lucide-react';
 import {
     Drawer,
@@ -76,6 +78,39 @@ const Dashboard = () => {
     // Set from the exact same failure branches the previous code already had.
     const [sessionsError, setSessionsError] = useState(false);
     const [sessionsReloadKey, setSessionsReloadKey] = useState(0);
+
+    // ── Demo-only session delete ─────────────────────────────────────────────────────────────
+    // Resetting between demos otherwise means deleting rows by hand on the server. Gated to the
+    // demo build: NEXT_PUBLIC_ENV is inlined at build time, so on staging and production this
+    // constant is false and the control is never rendered — it is not a runtime toggle someone
+    // can flip, and the button does not exist in those bundles at all.
+    //
+    // The API route (DELETE /api/qa-session/[sessionId]) is NOT gated — it already existed, and
+    // it enforces its own auth plus an ownership check, so a customer can only ever delete their
+    // own session. What this adds is the way to reach it.
+    const DEMO_MODE = process.env.NEXT_PUBLIC_ENV === 'demo';
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const handleDeleteSession = async (sessionId: string) => {
+        setDeletingId(sessionId);
+        try {
+            const res = await fetch(`/api/qa-session/${sessionId}`, { method: 'DELETE' });
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                alert(body?.message ?? 'Sitzung konnte nicht gelöscht werden.');
+                return;
+            }
+            // Reload rather than splicing the row out locally: the list is paginated and the
+            // statistics above it are derived from a separate fetch, so both must re-read.
+            setSessionsReloadKey(k => k + 1);
+        } catch {
+            alert('Sitzung konnte nicht gelöscht werden.');
+        } finally {
+            setDeletingId(null);
+            setConfirmDeleteId(null);
+        }
+    };
     const [allSessionsForStats, setAllSessionsForStats] = useState<Session[]>([]);
     const drawerScrollRef = useRef<HTMLDivElement>(null);
 
@@ -725,6 +760,50 @@ const Dashboard = () => {
                                                 <div className="flex-[0.9] text-right text-[10px] text-text-muted max-sm:order-6 max-sm:flex-1">
                                                     {formatDate(session?.createdAt)}
                                                 </div>
+                                                {/* Demo builds only. Two-step confirm rather than a modal or window.confirm:
+                                                    the card itself is clickable, and a single mis-tap during a live demo
+                                                    would destroy the session being shown. stopPropagation on every handler
+                                                    keeps the card's own onClick from firing underneath. */}
+                                                {DEMO_MODE && (
+                                                    <div
+                                                        className="flex flex-none items-center justify-end gap-1 max-sm:order-7"
+                                                        style={{ minWidth: 92 }}
+                                                        onClick={e => e.stopPropagation()}
+                                                    >
+                                                        {confirmDeleteId === session.id ? (
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={deletingId === session.id}
+                                                                    onClick={e => { e.stopPropagation(); handleDeleteSession(session.id); }}
+                                                                    className="rounded-lg px-2 py-1 text-[10px] font-semibold text-white transition-colors disabled:opacity-60"
+                                                                    style={{ background: 'rgb(220,38,38)' }}
+                                                                >
+                                                                    {deletingId === session.id ? 'Löscht…' : 'Löschen'}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    aria-label="Abbrechen"
+                                                                    disabled={deletingId === session.id}
+                                                                    onClick={e => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                                                                    className="rounded-lg p-1 text-text-muted transition-colors hover:bg-surface-subtle"
+                                                                >
+                                                                    <X className="h-3.5 w-3.5" strokeWidth={2} />
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                aria-label="Sitzung löschen"
+                                                                title="Sitzung löschen (nur Demo)"
+                                                                onClick={e => { e.stopPropagation(); setConfirmDeleteId(session.id); }}
+                                                                className="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-surface-subtle hover:text-[rgb(220,38,38)]"
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>

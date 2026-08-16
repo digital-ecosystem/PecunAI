@@ -11,39 +11,66 @@ Dockerfile                          repo ROOT — the build context is the repo 
 .dockerignore                       root, same reason
 infra/
   docker-compose.staging.yml        staging stack   (automated)
+  docker-compose.demo.yml           demo stack      (automated, separate VPS)
   env/staging.env.example           template for /opt/s2s-finance-staging/.env
+  env/demo.env.example              template for /opt/s2s-finance-demo/.env
   nginx-host/
     onboarding.conf                 live production vhost
+    staging-ip.conf                 staging via bare IP (in use — no DNS available)
     staging.conf.example            ready for when staging gets a hostname
   scripts/setup-staging.sh          one-time staging bootstrap
+  scripts/setup-demo.sh             one-time demo bootstrap
 .github/workflows/
   deploy-staging.yml                staging-v* tag → typecheck → GHCR → SSH release
+  deploy-demo.yml                   demo-v*    tag → typecheck → GHCR → SSH release
 ```
 
 `Dockerfile` stays at the root deliberately: its builder stage does `COPY . .`, so the context is
 the repository root, and `infra/Dockerfile` with `context: ..` reads worse than it solves.
 
-## The two environments
+## The three environments
 
-Both run on the **same VPS**, fully isolated from each other.
+Production and staging share one VPS. The **demo runs on a different machine entirely** — it is
+shown to prospects, so it is built from its own branch, into its own GHCR package, and deployed
+with its own SSH credentials. Nothing in the demo pipeline can reach the production box.
 
-|  | production | staging |
-|---|---|---|
-| released by | **hand** — `git pull` + `docker compose up -d --build` | **pipeline** — push a `staging-v*` tag |
-| branch | `complete` | `staging` |
-| image tag | `v*` | `staging-v*` |
-| directory | `/opt/digital-onboarding-guide` | `/opt/s2s-finance-staging` |
-| compose project | `digital-onboarding-guide` | `s2s-finance-staging` |
-| volumes | `digital-onboarding-guide_*` | `s2s-finance-staging_*` |
-| app | `127.0.0.1:4001` behind nginx | `:4002` direct (no domain yet) |
-| database | `127.0.0.1:5432` | `127.0.0.1:5433` |
-| containers | `onboarding-app` / `onboarding-db` | `staging-app` / `staging-db` |
-| `NEXT_PUBLIC_ENV` | `production` | `staging` |
-| SignTeq work area | live | test (`SIGNTEQ_*_DEV`) |
-| migrations | manual, supervised | automatic on every deploy |
+|  | production | staging | demo |
+|---|---|---|---|
+| VPS | `217.160.250.227` | same box | **separate machine** |
+| released by | **hand** — `git pull` + `up -d --build` | `staging-v*` tag | `demo-v*` tag |
+| branch | `complete` | `staging` | `demo` |
+| GHCR package | `s2s-finance` | `s2s-finance` | **`s2s-finance-demo`** |
+| image tag | `v*` | `staging-v*` | `demo-v*` |
+| directory | `/opt/digital-onboarding-guide` | `/opt/s2s-finance-staging` | `/opt/s2s-finance-demo` |
+| compose project | `digital-onboarding-guide` | `s2s-finance-staging` | `s2s-finance-demo` |
+| volumes | `digital-onboarding-guide_*` | `s2s-finance-staging_*` | `s2s-finance-demo_*` |
+| app port | `4001` | `4002` | `4003` |
+| database port | `5432` | `5433` | `5434` |
+| containers | `onboarding-app` / `-db` | `staging-app` / `-db` | `demo-app` / `-db` |
+| `NEXT_PUBLIC_ENV` | `production` | `staging` | `demo` |
+| SignTeq work area | live | test (`SIGNTEQ_*_DEV`) | test (`SIGNTEQ_*_DEV`) |
+| SSH secrets | — | `VPS_*` | `DEMO_VPS_*` |
+| migrations | manual, supervised | automatic per deploy | automatic per deploy |
+| delete-session control | hidden | hidden | **visible** |
 
 **Production is untouched by any of this.** No workflow deploys it, and releasing it is still the
-same manual sequence it was. The staging pipeline is where the automation gets proven first.
+same manual sequence it was.
+
+Ports differ across all three even though the demo has its own machine. That is insurance, not
+necessity: if the demo stack were ever brought up on the shared box by mistake, nothing collides,
+and the mistake surfaces instead of two environments quietly fighting over a port.
+
+### The demo's delete-session control
+
+`NEXT_PUBLIC_ENV=demo` is the only build in which the customer dashboard shows a per-session
+delete button (`DEMO_MODE` in `src/app/customer/dashboard/page.tsx`), so a demo can be reset
+between viewings without deleting rows on the server by hand.
+
+Because `NEXT_PUBLIC_*` is inlined at build time, this is not a runtime switch — in the staging
+and production bundles the control does not exist at all. The API route behind it
+(`DELETE /api/qa-session/[sessionId]`) is deliberately **not** gated: it predates this, enforces
+its own authentication and an ownership check, and cascades to every child record plus the
+session's PDFs on disk. What the demo build adds is only a way to reach it.
 
 ## Running compose
 
@@ -109,7 +136,16 @@ docker volume ls | grep -E "onboarding|staging"
 Production volumes must all be prefixed `digital-onboarding-guide_`, staging's
 `s2s-finance-staging_`.
 
-## Releasing to staging
+## Releasing
+
+Same shape for both automated environments — push the branch, then tag:
+
+```bash
+git push origin staging && git tag staging-v1.0.0 && git push origin staging-v1.0.0
+git push origin demo    && git tag demo-v1.0.0    && git push origin demo-v1.0.0
+```
+
+### Releasing to staging
 
 Pushing to `staging` does **not** deploy. A release is a tag:
 
@@ -124,6 +160,12 @@ VPS → check out the tag → assert it is the staging environment → pull → 
 restart `staging-app` → poll for HTTP 200. Any failing step stops the release.
 
 To re-release an existing tag: **Actions → Deploy Staging → Run workflow**, pass the tag.
+
+### Releasing to demo
+
+Identical, via `deploy-demo.yml` and the `demo-v*` prefix, landing on the demo VPS at
+`/opt/s2s-finance-demo`. It uses the `DEMO_VPS_*` secrets rather than `VPS_*` — deliberately
+distinct names, so a copy-paste cannot point a demo release at the production box.
 
 ### Why the typecheck job is load-bearing
 
@@ -286,6 +328,57 @@ After that you never run the script again — every release is just a tag.
 
 `GITHUB_TOKEN` covers pushing to GHCR — no PAT needed for the push side. The PAT is only for the
 VPS's *pull* side.
+
+### Setting up the demo VPS
+
+Same shape as staging, on the other machine, with `demo` substituted throughout:
+
+```bash
+sudo mkdir -p /opt/s2s-finance-demo
+sudo git clone -b demo <repo-url> /opt/s2s-finance-demo
+sudo chown -R <DEMO_VPS_USER>:<DEMO_VPS_USER> /opt/s2s-finance-demo
+cd /opt/s2s-finance-demo
+
+sudo cp infra/env/demo.env.example .env
+sudo nano .env                       # NEXT_PUBLIC_ENV=demo, DATABASE_URL host demo-db
+sudo chmod 600 .env
+
+docker login ghcr.io -u <github-username> -p <PAT with read:packages>
+
+sudo bash infra/scripts/setup-demo.sh
+```
+
+Like staging's, the script runs in **two passes** — it stops after the database on a fresh box,
+because migrations and the seed execute inside an image the pipeline has not built yet. Cut the
+first tag, then re-run it to seed.
+
+**Variables** (build-time, not secret):
+
+| Variable | Value |
+|---|---|
+| `DEMO_NEXT_PUBLIC_ENV` | `demo` — must be exactly this, it is what enables the delete control |
+| `DEMO_NEXT_PUBLIC_FRONTEND_URL` | how the demo box is reached |
+
+**Secrets** — separate names from staging's on purpose, so a demo release can never be pointed at
+the production box:
+
+| Secret | What |
+|---|---|
+| `DEMO_VPS_HOST` | demo VPS hostname or IP |
+| `DEMO_VPS_USER` | SSH user with docker access |
+| `DEMO_VPS_SSH_KEY` | **private** key whose public half is in that user's `authorized_keys` |
+| `DEMO_VPS_PORT` | optional, defaults to 22 |
+
+`DEMO_VPS_SSH_KEY` is the *private* key — the file **without** `.pub`, all lines including the
+`-----BEGIN`/`-----END` headers. Putting the public key here produces
+`ssh: handshake failed … [none publickey]`, which looks like a server problem and is not.
+
+### The demo GHCR package
+
+`s2s-finance-demo` is created automatically by the first successful `build` job — nothing to make
+by hand. It is a **separate package** from `s2s-finance`, not another tag inside it, so the demo
+machine's pull credential grants access to the demo image only. A box that is going to be handed
+around and shown to outsiders cannot pull the production image.
 
 ### The GHCR package
 

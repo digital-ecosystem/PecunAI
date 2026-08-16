@@ -1,0 +1,97 @@
+# Demo stack for S2S Finance (PecunAI) — runs on a SEPARATE VPS from prod/staging.
+#
+# Run it from the REPOSITORY ROOT, not from this folder:
+#
+#   docker compose --project-directory . -f infra/docker-compose.demo.yml <command>
+#
+# This is the build shown to prospects. It is deliberately a third, fully independent
+# environment: its own branch (`demo`), its own GHCR package (`s2s-finance-demo`), its own VPS,
+# its own database. Nothing here can reach the box that runs production and staging.
+#
+# ⚠️  THE PROJECT NAME BELOW IS A SAFETY BOUNDARY.
+#     Docker prefixes volume names with it. If this file ever carried production's name
+#     (`digital-onboarding-guide`) or staging's (`s2s-finance-staging`), and the stack were
+#     brought up on that other box, Docker would silently attach to THOSE volumes and write demo
+#     data into them. It would not warn. Never copy a project name between these files.
+#
+# Ports are 4003/5434 rather than staging's 4002/5433 purely as insurance: the demo is meant for
+# its own machine, but if it ever landed on the shared box by mistake, nothing would collide and
+# the mistake would be visible instead of silently fighting over a port.
+#
+#   |               | production                | staging               | demo                |
+#   |---------------|---------------------------|-----------------------|---------------------|
+#   | VPS           | 217.160.250.227           | 217.160.250.227       | separate machine    |
+#   | project name  | digital-onboarding-guide  | s2s-finance-staging   | s2s-finance-demo    |
+#   | directory     | /opt/digital-onboarding-guide | /opt/s2s-finance-staging | /opt/s2s-finance-demo |
+#   | branch        | complete                  | staging               | demo                |
+#   | image         | s2s-finance:v*            | s2s-finance:staging-v*| s2s-finance-demo:demo-v* |
+#   | app port      | 4001                      | 4002                  | 4003                |
+#   | db port       | 5432                      | 5433                  | 5434                |
+#   | NEXT_PUBLIC_ENV | production              | staging               | demo                |
+#
+# See infra/README.md.
+
+name: s2s-finance-demo
+
+services:
+  demo-db:
+    image: postgres:16-alpine
+    container_name: demo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    # Loopback only — nothing outside the VPS has any business reaching the database directly.
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - demo-db-data:/var/lib/postgresql/data
+    networks:
+      - demo-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  demo-app:
+    # Its OWN GHCR package, not a tag inside s2s-finance. Separate packages mean the demo box's
+    # pull credential grants access to the demo image only — a machine that is, by design, going
+    # to be handed around and shown to outsiders cannot pull the production image.
+    image: ghcr.io/digital-ecosystem/s2s-finance-demo:${IMAGE_TAG:-demo-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_ENV: ${NEXT_PUBLIC_ENV}
+        NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL}
+    container_name: demo-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    # DEMO_BIND defaults to 0.0.0.0 so the app is reachable before nginx exists. Set it to
+    # 127.0.0.1 in .env once a hostname and TLS are in front of it.
+    ports:
+      - "${DEMO_BIND:-0.0.0.0}:4003:4001"
+    volumes:
+      - demo-private-documents:/app/private-documents
+      - ./Vektordatenbank:/app/Vektordatenbank:ro
+      - demo-products:/app/public/products
+      - demo-audio:/app/public/audio
+    depends_on:
+      demo-db:
+        condition: service_healthy
+    networks:
+      - demo-net
+
+networks:
+  demo-net:
+    driver: bridge
+
+# Prefixed `s2s-finance-demo_` by the project name above.
+volumes:
+  demo-db-data:
+  demo-private-documents:
+  demo-products:
+  demo-audio:
