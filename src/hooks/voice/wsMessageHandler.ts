@@ -37,11 +37,6 @@ export async function handleWsMessage(
   switch (type) {
 
     case "session.created": {
-      // Phase 3→4 live handoff, OR a cold resume (browser refresh) directly into Phase 4/5/6 —
-      // both land here as a fresh connection into an already-past-Phase-1 phase. Do NOT replay
-      // the Phase 1 question-list prompt. See private-documents/voice-resume-fix/
-      // VOICE_RESUME_FIX_PLAN.md — before this fix, 5 and 6 fell through to the default
-      // buildSystemPrompt branch below, resuming the Phase 1 interview instead.
       if (voicePhaseRef.current === 4 || voicePhaseRef.current === 5 || voicePhaseRef.current === 6) {
         const reentryInstructions = voicePhaseRef.current === 4
           ? PHASE4_REENTRY_SYSTEM_PROMPT(langRef.current)
@@ -60,13 +55,8 @@ export async function handleWsMessage(
             audio: {
               input: {
                 format: { type: "audio/pcm", rate: 24000 },
-                // Phases 4/5/6 are PTT-only — VAD must be off from the very first moment.
-                // This used to be semantic_vad, which (with the mic-gate hole above) made
-                // the AI spontaneously respond to speech between phase entry and the first
-                // PTT press. startPTT/response.done already keep VAD off for these phases;
-                // now entry matches. See PHASE_4_5_6_PTT_MIC_GATE_PLAN.md.
                 turn_detection: null,
-                transcription: { model: "gpt-4o-transcribe" },
+                transcription: { model: "gpt-4o-transcribe", language: langRef.current },
               },
               output: {
                 format: { type: "audio/pcm", rate: 24000 },
@@ -101,7 +91,7 @@ export async function handleWsMessage(
               // handleTerms.ts's handleConfirmTerms2()). See
               // private-documents/after-demo/PHASE_1_PTT_PLAN.md.
               turn_detection: voicePhaseRef.current === 1 ? null : { type: "semantic_vad" },
-              transcription: { model: "gpt-4o-transcribe" },
+              transcription: { model: "gpt-4o-transcribe", language: langRef.current },
             },
             output: {
               format: { type: "audio/pcm", rate: 24000 },
@@ -147,11 +137,6 @@ export async function handleWsMessage(
           if (termsSubStepRef.current === 'sustainabilityTerms' && !pttActiveRef.current) return;
           if (voicePhaseRef.current === 1 && !pttActiveRef.current) return;
           if (voicePhaseRef.current === 2 && !pttActiveRef.current) return;
-          // Phases 4/5/6 are PTT-only too — added late (they were built after the Phase 1
-          // PTT conversion), which left the mic streaming continuously there: combined with
-          // the semantic_vad the 4/5/6 reconnect branch used to set, the AI heard and
-          // answered speech made without holding the button. See
-          // private-documents/PHASE_4_5_6_PTT_MIC_GATE_PLAN.md.
           if (voicePhaseRef.current === 4 && !pttActiveRef.current) return;
           if (voicePhaseRef.current === 5 && !pttActiveRef.current) return;
           if (voicePhaseRef.current === 6 && !pttActiveRef.current) return;
@@ -167,10 +152,6 @@ export async function handleWsMessage(
       }
       // Session configured — trigger AI speech, branching on phase
       if (voicePhaseRef.current === 4 || voicePhaseRef.current === 5 || voicePhaseRef.current === 6) {
-        // Phase 3→4 live handoff, or a cold resume into Phase 4/5/6 — session-level
-        // instructions (sent in session.created above) already direct the AI to greet and
-        // walk the customer through the screen. Bare response.create is enough; mirrors the
-        // Phase 0/2 pattern of session-level baseline + a triggering response.create.
         send({ type: "response.create" });
       } else if (voicePhaseRef.current === 0 && termsSubStepRef.current === 'terms2') {
         // Resume: customer already confirmed terms1 — go straight to terms2 explanation
@@ -250,14 +231,6 @@ export async function handleWsMessage(
           isAskableNow(q, questionsRef.current, savedAnswersRef.current)
         ).length === 0
       ) {
-        // Circle-back resume: a browser refresh during the circle-back stage — every askable,
-        // non-skipped topic is answered, only skipped ones remain. The linear lastQuestionIndex
-        // can't express this (a skip that left nothing askable even saved index 0), so the
-        // index-based resume would cold-start at topic 1 and ask the wrong question. Drive the
-        // circle-back explicitly, exactly like the live branch in handleAnswerConfirmed /
-        // handleFunctionCall: land the carousel on the first skipped topic and instruct the AI
-        // to ask it. Already-answered skipped topics were subtracted from skippedIds at resume
-        // (see the voice-session page), so only genuinely-pending ones are here.
         const allSkipped   = questionsRef.current.filter(q => skippedIdsRef.current.has(q.id));
         const firstSkipped = allSkipped[0];
         const skippedIdx   = questionsRef.current.findIndex(q => q.id === firstSkipped.id);
@@ -273,15 +246,7 @@ export async function handleWsMessage(
             text: `[SYSTEM: Session resumed. All main topics are answered. Now circle back through ${allSkipped.length} skipped topic(s). Your ONLY next topic is "${firstSkipped.category}" (ID: ${firstSkipped.id}). Ask about this now. Remaining skipped after this: ${allSkipped.slice(1).map(q => q.id).join(", ") || "none"}.]`,
           }]},
         });
-        // Fast Mode: keep the context update (grounds on-demand PTT) but skip the spoken
-        // greeting — resume greetings weren't gated when Fast Mode was first built, since Fast
-        // Mode didn't yet exist on this path. See
-        // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
         if (fastModeRef.current) {
-          // Grow-animation on resume (boss request 2026-07-26): the card the customer lands on
-          // should expand with the same morph used everywhere else, not the usual instant Fast
-          // Mode snap — same UX as the Phase 0→1 intro card. Consumed once by VoiceSessionShell's
-          // useMemo keyed on modalQ?.id. See private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
           growNextCardRef.current = true;
           if (!mutedRef.current) dispatch({ type: "AI_DONE" });
         } else {
@@ -293,13 +258,6 @@ export async function handleWsMessage(
           });
         }
       } else if (voicePhaseRef.current === 1 && fastModeRef.current) {
-        // Fast Mode: normal Phase 1 resume (skip mode or after confirmTerms2) — the session
-        // prompt (buildSystemPrompt, sent in session.created) already has full resume context,
-        // so no extra message is needed here, just skip the greeting and correct state (would
-        // otherwise stay stuck on "greeting"/"connecting" with no audio ever coming to fix it
-        // via the normal scheduleAIDone path). See
-        // private-documents/after-demo/PRIORITY_FIXES_3RD_FEEDBACK_PLAN.md.
-        // Grow-animation on resume (boss request 2026-07-26) — see the circle-back branch above.
         growNextCardRef.current = true;
         if (!mutedRef.current) dispatch({ type: "AI_DONE" });
       } else {
@@ -310,23 +268,10 @@ export async function handleWsMessage(
     }
 
     case "response.output_audio.delta": {
-      // Reject stale audio for a response we've already stopAudio()'d/barged past — cancel
-      // doesn't retroactively discard audio the server already generated and is still
-      // streaming. See private-documents/after-demo/PHASE_0_INTRO_SKIP_PLAN.md.
-      //
-      // A null activeResponseIdRef means we've explicitly stopped/cancelled/barged and have
-      // NOT yet adopted a replacement response (e.g. Phase 0 skip: stopAudio() nulled it and
-      // the terms1 create is parked until the intro's response.done). Drop ALL audio in that
-      // window — never trust an incoming delta's own response_id to gate it, since a
-      // still-generating intro keeps streaming deltas and, when one lacks a usable response_id,
-      // the `responseId && …` form below short-circuits to false and lets the intro bleed onto
-      // the terms1 screen. See private-documents/PHASE_0_INTRO_SKIP_RACE_PLAN.md.
       {
         const responseId = (msg as { response_id?: string }).response_id;
         if (activeResponseIdRef.current === null || (responseId && responseId !== activeResponseIdRef.current)) break;
       }
-      // Tracks any open explanation (general explain_topic flow or the KB two-strike flow) —
-      // see private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
       if (explainOpenRef.current) {
         const responseId = (msg as { response_id?: string }).response_id;
         if (responseId === kbExplanationResponseIdRef.current) {
@@ -352,17 +297,10 @@ export async function handleWsMessage(
     }
 
     case "response.output_audio.done": {
-      // Reject stale audio.done for a response we've already stopAudio()'d/barged past. See
-      // private-documents/after-demo/PHASE_0_INTRO_SKIP_PLAN.md. Null id = explicitly stopped
-      // with no adopted replacement yet — drop it (matches the delta guard above; keeps a
-      // cancelled intro's audio.done from scheduling AI_DONE over the parked terms1 narration).
       {
         const responseId = (msg as { response_id?: string }).response_id;
         if (activeResponseIdRef.current === null || (responseId && responseId !== activeResponseIdRef.current)) break;
       }
-      // If an explanation overlay is open and this done event belongs to a cancelled/stale
-      // response (not the current explanation's own response), ignore it — stopAudio already
-      // cleaned up. See private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
       if (explainOpenRef.current) {
         const responseId = (msg as { response_id?: string }).response_id;
         if (responseId !== kbExplanationResponseIdRef.current) break;
@@ -435,10 +373,6 @@ export async function handleWsMessage(
     case "response.done": {
       serverResponseActiveRef.current = false;
 
-      // Fire a response.create that was parked while this (now finished or
-      // cancelled) response was still alive — the intro-skip path parks the
-      // terms1 narration here instead of racing the cancel
-      // ("conversation_already_has_active_response").
       if (vc.pendingResponseAfterCancelRef.current) {
         const parked = vc.pendingResponseAfterCancelRef.current;
         vc.pendingResponseAfterCancelRef.current = null;
@@ -447,9 +381,6 @@ export async function handleWsMessage(
         (Array.isArray(parked) ? parked : [parked]).forEach(m => send(m));
       }
 
-      // PTT response cycle complete — restore semantic_vad where it's still wanted.
-      // Phases 1, 2, 4, 5, and 6 are PTT-only: keep VAD off between presses. Only restore for
-      // Phase 0's own non-terms moments. See private-documents/after-demo/PHASE_1_PTT_PLAN.md.
       if (vc.pttContextRef.current) {
         const finishedPttContext = vc.pttContextRef.current;
         vc.pttContextRef.current = null;
@@ -459,10 +390,6 @@ export async function handleWsMessage(
             session: { type: "realtime", audio: { input: { turn_detection: { type: "semantic_vad" } } } },
           });
         }
-        // After a PTT exchange inside the sustainability modal, the conversation history
-        // contains the bot answering a question about sustainability content. Without this
-        // marker the model confuses that Q&A with Q3 ("Have you received sustainability
-        // info?") being implicitly answered and skips to Q4/Q5 or asks Q3 oddly.
         if (finishedPttContext === 'sustainabilityTerms') {
           send({
             type: "conversation.item.create",
@@ -516,9 +443,6 @@ export async function handleWsMessage(
     }
 
     case "conversation.item.input_audio_transcription.delta": {
-      // Accumulate partial transcript and fire a speculative vector search as soon as we have enough text.
-      // This runs the search in parallel with the remaining transcription so the result is ready (or nearly
-      // ready) by the time transcription.completed fires — cutting 1–2 s off PTT response latency.
       if (!pttSearchPendingRef.current || pttSpeculativeSearchRef.current) break;
       const delta = (msg.delta as string | undefined) ?? "";
       pttPartialTranscriptRef.current += delta;
@@ -549,21 +473,10 @@ export async function handleWsMessage(
       // speech_started never fires so currentSpeechItemIdRef is null and the guard would reject this.
       if (pttSearchPendingRef.current) {
         pttSearchPendingRef.current = false;
-        // Record the customer's spoken question BEFORE anything else in this branch. Every path
-        // below ends in `break`, so the bubble/persistence code further down is unreachable from
-        // here — which is why PTT document questions (Phase 0 terms, 2, 4, 5, 6) appeared nowhere
-        // while the AI's answers to them were persisted normally. The transcript was consumed as a
-        // search query and discarded. Client report: "i cannot see the questions from the client,
-        // only the ai answers". A plain append is correct ordering here, unlike the VAD path's
-        // insert-before-last-AI-bubble: the answer response is only created further down, so the
-        // customer's turn genuinely precedes it.
         appendChatMessage(transcript, "user");
         const vectorStoreId  = pttVectorStoreRef.current;
         const docLabel       = pttDocLabelRef.current;
         const speculativeHit = pttSpeculativeSearchRef.current;
-        // Snapshot of the partial transcript the speculative search actually ran against — frozen
-        // at whatever it was when the search fired, since later deltas early-return once
-        // pttSpeculativeSearchRef.current is set (see the delta handler above).
         const speculativeQuerySnapshot = pttPartialTranscriptRef.current;
         // Reset speculative state for next PTT press
         pttSpeculativeSearchRef.current  = null;
@@ -582,13 +495,6 @@ export async function handleWsMessage(
           .then(r => r.json() as Promise<{ results?: string }>)
           .then(d => d.results ?? "")
           .catch(() => "");
-        // Only trust the speculative hit when the snapshot it searched IS the complete utterance
-        // (common for short questions that finish within the 15-char trigger). If more speech
-        // came in after that snapshot was taken, the partial can land mid-word — e.g. German
-        // compound nouns like "Vermögensverwalter" truncated to "Was ist ein Ver" — and return a
-        // non-empty but WRONG/irrelevant result that an empty-check alone would never catch.
-        // Always re-run with the full transcript in that case, regardless of what the
-        // speculative search returned.
         const speculativeIsComplete = speculativeHit && speculativeQuerySnapshot.trim() === transcript;
         const searchPromise = speculativeIsComplete
           ? speculativeHit!.then(specResult =>
@@ -598,12 +504,6 @@ export async function handleWsMessage(
             )
           : fullTranscriptSearch();
 
-        // What the customer can SEE but no searchable document contains — injected alongside the
-        // search results, with the "use ONLY the search results" wording relaxed to cover both.
-        // Phase 4: their own amounts, computed fees and product (the shared store only holds
-        //   generic fee FAQ content) — see PHASE_4_PTT_PRESENTATION_CONTEXT_PLAN.md.
-        // Phase 5: the ten consent declarations under the document accordion, which live only in
-        //   VoiceContractDocuments.tsx — see PHASE_5_CONSENT_KNOWLEDGE_PLAN.md.
         const phase4Data = vc.pttContextRef.current === 'phase4'
           ? buildPhase4PresentationContext(questionsRef.current, savedAnswersRef.current, vc.productRef.current)
           : null;
@@ -631,10 +531,6 @@ export async function handleWsMessage(
         break;
       }
 
-      // Phase 1 PTT: VAD is off, so speech_started never fires and currentSpeechItemIdRef stays
-      // stale — the guard below would otherwise silently drop every Phase 1 PTT transcript
-      // before it reaches the bubble-insertion logic. Bypass explicitly instead. See
-      // private-documents/after-demo/PHASE_1_PTT_PLAN.md.
       const isPhase1PTT = vc.pttContextRef.current === 'phase1';
 
       // Guard against stale transcripts from previous speech turns (VAD-mode only — PTT is handled above)
@@ -654,9 +550,6 @@ export async function handleWsMessage(
         });
         needsTranscriptBubbleRef.current = false;
         pendingVoiceTranscriptRef.current = null;
-        // Not routed through appendChatMessage (the insert-before-last-AI-bubble ordering above
-        // needs setChatMessages directly), so this is the one place persistence stays explicit.
-        // This is the customer's spoken question — the thing the client reported missing.
         vc.persistTranscript(transcript, "user");
       } else {
         // submit_answer hasn't run yet — store for it to pick up
@@ -671,13 +564,7 @@ export async function handleWsMessage(
       pendingVoiceTranscriptRef.current = null;
       applyPendingTranscriptRef.current = null;
       needsTranscriptBubbleRef.current = false;
-      // …but never start it for the read-and-confirm asset overlay, which deliberately has no
-      // idle check-in (see ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md) — resetting an unstarted timer
-      // would switch the nag on.
       if (explainOpenRef.current && !vc.explainAwaitConfirmRef.current) resetExplainIdleRef.current();
-      // If AI was actively speaking, suppress the auto-modal until the new AI response
-      // starts sending audio — prevents the previous card's modal from incorrectly opening
-      // during the 1–2s gap between barge-in and the navigate/submit function call.
       if (isAISpeakingRef.current) {
         bargeInActiveRef.current = true;
         setBargeInActive(true);
@@ -709,22 +596,13 @@ export async function handleWsMessage(
     case "response.created": {
       serverResponseActiveRef.current = true;
       vc.awaitingResponseCreatedRef.current = false;
-      // Barged before birth: the customer already moved past this response (intro
-      // skip) while it was still being created. Cancel it now and keep
-      // activeResponseIdRef null so its audio is never accepted — the parked
-      // follow-up response fires on this response's response.done. See
-      // private-documents/PHASE_0_INTRO_SKIP_RACE_PLAN.md.
       if (vc.pendingResponseAfterCancelRef.current) {
         send({ type: "response.cancel" });
         break;
       }
-      // See activeResponseIdRef's declaration in useVoiceSession.ts — rejects stale audio from
-      // a response we've since stopped/cancelled/barged past.
+
       activeResponseIdRef.current = (msg.response as { id: string }).id;
       if (explainOpenRef.current) {
-        // Track which response is the current explanation (general or KB) so stale
-        // cancelled-response events are filtered out. See
-        // private-documents/after-demo/VOICE_EXPLAIN_OVERLAY_FIX_PLAN.md.
         kbExplanationResponseIdRef.current = (msg.response as { id: string }).id;
         kbExplanationStartedRef.current    = false; // reset so only THIS response's deltas count
       }
@@ -736,18 +614,11 @@ export async function handleWsMessage(
 
     case "error": {
       const err = msg.error as Record<string, unknown>;
-      // Benign race: a response.cancel (from stopAudio() on a confirm/back tap) reached the server
-      // just after it had already finished the response on its own — the client still had
-      // serverResponseActiveRef true, but there was nothing left to cancel. It cannot be cleanly
-      // prevented (it's a client/server timing race with no ack), and nothing breaks. Log it
-      // quietly so it doesn't surface as a scary red error in dev.
       if (err?.code === "response_cancel_not_active") {
         console.debug("[voice] benign: response.cancel lost the race with response completion");
         break;
       }
       console.error("[voice] OpenAI error:", JSON.stringify(err));
-      // Most other OpenAI API errors are non-fatal too — the session WS is still open. Only hard
-      // connection failures are caught by ws.onclose. Avoid killing the session on API-level errors.
       break;
     }
   }

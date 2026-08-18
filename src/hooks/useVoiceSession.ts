@@ -1448,24 +1448,13 @@ export function useVoiceSession({
     pttActiveRef.current  = false;
     pttContextRef.current = context; // response.done will clear this and restore VAD
 
-    // Set the correct vector store for this PTT context — no hardcoded fallbacks.
-    // 'phase4' and 'phase6' intentionally fall into the else branch — they reuse termsVectorId
-    // (the shared global store). No new vector store needed for either — see
-    // private-documents/phase-4-investment-form/PHASE_4_INVESTMENT_FORM_PLAN.md and
-    // private-documents/phase-6-final-qa/PHASE_6_FINAL_QA_PLAN.md.
-    // 'phase5' uses a temporary local stand-in (see PHASE_5_LOCAL_KNOWLEDGE_PLAN.md) — none of
-    // the shared store's documents cover the actual contract PDFs, so this sentinel routes
-    // /api/documents/search to a local embeddings-based search over the 8 contract knowledge
-    // docs in /Vektordatenbank/ instead. Swap this back to a real vector store ID once
-    // those docs are uploaded to one.
+    const usesContractDocs = context === 'phase5' || context === 'phase6';
     pttVectorStoreRef.current = context === 'phase2'
       ? (productVectorIdRef.current ?? termsVectorId ?? "")
-      : context === 'phase5'
+      : usesContractDocs
       ? "local:phase5-contracts"
       : (termsVectorId ?? "");
-    // Phase 5 searches the shared FAQ store alongside its local contract docs — see the ref's
-    // declaration above. Every other phase already searches the shared store directly.
-    pttSecondaryStoreRef.current = context === 'phase5' ? (termsVectorId ?? null) : null;
+    pttSecondaryStoreRef.current = usesContractDocs ? (termsVectorId ?? null) : null;
 
     if (!pttVectorStoreRef.current) {
       // No vector store configured — tell the AI to apologise rather than searching
@@ -1492,25 +1481,12 @@ export function useVoiceSession({
       ? "the froots GmbH document"
       : "the sustainability risks disclosure";
 
-    // Commit the buffered audio — closes the user's speech turn on the server.
-    // VAD is disabled during PTT so this is the only way OpenAI knows the turn ended.
-    // We do NOT send response.create here. The transcription.completed event fires next
-    // with the exact transcript. We run the search there and embed results directly
-    // in response.create — bypassing the unreliable model function-call step entirely.
     pttPartialTranscriptRef.current  = "";
     pttSpeculativeSearchRef.current  = null;
     pttSearchPendingRef.current      = true;
     send({ type: "input_audio_buffer.commit" });
   }, [send, termsVectorId]);
 
-  // Phase 1's PTT release handler — deliberately much simpler than submitPTTQuestion above.
-  // This isn't document Q&A, it's the customer's actual answer to the current interview
-  // question — the model needs to reason about it via the full Phase 1 system prompt and
-  // tools (submit_answer/navigate/highlight_answer/explain_topic), exactly as it already does
-  // for VAD-triggered turns. No vector search, no instructions override. Fired immediately
-  // after commit rather than waiting for transcription.completed — mirrors how VAD-mode
-  // already auto-responds without a separate transcription round-trip gating it. See
-  // private-documents/after-demo/PHASE_1_PTT_PLAN.md.
   const submitPhase1Answer = useCallback(() => {
     pttActiveRef.current        = false;
     pttSearchPendingRef.current = false; // defensive — ensure no stray search branch fires
@@ -1519,13 +1495,6 @@ export function useVoiceSession({
     send({ type: "response.create" });
   }, [send]);
 
-  // PTT release inside the asset-knowledge overlay (Q12/13/14). Deliberately simpler than
-  // submitPTTQuestion: there is no document to search — the source material is the text already on
-  // the customer's screen and already in the conversation, so the answer instructions carry it
-  // directly. pttContextRef 'phase1' is correct here rather than a new context: Phase 1 is
-  // PTT-only so response.done skips the VAD restore, and the transcription handler's isPhase1PTT
-  // bypass keeps the transcript bubble working with VAD off.
-  // See private-documents/after-demo/ASSET_EXPLAIN_READ_AND_CONFIRM_PLAN.md.
   const submitAssetKnowledgeQuestion = useCallback(() => {
     pttActiveRef.current        = false;
     pttSearchPendingRef.current = false;
@@ -1550,11 +1519,6 @@ export function useVoiceSession({
     send({ type: "response.create", response: { output_modalities: ["text"] } });
   }, [send, appendChatMessage]);
 
-  // Phase 6's own isolated send — never touches chatMessages, persistTranscript, or the
-  // /api/phase/chat/message Thread persistence route. Also does the same document-grounded
-  // search PTT already does for Phase 6, so both input channels answer consistently instead
-  // of chat relying on the model's unguided knowledge — see
-  // private-documents/phase-6-final-qa/PHASE_6_TEXT_CHAT_ADDENDUM.md ("Revision 3").
   const sendPhase6ChatMessage = useCallback(async (text: string) => {
     appendPhase6ChatMessage(text, "user");
     setIsChatAITyping(true);
