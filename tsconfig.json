@@ -23,7 +23,7 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "prisma/seed.js"],
-  "exclude": ["node_modules"],
+  "exclude": ["node_modules", "private-documents"],
   "ts-node": {
     "esm": true
   }

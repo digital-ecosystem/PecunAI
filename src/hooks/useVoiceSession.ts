@@ -1448,7 +1448,9 @@ export function useVoiceSession({
     pttActiveRef.current  = false;
     pttContextRef.current = context; // response.done will clear this and restore VAD
 
-    const usesContractDocs = context === 'phase5' || context === 'phase6';
+    const usesContractDocs =
+      context === 'phase5' || context === 'phase6' ||
+      context === 'terms1' || context === 'terms2' || context === 'sustainabilityTerms';
     pttVectorStoreRef.current = context === 'phase2'
       ? (productVectorIdRef.current ?? termsVectorId ?? "")
       : usesContractDocs

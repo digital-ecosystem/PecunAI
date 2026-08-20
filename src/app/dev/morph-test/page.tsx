@@ -158,7 +158,9 @@ export default function MorphTestPage() {
         inputPlaceholder: modalQ.inputPlaceholder,
       }
     : null;
-  const inPlaceRect = modalCardQ && compactRect ? computeInPlaceRect(compactRect, modalCardQ) : null;
+  const inPlaceRect = modalCardQ && compactRect
+    ? computeInPlaceRect(compactRect, typeof window !== "undefined" ? window.innerHeight : 800)
+    : null;
   const cardRect = inPlaceRect ?? expandedRect;
 
   if (!entered) {
