@@ -55,10 +55,17 @@ const client = new OpenAI({ apiKey });
  * pending upload goes unnoticed — froots Kundeninformationen WAG 2018.md sat unuploaded from
  * 4 Aug to 21 Aug, invisible in the noise.
  *
- * This is still a heuristic: a genuine edit that happens to land on either size reads as
- * unchanged. The durable fix is a manifest of filename → sha256 written by this script on each
- * successful upload, compared on the next run. That can only cover uploads made from here on,
- * so it does not help for the existing store state — hence this.
+ * This is still a heuristic, and it DOES collide in practice: on 2026-08-21 an edit to
+ * Serviceentgelt.md grew it from 5821 to 5911 bytes, which happened to equal the store's
+ * CRLF-inflated count for the OLD content — so the edit read as unchanged and would have been
+ * silently skipped.
+ *
+ * Comparing content instead is not possible: GET /v1/files/{id}/content returns 400 for files
+ * with purpose "assistants". Size is the only signal the API gives.
+ *
+ * Hence REPLACE_ALL below. With 25 small files, deleting and re-uploading everything is cheaper
+ * than detecting correctly, and it cannot miss an edit. Treat the report from this function as
+ * information, not as the thing you rely on.
  */
 function storeSizeMatches(filePath, storeBytes) {
   const buf = fs.readFileSync(filePath);
@@ -169,9 +176,9 @@ async function main() {
       );
       changedFiles.forEach((f) => console.log(`  ~ ${f} (store: ${storeDetails.get(f).bytes} bytes, local: ${fs.statSync(path.join(SOURCE_DIR, f)).size} bytes)`));
       console.log(
-        `\n  To replace these, re-run with:\n` +
-        `    $env:REPLACE_CHANGED="true"\n` +
-        `    node upload-to-vector-store.mjs`
+        `\n  To replace these, re-run with REPLACE_CHANGED=true.\n` +
+        `  RECOMMENDED for a release: REPLACE_ALL=true — re-uploads every file, so an edit\n` +
+        `  cannot be missed by the size comparison above (it has been, once).`
       );
     }
 
@@ -186,7 +193,18 @@ async function main() {
 
     filesToUpload = [...brandNewFiles];
 
-    if (process.env.REPLACE_CHANGED === "true" && changedFiles.length > 0) {
+    // REPLACE_ALL: delete every stored file and re-upload the whole directory, so the store is
+    // guaranteed to match this folder exactly. Use this for a release — it is immune to the size
+    // heuristic's blind spots above, and 25 files cost about a minute.
+    if (process.env.REPLACE_ALL === "true") {
+      const all = [...storeDetails.keys()];
+      console.log(`\nREPLACE_ALL=true - removing all ${all.length} file(s) from the store, then re-uploading ${localFiles.length} local file(s)...`);
+      for (const f of all) {
+        await client.vectorStores.files.del(vectorStoreId, storeDetails.get(f).fileId);
+        console.log(`  Removed: ${f}`);
+      }
+      filesToUpload = [...localFiles];
+    } else if (process.env.REPLACE_CHANGED === "true" && changedFiles.length > 0) {
       console.log(`\nREPLACE_CHANGED=true - removing old versions of ${changedFiles.length} changed file(s) from the store...`);
       for (const f of changedFiles) {
         const { fileId } = storeDetails.get(f);
