@@ -39,7 +39,7 @@ Der/die Kontoinhaber:in ermächtigt also die **Bank** ausdrücklich, das mit der
 
 | Feld | Inhalt |
 |---|---|
-| Serviceentgelt in EUR | Entgelt in Höhe von **0,925 % p.a. zzgl. USt.** |
+| Serviceentgelt in EUR | Entgelt in Höhe von **0,925 % p.a. zzgl. USt.** — entspricht **1,11 % p.a. inkl. USt.**, dem in der Kostenübersicht ausgewiesenen Wert |
 | Stichtag | Ankreuzoption: ☐ jährlich, am Beginn des jeweiligen Kalenderjahres — ☐ vierteljährlich, am Beginn des jeweiligen Kalenderquartals |
 | Bearbeitungsgebühr | **1,-- zzgl. USt. EUR je Buchung** |
 | Berechnung | Als Basis für die Berechnung des Entgelts wird der **Depotwert** des oben angeführten Depots sowie der **Kontosaldo** des Verrechnungskontos zum **Monatsultimo des vorangegangenen Monats** des jeweiligen Stichtags herangezogen. |

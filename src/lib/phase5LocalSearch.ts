@@ -1,9 +1,16 @@
-import { readFile } from "fs/promises";
+import { readFile, stat } from "fs/promises";
 import path from "path";
 
-// Temporary local stand-in for a real OpenAI vector store, used only for Phase 5's contract
-// documents until they can be uploaded there. See
-// private-documents/phase-5-contract-document/PHASE_5_LOCAL_KNOWLEDGE_PLAN.md.
+// Local index over the contract documents, searched as the PRIMARY source for the terms steps
+// and phases 5/6 — its hits are the ones labelled "AUS DEN VERTRAGSDOKUMENTEN", which the answer
+// instructions tell the model to prefer.
+//
+// It reads /vector-store, which is the same directory vector-store/upload-to-vector-store.mjs
+// pushes to the OpenAI store, so this index and the shared store agree. Until 2026-08-21 it read
+// /Vektordatenbank instead — an OLDER copy of the same filenames, 8 of which differ in content
+// (froots GmbH.md: 5.2 KB here vs 12.2 KB there, and the product prompts diverge in both
+// directions). The effect was that the source the model was told to trust most was the stale one.
+// See private-documents/phase-5-contract-document/PHASE_5_LOCAL_KNOWLEDGE_PLAN.md.
 const DOC_FILES = [
   "Deckblatt Vertragspaket.md",
   "Vermittlungsgebühr.md",
@@ -21,7 +28,29 @@ const DOC_FILES = [
   "froots Kundeninformationen WAG 2018.md",
 ];
 
-const VEKTORDATENBANK_DIR = path.join(process.cwd(), "Vektordatenbank");
+// First existing entry wins. The fallback is deliberate: production's docker-compose mounts
+// ./Vektordatenbank and NOT ./vector-store, so deploying this before that mount is added would
+// make readFile throw and take out every contract lookup. Falling back keeps answers flowing,
+// and logs loudly — because a silent fallback is exactly the stale-text bug returning.
+const DOC_DIRS = ["vector-store", "Vektordatenbank"];
+
+async function resolveDocDir(): Promise<string> {
+  for (const name of DOC_DIRS) {
+    const dir = path.join(process.cwd(), name);
+    try {
+      await stat(dir);
+      if (name !== DOC_DIRS[0]) {
+        console.error(
+          `[phase5LocalSearch] "${DOC_DIRS[0]}" not found — falling back to "${name}", which holds ` +
+          `OLDER copies of these documents. Mount ./vector-store into the container to fix.`,
+        );
+      }
+      return dir;
+    } catch { /* try the next candidate */ }
+  }
+  throw new Error(`No document directory found. Looked for: ${DOC_DIRS.join(", ")}`);
+}
+
 const EMBEDDING_MODEL      = "text-embedding-3-small";
 const CHUNK_MAX_CHARS      = 1500;
 const TOP_K                = 3;
@@ -102,8 +131,9 @@ async function embed(texts: string[]): Promise<number[][]> {
 
 async function buildChunks(): Promise<Chunk[]> {
   const rawChunks: { file: string; text: string }[] = [];
+  const docDir = await resolveDocDir();
   for (const file of DOC_FILES) {
-    const content = await readFile(path.join(VEKTORDATENBANK_DIR, file), "utf-8");
+    const content = await readFile(path.join(docDir, file), "utf-8");
     for (const text of chunkMarkdown(content)) {
       rawChunks.push({ file, text });
     }

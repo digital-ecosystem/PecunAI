@@ -38,6 +38,37 @@ if (!apiKey) {
 }
 
 const client = new OpenAI({ apiKey });
+/**
+ * Does the store's byte count for this file still match the local content?
+ *
+ * Size is the only comparison available — the API exposes no checksum for a stored file. The
+ * complication is that the store's copies are NOT consistently encoded: measured against the
+ * live store on 2026-08-21, files last edited 22 Jul sit there at their raw byte size, while
+ * files edited 24 Jul sit there one byte larger per line, i.e. CRLF-converted. Same store, same
+ * upload run, two encodings.
+ *
+ * So a single rule produces false positives either way: comparing raw sizes flagged 10 untouched
+ * files, comparing CRLF-adjusted sizes flagged 13 different untouched ones. Accepting EITHER
+ * value reduces it to the files whose content actually changed.
+ *
+ * Why this matters rather than being cosmetic: with a dozen-plus permanent false alarms, a real
+ * pending upload goes unnoticed — froots Kundeninformationen WAG 2018.md sat unuploaded from
+ * 4 Aug to 21 Aug, invisible in the noise.
+ *
+ * This is still a heuristic: a genuine edit that happens to land on either size reads as
+ * unchanged. The durable fix is a manifest of filename → sha256 written by this script on each
+ * successful upload, compared on the next run. That can only cover uploads made from here on,
+ * so it does not help for the existing store state — hence this.
+ */
+function storeSizeMatches(filePath, storeBytes) {
+  const buf = fs.readFileSync(filePath);
+  let bareLf = 0;
+  for (let i = 0; i < buf.length; i++) {
+    if (buf[i] === 0x0a && buf[i - 1] !== 0x0d) bareLf++;
+  }
+  return storeBytes === buf.length || storeBytes === buf.length + bareLf;
+}
+
 const SOURCE_DIR = ".";
 const VECTOR_STORE_NAME = "Digital Onboarding Guide - Knowledge Base";
 
@@ -111,10 +142,9 @@ async function main() {
     const changedFiles = []; // same filename, different size -> likely edited locally
 
     for (const f of localFiles) {
-      const localBytes = fs.statSync(path.join(SOURCE_DIR, f)).size;
       if (!storeDetails.has(f)) {
         brandNewFiles.push(f);
-      } else if (storeDetails.get(f).bytes !== localBytes) {
+      } else if (!storeSizeMatches(path.join(SOURCE_DIR, f), storeDetails.get(f).bytes)) {
         changedFiles.push(f);
       } else {
         unchangedFiles.push(f);

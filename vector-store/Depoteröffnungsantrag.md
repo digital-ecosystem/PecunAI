@@ -123,10 +123,10 @@ Dies ist der **zentrale Eröffnungsantrag**, mit dem Kund:innen bei der **Schelh
 
 | Bereich | Kernkonditionen |
 |---|---|
-| **Depotgebühr** | 1. Kalenderjahr kostenfrei; Investmentfonds 0,1 % p.a. (max. EUR 55 zzgl. USt); sonstige Finanzinstrumente ohne Drittvergütung: +0,1 % p.a. zzgl. USt. Berechnung zum 31.12., Verrechnung im Vorhinein. |
+| **Depotgebühr** | 1. Kalenderjahr kostenfrei; Investmentfonds 0,1 % p.a. (max. EUR 55 zzgl. USt); sonstige Finanzinstrumente ohne Drittvergütung: +0,1 % p.a. zzgl. USt. Berechnung zum 31.12., Verrechnung im Vorhinein. **Alle Werte hier zzgl. USt.** — zusammen bis 0,2 % p.a. zzgl. USt, also **0,24 % p.a. inkl. USt**, wie in der Kostenübersicht ausgewiesen. |
 | **Verrechnungskonto** | EUR 5,20/Quartal; Online-Überweisung kostenfrei, manuell EUR 3,50, Eilüberweisung Inland EUR 15; keine Verzinsung. |
-| **Vermögensverwaltungsabwicklungsgebühr** | 0,12 % p.a. zzgl. USt (mind. EUR 20, max. EUR 300); jährliche Verrechnung im Nachhinein (Jänner) auf Basis des durchschnittlichen Kurswerts. |
-| **Transaktionsspesen** | 50 Transaktionen/Jahr kostenfrei, danach EUR 2 zzgl. USt; ETF-Sammelorder 0,10 %; Börsenhandel EUR 2,95 + 0,15 % (max. EUR 150 + Spesen); Anleihen/Zertifikate außerbörslich EUR 3,50 + 0,15 %; Limit-/Stop-Order EUR 5; Devisenprovision 0,275 %. |
+| **Vermögensverwaltungsabwicklungsgebühr** | 0,12 % p.a. zzgl. USt (mind. EUR 20, max. EUR 300); jährliche Verrechnung im Nachhinein (Jänner) auf Basis des durchschnittlichen Kurswerts. Inkl. USt entspricht das **0,14 % p.a. (mind. EUR 24, max. EUR 360)** — so steht es in der Kostenübersicht. |
+| **Transaktionsspesen** | 50 Transaktionen/Jahr kostenfrei, danach EUR 2 zzgl. USt (**EUR 2,40 inkl. USt**); ETF-Sammelorder 0,10 %; Börsenhandel EUR 2,95 + 0,15 % (max. EUR 150 + Spesen); Anleihen/Zertifikate außerbörslich EUR 3,50 + 0,15 %; Limit-/Stop-Order EUR 5; Devisenprovision 0,275 %. |
 | **Depotübertrag** | Von Fremdbank kostenfrei; zu Fremdbank EUR 29 + EUR 29/Position (zzgl. USt); intern EUR 15/Position (zzgl. USt). |
 | **Sonderleistungen (Auswahl)** | Versandkosten EUR 1,70–2,05; Mahnung EUR 15; rückgebuchte Lastschrift EUR 9; Depotschließung EUR 25 zzgl. USt; Depotsperre/-aufhebung EUR 27,50 zzgl. USt; Sonderaufwand-Stundensatz EUR 50 zzgl. USt. |
 

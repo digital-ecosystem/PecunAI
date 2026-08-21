@@ -28,7 +28,7 @@ Du erhältst immer einen vollständigen **Kosten-Ex-ante-Nachweis** mit Euro-Bet
 | **Einmalige Kosten** | Beim Einstieg (z. B. Vermittlungsgebühr, Ausgabeaufschlag) | Vermittlungsgebühr 3× Monatsrate beim Sparplan oder 3 % vom Einmalerlag |
 | **Laufende Kosten** | Jährlich wiederkehrende Kosten für Verwaltung, Depot, Service | 0,39 % p.a. froots-Verwaltung, 0,24 % Depot, 1,11 % Servicegebühr |
 | **Produktkosten (TER)** | Interne Fonds-/ETF-Kosten, die im Produkt enthalten sind | ca. 0,14 – 0,17 % p.a. |
-| **Transaktionskosten** | Kosten pro Kauf/Verkauf von Wertpapieren | 2,40 € pro Transaktion oder ca. 0,02 % p.a. |
+| **Transaktionskosten** | Kosten pro Kauf/Verkauf von Wertpapieren | **50 Transaktionen pro Jahr kostenfrei**, danach 2,40 € je Transaktion (inkl. USt) — im Regelfall ≈ 0,02 % p.a. |
 | **Ausstiegskosten** | Gebühren bei Veräußerung (bereits in Transaktionskosten enthalten) | meist 0 € bis 10 € je Transaktion |
 | **Steuern** | Kapitalertragsteuer (KESt) auf Gewinne | 27,5 % (automatisch abgeführt) |
 
@@ -41,11 +41,19 @@ Du erhältst immer einen vollständigen **Kosten-Ex-ante-Nachweis** mit Euro-Bet
 | Kostenkomponente | Anteil % p.a. | Beispielbetrag bei 10 000 € | Erläuterung |
 |------------------|----------------|-----------------------------|--------------|
 | Vermögensverwaltung (froots) | 0,39 % | 39 € | Laufende Verwaltungsgebühr |
-| Depotgebühr (Bank) | 0,24 % | 24 € | Verwahrung und Kontoführung |
+| Depotgebühr (Bank) | 0,24 % | 24 € | Verwahrung des Depots |
 | Servicegebühr (4money) | 1,11 % | 111 € | Laufende Beratung & Betreuung |
 | Produktkosten (ETFs/Fonds) | 0,17 % | 17 € | In Produktkosten (TER) enthalten |
-| Transaktionen + Spesen | 0,05 % | 5 € | Wertpapierkäufe/Verkäufe |
-| **Gesamtkosten p.a.** | **≈ 2,0 % p.a.** | **≈ 196 € p.a.** | inklusive aller Komponenten |
+| Vermögensverwaltungsabwicklungsgebühr (Bank) | 0,14 % (mind. 24 €) | 24 € | Abwicklung seitens der Depotbank; greift hier die Mindestgebühr |
+| Verrechnungskontogebühr (Bank) | — | 20,80 € | 5,20 € pro Quartal, unabhängig vom Depotwert |
+| Transaktionskosten | 0,00 % | 0 € | 50 Transaktionen pro Jahr kostenfrei |
+| **Gesamtkosten p.a.** | **≈ 2,36 % p.a.** | **≈ 235,80 € p.a.** | inklusive aller Komponenten |
+
+> *Hinweis:* Die beiden Bankgebühren (Abwicklungs- und Verrechnungskontogebühr) sind **Fixkosten
+> bzw. haben eine Mindesthöhe**. Bei kleineren Depots fallen sie prozentual stärker ins Gewicht —
+> deshalb liegt der Gesamtsatz bei 10.000 € über den rund 2,0 %, die bei größeren Depots erreicht
+> werden. Diese Tabelle entspricht der Kostenübersicht, die dem Kunden im Onboarding angezeigt
+> wird.
 
 ---
 
@@ -78,6 +86,8 @@ Die **Servicegebühr (4money)** ist die laufende Vergütung für:
 - sowie die damit verbundenen Dokumentations‑, Archivierungs‑ und Qualitätssicherungspflichten.
 
 Sie wird als Prozentsatz vom Depotwert berechnet (z. B. 1,11 % p.a.) und zeitanteilig abgerechnet.
+
+> **0,925 % oder 1,11 % — welcher Wert stimmt?** Beide bezeichnen **dieselbe Gebühr**. In den Vertragsformularen (Servicegebührenvereinbarung, Serviceentgelt) steht **0,925 % p.a. zzgl. USt.**; in der Kostenübersicht und im Onboarding steht **1,11 % p.a. inkl. USt.** — das ist derselbe Betrag inklusive 20 % Umsatzsteuer (0,925 % × 1,20 = 1,11 %). Es handelt sich nicht um zwei getrennte Gebühren.
 
 > **Wichtig:** Die Servicegebühr ist **nicht** die Vermögensverwaltungsgebühr.  
 > Eine (optional) anfallende **Vermögensverwaltungsgebühr** wird separat ausgewiesen (z. B. durch froots).
@@ -183,12 +193,11 @@ Bei einer Auszahlung fallen typischerweise nur folgende Punkte an:
 
 ## 16. Was kosten Zuzahlungen oder eine Änderung der Sparrate?
 
-Zuzahlungen (Einmalbetrag) oder eine Erhöhung/Reduktion der Sparrate ändern nicht die „Kostenarten“, sondern vor allem die **Bemessungsgrundlage**:
+**Die laufenden Kosten bleiben gleich.** Eine Zuzahlung (Einmalbetrag) oder eine Erhöhung bzw. Reduktion der Sparrate bringt **keine neuen Kostenarten** und **keine anderen Prozentsätze** mit sich. Es ändert sich nur die **Bemessungsgrundlage**:
 
-- Zusätzliche Käufe lösen **Transaktionskosten** (und Spreads) aus.  
-- Produktkosten (TER) bleiben im Produkt eingepreist.  
-- Service‑/Depot‑/VV‑Gebühren werden prozentual auf den (dann höheren oder niedrigeren) Depotwert berechnet.
+- Service‑/Depot‑/VV‑Gebühren werden weiterhin prozentual berechnet — nur auf den dann höheren oder niedrigeren Depotwert.  
+- Produktkosten (TER) bleiben im Produkt eingepreist.
 
-Ob bei einer Erhöhung eine **zusätzliche einmalige Vermittlungsgebühr** anfällt, hängt vom Vergütungsmodell und davon ab, ob ein **neuer Abschluss** vorgenommen wird. Maßgeblich ist immer die **aktuelle Ex‑ante‑Kosteninformation** vor der Änderung.
+**Eine Vermittlungsgebühr für die Zuzahlung wird individuell vereinbart.** Sie ergibt sich nicht automatisch aus dem bestehenden Vertrag: Höhe und Bemessungsgrundlage werden im Einzelfall zwischen Kund:in, Berater:in und dem WPDLU festgelegt und in der „Vereinbarung Set‑up Fee / Vermittlungsgebühr“ schriftlich festgehalten.
 
 > *Bot‑Hinweis:* Keine Rendite‑ oder Wachstums‑Rechenbeispiele. Bei Unsicherheit: auf Kostenausweis verweisen oder menschlichen Berater hinzuziehen.

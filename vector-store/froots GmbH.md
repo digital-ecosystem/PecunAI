@@ -77,6 +77,20 @@ froots arbeitet intern mit einer Portfolio‑Codierung („VVKN“), um Profile/
 
 ---
 
+## Sicherheit & Vermögenstrennung — kann der Vermögensverwalter mit meinem Geld verschwinden?
+**Nein.** froots ist der **Vermögensverwalter** und hält **keine Kundengelder und keine Wertpapiere**.  
+Alle Vermögenswerte liegen auf einem **Depot im Namen der Kund:innen** bei der Schelhammer Capital Bank AG.  
+froots ist lediglich mit der **Verwaltung** beauftragt und besitzt **keine Verfügungsgewalt** über das Vermögen — es kann weder über das Depot verfügen noch Geld entnehmen oder auszahlen.  
+Auch bei einer **Insolvenz** oder Pleite des Vermögensverwalters bleiben die Wertpapiere **Eigentum der Kund:innen** und sind herauszugeben; sie fallen nicht in die Insolvenzmasse.
+
+- **Depottrennung:** Alle Vermögenswerte bleiben Eigentum der Kund:innen.  
+- **Einlagensicherung:** über die Schelhammer Capital Bank (Einlagensicherung Österreich).  
+- **Verschlüsselung:** Kundendaten werden ausschließlich in EU‑Rechenzentren gespeichert.  
+- **Algorithmus‑Transparenz:** keine spekulativen Handelsstrategien, keine Hebelprodukte.  
+- **Diversifikation:** globales ETF‑Portfolio über Hunderte Einzeltitel.
+
+---
+
 ## Beziehung zu Schelhammer Capital Bank & 4money (Kurz)
 - **Depotbank:** Schelhammer Capital Bank AG (Depot/Verrechnungskonto, Abrechnung, bankseitige Steuerabwicklung nach Prozessen).  
 - **Regulierter Partner:** 4money Financial Services GmbH (FMA‑konzessioniert).  

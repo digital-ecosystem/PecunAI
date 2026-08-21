@@ -103,13 +103,22 @@ froots erstellt **quartalsweise Berichte zum 31.3., 30.6., 30.9. und 31.12.** ü
 
 | Kostenart | Vermögensaufbau allgemein | Liquidity+ |
 |---|---|---|
-| Einstiegskosten (4money) | 3,00% / 300 € | 0,00% / 0 € |
+| Einstiegskosten (4money) — **einmalig, nicht in der Summe** | 3,00% / 300 € | 0,00% / 0 € |
 | Vermögensverwaltungsgebühr (froots) | 0,39% / 39 € | 0,24% / 24 € |
-| Depot- & Kontoführungsgebühren | 0,37% / 37 € | 0,37% / 37 € |
+| Depotgebühr (Bank) | 0,24% / 24 € | 0,24% / 24 € |
+| Vermögensverwaltungsabwicklungsgebühr (Bank) | 0,14% / 24 € *(Mindestgebühr)* | 0,14% / 24 € *(Mindestgebühr)* |
+| Verrechnungskontogebühr (Bank) | 20,80 € | 20,80 € |
 | Beratungshonorar (4money) | 1,11% / 111 € | 0,60% / 60 € |
-| Produktkosten | 0,14% / 14 € | 0,14% / 14 € |
-| Transaktionskosten | 0,05% / 5 € | 0,05% / 5 € |
-| **Summe (p.a.)** | **2,06% / 206 €** | **1,40% / 140 €** |
+| Produktkosten | 0,17% / 17 € | 0,17% / 17 € |
+| Transaktionskosten | 0,00% / 0 € *(50/Jahr frei)* | 0,00% / 0 € *(50/Jahr frei)* |
+| **Summe (p.a.)** | **2,36% / 235,80 €** | **1,70% / 169,80 €** |
+
+> *Hinweis:* Die vormals zusammengefasste Zeile „Depot- & Kontoführungsgebühren (0,37%)" ist hier
+> in ihre drei tatsächlichen Bestandteile aufgeteilt: Depotgebühr, Abwicklungsgebühr (mit
+> Mindestgebühr von 24 €) und Verrechnungskontogebühr (20,80 € fix). Die Spalte
+> „Vermögensaufbau allgemein" entspricht damit exakt der Kostenübersicht im Onboarding. Die
+> Bankgebühren sind produktunabhängig und daher in beiden Spalten gleich; die
+> produktspezifischen Sätze (froots-Gebühr, Beratungshonorar) bleiben unverändert.
 
 Produktkosten können um **0,1% bis 0,6% p.a.** schwanken; künftige Rendite wird nicht prognostiziert. Die gesamte Dienstleistungsgebühr wird **vierteljährlich** dem Verrechnungskonto angelastet und ist eine **direkte Zahlung des Kunden an den Berater** — 4money übernimmt nur Berechnung/Vereinnahmung/Auszahlung an froots.
 

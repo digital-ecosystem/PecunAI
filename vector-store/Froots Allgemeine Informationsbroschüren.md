@@ -93,13 +93,20 @@ Seit **02.08.2022** muss froots zusätzlich zur SFDR-Offenlegung die **Nachhalti
 
 | Kostenart (inkl. USt) | Vermögensaufbau allgemein | Liquidity+ |
 |---|---|---|
-| Einstiegskosten (4money) | 3,00 % (300 €) | 0,00 % |
+| Einstiegskosten (4money) — **einmalig, nicht in der Summe** | 3,00 % (300 €) | 0,00 % |
 | Vermögensverwaltungsgebühr (froots) | 0,39 % (39 €) | 0,24 % (24 €) |
-| Depot- & Kontoführung | 0,37 % (37 €) | 0,37 % (37 €) |
+| Depotgebühr (Bank) | 0,24 % (24 €) | 0,24 % (24 €) |
+| Vermögensverwaltungsabwicklungsgebühr (Bank) | 0,14 % (24 € — Mindestgebühr) | 0,14 % (24 € — Mindestgebühr) |
+| Verrechnungskontogebühr (Bank) | 20,80 € | 20,80 € |
 | Servicegebühr (4money) | 1,11 % (111 €) | 0,60 % (60 €) |
-| Produktkosten | 0,14 % (14 €) | 0,14 % (14 €) |
-| Transaktionskosten | 0,05 % (5 €) | 0,05 % (5 €) |
-| **Summe p.a.** | **2,06 % (206 €)** | **1,40 % (140 €)** |
+| Produktkosten | 0,17 % (17 €) | 0,17 % (17 €) |
+| Transaktionskosten | 0,00 % (0 €) — 50/Jahr frei | 0,00 % (0 €) — 50/Jahr frei |
+| **Summe p.a.** | **2,36 % (235,80 €)** | **1,70 % (169,80 €)** |
+
+> *Hinweis:* Die früher zusammengefasste Zeile „Depot- & Kontoführung (0,37 %)" ist hier in ihre
+> drei tatsächlichen Bestandteile aufgeteilt. Die Bankgebühren enthalten eine Mindestgebühr
+> (24 €) und einen Fixbetrag (20,80 €) und wirken sich bei kleinen Depots prozentual stärker aus.
+> Die Spalte „Vermögensaufbau allgemein" entspricht der Kostenübersicht im Onboarding.
 
 - Ex-ante-Kosteninformation vor Auftrag, **ex-post-Kostenaufstellung** einmal jährlich; Bandbreiten marktüblicher Entgelte gemäß **§ 73 Abs. 9 WAG 2018** auf fma.gv.at einsehbar. Steuern (z. B. KESt) trägt der Kunde selbst.
 
@@ -136,4 +143,4 @@ Risiko = Nichterreichen der erwarteten Rendite und/oder **Kapitalverlust bis zum
 - **Aufsichtsbehörde:** FMA, Otto-Wagner-Platz 5, 1090 Wien
 - **Gebundener Vermittler:** fynup GmbH (FN 461426v)
 - **Anlegerentschädigung:** Anlegerentschädigung von Wertpapierfirmen GmbH, Rainergasse 31/8, 1040 Wien
-- **Kooperationspartner:** 4money Financial Services GmbH (Servicehonorar 0,925 % p.a. zzgl. USt), Partnerbank für Depotführung/Ausführung
+- **Kooperationspartner:** 4money Financial Services GmbH (Servicehonorar 0,925 % p.a. zzgl. USt = **1,11 % p.a. inkl. USt**), Partnerbank für Depotführung/Ausführung

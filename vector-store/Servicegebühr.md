@@ -28,6 +28,8 @@ Das vorliegende Dokument ist eine leere Vorlage (Template) — Felder wie Name, 
 
 Für die angeführten Leistungen wird mit dem/der Kund:in eine pauschale **Servicegebühr in Höhe von 0,925% p.a.** (zuzüglich Mehrwertsteuer) vereinbart.
 
+Das entspricht **1,11 % p.a. inkl. USt.** — dem Wert, der in der Kostenübersicht und im Onboarding ausgewiesen wird (0,925 % × 1,20 = 1,11 %). Es sind nicht zwei verschiedene Gebühren.
+
 ---
 
 ## Berechnungsbasis
