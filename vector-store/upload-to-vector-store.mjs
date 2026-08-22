@@ -39,6 +39,23 @@ if (!apiKey) {
 
 const client = new OpenAI({ apiKey });
 /**
+ * Detach one file from the vector store.
+ *
+ * The SDK changed both the NAME and the ARGUMENT ORDER for this between majors:
+ *   openai v5:      files.delete(fileId, { vector_store_id })
+ *   earlier:        files.del(vectorStoreId, fileId)
+ * The container currently runs 5.23.2, where the `del` this script originally called does not
+ * exist at all — so the REPLACE_CHANGED path had been dead code that would throw the moment
+ * anyone used it. Supporting both shapes keeps it working when the app's openai dependency moves.
+ */
+async function detachFile(vectorStoreId, fileId) {
+  const files = client.vectorStores.files;
+  if (typeof files.delete === "function") return files.delete(fileId, { vector_store_id: vectorStoreId });
+  if (typeof files.del === "function") return files.del(vectorStoreId, fileId);
+  throw new Error("This openai SDK exposes neither vectorStores.files.delete nor .del - cannot detach files.");
+}
+
+/**
  * Does the store's byte count for this file still match the local content?
  *
  * Size is the only comparison available — the API exposes no checksum for a stored file. The
@@ -60,8 +77,10 @@ const client = new OpenAI({ apiKey });
  * CRLF-inflated count for the OLD content — so the edit read as unchanged and would have been
  * silently skipped.
  *
- * Comparing content instead is not possible: GET /v1/files/{id}/content returns 400 for files
- * with purpose "assistants". Size is the only signal the API gives.
+ * Comparing content instead does not work either: GET /v1/files/{id}/content returns 400 for
+ * files with purpose "assistants". There IS a vector-store-file content endpoint
+ * (files.content(fileId, { vector_store_id })), but it returns the PARSED, chunked text rather
+ * than the original bytes, so it cannot be hashed against a local file for equality.
  *
  * Hence REPLACE_ALL below. With 25 small files, deleting and re-uploading everything is cheaper
  * than detecting correctly, and it cannot miss an edit. Treat the report from this function as
@@ -200,7 +219,7 @@ async function main() {
       const all = [...storeDetails.keys()];
       console.log(`\nREPLACE_ALL=true - removing all ${all.length} file(s) from the store, then re-uploading ${localFiles.length} local file(s)...`);
       for (const f of all) {
-        await client.vectorStores.files.del(vectorStoreId, storeDetails.get(f).fileId);
+        await detachFile(vectorStoreId, storeDetails.get(f).fileId);
         console.log(`  Removed: ${f}`);
       }
       filesToUpload = [...localFiles];
@@ -208,7 +227,7 @@ async function main() {
       console.log(`\nREPLACE_CHANGED=true - removing old versions of ${changedFiles.length} changed file(s) from the store...`);
       for (const f of changedFiles) {
         const { fileId } = storeDetails.get(f);
-        await client.vectorStores.files.del(vectorStoreId, fileId);
+        await detachFile(vectorStoreId, fileId);
         console.log(`  Removed old version of: ${f}`);
       }
       filesToUpload.push(...changedFiles);
