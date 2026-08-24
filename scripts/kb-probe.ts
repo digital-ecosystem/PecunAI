@@ -42,6 +42,13 @@ interface Case {
   expect: string[];
   /** True for off-topic controls: retrieval must return nothing rather than the nearest chunk. */
   expectNone?: boolean;
+  /**
+   * Phrases that must NOT appear. For facts the client has ruled out saying — retrieval feeding
+   * the model a sentence it shouldn't repeat is how it ends up repeating it. Added 2026-08-22
+   * after the AI told a customer the depot would close "am Bankarbeitstag nach Eingang": true to
+   * the contract, but a duration 4money cannot guarantee.
+   */
+  forbid?: string[];
 }
 
 const CASES: Case[] = [
@@ -69,11 +76,14 @@ const CASES: Case[] = [
     origin: "client 2026-08-21, session 5c54c9e0 (Bracic test case) — AI deflected to 'prüfen Sie die jeweiligen Vertragsdokumente'",
     question: "Kann ich alle Verträge nach fünf Jahren beenden?",
     expect: ["keine feste Laufzeit", "25"],
+    // client 2026-08-22: must not state how long closing takes — cannot be guaranteed.
+    forbid: ["Bankarbeitstag", "wirksam am", "nach Eingang"],
   },
   {
     origin: "client 2026-08-21, same session — the question that led into it",
     question: "Angenommen, ich will das Produkt nach vier oder fünf Jahren nicht mehr nutzen, geht das so einfach?",
     expect: ["jederzeit"],
+    forbid: ["Bankarbeitstag", "wirksam am", "nach Eingang"],
   },
   {
     origin: "control — MIN_SCORE must still reject off-topic questions rather than answering from the nearest chunk",
@@ -114,12 +124,15 @@ async function main() {
     }
 
     const missing = c.expect.filter(e => !results.includes(e));
-    if (!none && missing.length === 0) {
+    const present = (c.forbid ?? []).filter(f => results.includes(f));
+    if (!none && missing.length === 0 && present.length === 0) {
       console.log(`✓ ${c.question}\n    -> ${firstHeading(results)}`);
     } else {
       console.log(`✗ ${c.question}`);
       console.log(`    -> ${none ? "NO RESULTS" : firstHeading(results)}`);
-      console.log(`    missing: ${missing.join(", ") || "(nothing retrieved at all)"}`);
+      if (missing.length) console.log(`    missing: ${missing.join(", ")}`);
+      if (present.length) console.log(`    MUST NOT be retrievable, but is: ${present.join(", ")}`);
+      if (none) console.log(`    nothing retrieved at all`);
       console.log(`    origin: ${c.origin}`);
       failed++;
     }

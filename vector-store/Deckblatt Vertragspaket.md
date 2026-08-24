@@ -34,8 +34,7 @@ Punkt 5 ist ausdrücklich als **optional** gekennzeichnet ("(Optional) Steuerans
 
 - **Das Wertpapierdepot hat keine feste Laufzeit** — so wie Sie es von einem Bankkonto oder
   Sparbuch kennen. Es kann daher **jederzeit geschlossen** werden. Erforderlich ist eine
-  nachweislich schriftliche Mitteilung an die Bank; die Schließung wird am Bankarbeitstag nach
-  Eingang wirksam.
+  nachweislich schriftliche Mitteilung an die Bank.
 - **Mit der Schließung des Depots enden auch alle damit verbundenen Vereinbarungen** — insbesondere
   der **Vermögensverwaltungsvertrag** und die **Servicegebührenvereinbarung**. Sie müssen also
   nicht jeden Vertrag einzeln kündigen.
@@ -43,6 +42,12 @@ Punkt 5 ist ausdrücklich als **optional** gekennzeichnet ("(Optional) Steuerans
 
 Es gibt also **keine Mindestlaufzeit** und keine Bindung über mehrere Jahre. Auch nach vier oder
 fünf Jahren gilt dasselbe wie am ersten Tag: Das Depot kann jederzeit geschlossen werden.
+
+> *Bot-Hinweis:* **Keine Aussagen zur Dauer des Schließungsvorgangs.** Nicht sagen, ab wann die
+> Schließung wirksam wird, wie lange sie dauert oder dass sie am nächsten (Bank-)Arbeitstag
+> erfolgt — das kann nicht zugesichert werden. Nur mitteilen, **dass** jederzeit geschlossen
+> werden kann und dass eine schriftliche Mitteilung an die Bank nötig ist. Fragt der Kunde
+> ausdrücklich nach der Dauer: auf die Depotbank verweisen.
 
 > *Ergänzende Details, falls nachgefragt wird:* Der Vermögensverwaltungsvertrag läuft auf
 > unbestimmte Zeit und ist vom Auftraggeber jederzeit mit sofortiger Wirkung kündbar. Die

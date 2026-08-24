@@ -55,7 +55,7 @@ Dies ist der **zentrale Eröffnungsantrag**, mit dem Kund:innen bei der **Schelh
 - froots erhält sämtliche Konto-/Depotauszüge und Abrechnungen; Zustellung an froots gilt als Zustellung an den Kunden.
 - Kunde ermächtigt die Bank, die **Verwaltungsgebühr** (Höhe/Stichtag/Berechnung gemäß separater Vereinbarung mit froots, hier nicht beziffert) dem Verrechnungskonto anzulasten und an froots weiterzuleiten.
 - **Recht & Gerichtsstand:** österreichisches Recht; Gerichtsstand **Graz**.
-- **Kündigung:** jederzeit mit sofortiger Wirkung möglich; erfordert nachweisliche schriftliche Verständigung der Bank; wirksam am Bankarbeitstag nach Eingang.
+- **Kündigung:** jederzeit möglich; erfordert nachweisliche schriftliche Verständigung der Bank.
 
 ### Depot schließen — keine Laufzeit, jederzeit möglich
 
@@ -63,11 +63,13 @@ Das Wertpapierdepot hat **keine feste Laufzeit** (so wie ein Bankkonto oder Spar
 daher **jederzeit geschlossen** werden. Es gibt keine Mindestbindung über Jahre.
 
 - **Gebühr für die Depotschließung: EUR 25 zzgl. USt.** (Bankgebühr der depotführenden Stelle)
-- Erforderlich ist eine nachweislich **schriftliche Mitteilung** an die Bank; wirksam am
-  Bankarbeitstag nach Eingang.
+- Erforderlich ist eine nachweislich **schriftliche Mitteilung** an die Bank.
 - Mit der Schließung des Depots enden auch die damit verbundenen Vereinbarungen
   (Vermögensverwaltungsvertrag, Servicegebührenvereinbarung).
 - Depotsperre bzw. deren Aufhebung: EUR 27,50 zzgl. USt.
+
+> *Bot-Hinweis:* **Keine Aussagen zur Dauer des Schließungsvorgangs** — nicht sagen, ab wann die
+> Schließung wirksam wird oder wie lange sie dauert. Das kann nicht zugesichert werden.
 
 ---
 
