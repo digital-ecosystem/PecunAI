@@ -66,6 +66,16 @@ const CASES: Case[] = [
     expect: ["1,20"],
   },
   {
+    origin: "client 2026-08-21, session 5c54c9e0 (Bracic test case) — AI deflected to 'prüfen Sie die jeweiligen Vertragsdokumente'",
+    question: "Kann ich alle Verträge nach fünf Jahren beenden?",
+    expect: ["keine feste Laufzeit", "25"],
+  },
+  {
+    origin: "client 2026-08-21, same session — the question that led into it",
+    question: "Angenommen, ich will das Produkt nach vier oder fünf Jahren nicht mehr nutzen, geht das so einfach?",
+    expect: ["jederzeit"],
+  },
+  {
     origin: "control — MIN_SCORE must still reject off-topic questions rather than answering from the nearest chunk",
     question: "Wie wird das Wetter morgen in Wien?",
     expect: [],

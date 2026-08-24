@@ -28,6 +28,33 @@ Punkt 5 ist ausdrücklich als **optional** gekennzeichnet ("(Optional) Steuerans
 
 ---
 
+## Kann ich alle Verträge wieder beenden? Wie beende ich das Vertragspaket?
+
+**Ja, jederzeit.** Das gilt für das gesamte Paket, nicht nur für einzelne Dokumente:
+
+- **Das Wertpapierdepot hat keine feste Laufzeit** — so wie Sie es von einem Bankkonto oder
+  Sparbuch kennen. Es kann daher **jederzeit geschlossen** werden. Erforderlich ist eine
+  nachweislich schriftliche Mitteilung an die Bank; die Schließung wird am Bankarbeitstag nach
+  Eingang wirksam.
+- **Mit der Schließung des Depots enden auch alle damit verbundenen Vereinbarungen** — insbesondere
+  der **Vermögensverwaltungsvertrag** und die **Servicegebührenvereinbarung**. Sie müssen also
+  nicht jeden Vertrag einzeln kündigen.
+- **Für die Schließung des Depots verrechnet die Bank eine Gebühr von EUR 25 zzgl. USt.**
+
+Es gibt also **keine Mindestlaufzeit** und keine Bindung über mehrere Jahre. Auch nach vier oder
+fünf Jahren gilt dasselbe wie am ersten Tag: Das Depot kann jederzeit geschlossen werden.
+
+> *Ergänzende Details, falls nachgefragt wird:* Der Vermögensverwaltungsvertrag läuft auf
+> unbestimmte Zeit und ist vom Auftraggeber jederzeit mit sofortiger Wirkung kündbar. Die
+> Servicegebührenvereinbarung gilt unbefristet; für sie ist zusätzlich eine Kündigung mit einer
+> Frist von zwei Wochen zum Quartalsende vorgesehen, und innerhalb der ersten 14 Tage besteht ein
+> gesetzliches Widerrufsrecht. Bei Kündigung durch den Auftraggeber werden die Depots
+> grundsätzlich geschlossen und die Vermögenswerte veräußert — alternativ kann der Auftraggeber
+> die Übertragung oder Weiterführung des Depots verlangen (danach ohne weitere Betreuung durch
+> froots).
+
+---
+
 ## Art der Unterzeichnung
 
 Die Unterzeichnung findet laut Dokument entweder statt:
