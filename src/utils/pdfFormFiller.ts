@@ -224,9 +224,21 @@ export class PDFFormFiller {
             if (this.debugMode) {
               console.log(`✅ Checkbox '${fieldName}' set to: ${value}`);
             }
-          } catch (error) {
-            if (this.debugMode) {
-              console.warn(`⚠️ Could not set checkbox '${fieldName}':`, error);
+          } catch {
+            try {
+              const radioGroup = this.form.getRadioGroup(fieldName);
+              const options = radioGroup.getOptions();
+              if (value) {
+                if (options.length === 0) throw new Error('radio group has no options');
+                radioGroup.select(options[0]);
+              } else {
+                radioGroup.clear();
+              }
+              if (this.debugMode) {
+                console.log(`✅ Radio group '${fieldName}' set to: ${value} (option '${options[0]}')`);
+              }
+            } catch (radioError) {
+              console.warn(`⚠️ [pdfFormFiller] Could not tick '${fieldName}' — not a checkbox or radio group:`, radioError);
             }
           }
         } else if (typeof value === 'number') {
@@ -567,7 +579,7 @@ export function createFormDataFromUser(userInfo: UserInfo, questionAnswers: Reco
     "Kontrollkästchen 466": true,
     "Kontrollkästchen 467": true,
 
-    "Optionsfeld 294": true,
+    "Optionsfeld 2": true,
     "Kontrollkästchen 397": true,
     "Kontrollkästchen 398": true,
     "Kontrollkästchen 399": true,
