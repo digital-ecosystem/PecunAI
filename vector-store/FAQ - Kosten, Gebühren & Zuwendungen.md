@@ -25,7 +25,7 @@ Du erhältst immer einen vollständigen **Kosten-Ex-ante-Nachweis** mit Euro-Bet
 
 | Kostenart | Beschreibung | Beispiel / Höhe |
 |------------|--------------|----------------|
-| **Einmalige Kosten** | Beim Einstieg (z. B. Vermittlungsgebühr, Ausgabeaufschlag) | Vermittlungsgebühr 3× Monatsrate beim Sparplan oder 3 % vom Einmalerlag |
+| **Einmalige Kosten** | Beim Einstieg (Vermittlungsgebühr bzw. Set-up-Fee) | **individuell vereinbart** — üblich sind 3× Monatsrate beim Sparplan bzw. ca. 3 % vom Einmalerlag |
 | **Laufende Kosten** | Jährlich wiederkehrende Kosten für Verwaltung, Depot, Service | 0,39 % p.a. froots-Verwaltung, 0,24 % Depot, 1,11 % Servicegebühr |
 | **Produktkosten (TER)** | Interne Fonds-/ETF-Kosten, die im Produkt enthalten sind | ca. 0,14 – 0,17 % p.a. |
 | **Transaktionskosten** | Kosten pro Kauf/Verkauf von Wertpapieren | **50 Transaktionen pro Jahr kostenfrei**, danach 2,40 € je Transaktion (inkl. USt) — im Regelfall ≈ 0,02 % p.a. |
@@ -59,8 +59,8 @@ Du erhältst immer einen vollständigen **Kosten-Ex-ante-Nachweis** mit Euro-Bet
 
 ## 4. Wie unterscheiden sich Kosten bei Einmalerlag und Sparplan?
 
-- **Einmalerlag:** einmalige Vermittlungsgebühr ~ 3 %, danach nur laufende Gebühren.  
-- **Sparplan:** einmalig 3× Monatsrate (z. B. 600 € bei 200 €/Monat), danach laufende Gebühren.  
+- **Einmalerlag:** einmalige Vermittlungsgebühr, üblicherweise rund 3 % — danach nur laufende Gebühren.  
+- **Sparplan:** einmalige Set-up-Fee, üblicherweise das 3-fache der Monatsrate (z. B. 600 € bei 200 €/Monat) — danach laufende Gebühren.  
 Über die Laufzeit (z. B. 10 Jahre) ist dieses Modell meist **günstiger** als ein klassischer Ausgabeaufschlag bei Banken (der bei jedem Kauf anfällt).  
 
 > *Praxisbeispiel aus Beratung:*  

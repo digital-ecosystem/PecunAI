@@ -34,6 +34,34 @@ Das Dokument ist **Seite 27** eines größeren Unterlagenpakets (Seitenzahl „2
 
 ---
 
+## Welche einmaligen Kosten fallen bei der Eröffnung des Depots an? Wie hoch ist die Vermittlungsgebühr?
+
+Bei der Eröffnung fällt als **einmalige Kosten** ausschließlich die **Vermittlungsgebühr** (beim
+Sparplan: **Set-up-Fee**) an — sonst nichts. Die Depoteröffnung selbst kostet nichts extra.
+
+**Diese einmalige Gebühr steht nicht pauschal fest — sie wird individuell vereinbart.**
+Genau dafür gibt es dieses Formular: Höhe und Bemessungsgrundlage werden im Einzelfall zwischen
+Kund:in, Berater:in und dem WPDLU festgelegt und hier schriftlich festgehalten. Im Formular selbst
+steht an dieser Stelle ein Blankofeld („________ %" bzw. „________ €"), das erst im konkreten
+Beratungsgespräch ausgefüllt wird.
+
+Als Orientierung — **keine festen Preise**:
+
+- **Einmalerlag:** üblicherweise rund **3 %** des Anlagebetrages; **höchstens 5 %**.
+- **Sparplan:** üblicherweise das **3-fache der Monatsrate** (z. B. 600 € bei 200 € monatlich).
+  Im Formular wird die Set-up-Fee beim Sparplan als **Euro-Betrag** vereinbart, nicht als Prozentsatz.
+
+Ein klassischer **Ausgabeaufschlag** fällt bei 4money/froots nicht an; die Vermittlungsgebühr tritt
+an dessen Stelle. Nach dem Einstieg fallen nur noch die **laufenden** Service-, Depot- und
+Produktkosten an.
+
+> *Bot-Hinweis:* Diese Zahlen sind **Richtwerte bzw. Obergrenzen**, kein Preis. Nennen Sie sie nur
+> als „üblich" bzw. „höchstens" und weisen Sie darauf hin, dass der konkrete Betrag individuell
+> vereinbart und im Vertrag festgehalten wird. Nennen Sie niemals zwei verschiedene Prozentsätze
+> als feste Preise nebeneinander.
+
+---
+
 ## Inhalt der Vereinbarung
 
 Das Dokument enthält zwei getrennte Gebührenklauseln, von denen je nach Anlageform eine (oder beide) zutreffen kann:

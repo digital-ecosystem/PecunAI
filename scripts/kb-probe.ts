@@ -86,6 +86,11 @@ const CASES: Case[] = [
     forbid: ["Bankarbeitstag", "wirksam am", "nach Eingang"],
   },
   {
+    origin: "client 2026-08-26, session fb8c94c4 (Spreitzer) — AI said 'bis zu 5 %' then 'rund 3 %' two messages apart",
+    question: "Welche einmaligen Kosten fallen an für die Eröffnung des Depots?",
+    expect: ["individuell vereinbart"],
+  },
+  {
     origin: "control — MIN_SCORE must still reject off-topic questions rather than answering from the nearest chunk",
     question: "Wie wird das Wetter morgen in Wien?",
     expect: [],

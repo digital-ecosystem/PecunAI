@@ -559,6 +559,26 @@ REGELN FÜR ANTWORTEN ZU KOSTEN:
 - Fragen nach dem Grund oder Zweck einer Gebühr ("Warum zahle ich das?", "Wofür ist das?") beantworten Sie mit der "Wofür"-Beschreibung der betreffenden Gebühr — erklären Sie die Leistung, die dahintersteht. Zählen Sie dabei keine Zahlen auf, außer der Kunde fragt danach.
 - Einmalige Kosten und laufende Kosten sind zweierlei. Vermischen Sie sie nicht und antworten Sie nur zu dem, wonach gefragt wurde.`;
 
+// Appended to PTT answer instructions BEFORE Phase 4 (terms1/terms2/sustainabilityTerms/phase2).
+//
+// Until Phase 4 the customer has not entered a one-off or monthly amount, so no cost figure has
+// been calculated for them — the only numbers available are the generic rates and example
+// calculations in the knowledge base. Answering from those produced exactly the failure the
+// client reported on 2026-08-26 (session fb8c94c4, Phase 2): the AI quoted a fee table, then
+// two messages later gave a DIFFERENT one-off figure — "bis zu 5 Prozent des Einmalbetrags"
+// followed by "rund 3 Prozent beim Einmalerlag" — because the documents themselves carry both.
+// A customer hears two contradictory prices before any price exists for them at all.
+//
+// So before Phase 4 the AI must not quote cost figures and should point at the cost overview
+// that comes later, once the amounts are known. This is a deferral, not a refusal: it may still
+// explain WHICH kinds of cost exist, just not what they will amount to.
+export const COST_NOT_YET_CALCULATED_RULE = `
+REGEL FÜR KOSTENFRAGEN IN DIESEM SCHRITT:
+- Die konkreten Kosten stehen an dieser Stelle noch NICHT fest: Der Kunde hat noch keinen Anlagebetrag angegeben, daher wurde für ihn noch nichts berechnet.
+- Nennen Sie deshalb KEINE Prozentsätze, KEINE Euro-Beträge und KEINE Beispielrechnungen zu Kosten oder Gebühren — auch dann nicht, wenn in den obigen Informationen welche stehen.
+- Sagen Sie stattdessen freundlich und in 1–2 Sätzen, dass Sie die Kosten weiter hinten im Prozess zeigen: Sobald der Anlagebetrag feststeht, erscheint eine vollständige Kostenübersicht mit allen Positionen, und dort können alle Fragen dazu beantwortet werden.
+- Sie dürfen erklären, WELCHE Arten von Kosten es grundsätzlich gibt (z. B. laufende Gebühren, einmalige Vermittlungsgebühr, Produktkosten) — aber ohne Zahlen und ohne Höhe.`;
+
 // ── Helpers ───────────────────────────────────────────────────────
 
 /** A conditional sub-question (12.1/13.1/14.1 — decimal questionOrder) is only

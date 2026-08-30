@@ -1,6 +1,6 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { ChatMessage } from "./types";
-import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, ADVISOR_PERSONA, buildPhase4PresentationContext, PHASE4_COST_ANSWER_RULES, PHASE5_SCREEN_CONTEXT, GERMAN_SPEECH_DIRECTIVE, isAskableNow } from "./prompts";
+import { buildSystemPrompt, INTRO_INSTRUCTIONS, TERMS1_EXPLAIN_INSTRUCTIONS, TERMS2_EXPLAIN_INSTRUCTIONS, SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, PHASE4_REENTRY_SYSTEM_PROMPT, CONTRACT_DOCUMENT_INTRO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, ADVISOR_PERSONA, buildPhase4PresentationContext, PHASE4_COST_ANSWER_RULES, COST_NOT_YET_CALCULATED_RULE, PHASE5_SCREEN_CONTEXT, GERMAN_SPEECH_DIRECTIVE, isAskableNow } from "./prompts";
 import { TOOLS } from "./tools";
 import { base64ToPCM16AudioBuffer } from "./audio";
 import type { VoiceContext } from "./voiceContext";
@@ -504,26 +504,48 @@ export async function handleWsMessage(
             )
           : fullTranscriptSearch();
 
-        const phase4Data = vc.pttContextRef.current === 'phase4'
+        // Phase 6 gets the same cost data as Phase 4. It comes AFTER the cost overview, so the
+        // customer's real figures exist by then — but Phase 6 had no grounding at all, which meant
+        // a cost question in the final Q&A was answered from generic FAQ text while the customer's
+        // own numbers sat one phase back. Same root cause as the pre-Phase-4 problem, opposite end
+        // of the flow: there the figures did not exist yet, here they existed and went unused.
+        const costData = (vc.pttContextRef.current === 'phase4' || vc.pttContextRef.current === 'phase6')
           ? buildPhase4PresentationContext(questionsRef.current, savedAnswersRef.current, vc.productRef.current)
           : null;
-        const screenContext = phase4Data
-          ? `${phase4Data}\n${PHASE4_COST_ANSWER_RULES}`
+
+        // How to describe the grounding block to the model. Phase 4 shows the cost table on
+        // screen right now; Phase 6 does not — there it is a recap of a screen already passed, and
+        // saying "sieht gerade" would be a lie the model would repeat back to the customer.
+        const groundingLabel = vc.pttContextRef.current === 'phase6'
+          ? 'die Kostenübersicht, die der Kunde in einem früheren Schritt bereits gesehen hat'
+          : 'dem, was der Kunde gerade auf dem Bildschirm sieht';
+
+        const screenContext = costData
+          ? `${costData}\n${PHASE4_COST_ANSWER_RULES}`
           : vc.pttContextRef.current === 'phase5'
           ? PHASE5_SCREEN_CONTEXT
           : null;
 
+        // Before Phase 4 nothing has been calculated for this customer, so cost figures pulled
+        // from the documents are generic at best and contradictory at worst. Defer instead —
+        // see COST_NOT_YET_CALCULATED_RULE. Phases 5 and 6 come AFTER the cost overview, so they
+        // keep answering normally: by then the customer has already seen their real numbers.
+        const costRule = ['terms1', 'terms2', 'sustainabilityTerms', 'phase2']
+          .includes(vc.pttContextRef.current ?? '')
+          ? `\n\n${COST_NOT_YET_CALCULATED_RULE}`
+          : '';
+
         searchPromise.then(results => {
           if (!results || results.trim() === "" || results === "No relevant content found.") {
             if (screenContext) {
-              send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Suche in ${docLabel} hat für diese Frage nichts geliefert. Ihnen liegen aber die folgenden Informationen zu dem vor, was der Kunde gerade auf dem Bildschirm sieht:\n\n${screenContext}\n\nWenn die Frage des Kunden damit beantwortet werden kann, beantworten Sie sie in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Andernfalls teilen Sie dem Kunden freundlich mit, dass diese spezifische Information hier nicht verfügbar ist. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
+              send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Suche in ${docLabel} hat für diese Frage nichts geliefert. Ihnen liegen aber die folgenden Informationen zu ${groundingLabel} vor:\n\n${screenContext}\n\nWenn die Frage des Kunden damit beantwortet werden kann, beantworten Sie sie in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Andernfalls teilen Sie dem Kunden freundlich mit, dass diese spezifische Information hier nicht verfügbar ist. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
             } else {
-              send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Suche in ${docLabel} hat für diese Frage keine passende Antwort gefunden. Teilen Sie dem Kunden freundlich mit, dass diese spezifische Information nicht im Dokument verfügbar ist, und laden Sie ihn ein, eine andere Frage zu stellen.` } });
+              send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Suche in ${docLabel} hat für diese Frage keine passende Antwort gefunden. Teilen Sie dem Kunden freundlich mit, dass diese spezifische Information nicht im Dokument verfügbar ist, und laden Sie ihn ein, eine andere Frage zu stellen.${costRule}` } });
             }
           } else if (screenContext) {
-            send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Dokumentensuche hat folgende allgemeine Informationen geliefert:\n\n${results}\n\nZusätzlich liegen Ihnen die folgenden Informationen zu dem vor, was der Kunde gerade auf dem Bildschirm sieht:\n\n${screenContext}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser beiden Quellen. Bezieht sich die Frage auf etwas, das der Kunde auf dem Bildschirm sieht, nutzen Sie vorrangig die Bildschirm-Informationen. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
+            send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Dokumentensuche hat folgende allgemeine Informationen geliefert:\n\n${results}\n\nZusätzlich liegen Ihnen die folgenden Informationen zu ${groundingLabel} vor:\n\n${screenContext}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser beiden Quellen. Bezieht sich die Frage auf die Veranlagung oder die Kosten des Kunden, nutzen Sie vorrangig diese konkreten Informationen statt allgemeiner Angaben aus den Dokumenten. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
           } else {
-            send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Dokumentensuche hat folgende Informationen geliefert:\n\n${results}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.` } });
+            send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Die Dokumentensuche hat folgende Informationen geliefert:\n\n${results}\n\nBeantworten Sie die Frage des Kunden in 2–3 klaren, natürlichen Sätzen ausschließlich auf Basis dieser Informationen. Fügen Sie keine Informationen aus Ihrem Trainingswissen hinzu.${costRule}` } });
           }
         }).catch(() => {
           send({ type: "response.create", response: { instructions: `Sie sind Digital Onboarding Guide. ${langTag()} Bei der Dokumentensuche ist ein technischer Fehler aufgetreten. Entschuldigen Sie sich kurz und bitten Sie den Kunden, es erneut zu versuchen.` } });
