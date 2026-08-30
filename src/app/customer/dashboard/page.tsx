@@ -514,20 +514,23 @@ const Dashboard = () => {
                                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-text-primary/40 p-4 backdrop-blur-sm">
                                     <div className="w-full max-w-2xl rounded-2xl bg-surface-card p-5 shadow-overlay sm:p-8">
                                         <h2 className="mb-3 text-lg font-semibold text-text-primary sm:text-xl">
-                                            Willkommen bei Digital Onboarding Guide.
+                                            Willkommen beim Digital Onboarding Guide.
                                         </h2>
                                         <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1 text-sm text-text-primary sm:text-base">
                                             <p>
-                                                Diese Onboarding-Strecke ist der erste Schritt Ihrer Finanzberatung. In den nächsten Schritten erfassen wir gemeinsam relevante Informationen wie Ihre Ziele, Erfahrungen, finanzielle Situation und Risikoneigung. Daraus entsteht ein persönliches Anlegerprofil.
+                                                Diese Onboarding-Strecke ist der erste Schritt Ihrer Finanzberatung. Von Beginn an begleitet Sie unser digitaler KI-Assistent durch den gesamten Prozess. Er führt Sie verständlich durch die einzelnen Schritte, erläutert Inhalte, beantwortet Ihre Fragen und unterstützt Sie bei der Erfassung der erforderlichen Angaben.
                                             </p>
                                             <p>
-                                                Auf Basis dieses Profils wird ein Anlagevorschlag erstellt, der aus konkreten Vermögensverwaltungsstrategien von froots (Asset Management by froots GmbH) besteht. Diese Strategien sind darauf ausgelegt, langfristig und strukturiert zu investieren und werden individuell auf Ihr Profil abgestimmt.
+                                                Gemeinsam erfassen wir relevante Informationen zu Ihren Zielen, bisherigen Erfahrungen, Ihrer finanziellen Situation und Ihrer Risikoneigung. Daraus entsteht Ihr persönliches Anlegerprofil.
                                             </p>
                                             <p>
-                                                Die Anlageberatung und Vermittlung erfolgt durch 4money Financial Services GmbH, die Vermögensverwaltung übernimmt froots (Asset Management by froots GmbH). Ihr Wertpapierdepot wird auf Ihren Namen bei der Schelhammer Capital Bank geführt.
+                                                Auf Basis dieses Profils wird ein individueller Anlagevorschlag erstellt, der aus konkreten Vermögensverwaltungsstrategien von froots (Asset Management by froots GmbH) besteht. Diese Strategien sind auf langfristiges und strukturiertes Investieren ausgerichtet und werden auf Ihr persönliches Profil abgestimmt. Auch bei der Vorstellung und Erläuterung des Anlagevorschlags steht Ihnen der digitale KI-Assistent zur Seite.
                                             </p>
                                             <p>
-                                                Am Ende der Beratungsstrecke steht Ihnen Digital Onboarding Guide – unser digitaler KI-Assistent – zur Verfügung, um Ihre Fragen zu beantworten und Sie bei der Entscheidungsfindung zu unterstützen.
+                                                Die Anlageberatung und Vermittlung erfolgt durch die 4money Financial Services GmbH. Die Vermögensverwaltung übernimmt froots (Asset Management by froots GmbH). Ihr Wertpapierdepot wird auf Ihren Namen bei der Schelhammer Capital Bank geführt.
+                                            </p>
+                                            <p>
+                                                Der Digital Onboarding Guide begleitet Sie durchgehend – von den ersten Informationen über die Erstellung Ihres Anlegerprofils bis zur Erläuterung des Anlagevorschlags und Ihrer abschließenden Entscheidungsfindung. Sie können jederzeit Fragen stellen oder um zusätzliche Erklärungen bitten.
                                             </p>
                                             <p>
                                                 Ihre Angaben werden vertraulich behandelt und ausschließlich im Rahmen dieser Beratung verwendet.
