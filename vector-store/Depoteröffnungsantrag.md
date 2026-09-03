@@ -73,6 +73,24 @@ daher **jederzeit geschlossen** werden. Es gibt keine Mindestbindung über Jahre
 
 ---
 
+## Wie viel muss ich mindestens investieren? Gibt es einen Mindestbetrag für den Einmalerlag oder für spätere Zuzahlungen?
+
+- **Erste Einmalveranlagung (Einmalerlag) beim Start: mindestens 1.500 €.**
+- **Spätere Zuzahlungen: KEIN Mindestbetrag.** Wer bereits ein Depot hat und zusätzliches Geld
+  einzahlen möchte, ist an keine Untergrenze gebunden — jeder Betrag ist möglich.
+- **Monatlicher Sparplan:** die Sparrate wird im Onboarding erfasst; die dort geforderte
+  Mindestrate beträgt 75 € pro Monat.
+
+Der Mindestbetrag von 1.500 € gilt also **nur für den Einstieg**, nicht für alles danach. Wer
+später aufstocken will, kann das in beliebiger Höhe tun.
+
+> *Bot-Hinweis:* Diese Frage wird häufig gestellt und ist klar zu beantworten — nicht auf „steht
+> nicht in den Unterlagen" oder auf die Beraterin/den Berater verweisen. Unterscheiden Sie immer
+> zwischen der **ersten** Veranlagung (1.500 € Minimum) und **späteren Zuzahlungen** (kein
+> Minimum); wird nach „einer künftigen Einmalzahlung" gefragt, ist die Zuzahlung gemeint.
+
+---
+
 ## Vermögensaufbau (Sparplan)
 - Nur für **täglich handelbare** Finanzinstrumente; Mindestrate **EUR 50**, jederzeit änderbar; Abbuchung monatlich (1., 11. oder 21.) oder quartalsweise (21.1./4./7./10.).
 - Bei **mindestens zweimonatigem Zahlungsverzug** werden Lastschriften ausgesetzt; Wiederaufnahme nur durch aktive Kundenerklärung; Kündigung jederzeit möglich (bzw. Aussetzen der Raten nach schriftlicher Mitteilung).

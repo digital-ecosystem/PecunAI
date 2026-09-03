@@ -91,6 +91,16 @@ const CASES: Case[] = [
     expect: ["individuell vereinbart"],
   },
   {
+    origin: "client 2026-08-29, session 5159bd76 (Bocsan) — asked 4x, AI said 'kein Mindestbetrag angegeben' every time; 1.500 existed only as Q18.minValue in the DB, nowhere in the docs",
+    question: "Was ist der Mindestbetrag für den Einmalerlag?",
+    expect: ["1.500"],
+  },
+  {
+    origin: "client 2026-08-29, same session — the distinction that matters: later top-ups have NO minimum",
+    question: "Was ist der Mindestbetrag für die Einmalzahlung, die ich in Zukunft vielleicht tätigen will?",
+    expect: ["Zuzahlungen"],
+  },
+  {
     origin: "control — MIN_SCORE must still reject off-topic questions rather than answering from the nearest chunk",
     question: "Wie wird das Wetter morgen in Wien?",
     expect: [],

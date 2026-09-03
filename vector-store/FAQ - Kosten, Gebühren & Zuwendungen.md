@@ -198,6 +198,8 @@ Bei einer Auszahlung fallen typischerweise nur folgende Punkte an:
 - Service‑/Depot‑/VV‑Gebühren werden weiterhin prozentual berechnet — nur auf den dann höheren oder niedrigeren Depotwert.  
 - Produktkosten (TER) bleiben im Produkt eingepreist.
 
+**Für Zuzahlungen gibt es keinen Mindestbetrag.** Die Untergrenze von 1.500 € gilt nur für die *erste* Einmalveranlagung beim Start; wer bereits ein Depot hat, kann in beliebiger Höhe aufstocken.
+
 **Eine Vermittlungsgebühr für die Zuzahlung wird individuell vereinbart.** Sie ergibt sich nicht automatisch aus dem bestehenden Vertrag: Höhe und Bemessungsgrundlage werden im Einzelfall zwischen Kund:in, Berater:in und dem WPDLU festgelegt und in der „Vereinbarung Set‑up Fee / Vermittlungsgebühr“ schriftlich festgehalten.
 
 > *Bot‑Hinweis:* Keine Rendite‑ oder Wachstums‑Rechenbeispiele. Bei Unsicherheit: auf Kostenausweis verweisen oder menschlichen Berater hinzuziehen.
