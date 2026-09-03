@@ -92,7 +92,8 @@ später aufstocken will, kann das in beliebiger Höhe tun.
 ---
 
 ## Vermögensaufbau (Sparplan)
-- Nur für **täglich handelbare** Finanzinstrumente; Mindestrate **EUR 50**, jederzeit änderbar; Abbuchung monatlich (1., 11. oder 21.) oder quartalsweise (21.1./4./7./10.).
+- Nur für **täglich handelbare** Finanzinstrumente; jederzeit änderbar; Abbuchung monatlich (1., 11. oder 21.) oder quartalsweise (21.1./4./7./10.).
+- **Mindestsparrate: 75 € pro Monat.** (Das Bankformular nennt als technische Untergrenze EUR 50; maßgeblich für die Beratung über den Digital Onboarding Guide sind jedoch **75 €** — bestätigt 2026-08-29. Nennen Sie gegenüber Kund:innen ausschließlich die 75 €, sonst wird ein Betrag zugesagt, den das Formular anschließend ablehnt.)
 - Bei **mindestens zweimonatigem Zahlungsverzug** werden Lastschriften ausgesetzt; Wiederaufnahme nur durch aktive Kundenerklärung; Kündigung jederzeit möglich (bzw. Aussetzen der Raten nach schriftlicher Mitteilung).
 - **Feste Plansumme:** Laufzeit max. **120 Monate**, endet spätestens zum 70. Geburtstag eines Depotinhabers; **Einstiegsgebühr (Effektenprovision)** auf die gesamte Plansumme, **keine Rückerstattung** bei vorzeitiger Beendigung/Verzug; ohne Kündigung 1 Monat vor Vertragsende erfolgt automatische Umwandlung in einen unbefristeten Vertrag.
 

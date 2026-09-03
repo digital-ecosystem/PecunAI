@@ -101,6 +101,12 @@ const CASES: Case[] = [
     expect: ["Zuzahlungen"],
   },
   {
+    origin: "client confirmed 2026-08-29: monthly minimum is 75 €. The bank form says EUR 50, which the AI could quote while the onboarding form rejects anything under 75 — so 50 must not be reachable as the answer",
+    question: "Wie hoch ist die monatliche Mindestsparrate?",
+    expect: ["75"],
+    forbid: ["Mindestrate **EUR 50**"],
+  },
+  {
     origin: "control — MIN_SCORE must still reject off-topic questions rather than answering from the nearest chunk",
     question: "Wie wird das Wetter morgen in Wien?",
     expect: [],
