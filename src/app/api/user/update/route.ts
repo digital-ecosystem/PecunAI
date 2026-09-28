@@ -2,8 +2,30 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { AuthService } from "@/lib/auth";
+import { fieldShape, logRouteError } from "@/lib/errorLog";
+
+/**
+ * Every column the contract needs. Logged by NAME and TYPE only on failure —
+ * never by value; this payload carries the customer's identity and IBAN.
+ */
+const REPORTED_FIELDS = [
+  "firstName", "lastName", "email", "phone", "countryCode", "gender",
+  "dateOfBirth", "placeOfBirth", "birthCountry", "nationality",
+  "street", "houseNumber", "postalCode", "city", "country",
+  "maritalStatus", "education", "industry", "currentProfession", "occupation",
+  "isSelfEmployed", "isPep", "actsOnOwnAccount", "residenceAbroad",
+  "customerClassification",
+  "iban", "bic", "bankName",
+  "documentType", "documentNumber", "issuingAuthority", "issuedOn", "validUntil",
+  "isTaxResidentAT", "isTaxResidentOther", "taxResidencyCountry",
+] as const;
 
 export async function PATCH(request: Request) {
+  // Hoisted so the catch block can say which session failed and which field
+  // was malformed. See the 2026-09-25 incident note in src/lib/errorLog.ts.
+  let sessionId: string | null = null;
+  let loggedBody: unknown = null;
+
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('auth-token')?.value;
@@ -19,12 +41,14 @@ export async function PATCH(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    sessionId = id;
 
     if (!id) {
       return NextResponse.json({ error: 'Fehlende ID' }, { status: 400 });
     }
 
     const body = await request.json();
+    loggedBody = body;
     // Destructure all fields from PersonalInfo schema and document fields
     const {
       actsOnOwnAccount,
@@ -205,7 +229,10 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ success: true, user: updatedOrCreatedUser });
   } catch (error) {
-    console.error("Update user error:", error);
+    logRouteError("PATCH /api/user/update", error, {
+      sessionId,
+      fields: fieldShape(loggedBody, REPORTED_FIELDS),
+    });
     return NextResponse.json({ success: false, message: "Benutzer konnte nicht aktualisiert werden" }, { status: 500 });
   }
 }
