@@ -74,9 +74,13 @@ export default function VoiceSigningPhase({ sessionId, onBack }: VoiceSigningPha
     setErrorMessage(null);
     try {
       const userInfoRes = await fetch(`/api/user/info/${sessionId}`, { method: "GET" });
-      const userInfoData = await userInfoRes.json();
+      const userInfoData = await userInfoRes.json().catch(() => null);
       if (!userInfoData?.success || !userInfoData.user) {
-        throw new Error(userInfoData?.message || "Failed to load user info");
+        throw new Error(
+          userInfoData?.code === "PERSONAL_INFO_MISSING"
+            ? "Ihre persönlichen Daten konnten nicht geladen werden, weil sie nicht vollständig gespeichert wurden. Bitte gehen Sie mit „Zurück“ schrittweise bis zum Formular mit Ihren persönlichen Daten, geben Sie Ihre Angaben dort erneut ein und speichern Sie sie. Danach können Sie die Unterschrift starten. Ein erneuter Versuch der Unterschrift allein hilft hier nicht."
+            : userInfoData?.message || "Ihre Daten konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+        );
       }
       const user = userInfoData.user;
 

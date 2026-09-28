@@ -53,6 +53,17 @@ export async function GET(
       }
     });
 
+    if (!info) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'PERSONAL_INFO_MISSING',
+          message: 'Für diese Sitzung sind keine persönlichen Daten gespeichert.',
+        },
+        { status: 404 },
+      );
+    }
+
     return NextResponse.json({ success: true, user: info });
   } catch (error) {
     console.error('Error fetching personalInfo:', error);

@@ -104,6 +104,7 @@ export default function VoicePersonalInfoForm({ sessionId, onSubmitted, onPrimeA
   const [highRiskCountries, setHighRiskCountries] = useState<string[]>([]);
   const [isPepStop, setIsPepStop] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const formik = useFormik<PersonalInfoFormData>({
     initialValues: {
@@ -274,12 +275,24 @@ export default function VoicePersonalInfoForm({ sessionId, onSubmitted, onPrimeA
           taxResidencyCountry: data.taxResidencyCountry,
         }),
       });
-      const result = await response.json();
-      if (!result.success) {
-        console.error("Failed to update user info:", result.message);
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.success) {
+        console.error("Failed to update user info:", response.status, result?.message ?? result?.error);
+        setSaveError(
+          response.status === 401
+            ? "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an und versuchen Sie es dann noch einmal."
+            : "Ihre Angaben konnten nicht gespeichert werden. Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.",
+        );
+        setSubmitting(false);
+        return;
       }
+      setSaveError(null);
     } catch (error) {
       console.error("API error:", error);
+      setSaveError("Ihre Angaben konnten nicht gespeichert werden. Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.");
+      setSubmitting(false);
+      return;
     }
 
     // High-Risk & Tax Residency Checks — part of the legal compliance gate.
@@ -346,6 +359,17 @@ export default function VoicePersonalInfoForm({ sessionId, onSubmitted, onPrimeA
           />
         </div>
       </div>
+
+      {saveError && (
+        <div className="px-4 sm:px-6 md:px-8 pb-2">
+          <div
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          >
+            {saveError}
+          </div>
+        </div>
+      )}
 
       <div className="px-4 sm:px-6 md:px-8 pb-6 flex justify-end">
         <button
