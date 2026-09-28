@@ -75,3 +75,31 @@ export interface ChatMessage {
   sender:      "ai" | "user";
   timestamp:   Date;
 }
+
+/** Which Phase 1 compliance rule an answer triggered. */
+export type ComplianceStopKind = "q3" | "q4" | "q7" | "assetKnowledge";
+
+export interface ComplianceStop {
+  kind:   ComplianceStopKind;
+  /** Recorded in stepData.sessionBlocked — these strings are the existing ones. */
+  reason: string;
+  /** Q12/13/14 only: the asset class, needed for the assistant's closing message. */
+  assetTitle?: string;
+}
+
+/**
+ * An answer that would end the session, held while the customer confirms it.
+ * Nothing is saved and nothing is blocked until they do. See
+ * private-documents/after-demo/COMPLIANCE_STOP_CONFIRMATION_PLAN.md.
+ */
+export interface PendingComplianceStop {
+  stop:         ComplianceStop;
+  questionId:   string;
+  /** The answer as stored, kept so the confirm path can save it. */
+  value:        string;
+  /** Shown back to the customer so a misclick is visible. */
+  questionText: string;
+  answerLabel:  string;
+  /** Voice answers need the assistant told to re-ask; tap answers do not. */
+  source:       "tap" | "voice";
+}

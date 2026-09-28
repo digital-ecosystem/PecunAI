@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Search, CheckCircle, Clock, FileText, ChevronRight, X, Loader2, Hourglass, Ban, MessageSquare, ArrowLeft, Bot, User } from 'lucide-react';
+import { Search, Unlock, CheckCircle, Clock, FileText, ChevronRight, X, Loader2, Hourglass, Ban, MessageSquare, ArrowLeft, Bot, User } from 'lucide-react';
 import { DashboardQuestions, Session, SessionStatus } from '@/types';
 import { useRouter } from 'next/navigation';
 import AdminDashboardShell from '@/components/admin/AdminDashboardShell';
@@ -27,6 +27,7 @@ const Dashboard = () => {
     const [statusFilter, setStatusFilter] = useState('all');
     const [sessions, setSessions] = useState<Session[]>([]);
     const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+    const [unblockingId, setUnblockingId] = useState<string | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [questionAnswer, setQuestionAnswer] = useState<DashboardQuestions[]>([]);
     const router = useRouter();
@@ -182,6 +183,43 @@ const Dashboard = () => {
             console.error('Failed to toggle session exclude:', error);
         } finally {
             setTogglingId(null);
+        }
+    };
+
+    /** Lift a Phase 1 compliance stop. Admin-only and recorded server-side — this
+     *  undoes a regulatory decision, so it is not a casual toggle. See
+     *  private-documents/after-demo/COMPLIANCE_STOP_CONFIRMATION_PLAN.md. */
+    const handleUnblock = async (sessionId: string) => {
+        const reason = window.prompt(
+            'Warum wird diese Sperre aufgehoben?\n(Wird mit Ihrem Namen protokolliert.)'
+        );
+        if (reason === null) return;          // cancelled
+        if (!reason.trim()) { alert('Bitte geben Sie einen Grund an.'); return; }
+
+        setUnblockingId(sessionId);
+        try {
+            const res = await fetch(`/api/admin/qa-session/${sessionId}/unblock`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ reason: reason.trim() }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setSessions(prev => prev.map(s =>
+                    s.id === sessionId ? { ...s, isBlocked: false } : s
+                ));
+                setSelectedSession(prev =>
+                    prev && prev.id === sessionId ? { ...prev, isBlocked: false } : prev
+                );
+            } else {
+                alert(data.message ?? 'Die Sperre konnte nicht aufgehoben werden.');
+            }
+        } catch (error) {
+            console.error('Failed to unblock session:', error);
+            alert('Die Sperre konnte nicht aufgehoben werden.');
+        } finally {
+            setUnblockingId(null);
         }
     };
 
@@ -556,6 +594,28 @@ const Dashboard = () => {
                                             </div>
                                         )
                                     }
+
+                                    {/* Compliance stop — its own card, because a blocked
+                                        session is DRAFT and never reaches the PENDING
+                                        actions below. */}
+                                    {selectedSession.isBlocked && (
+                                        <div className="rounded-2xl bg-surface-card p-4 shadow-soft">
+                                            <h3 className="mb-1 text-base font-semibold text-text-primary sm:text-lg">Beratung gesperrt</h3>
+                                            <p className="mb-3 text-sm text-text-secondary">
+                                                Diese Beratung wurde aufgrund einer Antwort in Phase 1 beendet. Heben Sie
+                                                die Sperre nur auf, wenn die Antwort nachweislich versehentlich gegeben
+                                                wurde. Die Aufhebung wird mit Ihrem Namen und Ihrer Begründung protokolliert.
+                                            </p>
+                                            <button
+                                                onClick={() => handleUnblock(selectedSession.id)}
+                                                disabled={unblockingId === selectedSession.id}
+                                                className="flex w-full items-center justify-center rounded-xl bg-accent-primary px-4 py-2 text-sm font-medium text-text-on-accent transition-opacity hover:opacity-90 disabled:opacity-50 sm:w-auto"
+                                            >
+                                                <Unlock className="mr-2 h-4 w-4 flex-shrink-0" strokeWidth={1.75} />
+                                                <span>{unblockingId === selectedSession.id ? 'Wird aufgehoben…' : 'Sperre aufheben'}</span>
+                                            </button>
+                                        </div>
+                                    )}
 
                                     {/* Action Buttons */}
                                     {selectedSession.status === SessionStatus.PENDING &&

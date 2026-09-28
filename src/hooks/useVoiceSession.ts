@@ -4,12 +4,13 @@ import { useReducer, useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CarouselQuestion } from "@/components/voice/VoiceCarousel";
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
-import { SessionState, Action, VoiceSessionState, ProductData, ExplainOverlayData, ChatMessage } from "./voice/types";
+import { SessionState, Action, VoiceSessionState, ProductData, ExplainOverlayData, ChatMessage, PendingComplianceStop } from "./voice/types";
 import { makeInitial, reducer } from "./voice/reducer";
 import { base64ToPCM16AudioBuffer, SAMPLE_RATE } from "./voice/audio";
 import { handleFunctionCall as _handleFunctionCall } from "./voice/handleFunctionCall";
 import { handleWsMessage } from "./voice/wsMessageHandler";
 import { handleAnswerConfirmed as _handleAnswerConfirmed } from "./voice/handleAnswerConfirmed";
+import { performComplianceStop } from "./voice/complianceStops";
 import { handlePrev, handleSkipQuestion, handleRequestExplanation, handleCloseExplainOverlay, handleScrollCarousel, handleRevisitQuestions } from "./voice/handleNavigation";
 import { handleMoveToTerms1, handleConfirmTerms1, handleConfirmTerms2, handleConfirmSustainabilityTerms } from "./voice/handleTerms";
 import { handleNotifyChatOpen } from "./voice/handleChat";
@@ -17,7 +18,7 @@ import { PRIVACY_PAUSE_PERSONAL_INFO_INSTRUCTIONS, FINAL_QA_INTRO_INSTRUCTIONS, 
 import type { VoiceContext } from "./voice/voiceContext";
 
 // re-export types consumed by VoiceSessionShell and other components
-export type { SessionState, VoiceSessionState, ProductData, ExplainOverlayData, ChatMessage };
+export type { SessionState, VoiceSessionState, ProductData, ExplainOverlayData, ChatMessage, PendingComplianceStop };
 
 // ── Hook ──────────────────────────────────────────────────────────
 
@@ -194,6 +195,12 @@ export function useVoiceSession({
   // speaking. Cleared once the customer leaves that modal (answers or closes it). See
   // private-documents/after-demo/PHASE_1_FAST_MODE_PLAN.md.
   const [postExplainReaskId, setPostExplainReaskId] = useState<string | null>(null);
+
+  /** An answer that would end the session, held while the customer confirms it on
+   *  screen. Nothing is saved and nothing is blocked until they do. See
+   *  private-documents/after-demo/COMPLIANCE_STOP_CONFIRMATION_PLAN.md. */
+  const [pendingComplianceStop, setPendingComplianceStop] =
+    useState<PendingComplianceStop | null>(null);
   // True while customer is in Phase 1 revisit mode — suppresses auto-advance on submit_answer so
   // the user can change multiple answers freely before confirm_product() triggers advancePhase().
   const isRevisitingRef                            = useRef(initialIsRevisiting);
@@ -1153,7 +1160,7 @@ export function useVoiceSession({
     backToPersonalInfo, backToInvestment, backToContracts, suppressNavBackRef,
     // state setters
     setIsAISpeaking, setBargeInActive, setSavedAnswers, setChatMessages,
-    setIsChatAITyping, setPendingVoiceAnswer, setExplainOverlayData,
+    setIsChatAITyping, setPendingVoiceAnswer, setExplainOverlayData, setPendingComplianceStop,
     setExplainTriggerClose, setTermsSubStep, setVoicePhase,
     setProductSuggestion, setVoiceAnswerCount, setIsRevisiting_internal,
     setMicAnalyserNode, setPostExplainReaskId, setFastModeIntroActive,
@@ -1302,6 +1309,55 @@ export function useVoiceSession({
     (q: CarouselQuestion, v: string) => _handleAnswerConfirmed(q, v, ctxRef.current),
     []
   );
+
+  /** The customer confirmed an answer that ends the digital advice. Only now is
+   *  anything written: the answer is saved, the session is blocked, and the
+   *  assistant explains the handover. See COMPLIANCE_STOP_CONFIRMATION_PLAN.md. */
+  const confirmComplianceStop = useCallback(() => {
+    if (!pendingComplianceStop) return;
+    const pending = pendingComplianceStop;
+    setPendingComplianceStop(null);
+    void performComplianceStop(ctxRef.current, pending);
+  }, [pendingComplianceStop]);
+
+  /** The customer wants to answer again — the usual case, since they arrive at
+   *  that confirmation more often by misclick than by intent. Nothing was saved,
+   *  so this only has to put them back on the question. */
+  const changeComplianceAnswer = useCallback(() => {
+    const pending = pendingComplianceStop;
+    setPendingComplianceStop(null);
+    if (!pending) return;
+
+    const q = questionsRef.current.find(x => x.id === pending.questionId);
+    if (!q) return;
+    const idx = questionsRef.current.findIndex(x => x.id === q.id);
+    if (idx >= 0) dispatch({ type: "SET_INDEX", index: idx });
+    setCard(q.id);
+
+    // Tell the model the answer was withdrawn, so it doesn't carry on as though
+    // it had been given. In Fast Mode it must not speak, but still needs the
+    // context to answer any PTT question about it.
+    const de = langRef.current === "de";
+    send({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text",
+        text: `[SYSTEM: The customer reviewed their answer to question ID ${q.id} and chose to change it. Nothing was saved. The session is NOT blocked.${
+          fastModeRef.current
+            ? " Fast Mode is ON — do NOT speak. They will answer again on screen."
+            : " Ask this question once more, briefly and without comment on the previous answer."
+        }]`,
+      }]},
+    });
+    if (!fastModeRef.current) {
+      send({
+        type: "response.create",
+        response: { instructions: de
+          ? `${ADVISOR_PERSONA(langRef.current)} Stellen Sie die Frage erneut, in einem Satz, ohne die vorherige Antwort zu kommentieren: „${q.text}".`
+          : `${ADVISOR_PERSONA(langRef.current)} Ask this question again in one sentence, without commenting on the previous answer: "${q.text}".`,
+        },
+      });
+    }
+  }, [pendingComplianceStop, send, setCard]);
 
   /** Clears the AI-proposed highlight — called when customer rejects or modal closes without submitting */
   const clearPendingVoiceAnswer = useCallback(() => {
@@ -1632,5 +1688,8 @@ export function useVoiceSession({
     growNextCardRef,
     postExplainReaskId,
     clearPostExplainReask,
+    pendingComplianceStop,
+    confirmComplianceStop,
+    changeComplianceAnswer,
   };
 }

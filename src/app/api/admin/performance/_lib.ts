@@ -19,7 +19,7 @@ export function isCompleted(status: string | null | undefined): boolean {
   );
 }
 
-export async function requireAdmin(): Promise<{ ok: true } | { ok: false; response: NextResponse }> {
+export async function requireAdmin(): Promise<{ ok: true; adminId: string } | { ok: false; response: NextResponse }> {
   const cookie = (await cookies()).get('admin_session')?.value;
   const session = await decrypt(cookie);
   if (!session?.userId || session?.role !== 'admin') {
@@ -28,7 +28,7 @@ export async function requireAdmin(): Promise<{ ok: true } | { ok: false; respon
       response: NextResponse.json({ success: false, message: 'Nicht authentifiziert' }, { status: 401 }),
     };
   }
-  return { ok: true };
+  return { ok: true, adminId: session.userId as string };
 }
 
 export function buildDateWhere(from: string | null, to: string | null) {

@@ -1,6 +1,6 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
-import type { Action, VoiceSessionState, ProductData, ExplainOverlayData, ChatMessage } from "./types";
+import type { Action, VoiceSessionState, ProductData, ExplainOverlayData, ChatMessage, PendingComplianceStop } from "./types";
 
 export type TermsSubStep = 'intro' | 'terms1' | 'terms2' | 'sustainabilityTerms' | null;
 export type PttContext    = 'terms1' | 'terms2' | 'sustainabilityTerms' | 'phase1' | 'phase2' | 'phase4' | 'phase5' | 'phase6' | null;
@@ -50,6 +50,9 @@ export interface VoiceContext {
   setIsChatAITyping:        (v: boolean) => void;
   setPendingVoiceAnswer:    (v: { questionId: string; value: string; label: string } | null) => void;
   setExplainOverlayData:    (v: ExplainOverlayData | null) => void;
+  /** Holds an answer that would end the session while the customer confirms it.
+   *  Null clears the confirmation. See COMPLIANCE_STOP_CONFIRMATION_PLAN.md. */
+  setPendingComplianceStop: (v: PendingComplianceStop | null) => void;
   setExplainTriggerClose:   (v: boolean) => void;
   setTermsSubStep:          (v: TermsSubStep) => void;
   setVoicePhase:            (v: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) => void;

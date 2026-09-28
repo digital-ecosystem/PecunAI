@@ -1,8 +1,9 @@
 import { useVoiceSessionStore } from "@/store/voiceSessionStore";
 import type { CarouselQuestion } from "@/components/voice/VoiceCarousel";
-import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, BLOCKER_SYSTEM_MSG, BLOCKER_Q3_INSTRUCTIONS, BLOCKER_Q4_INSTRUCTIONS, BLOCKER_Q7_INSTRUCTIONS, BLOCKER_ASSET_KNOWLEDGE_INSTRUCTIONS, ASSET_KNOWLEDGE_CONTEXT_MSG, ASSET_KNOWLEDGE_INTRO_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./prompts";
+import { SUSTAINABILITY_EXPLAIN_INSTRUCTIONS, ASSET_CLASS_OVERLAY, ASSET_KNOWLEDGE_CONTEXT_MSG, ASSET_KNOWLEDGE_INTRO_INSTRUCTIONS, makeNextTopicMsg, isAskableNow, ADVISOR_PERSONA, GERMAN_SPEECH_DIRECTIVE } from "./prompts";
 import { zeroAllowedLabel, zeroBlockedReason } from "@/lib/questionRules";
 import type { VoiceContext } from "./voiceContext";
+import { evaluateComplianceStop } from "./complianceStops";
 
 export async function handleFunctionCall(
   name:     string,
@@ -16,12 +17,12 @@ export async function handleFunctionCall(
     explainOpenRef, knowledgeBlockerNextQRef, kbExplanationStartedRef, audioEndTimer,
     termsSubStepRef, explainedQuestionsRef, chatOpenRef, pttVectorStoreRef,
     sustainabilityConfirmedRef, pendingVoiceTranscriptRef, applyPendingTranscriptRef,
-    skipInProgressRef, prevInProgressRef, assetKnowledgeShownRef, pendingPhaseTransitionRef, fastModeRef, mutedRef,
+    skipInProgressRef, prevInProgressRef, assetKnowledgeShownRef, fastModeRef, mutedRef,
     explainAwaitConfirmRef, explainAssetOrderRef,
-    send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, blockSession, advancePhase,
+    send, dispatch, setCard, appendChatMessage, saveAnswer, saveVoiceState, advancePhase,
     advanceToPersonalInfo, confirmInvestment, confirmContracts, confirmReadyToSign,
-    backToPersonalInfo, backToInvestment, backToContracts, setIsRevisiting_internal, router, sessionId,
-    setPendingVoiceAnswer, setExplainOverlayData, setTermsSubStep,
+    backToPersonalInfo, backToInvestment, backToContracts, setIsRevisiting_internal, sessionId,
+    setPendingVoiceAnswer, setExplainOverlayData, setTermsSubStep, setPendingComplianceStop,
     setVoicePhase, setProductSuggestion, setSavedAnswers, setVoiceAnswerCount, setChatMessages,
   } = ctx;
 
@@ -161,6 +162,39 @@ export async function handleFunctionCall(
         return;
       }
 
+      // ── COMPLIANCE STOP: ask before anything is written ──────────────
+      // Same gate as the tap path, evaluated from the same rules. A misheard
+      // spoken answer ends the session exactly as a misclick does, so it gets
+      // the same confirmation. See COMPLIANCE_STOP_CONFIRMATION_PLAN.md.
+      const complianceStop = validatingQ ? evaluateComplianceStop({
+        question:            validatingQ,
+        value,
+        questions:           questionsRef.current,
+        savedAnswers:        savedAnswersRef.current,
+        assetKnowledgeShown: assetKnowledgeShownRef.current,
+      }) : null;
+      if (complianceStop && validatingQ) {
+        pendingVoiceTranscriptRef.current = null;
+        // Answer the tool call now — the model must not sit waiting on a result
+        // while the customer reads the confirmation.
+        sendResult({ success: true });
+        setPendingComplianceStop({
+          stop:         complianceStop,
+          questionId,
+          value,
+          questionText: validatingQ.text,
+          answerLabel:  (validatingQ.options ?? []).find(o => o.value === value || o.id === value)?.label ?? value,
+          source:       "voice",
+        });
+        send({
+          type: "conversation.item.create",
+          item: { type: "message", role: "user", content: [{ type: "input_text",
+            text: "[SYSTEM: That answer would end the digital advice, so the customer is being asked on screen to confirm it. Nothing has been saved and the session is NOT blocked. Say nothing and wait.]",
+          }]},
+        });
+        return;
+      }
+
       await saveAnswer(questionId, value);
 
       const qIdx     = questionsRef.current.findIndex(q => q.id === questionId);
@@ -187,92 +221,6 @@ export async function handleFunctionCall(
       setSavedAnswers(prev => ({ ...prev, [questionId]: value }));
       savedAnswersRef.current = { ...savedAnswersRef.current, [questionId]: value };
       useVoiceSessionStore.getState().markAnswered(questionId, value);
-
-      // ── BLOCKER: Q3 sustainability info not received → session ends ──
-      if (validatingQ?.questionOrder === 3 && value === "no") {
-        blockSession("q3_sustainability_info_not_received");
-        pendingVoiceTranscriptRef.current = null;
-        sendResult({ success: true });
-        pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
-        // Required before the override — see BLOCKER_SYSTEM_MSG's declaration.
-        send({
-          type: "conversation.item.create",
-          item: { type: "message", role: "user", content: [{ type: "input_text", text: BLOCKER_SYSTEM_MSG }] },
-        });
-        send({
-          type: "response.create",
-          response: { instructions: BLOCKER_Q3_INSTRUCTIONS(langRef.current) },
-        });
-        return;
-      }
-
-      // ── BLOCKER: Q4 sustainability preference ────────────────────────
-      // "yes" (must have sustainable) or "no" (refuses all sustainable) → session ends.
-      // "neutral" → continue normally.
-      if (validatingQ?.questionOrder === 4 && (value === "yes" || value === "no")) {
-        blockSession("q4_sustainability_preference_unsupported");
-        pendingVoiceTranscriptRef.current = null;
-        sendResult({ success: true });
-        pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
-        // Required before the override — see BLOCKER_SYSTEM_MSG's declaration.
-        send({
-          type: "conversation.item.create",
-          item: { type: "message", role: "user", content: [{ type: "input_text", text: BLOCKER_SYSTEM_MSG }] },
-        });
-        send({
-          type: "response.create",
-          response: { instructions: BLOCKER_Q4_INSTRUCTIONS(langRef.current) },
-        });
-        return;
-      }
-
-      // ── BLOCKER: Q7 income check — monthly income minus expenses ≤ €150 ──
-      // Q7 is monthly expenses. Check after it's answered, using Q6 (income) already saved.
-      if (validatingQ?.questionOrder === 7) {
-        const q6         = questionsRef.current.find(q => q.questionOrder === 6);
-        const incomeStr  = q6 ? savedAnswersRef.current[q6.id] : undefined;
-        const income     = parseFloat(incomeStr ?? "0");
-        const expenses   = parseFloat(value);
-        if (!isNaN(income) && !isNaN(expenses) && (income - expenses) <= 150) {
-          blockSession("q7_insufficient_disposable_income");
-          pendingVoiceTranscriptRef.current = null;
-          sendResult({ success: true });
-          pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
-          // Required before the override — see BLOCKER_SYSTEM_MSG's declaration.
-          send({
-            type: "conversation.item.create",
-            item: { type: "message", role: "user", content: [{ type: "input_text", text: BLOCKER_SYSTEM_MSG }] },
-          });
-          send({
-            type: "response.create",
-            response: { instructions: BLOCKER_Q7_INSTRUCTIONS(langRef.current) },
-          });
-          return;
-        }
-      }
-
-      // ── ASSET KNOWLEDGE TWO-STRIKE: Q12/13/14 "none" — 2nd (final) attempt ──
-      // Reaching here means assetKnowledgeShownRef already had this question — the customer
-      // still doesn't understand it after seeing the explanation. Hard-block, same pattern as
-      // the Q3/Q4/Q7 blockers above. Placed before end-of-phase detection runs (further below)
-      // so this can't be bypassed by advancePhase() if it happens to be the last remaining question.
-      if (isAssetKnowledgeQ && value === "none") {
-        const overlayEntry = ASSET_CLASS_OVERLAY[validatingQ!.questionOrder!];
-        blockSession(`q${validatingQ!.questionOrder}_asset_knowledge_insufficient`);
-        pendingVoiceTranscriptRef.current = null;
-        sendResult({ success: true });
-        pendingPhaseTransitionRef.current = () => router.push("/customer/dashboard");
-        // Required before the override — see BLOCKER_SYSTEM_MSG's declaration.
-        send({
-          type: "conversation.item.create",
-          item: { type: "message", role: "user", content: [{ type: "input_text", text: BLOCKER_SYSTEM_MSG }] },
-        });
-        send({
-          type: "response.create",
-          response: { instructions: BLOCKER_ASSET_KNOWLEDGE_INSTRUCTIONS(langRef.current, overlayEntry.data.title) },
-        });
-        return;
-      }
 
       // ── SUSTAINABILITY TERMS: show disclosure modal after Q2 is answered ──
       // Never re-shown during revisit — reaching revisit means Phase 1 (and this disclosure)

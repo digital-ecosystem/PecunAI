@@ -25,6 +25,7 @@ import VoiceSessionReview from "./VoiceSessionReview";
 import VoiceSigningPhase from "./VoiceSigningPhase";
 import VoiceMicAccessModal from "./VoiceMicAccessModal";
 import VoiceRecordingDisclaimerModal from "./VoiceRecordingDisclaimerModal";
+import VoiceComplianceConfirmModal from "./VoiceComplianceConfirmModal";
 import VoiceLanguageSelectModal from "./VoiceLanguageSelectModal";
 import { useVoiceSession, SessionState } from "@/hooks/useVoiceSession";
 
@@ -131,7 +132,7 @@ export default function VoiceSessionShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, languageSelected, selectLanguage, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, skipPendingTransition, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, submitAssetKnowledgeQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, backToProduct, backToPersonalInfo, backToInvestment, backToContracts, backToFinalQA, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, fastModeIntroActive, setFastModeIntroActive, growNextCardRef, postExplainReaskId, clearPostExplainReask } =
+  const { state, started, analyserNode, micAnalyserNode, micDenied, retryMicAccess, recordingDisclaimerConfirmed, confirmRecordingDisclaimer, languageSelected, selectLanguage, isAISpeaking, bargeInActive, voiceAnswerCount, startSession, toggleMute, onAnswerConfirmed, clearPendingVoiceAnswer, onPrev, skipQuestion, stopAudio, skipPendingTransition, startPTT, activeCardId, pendingVoiceAnswer, savedAnswers, explainOverlayData, explainTriggerClose, requestExplanation, closeExplainOverlay, chatMessages, phase6ChatMessages, isChatAITyping, notifyChatOpen, sendChatMessage, sendPhase6ChatMessage, submitPTTQuestion, submitPhase1Answer, submitAssetKnowledgeQuestion, voicePhase, termsSubStep, productSuggestion, advanceToPersonalInfo, isTransitioningToPersonalInfo, onPersonalInfoSubmitted, primeReconnectAudio, confirmInvestment, confirmContracts, confirmReadyToSign, backToProduct, backToPersonalInfo, backToInvestment, backToContracts, backToFinalQA, isRevisiting, scrollCarousel, revisitQuestions, advancePhase, moveToTerms1, confirmTerms1, confirmTerms2, confirmSustainabilityTerms, fastMode, toggleFastMode, fastModeIntroActive, setFastModeIntroActive, growNextCardRef, postExplainReaskId, clearPostExplainReask, pendingComplianceStop, confirmComplianceStop, changeComplianceAnswer } =
     useVoiceSession({
       sessionId,
       questions,
@@ -503,6 +504,7 @@ export default function VoiceSessionShell({
     if (!activeQ) return;
     if (!fastMode && !activeQ.options?.length) return;
     if (modalOpen) return;
+    if (pendingComplianceStop) return;   // confirmation is up — don't stack the answer modal behind it
     if (suppressAutoModalRef.current) return;
     if (chatOpen) return;
     if (explainOpen) return;
@@ -515,7 +517,7 @@ export default function VoiceSessionShell({
     // without this dep nothing re-evaluates the effect and the options modal
     // never comes back after the explanation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCardId, isAISpeaking, state.session, voicePhase, termsSubStep, bargeInActive, isRevisiting, fastMode, fastModeIntroActive, explainOpen]);
+  }, [activeCardId, isAISpeaking, state.session, voicePhase, termsSubStep, bargeInActive, isRevisiting, fastMode, fastModeIntroActive, explainOpen, pendingComplianceStop]);
 
   useEffect(() => {
     notifyChatOpen(chatOpen);
@@ -1701,6 +1703,27 @@ export default function VoiceSessionShell({
               clearPendingVoiceAnswer();
               clearPostExplainReask();
               if (modalQ) await onAnswerConfirmed(modalQ, value);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Compliance stop: confirm before the session ends ──────── */}
+      {/* The answer modal closed itself and set suppressAutoModalRef on submit,
+          so "Antwort ändern" has to clear that and reopen it explicitly —
+          otherwise the customer lands back on the carousel with no way to
+          answer. See COMPLIANCE_STOP_CONFIRMATION_PLAN.md. */}
+      <AnimatePresence>
+        {pendingComplianceStop && (
+          <VoiceComplianceConfirmModal
+            key="compliance-confirm"
+            questionText={pendingComplianceStop.questionText}
+            answerLabel={pendingComplianceStop.answerLabel}
+            onConfirm={confirmComplianceStop}
+            onChange={() => {
+              suppressAutoModalRef.current = false;
+              changeComplianceAnswer();
+              setModalOpen(true);
             }}
           />
         )}

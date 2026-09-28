@@ -41,6 +41,7 @@ export async function GET() {
       // required, so `partner` is always a real row and partnerName always a real name.
       agentName: agent ? fullName(agent) : null,
       partnerName: fullName(partner),
+      isBlocked: !!(session.workflowState?.stepData as Record<string, unknown> | null)?.sessionBlocked,
     }));
 
     return NextResponse.json({ success: true, sessions });
