@@ -53,6 +53,22 @@ Dies ist der **zentrale Eröffnungsantrag**, mit dem Kund:innen bei der **Schelh
 - Erklärungen/Handlungen von froots gelten als für den Kunden verbindlich; die Bank prüft diese **nicht** auf Zweckmäßigkeit oder Richtigkeit und trägt **keine Haftung** für Anlageentscheidungen von froots; keine Aufsichts-/Kontrollpflicht der Bank über froots.
 - **Ausdrücklich ausgenommen** von der Vollmacht: Verfügungen über das Depot/Konto selbst (z. B. Schließung), Erteilung von Zeichnungsberechtigungen, Weitergabe der Vollmacht an Dritte, Barverfügungen, Überweisungen, Übertragung von Vermögenswerten auf fremde Institute, Verpfändung zulasten der Vermögenswerte. Kreditfinanzierte Käufe erfordern eine **gesonderte schriftliche Kreditvereinbarung**.
 - froots erhält sämtliche Konto-/Depotauszüge und Abrechnungen; Zustellung an froots gilt als Zustellung an den Kunden.
+
+### Darf der Portfoliomanager (Vermögensverwalter) Überweisungen durchführen?
+**Nein.** Die Vollmacht umfasst ausschließlich die **Verwaltung des Depots** — also Kauf und Verkauf
+von Wertpapieren. **Überweisungen, Barverfügungen und Geldauszahlungen sind ausdrücklich von der
+Vollmacht ausgenommen.** Der Portfoliomanager kann **kein Geld von Ihrem Konto abheben, überweisen
+oder an Dritte weiterleiten**.
+
+Ebenfalls ausdrücklich ausgenommen sind:
+- Verfügungen über das Depot oder Konto selbst (z. B. Schließung),
+- die Erteilung von Zeichnungsberechtigungen,
+- die Weitergabe der Vollmacht an Dritte,
+- die Übertragung von Vermögenswerten auf fremde Institute,
+- die Verpfändung von Vermögenswerten.
+
+Das **Verrechnungskonto dient ausdrücklich nicht dem Zahlungsverkehr**. Kreditfinanzierte Käufe
+erfordern eine **gesonderte schriftliche Kreditvereinbarung**.
 - Kunde ermächtigt die Bank, die **Verwaltungsgebühr** (Höhe/Stichtag/Berechnung gemäß separater Vereinbarung mit froots, hier nicht beziffert) dem Verrechnungskonto anzulasten und an froots weiterzuleiten.
 - **Recht & Gerichtsstand:** österreichisches Recht; Gerichtsstand **Graz**.
 - **Kündigung:** jederzeit möglich; erfordert nachweisliche schriftliche Verständigung der Bank.

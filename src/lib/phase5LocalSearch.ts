@@ -26,6 +26,7 @@ const DOC_FILES = [
   // of "Froots Allgemeine Informationsbroschüren" (Fassung 04/2024). Both are searchable; the
   // markdown flags which is current so the model can say so rather than pick one at random.
   "froots Kundeninformationen WAG 2018.md",
+  "FAQ - Produkt, Ablauf & Begriffe.md",
 ];
 
 // First existing entry wins. The fallback is deliberate: production's docker-compose mounts

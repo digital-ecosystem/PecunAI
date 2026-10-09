@@ -53,6 +53,47 @@ interface Case {
 
 const CASES: Case[] = [
   {
+    origin: "corpus audit 2026-10-09 — asked 15x across variants, answered by no document",
+    question: "Wie funktioniert das Produkt?",
+    expect: ["Anlegerprofil"],
+  },
+  {
+    origin: "corpus audit 2026-10-09",
+    question: "Wie funktioniert das Portfolio genau?",
+    expect: ["Rebalancing"],
+  },
+  {
+    origin: "corpus audit 2026-10-09 — asked repeatedly, FMA never explained",
+    question: "Wer ist die FMA und was ist die Konzession?",
+    expect: ["Finanzmarktaufsicht"],
+  },
+  {
+    origin: "corpus audit 2026-10-09 — term used throughout, never defined",
+    question: "Was sind Aktien?",
+    expect: ["Beteiligung an einem Unternehmen"],
+  },
+  {
+    origin: "corpus audit 2026-10-09 — distinct from the customer withdrawing their own money",
+    question: "Kann der Vermögensverwalter sich mein Geld auszahlen lassen?",
+    expect: ["Er darf nicht"],
+  },
+  {
+    origin: "corpus audit 2026-10-09",
+    question: "Kann ich alles verlieren?",
+    expect: ["keine Garantie"],
+  },
+  {
+    origin: "client 2026-10-09 — AI hedged; the answer is legally defined, not contract-dependent",
+    question: "Darf der Portfoliomanager Überweisungen durchführen?",
+    expect: ["ausgenommen"],
+    forbid: ["nicht ausdrücklich geregelt"],
+  },
+  {
+    origin: "client 2026-10-09 — 'the answers aren't that precise any more'",
+    question: "Wofür brauche ich ein Wertpapierunternehmen?",
+    expect: ["WPDLU"],
+  },
+  {
     origin: "client 2026-08-19, session ea7e7cc8 (Knopper) — asked twice, answered about the wrong company",
     question: "Kann der Vermögensverwalter einfach mit meinem Geld verschwinden?",
     expect: ["Verfügungsgewalt", "Schelhammer"],

@@ -18,6 +18,27 @@ Das Unternehmen agiert als Vermittler und Koordinator zwischen Endkund:innen, De
 
 ---
 
+## Wofür brauche ich ein Wertpapierunternehmen?
+Ein **Wertpapierdienstleistungsunternehmen (WPDLU)** wie die 4money Financial Services GmbH darf
+Anlageberatung sowie die Annahme und Übermittlung von Aufträgen zu Finanzinstrumenten erbringen —
+das ist in Österreich **konzessionspflichtig** und steht unter **Aufsicht der FMA**
+(§ 4 Abs. 1 WAG 2018). Ohne diese Konzession dürfte Ihnen niemand eine Veranlagung dieser Art
+vermitteln oder dazu beraten.
+
+Konkret brauchen Sie das WPDLU, weil es:
+- Sie **berät** und Ihr Risikoprofil sowie die Geeignetheit der Veranlagung prüft,
+- Ihren **Auftrag entgegennimmt und weiterleitet** — an die Depotbank
+  (**Schelhammer Capital Bank**) und den Vermögensverwalter (**froots**),
+- als **Vermittler und Koordinator** zwischen Ihnen, der Depotbank und dem Vermögensverwalter
+  auftritt und den korrekten Ablauf sicherstellt.
+
+Zu Ihrem Schutz gilt dabei: Das WPDLU darf **keine Kundengelder und keine Wertpapiere halten**
+(gesetzliches Verbot) und verfügt über eine **Vermögensschadenhaftpflichtversicherung**
+(1 000 000 € pro Schadensfall, 1 500 000 € pro Jahr). Ihr Geld liegt ausschließlich auf Ihrem
+eigenen Depot bei der Depotbank.
+
+---
+
 ## Legal & Regulatory Framework
 4money Financial Services GmbH ist ein **von der FMA konzessioniertes WPDLU**.  
 Das bedeutet:
