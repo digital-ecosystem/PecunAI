@@ -53,7 +53,7 @@ function OTPAuthPostgresContent() {
     return () => { mounted = false }
   }, [])
 
-  const handleSendOTP = async (e: React.FormEvent<HTMLButtonElement>) => {
+  const handleSendOTP = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
@@ -93,6 +93,12 @@ function OTPAuthPostgresContent() {
           }, 1000);
         } else {
           setStep('otp');
+          // The server accepted this address, so any block shown for a previous
+          // one no longer applies.
+          setBlockedUntil(null);
+          setCountdown(null);
+          setResendCooldownUntil(null);
+          setResendCooldownCountdown(null);
           setMessage('OTP wurde an Ihre E-Mail-Adresse gesendet! Überprüfen Sie Ihren Posteingang.');
           setMessageType('success');
           setTimeout(() => {
@@ -133,7 +139,7 @@ function OTPAuthPostgresContent() {
     }
   };
 
-  const handleVerifyOTP = async (e: React.FormEvent<HTMLButtonElement>) => {
+  const handleVerifyOTP = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
@@ -169,10 +175,21 @@ function OTPAuthPostgresContent() {
     }
   };
 
+  const resetOtpFlowState = () => {
+    setOtp('');
+    setResendCount(null);
+    setResendLimit(null);
+    setBlockedUntil(null);
+    setCountdown(null);
+    setResendCooldownUntil(null);
+    setResendCooldownCountdown(null);
+  };
+
   const resetForm = () => {
     setStep('email');
-    setOtp('');
     setMessage('');
+    setMessageType('');
+    resetOtpFlowState();
   };
 
   // Countdown timer for blocked resend cooldown
@@ -298,10 +315,17 @@ function OTPAuthPostgresContent() {
                     type="email"
                     id="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      // A different address is a fresh attempt — never inherit the
+                      // previous one's resend count, block or cooldown.
+                      resetOtpFlowState();
+                      setMessage('');
+                      setMessageType('');
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !loading && email) {
-                        handleSendOTP(e as React.FormEvent<HTMLButtonElement>);
+                        handleSendOTP(e);
                       }
                     }}
                     required
@@ -342,7 +366,7 @@ function OTPAuthPostgresContent() {
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !loading && otp.length === 6) {
-                      handleVerifyOTP(e as React.FormEvent<HTMLButtonElement>);
+                      handleVerifyOTP(e);
                     }
                   }}
                   required
@@ -370,6 +394,17 @@ function OTPAuthPostgresContent() {
                   </>
                 )}
               </button>
+
+              {(resendCount ?? 0) >= 2 && !blockedUntil && (
+                <div className="rounded-[10px] border border-surface-raised bg-surface-raised/40 px-3 py-2.5">
+                  <p className="text-xs leading-relaxed text-text-muted">
+                    <span className="font-semibold text-text-primary">Code nicht angekommen?</span>{' '}
+                    Bitte sehen Sie auch im Spam-Ordner nach und prüfen Sie die Adresse auf
+                    Tippfehler: <span className="font-medium text-text-primary">{email}</span>.
+                    Über {'\u201EZurück zur E-Mail\u201C'} können Sie eine andere Adresse verwenden.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
