@@ -157,8 +157,8 @@ Eignungsprüfung in diesem Onboarding beruhen darauf.
 ## Was ist ein Portfoliomanager und was macht er? Was darf er, was darf er nicht — kann er sich mein Geld auszahlen lassen?
 
 Der **Portfoliomanager (Vermögensverwalter)** ist froots. Er verwaltet Ihr Depot **nach eigenem
-freiem Ermessen** im Rahmen Ihres Risikoprofils, ohne für jede einzelne Transaktion Ihre Zustimmung
-einholen zu müssen.
+freiem Ermessen** im Rahmen Ihres Risikoprofils **und entsprechend des vertraglichen Mandates**,
+ohne für jede einzelne Transaktion Ihre Zustimmung einholen zu müssen.
 
 **Er darf:** Wertpapiere kaufen und verkaufen, Bezugsrechte ausüben, Devisen anschaffen oder
 veräußern, Wertpapiere umtauschen sowie Konten und Depots eröffnen oder schließen.
@@ -183,9 +183,20 @@ Es gibt zwei getrennte Entgelte:
   **höchstens 5 %** des Einmalbetrags; üblich sind rund **3 %** bzw. beim Sparplan das Dreifache
   der Monatsrate.
 
-Zum Zeitpunkt der Unterschrift ist **keine separate Zahlung** zu leisten: Die Entgelte werden über
-das Verrechnungskonto abgerechnet. Den konkreten Betrag für Ihren Fall zeigt Ihnen die
-Kostenübersicht in dieser Beratung.
+**Von welchem Konto wird die einmalige Gebühr abgebucht?** Das hängt davon ab, wie Sie
+veranlagen — hier werden die beiden Fälle unterschiedlich behandelt:
+
+- **Einmalerlag:** Die einmalige Gebühr läuft über das **Verrechnungskonto** — sie wird vom
+  überwiesenen Betrag abgezogen, sodass der verbleibende Betrag veranlagt wird.
+- **Monatlicher Sparplan:** Die einmalige Gebühr wird vom **Referenzkonto** eingezogen, also von
+  Ihrem eigenen Girokonto — **nicht** vom Verrechnungskonto.
+
+Das laufende Beratungshonorar wird in beiden Fällen über das **Depotverrechnungskonto**
+abgerechnet. Reicht dessen Deckung nicht aus, kann es stattdessen vom hinterlegten Referenzkonto
+eingezogen werden.
+
+Eine **separate Überweisung bei der Unterschrift ist nicht nötig**. Den konkreten Betrag für Ihren
+Fall zeigt Ihnen die Kostenübersicht in dieser Beratung.
 
 ---
 

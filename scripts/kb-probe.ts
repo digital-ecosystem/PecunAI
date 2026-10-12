@@ -53,6 +53,16 @@ interface Case {
 
 const CASES: Case[] = [
   {
+    origin: "client 2026-10-12 — corrected our wording as factually wrong",
+    question: "Von welchem Konto wird die einmalige Vermittlungsgebühr abgebucht?",
+    expect: ["Referenzkonto"],
+  },
+  {
+    origin: "client 2026-10-12 — asked for the contractual mandate to be named",
+    question: "Was ist die Aufgabe des Portfolioverwalters?",
+    expect: ["vertraglichen Mandates"],
+  },
+  {
     origin: "corpus audit 2026-10-09 — asked 15x across variants, answered by no document",
     question: "Wie funktioniert das Produkt?",
     expect: ["Anlegerprofil"],
